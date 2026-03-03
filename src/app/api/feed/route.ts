@@ -68,6 +68,17 @@ export async function GET(req: NextRequest) {
 
   const myKudosSet = new Set(myKudos?.map((k) => k.feed_item_id));
 
+  // Fetch comment counts
+  const { data: commentCounts } = await supabase
+    .from("comments")
+    .select("feed_item_id")
+    .in("feed_item_id", itemIds);
+
+  const commentMap: Record<string, number> = {};
+  commentCounts?.forEach((c) => {
+    commentMap[c.feed_item_id] = (commentMap[c.feed_item_id] ?? 0) + 1;
+  });
+
   // Get team memberships for profiles
   const { data: teamMembers } = await supabase
     .from("team_members")
@@ -92,6 +103,7 @@ export async function GET(req: NextRequest) {
       teamName: teamMap[item.profile_id] ?? null,
       kudosCount: kudosMap[item.id] ?? 0,
       hasKudos: myKudosSet.has(item.id),
+      commentCount: commentMap[item.id] ?? 0,
     };
   });
 

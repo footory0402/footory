@@ -65,7 +65,7 @@ export async function PUT(
   }
 
   // Notify stat owner
-  createNotification(supabase, {
+  await createNotification(supabase, {
     userId: stat.profile_id,
     type: "verified",
     title: "기록이 검증되었습니다",

@@ -132,7 +132,7 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
 }
 
 export default function FeedCard({ item, onKudos, onComment }: FeedCardProps) {
-  const lvl = LEVELS[Math.min(item.playerLevel, 5) - 1];
+  const lvl = LEVELS[Math.max(1, Math.min(item.playerLevel, 5)) - 1];
   const posColor = POSITION_COLORS[item.playerPosition as Position] ?? "#A1A1AA";
 
   return (
@@ -183,7 +183,7 @@ export default function FeedCard({ item, onKudos, onComment }: FeedCardProps) {
           className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
         >
           <span>💬</span>
-          <span>{(item.metadata.comment_count as number) > 0 ? item.metadata.comment_count as number : "댓글"}</span>
+          <span>{item.commentCount > 0 ? item.commentCount : "댓글"}</span>
         </button>
       </div>
     </div>

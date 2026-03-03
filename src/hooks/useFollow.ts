@@ -24,10 +24,15 @@ export function useFollow(targetId: string, initialFollowing = false) {
     setIsFollowing(!prev); // Optimistic
 
     const method = prev ? "DELETE" : "POST";
-    const res = await fetch("/api/follows", {
+    const url = prev
+      ? `/api/follows?targetId=${encodeURIComponent(targetId)}`
+      : "/api/follows";
+    const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetId }),
+      ...(prev ? {} : {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId }),
+      }),
     });
 
     if (!res.ok) {

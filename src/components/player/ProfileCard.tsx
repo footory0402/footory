@@ -13,7 +13,7 @@ interface ProfileCardProps {
 export default function ProfileCard({ profile, onEdit }: ProfileCardProps) {
   const currentYear = new Date().getFullYear();
   const age = currentYear - profile.birthYear;
-  const lvl = LEVELS[Math.min(profile.level, 5) - 1];
+  const lvl = LEVELS[Math.max(1, Math.min(profile.level, 5)) - 1];
   const nextLvl = profile.level < 5 ? LEVELS[profile.level] : null;
   const xpProgress = nextLvl
     ? ((profile.xp - lvl.minXp) / (nextLvl.minXp - lvl.minXp)) * 100
@@ -35,7 +35,7 @@ export default function ProfileCard({ profile, onEdit }: ProfileCardProps) {
       <div
         className="pointer-events-none absolute top-0 right-0 h-24 w-24 opacity-20"
         style={{
-          background: `radial-gradient(circle at 100% 0%, ${lvl.color} 0%, transparent 70%)`,
+          background: `radial-gradient(circle at 100% 0%, #D4A853 0%, transparent 70%)`,
         }}
       />
 

@@ -24,7 +24,7 @@ function FollowsContent() {
     // Fetch current user id for follow button logic
     fetch("/api/profile")
       .then((r) => r.json())
-      .then((d) => setCurrentUserId(d.profile?.id))
+      .then((d) => setCurrentUserId(d.id))
       .catch(() => {});
   }, []);
 

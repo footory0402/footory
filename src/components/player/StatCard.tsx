@@ -13,7 +13,7 @@ export default function StatCard({ stat }: StatCardProps) {
   const isGood = isLowerBetter ? (diff != null && diff < 0) : improved;
 
   return (
-    <div className="flex min-w-[120px] shrink-0 flex-col gap-1.5 rounded-[10px] border border-border bg-card-alt p-3">
+    <div className="flex min-w-[120px] shrink-0 flex-col gap-1.5 rounded-[10px] border border-border bg-card p-3">
       <span className="text-[16px]">{measurement?.icon ?? "📊"}</span>
       <span className="text-[10px] text-text-3">{measurement?.label ?? stat.type}</span>
       <div className="flex items-end gap-1">

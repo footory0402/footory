@@ -17,6 +17,7 @@ export interface FeedItemEnriched {
   teamName: string | null;
   kudosCount: number;
   hasKudos: boolean;
+  commentCount: number;
 }
 
 export function useFeed() {

@@ -42,7 +42,7 @@ export async function POST(
       .select("name")
       .eq("id", user.id)
       .single();
-    createNotification(supabase, {
+    await createNotification(supabase, {
       userId: feedItem.profile_id,
       type: "kudos",
       title: `${sender?.name ?? "누군가"}님이 응원했습니다`,
@@ -62,11 +62,13 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await supabase
+  const { error } = await supabase
     .from("kudos")
     .delete()
     .eq("feed_item_id", feedItemId)
     .eq("user_id", user.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });
 }

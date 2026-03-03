@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     .select("name, handle")
     .eq("id", user.id)
     .single();
-  createNotification(supabase, {
+  await createNotification(supabase, {
     userId: targetId,
     type: "follow",
     title: `${sender?.name ?? "누군가"}님이 팔로우했습니다`,
@@ -63,7 +63,7 @@ export async function DELETE(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { targetId } = await req.json();
+  const targetId = req.nextUrl.searchParams.get("targetId");
   if (!targetId) return NextResponse.json({ error: "Invalid target" }, { status: 400 });
 
   const { error } = await supabase

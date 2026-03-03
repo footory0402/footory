@@ -31,7 +31,7 @@ export default function AppHeader() {
             <path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
           {count > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F87171] px-1 text-[10px] font-bold text-white">
               {count > 99 ? "99+" : count}
             </span>
           )}

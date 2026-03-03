@@ -71,7 +71,7 @@ export async function POST(
       .select("name")
       .eq("id", user.id)
       .single();
-    createNotification(supabase, {
+    await createNotification(supabase, {
       userId: feedItem.profile_id,
       type: "comment",
       title: `${sender?.name ?? "누군가"}님이 댓글을 남겼습니다`,
@@ -88,7 +88,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await params; // consume params
+  const { id: feedItemId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -96,11 +96,15 @@ export async function DELETE(
   const { commentId } = await req.json();
   if (!commentId) return NextResponse.json({ error: "commentId required" }, { status: 400 });
 
-  await supabase
+  const { error, count } = await supabase
     .from("comments")
-    .delete()
+    .delete({ count: "exact" })
     .eq("id", commentId)
+    .eq("feed_item_id", feedItemId)
     .eq("user_id", user.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ ok: true });
 }
