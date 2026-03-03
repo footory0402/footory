@@ -36,11 +36,15 @@ export async function GET(req: NextRequest) {
   if (type === "all" || type === "team") {
     const { data } = await supabase
       .from("teams")
-      .select("id, handle, name, logo_url, city, member_count")
+      .select("id, handle, name, logo_url, city, team_members(count)")
       .ilike("name", pattern)
       .limit(20);
 
-    teams = data ?? [];
+    teams = (data ?? []).map((t) => {
+      const { team_members, ...rest } = t as Record<string, unknown>;
+      const members = team_members as { count: number }[] | undefined;
+      return { ...rest, member_count: members?.[0]?.count ?? 0 };
+    });
   }
 
   return NextResponse.json({ players, teams });

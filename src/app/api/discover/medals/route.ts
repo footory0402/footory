@@ -8,8 +8,8 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("medals")
-    .select("*, profiles!medals_player_id_fkey(id, handle, name, avatar_url, position, level)")
-    .order("awarded_at", { ascending: false })
+    .select("*, profiles!medals_profile_id_fkey(id, handle, name, avatar_url, position, level)")
+    .order("achieved_at", { ascending: false })
     .limit(limit);
 
   if (error) {

@@ -8,13 +8,20 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("teams")
-    .select("id, handle, name, logo_url, city, member_count")
+    .select("id, handle, name, logo_url, city, team_members(count)")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  // Flatten member count
+  const teams = (data ?? []).map((t) => {
+    const { team_members, ...rest } = t as Record<string, unknown>;
+    const members = team_members as { count: number }[] | undefined;
+    return { ...rest, member_count: members?.[0]?.count ?? 0 };
+  });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ teams: data ?? [] });
+  return NextResponse.json({ teams });
 }
