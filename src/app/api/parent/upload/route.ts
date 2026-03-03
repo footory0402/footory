@@ -1,0 +1,114 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+const VALID_TAGS = [
+  "1v1 돌파", "슈팅", "퍼스트터치", "전진패스", "헤딩경합", "1v1 수비", "기타",
+] as const;
+
+// POST: Parent quick upload — clip goes to child's library
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Verify parent role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.role !== "parent") {
+    return NextResponse.json({ error: "Parent role required" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const { child_id, video_url, duration_seconds, file_size_bytes, tags, clip_id, thumbnail_url } = body as {
+    child_id: string;
+    video_url: string;
+    duration_seconds?: number;
+    file_size_bytes?: number;
+    tags?: string[];
+    clip_id?: string;
+    thumbnail_url?: string;
+  };
+
+  if (!child_id || !video_url) {
+    return NextResponse.json({ error: "child_id and video_url are required" }, { status: 400 });
+  }
+
+  // Verify parent-child link
+  const { data: link } = await supabase
+    .from("parent_links")
+    .select("id")
+    .eq("parent_id", user.id)
+    .eq("child_id", child_id)
+    .single();
+
+  if (!link) {
+    return NextResponse.json({ error: "Not linked to this child" }, { status: 403 });
+  }
+
+  const validTags = (tags ?? []).filter((t: string) =>
+    (VALID_TAGS as readonly string[]).includes(t)
+  );
+
+  // Insert clip — owner_id is the child, uploaded_by is the parent
+  const highlightEnd = Math.min(duration_seconds ?? 30, 30);
+
+  const { data: clip, error } = await supabase
+    .from("clips")
+    .insert({
+      ...(clip_id ? { id: clip_id } : {}),
+      owner_id: child_id,
+      uploaded_by: user.id,
+      video_url,
+      duration_seconds: duration_seconds ?? null,
+      file_size_bytes: file_size_bytes ?? null,
+      memo: null,
+      thumbnail_url: thumbnail_url ?? null,
+      highlight_start: 0,
+      highlight_end: highlightEnd,
+      highlight_status: "done",
+    })
+    .select()
+    .single();
+
+  if (error || !clip) {
+    return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
+  }
+
+  // Insert tags
+  if (validTags.length > 0) {
+    for (const tagName of validTags) {
+      const { count } = await supabase
+        .from("clip_tags")
+        .select("id", { count: "exact", head: true })
+        .eq("tag_name", tagName)
+        .in("clip_id",
+          (await supabase.from("clips").select("id").eq("owner_id", child_id)).data?.map(c => c.id) ?? []
+        );
+
+      await supabase.from("clip_tags").insert({
+        clip_id: clip.id,
+        tag_name: tagName,
+        is_top: (count ?? 0) === 0,
+      });
+    }
+  }
+
+  // Feed item goes to child's feed
+  await supabase.from("feed_items").insert({
+    profile_id: child_id,
+    type: "highlight" as const,
+    reference_id: clip.id,
+    metadata: {
+      thumbnail_url: clip.thumbnail_url,
+      duration: clip.duration_seconds,
+      tags: validTags,
+      uploaded_by_parent: true,
+    },
+  });
+
+  return NextResponse.json({ clip }, { status: 201 });
+}

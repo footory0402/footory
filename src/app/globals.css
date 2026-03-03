@@ -1,26 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Background */
+  --color-bg: #0C0C0E;
+  --color-card: #161618;
+  --color-card-alt: #1E1E22;
+  --color-elevated: #252528;
+
+  /* Accent */
+  --color-accent: #D4A853;
+  --color-accent-dim: #8B6914;
+
+  /* Semantic */
+  --color-green: #4ADE80;
+  --color-red: #F87171;
+  --color-blue: #60A5FA;
+  --color-yellow: #FBBF24;
+
+  /* Position */
+  --color-pos-fw: #F87171;
+  --color-pos-mf: #4ADE80;
+  --color-pos-df: #60A5FA;
+  --color-pos-gk: #FBBF24;
+
+  /* Text */
+  --color-text-1: #FAFAFA;
+  --color-text-2: #A1A1AA;
+  --color-text-3: #71717A;
+
+  /* Border */
+  --color-border: #27272A;
+
+  /* Font */
+  --font-body: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-stat: 'Oswald', 'Noto Sans KR', sans-serif;
+  --font-brand: 'Rajdhani', 'Noto Sans KR', sans-serif;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 999px;
+
+  /* Easing */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Accent helpers */
+:root {
+  --accent-bg: rgba(212, 168, 83, 0.08);
+  --accent-gradient: linear-gradient(135deg, #D4A853, #8B6914);
+  --accent-shine: linear-gradient(135deg, #D4A853 0%, #F5D78E 40%, #D4A853 60%, #8B6914 100%);
+  --border-accent: rgba(212, 168, 83, 0.2);
+  --divider: rgba(255, 255, 255, 0.05);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text-1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideR {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes growW {
+  from { width: 0; }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.4s var(--ease-out) both;
+}
+
+.animate-slide-r {
+  animation: slideR 0.35s var(--ease-out) both;
+}
+
+.animate-pop-in {
+  animation: popIn 0.3s var(--ease-out) both;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s var(--ease-out) both;
+}
+
+.animate-grow-w {
+  animation: growW 0.8s var(--ease-out) both;
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.3s var(--ease-out) both;
 }

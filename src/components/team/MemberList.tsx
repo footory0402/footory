@@ -1,0 +1,70 @@
+"use client";
+
+import Link from "next/link";
+import type { TeamMember } from "@/lib/types";
+import Avatar from "@/components/ui/Avatar";
+import { LevelBadge, PositionBadge } from "@/components/ui/Badge";
+import type { Position } from "@/lib/constants";
+
+interface MemberListProps {
+  members: TeamMember[];
+  isAdmin?: boolean;
+  onRemove?: (profileId: string) => void;
+}
+
+export default function MemberList({ members, isAdmin, onRemove }: MemberListProps) {
+  if (members.length === 0) {
+    return (
+      <div className="py-8 text-center text-[13px] text-text-3">
+        아직 멤버가 없어요
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      {members.map((member) => (
+        <div
+          key={member.id}
+          className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition-colors hover:bg-card"
+        >
+          <Link href={`/p/${member.profile?.handle}`} className="flex flex-1 items-center gap-3">
+            <Avatar
+              name={member.profile?.name ?? "?"}
+              imageUrl={member.profile?.avatar_url ?? undefined}
+              size="sm"
+              level={member.profile?.level ?? 1}
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-semibold text-text-1">
+                  {member.profile?.name ?? "알 수 없음"}
+                </span>
+                {member.role === "admin" && (
+                  <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+                    관리자
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {member.profile?.position && (
+                  <PositionBadge position={member.profile.position as Position} size="sm" />
+                )}
+                <LevelBadge level={member.profile?.level ?? 1} size="sm" />
+              </div>
+            </div>
+          </Link>
+
+          {isAdmin && member.role !== "admin" && onRemove && (
+            <button
+              onClick={() => onRemove(member.profileId)}
+              className="text-[12px] text-text-3 hover:text-red-400"
+            >
+              제거
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
