@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import type { Profile } from "@/lib/types";
 import { POSITIONS, POSITION_LABELS, type Position } from "@/lib/constants";
 
@@ -119,7 +120,7 @@ export default function ProfileEditSheet({
             <button onClick={handleAvatarClick} className="group relative">
               <div className="h-20 w-20 overflow-hidden rounded-full bg-border">
                 {profile.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  <Image src={profile.avatarUrl} alt="" width={80} height={80} className="h-full w-full object-cover" unoptimized={profile.avatarUrl.includes("?t=")} />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-2xl text-text-3">
                     {profile.name[0]}

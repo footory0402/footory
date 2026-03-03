@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 interface PopularTeamsProps {
@@ -36,7 +37,7 @@ export default function PopularTeams({ teams, loading }: PopularTeamsProps) {
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card-alt text-[18px]">
             {t.logo_url ? (
-              <img src={t.logo_url} alt={t.name} className="h-full w-full rounded-full object-cover" />
+              <Image src={t.logo_url} alt={t.name} width={40} height={40} className="h-full w-full rounded-full object-cover" />
             ) : (
               "⚽"
             )}

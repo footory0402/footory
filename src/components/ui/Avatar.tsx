@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { LEVELS } from "@/lib/constants";
 
 interface AvatarProps {
@@ -14,6 +15,8 @@ const sizes = {
   lg: "h-14 w-14 text-[17px]",
 };
 
+const pxSizes = { xs: 28, sm: 36, md: 48, lg: 56 };
+
 export default function Avatar({ name, size = "md", level = 1, imageUrl }: AvatarProps) {
   const lvl = LEVELS[Math.min(level, 5) - 1];
   const borderColor = lvl.color;
@@ -29,7 +32,14 @@ export default function Avatar({ name, size = "md", level = 1, imageUrl }: Avata
     >
       <div className={`${sizes[size]} flex items-center justify-center bg-card-alt font-semibold text-text-2`}>
         {imageUrl ? (
-          <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+          <Image
+            src={imageUrl}
+            alt={name}
+            width={pxSizes[size]}
+            height={pxSizes[size]}
+            className="h-full w-full object-cover"
+            unoptimized={imageUrl.includes("?t=")}
+          />
         ) : (
           name.charAt(0)
         )}
