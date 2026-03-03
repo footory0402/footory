@@ -1,6 +1,31 @@
 import type { Metadata, Viewport } from "next";
+import { Noto_Sans_KR, Oswald, Rajdhani } from "next/font/google";
 import AppShell from "@/components/layout/AppShell";
 import "./globals.css";
+
+const notoSansKr = Noto_Sans_KR({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--noto-sans-kr",
+  display: "swap",
+  preload: true,
+});
+
+const oswald = Oswald({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--oswald",
+  display: "swap",
+  preload: true,
+});
+
+const rajdhani = Rajdhani({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--rajdhani",
+  display: "swap",
+  preload: true,
+});
 
 export const metadata: Metadata = {
   title: "FOOTORY — 유스 축구 선수 프로필",
@@ -20,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={`${notoSansKr.variable} ${oswald.variable} ${rajdhani.variable}`}>
       <body>
         <div className="mx-auto min-h-dvh max-w-[430px]">
           <AppShell>{children}</AppShell>
