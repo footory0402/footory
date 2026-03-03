@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
@@ -7,7 +8,7 @@ interface Props {
   params: Promise<{ handle: string }>;
 }
 
-async function getProfile(handle: string) {
+const getProfile = cache(async (handle: string) => {
   const supabase = await createClient();
 
   const { data: profile, error } = await supabase
@@ -71,7 +72,7 @@ async function getProfile(handle: string) {
     medals: medals.data ?? [],
     seasons: seasons.data ?? [],
   };
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;

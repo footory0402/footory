@@ -8,7 +8,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**",
+        hostname: "pub-d8652b9f924e49008171d003cf92a2be.r2.dev",
+      },
+      {
+        protocol: "https",
+        hostname: "vzsfsssmrcucyggyvpgu.supabase.co",
       },
     ],
   },
@@ -20,7 +24,7 @@ const nextConfig: NextConfig = {
       ],
     },
     {
-      source: "/api/:path*",
+      source: "/api/((?!discover).*)",
       headers: [
         { key: "Cache-Control", value: "private, no-cache" },
       ],

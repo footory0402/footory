@@ -72,24 +72,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
   }
 
-  // Insert tags + auto is_top for first clip of each tag
+  // Insert tags + auto is_top for first clip of each tag (batched)
   if (validTags.length > 0) {
-    for (const tagName of validTags) {
-      // Check if this is the first clip for this tag
-      const { count } = await supabase
-        .from("clip_tags")
-        .select("id", { count: "exact", head: true })
-        .eq("tag_name", tagName)
-        .in("clip_id",
-          (await supabase.from("clips").select("id").eq("owner_id", user.id)).data?.map(c => c.id) ?? []
-        );
+    // Single query: get user's existing clip IDs
+    const { data: userClips } = await supabase
+      .from("clips")
+      .select("id")
+      .eq("owner_id", user.id)
+      .neq("id", clip.id);
 
-      await supabase.from("clip_tags").insert({
+    const userClipIds = (userClips ?? []).map((c) => c.id);
+
+    // Single query: count existing tags for user's other clips
+    let existingTagNames: Set<string> = new Set();
+    if (userClipIds.length > 0) {
+      const { data: existingTags } = await supabase
+        .from("clip_tags")
+        .select("tag_name")
+        .in("tag_name", validTags)
+        .in("clip_id", userClipIds);
+      existingTagNames = new Set((existingTags ?? []).map((t) => t.tag_name));
+    }
+
+    // Single bulk insert
+    await supabase.from("clip_tags").insert(
+      validTags.map((tagName) => ({
         clip_id: clip.id,
         tag_name: tagName,
-        is_top: (count ?? 0) === 0,
-      });
-    }
+        is_top: !existingTagNames.has(tagName),
+      }))
+    );
   }
 
   // Auto-create feed item

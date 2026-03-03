@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 export interface FeedItemEnriched {
   id: string;
@@ -24,26 +24,27 @@ export function useFeed() {
   const [items, setItems] = useState<FeedItemEnriched[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [cursor, setCursor] = useState<string | null>(null);
+  const cursorRef = useRef<string | null>(null);
 
   const fetchFeed = useCallback(async (reset = false) => {
     setLoading(true);
     try {
-      const url = reset || !cursor
+      const cur = cursorRef.current;
+      const url = reset || !cur
         ? "/api/feed"
-        : `/api/feed?cursor=${encodeURIComponent(cursor)}`;
+        : `/api/feed?cursor=${encodeURIComponent(cur)}`;
       const res = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
       const newItems: FeedItemEnriched[] = data.items ?? [];
 
       setItems((prev) => reset ? newItems : [...prev, ...newItems]);
-      setCursor(data.nextCursor);
+      cursorRef.current = data.nextCursor;
       setHasMore(!!data.nextCursor);
     } finally {
       setLoading(false);
     }
-  }, [cursor]);
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -51,7 +52,7 @@ export function useFeed() {
   }, [fetchFeed, loading, hasMore]);
 
   const refresh = useCallback(async () => {
-    setCursor(null);
+    cursorRef.current = null;
     setHasMore(true);
     setLoading(true);
     try {
@@ -59,7 +60,7 @@ export function useFeed() {
       if (!res.ok) return;
       const data = await res.json();
       setItems(data.items ?? []);
-      setCursor(data.nextCursor);
+      cursorRef.current = data.nextCursor;
       setHasMore(!!data.nextCursor);
     } finally {
       setLoading(false);

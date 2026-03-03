@@ -18,15 +18,15 @@ export async function GET(req: NextRequest) {
   let teams: unknown[] = [];
 
   if (type === "all" || type === "player") {
-    const query = supabase
+    let query = supabase
       .from("profiles")
       .select("id, handle, name, avatar_url, position, level, city, birth_year")
       .limit(20);
 
     if (isHandleSearch) {
-      query.ilike("handle", pattern);
+      query = query.ilike("handle", pattern);
     } else {
-      query.or(`name.ilike.${pattern},handle.ilike.${pattern}`);
+      query = query.or(`name.ilike.${pattern},handle.ilike.${pattern}`);
     }
 
     const { data } = await query;

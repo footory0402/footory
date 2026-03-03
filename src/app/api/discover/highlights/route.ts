@@ -29,5 +29,8 @@ export async function GET(req: NextRequest) {
   const result = hasMore ? items.slice(0, limit) : items;
   const nextCursor = hasMore ? result[result.length - 1].created_at : null;
 
-  return NextResponse.json({ items: result, nextCursor });
+  return NextResponse.json(
+    { items: result, nextCursor },
+    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+  );
 }

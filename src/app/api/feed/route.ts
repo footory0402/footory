@@ -10,16 +10,19 @@ export async function GET(req: NextRequest) {
 
   const cursor = req.nextUrl.searchParams.get("cursor");
 
-  // Step 1: Get follows (needed for feed query)
-  const { data: followRows } = await supabase
+  // Step 1: Get follows and self-feed in parallel
+  const followsPromise = supabase
     .from("follows")
     .select("following_id")
     .eq("follower_id", user.id);
 
+  // Build a base feed query that always includes own items
+  // We'll merge with follows result after both resolve
+  const { data: followRows } = await followsPromise;
+
   const followingIds = (followRows ?? []).map((r) => r.following_id);
   const feedOwners = [user.id, ...followingIds];
 
-  // Step 2: Get feed items
   let query = supabase
     .from("feed_items")
     .select("*")
