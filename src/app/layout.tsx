@@ -5,15 +5,15 @@ import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],
   variable: "--noto-sans-kr",
   display: "swap",
-  preload: true,
+  preload: false,
 });
 
 const oswald = Oswald({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "700"],
   variable: "--oswald",
   display: "swap",
   preload: true,
@@ -21,10 +21,10 @@ const oswald = Oswald({
 
 const rajdhani = Rajdhani({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["600", "700"],
   variable: "--rajdhani",
   display: "swap",
-  preload: true,
+  preload: false,
 });
 
 export const metadata: Metadata = {

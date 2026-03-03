@@ -1,83 +1,77 @@
-"use client";
-
-import { useState } from "react";
-import {
-  useSearch,
-  useHotHighlights,
-  useRecentMedals,
-  useRecommendedPlayers,
-  usePopularTeams,
-} from "@/hooks/useDiscover";
-import SearchResults from "@/components/discover/SearchResults";
+import { createClient } from "@/lib/supabase/server";
 import HotHighlights from "@/components/discover/HotHighlights";
 import RecentMedals from "@/components/discover/RecentMedals";
 import RecommendedPlayers from "@/components/discover/RecommendedPlayers";
 import PopularTeams from "@/components/discover/PopularTeams";
+import DiscoverSearch from "@/components/discover/DiscoverSearch";
 
-export default function DiscoverPage() {
-  const [query, setQuery] = useState("");
-  const isSearching = query.trim().length > 0;
+export const revalidate = 60;
 
-  const search = useSearch(query);
-  const highlights = useHotHighlights();
-  const medals = useRecentMedals();
-  const players = useRecommendedPlayers();
-  const teams = usePopularTeams();
+async function fetchDiscoverData() {
+  const supabase = await createClient();
+
+  const [highlightsRes, medalsRes, playersRes, teamsRes] = await Promise.all([
+    supabase
+      .from("feed_items")
+      .select("*, profiles!feed_items_profile_id_fkey(id, handle, name, avatar_url, position, level)")
+      .eq("type", "highlight")
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("medals")
+      .select("*, profiles!medals_profile_id_fkey(id, handle, name, avatar_url, position, level)")
+      .order("achieved_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("profiles")
+      .select("id, handle, name, avatar_url, position, level, city, birth_year")
+      .order("updated_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("teams")
+      .select("id, handle, name, logo_url, city, team_members(count)")
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
+
+  const teams = (teamsRes.data ?? []).map((t) => {
+    const { team_members, ...rest } = t as Record<string, unknown>;
+    const members = team_members as { count: number }[] | undefined;
+    return { ...rest, member_count: members?.[0]?.count ?? 0 };
+  });
+
+  return {
+    highlights: highlightsRes.data ?? [],
+    medals: medalsRes.data ?? [],
+    players: playersRes.data ?? [],
+    teams,
+  };
+}
+
+export default async function DiscoverPage() {
+  const data = await fetchDiscoverData();
 
   return (
     <div className="px-4 pt-4 pb-24">
-      {/* Search Bar */}
-      <div className="flex h-10 items-center rounded-full bg-card-alt px-4">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="7" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="선수, 팀, 핸들 검색"
-          className="ml-2 flex-1 bg-transparent text-[13px] text-text-1 placeholder:text-text-3 outline-none"
-        />
-        {isSearching && (
-          <button onClick={() => setQuery("")} className="text-text-3 text-[18px] leading-none">
-            ×
-          </button>
-        )}
+      <DiscoverSearch />
+
+      <div className="mt-6 space-y-6">
+        <Section title="인기 하이라이트" emoji="🔥">
+          <HotHighlights items={data.highlights} loading={false} />
+        </Section>
+
+        <Section title="최근 메달" emoji="🏅">
+          <RecentMedals medals={data.medals} loading={false} />
+        </Section>
+
+        <Section title="추천 선수" emoji="⭐">
+          <RecommendedPlayers players={data.players} loading={false} />
+        </Section>
+
+        <Section title="인기 팀" emoji="🏟">
+          <PopularTeams teams={data.teams} loading={false} />
+        </Section>
       </div>
-
-      {isSearching ? (
-        <div className="mt-4">
-          <SearchResults
-            players={search.players}
-            teams={search.teams}
-            loading={search.loading}
-            query={query}
-          />
-        </div>
-      ) : (
-        <div className="mt-6 space-y-6">
-          {/* Hot Highlights */}
-          <Section title="인기 하이라이트" emoji="🔥">
-            <HotHighlights items={highlights.items} loading={highlights.loading} />
-          </Section>
-
-          {/* Recent Medals */}
-          <Section title="최근 메달" emoji="🏅">
-            <RecentMedals medals={medals.medals} loading={medals.loading} />
-          </Section>
-
-          {/* Recommended Players */}
-          <Section title="추천 선수" emoji="⭐">
-            <RecommendedPlayers players={players.players} loading={players.loading} />
-          </Section>
-
-          {/* Popular Teams */}
-          <Section title="인기 팀" emoji="🏟">
-            <PopularTeams teams={teams.teams} loading={teams.loading} />
-          </Section>
-        </div>
-      )}
     </div>
   );
 }
