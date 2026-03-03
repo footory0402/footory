@@ -114,7 +114,7 @@ CREATE TABLE teams (
   description TEXT,
   city TEXT,
   founded_year INTEGER,
-  invite_code TEXT UNIQUE DEFAULT encode(gen_random_bytes(4), 'hex'),
+  invite_code TEXT UNIQUE DEFAULT lower(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

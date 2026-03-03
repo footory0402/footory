@@ -35,7 +35,13 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 비로그인 사용자가 보호 라우트 접근 시 → 로그인으로
-  if (!user && PROTECTED_ROUTES.some((r) => pathname.startsWith(r))) {
+  const isPublicRoute =
+    AUTH_ROUTES.some((r) => pathname.startsWith(r)) ||
+    pathname.startsWith("/p/") ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/api/");
+
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
