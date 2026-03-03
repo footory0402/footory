@@ -8,9 +8,9 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const cursor = req.nextUrl.searchParams.get("cursor"); // ISO timestamp
+  const cursor = req.nextUrl.searchParams.get("cursor");
 
-  // Get who I follow
+  // Step 1: Get follows (needed for feed query)
   const { data: followRows } = await supabase
     .from("follows")
     .select("following_id")
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   const followingIds = (followRows ?? []).map((r) => r.following_id);
   const feedOwners = [user.id, ...followingIds];
 
+  // Step 2: Get feed items
   let query = supabase
     .from("feed_items")
     .select("*")
@@ -37,56 +38,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ items: [], nextCursor: null, profiles: {} });
   }
 
-  // Fetch profiles for all feed owners
+  // Step 3: All enrichment queries IN PARALLEL
   const profileIds = [...new Set(items.map((i) => i.profile_id))];
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, handle, name, avatar_url, level, position")
-    .in("id", profileIds);
-
-  const profileMap: Record<string, typeof profiles extends (infer T)[] | null ? T : never> = {};
-  profiles?.forEach((p) => { profileMap[p.id] = p; });
-
-  // Fetch kudos counts
   const itemIds = items.map((i) => i.id);
-  const { data: kudosCounts } = await supabase
-    .from("kudos")
-    .select("feed_item_id")
-    .in("feed_item_id", itemIds);
+
+  const [profilesRes, kudosRes, myKudosRes, commentsRes, teamRes] = await Promise.all([
+    supabase.from("profiles").select("id, handle, name, avatar_url, level, position").in("id", profileIds),
+    supabase.from("kudos").select("feed_item_id").in("feed_item_id", itemIds),
+    supabase.from("kudos").select("feed_item_id").eq("user_id", user.id).in("feed_item_id", itemIds),
+    supabase.from("comments").select("feed_item_id").in("feed_item_id", itemIds),
+    supabase.from("team_members").select("profile_id, teams(name)").in("profile_id", profileIds),
+  ]);
+
+  const profileMap: Record<string, (typeof profilesRes.data extends (infer T)[] | null ? T : never)> = {};
+  profilesRes.data?.forEach((p) => { profileMap[p.id] = p; });
 
   const kudosMap: Record<string, number> = {};
-  kudosCounts?.forEach((k) => {
-    kudosMap[k.feed_item_id] = (kudosMap[k.feed_item_id] ?? 0) + 1;
-  });
+  kudosRes.data?.forEach((k) => { kudosMap[k.feed_item_id] = (kudosMap[k.feed_item_id] ?? 0) + 1; });
 
-  // Check which items the current user has kudos'd
-  const { data: myKudos } = await supabase
-    .from("kudos")
-    .select("feed_item_id")
-    .eq("user_id", user.id)
-    .in("feed_item_id", itemIds);
-
-  const myKudosSet = new Set(myKudos?.map((k) => k.feed_item_id));
-
-  // Fetch comment counts
-  const { data: commentCounts } = await supabase
-    .from("comments")
-    .select("feed_item_id")
-    .in("feed_item_id", itemIds);
+  const myKudosSet = new Set(myKudosRes.data?.map((k) => k.feed_item_id));
 
   const commentMap: Record<string, number> = {};
-  commentCounts?.forEach((c) => {
-    commentMap[c.feed_item_id] = (commentMap[c.feed_item_id] ?? 0) + 1;
-  });
-
-  // Get team memberships for profiles
-  const { data: teamMembers } = await supabase
-    .from("team_members")
-    .select("profile_id, teams(name)")
-    .in("profile_id", profileIds);
+  commentsRes.data?.forEach((c) => { commentMap[c.feed_item_id] = (commentMap[c.feed_item_id] ?? 0) + 1; });
 
   const teamMap: Record<string, string> = {};
-  teamMembers?.forEach((tm) => {
+  teamRes.data?.forEach((tm) => {
     const teamName = (tm.teams as unknown as { name: string })?.name;
     if (teamName) teamMap[tm.profile_id] = teamName;
   });
@@ -111,7 +87,10 @@ export async function GET(req: NextRequest) {
     ? items[items.length - 1].created_at
     : null;
 
-  return NextResponse.json({ items: enrichedItems, nextCursor });
+  return NextResponse.json(
+    { items: enrichedItems, nextCursor },
+    { headers: { "Cache-Control": "private, max-age=5, stale-while-revalidate=15" } }
+  );
 }
 
 export async function POST(req: NextRequest) {

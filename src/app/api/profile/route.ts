@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { calculateLevel, type LevelCounts } from "@/lib/level";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+async function fetchCounts(supabase: SupabaseClient, userId: string): Promise<LevelCounts> {
+  const [featured, stats, topClips, medals, seasons] = await Promise.all([
+    supabase.from("featured_clips").select("*", { count: "exact", head: true }).eq("profile_id", userId),
+    supabase.from("stats").select("*", { count: "exact", head: true }).eq("profile_id", userId),
+    supabase.from("clip_tags").select("*, clips!inner(owner_id)", { count: "exact", head: true })
+      .eq("is_top", true)
+      .eq("clips.owner_id" as never, userId),
+    supabase.from("medals").select("*", { count: "exact", head: true }).eq("profile_id", userId),
+    supabase.from("seasons").select("*", { count: "exact", head: true }).eq("profile_id", userId),
+  ]);
+  return {
+    featuredCount: featured.count ?? 0,
+    statsCount: stats.count ?? 0,
+    topClipsCount: topClips.count ?? 0,
+    medalsCount: medals.count ?? 0,
+    seasonsCount: seasons.count ?? 0,
+  };
+}
 
 export async function GET() {
   const supabase = await createClient();
@@ -10,43 +30,26 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  if (error || !profile) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-  }
-
-  // Fetch counts for level calculation and display
-  const [featured, stats, topClips, medals, seasons, team] = await Promise.all([
-    supabase.from("featured_clips").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-    supabase.from("stats").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-    supabase.from("clip_tags").select("id, clip_id, clips!inner(owner_id)", { count: "exact", head: true })
-      .eq("is_top", true)
-      .eq("clips.owner_id" as never, user.id),
-    supabase.from("medals").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-    supabase.from("seasons").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
+  // Fetch profile, counts, and team in parallel
+  const [profileResult, counts, teamResult] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    fetchCounts(supabase, user.id),
     supabase.from("team_members").select("team_id, teams(name)").eq("profile_id", user.id).limit(1).single(),
   ]);
 
-  const counts: LevelCounts = {
-    featuredCount: featured.count ?? 0,
-    statsCount: stats.count ?? 0,
-    topClipsCount: topClips.count ?? 0,
-    medalsCount: medals.count ?? 0,
-    seasonsCount: seasons.count ?? 0,
-  };
-
-  // Calculate and update level if changed
-  const newLevel = calculateLevel(profile, counts);
-  if (newLevel !== profile.level) {
-    await supabase.from("profiles").update({ level: newLevel }).eq("id", user.id);
+  if (profileResult.error || !profileResult.data) {
+    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  const teamData = team.data as unknown as { team_id: string; teams: { name: string } } | null;
+  const profile = profileResult.data;
+  const newLevel = calculateLevel(profile, counts);
+
+  // Fire-and-forget level update (don't await)
+  if (newLevel !== profile.level) {
+    supabase.from("profiles").update({ level: newLevel }).eq("id", user.id).then();
+  }
+
+  const teamData = teamResult.data as unknown as { team_id: string; teams: { name: string } } | null;
 
   return NextResponse.json({
     ...profile,
@@ -54,6 +57,8 @@ export async function GET() {
     teamName: teamData?.teams?.name ?? null,
     teamId: teamData?.team_id ?? null,
     counts,
+  }, {
+    headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" },
   });
 }
 
@@ -67,7 +72,6 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json();
 
-  // Allowed fields
   const allowed = ["name", "handle", "position", "birth_year", "city", "bio", "public_email", "public_phone", "show_email", "show_phone"] as const;
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
@@ -80,7 +84,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "No valid fields" }, { status: 400 });
   }
 
-  // Handle validation
   if (updates.handle) {
     const handle = updates.handle as string;
     if (!/^[a-z0-9_]{3,20}$/.test(handle)) {
@@ -111,23 +114,8 @@ export async function PUT(request: NextRequest) {
   }
 
   // Recalculate level
-  const [featured, stats, topClips, medals, seasons] = await Promise.all([
-    supabase.from("featured_clips").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-    supabase.from("stats").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-    supabase.from("clip_tags").select("id, clip_id, clips!inner(owner_id)", { count: "exact", head: true })
-      .eq("is_top", true)
-      .eq("clips.owner_id" as never, user.id),
-    supabase.from("medals").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-    supabase.from("seasons").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-  ]);
-
-  const newLevel = calculateLevel(updated, {
-    featuredCount: featured.count ?? 0,
-    statsCount: stats.count ?? 0,
-    topClipsCount: topClips.count ?? 0,
-    medalsCount: medals.count ?? 0,
-    seasonsCount: seasons.count ?? 0,
-  });
+  const counts = await fetchCounts(supabase, user.id);
+  const newLevel = calculateLevel(updated, counts);
 
   if (newLevel !== updated.level) {
     await supabase.from("profiles").update({ level: newLevel }).eq("id", user.id);
