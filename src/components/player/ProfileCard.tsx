@@ -12,7 +12,7 @@ interface ProfileCardProps {
 
 export default function ProfileCard({ profile, onEdit }: ProfileCardProps) {
   const currentYear = new Date().getFullYear();
-  const age = currentYear - profile.birthYear;
+  const age = profile.birthYear ? currentYear - profile.birthYear : null;
   const lvl = LEVELS[Math.max(1, Math.min(profile.level, 5)) - 1];
   const nextLvl = profile.level < 5 ? LEVELS[profile.level] : null;
   const xpProgress = nextLvl
@@ -45,9 +45,11 @@ export default function ProfileCard({ profile, onEdit }: ProfileCardProps) {
           <div className="relative">
             <Avatar name={profile.name} size="lg" level={profile.level} imageUrl={profile.avatarUrl} />
             {/* Position badge overlay */}
-            <div className="absolute -right-1 -bottom-1">
-              <PositionBadge position={profile.position} />
-            </div>
+            {profile.position && (
+              <div className="absolute -right-1 -bottom-1">
+                <PositionBadge position={profile.position} />
+              </div>
+            )}
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -65,11 +67,16 @@ export default function ProfileCard({ profile, onEdit }: ProfileCardProps) {
             </div>
             <span className="text-[12px] text-text-3">@{profile.handle}</span>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-text-2">
-              <span>{profile.position}{profile.subPosition ? ` · ${profile.subPosition}` : ""}</span>
-              <span className="text-text-3">·</span>
-              <span>{profile.birthYear} (만 {age}세)</span>
-              <span className="text-text-3">·</span>
-              <span>{profile.city}</span>
+              {profile.position && <span>{profile.position}{profile.subPosition ? ` · ${profile.subPosition}` : ""}</span>}
+              {profile.birthYear && age != null && (
+                <>{profile.position && <span className="text-text-3">·</span>}<span>{profile.birthYear} (만 {age}세)</span></>
+              )}
+              {profile.city && (
+                <>{(profile.position || profile.birthYear) && <span className="text-text-3">·</span>}<span>{profile.city}</span></>
+              )}
+              {!profile.position && !profile.birthYear && !profile.city && (
+                <span className="text-text-3">프로필을 설정해주세요</span>
+              )}
             </div>
             {profile.teamName && (
               <span className="mt-0.5 text-[12px] text-accent">{profile.teamName}</span>

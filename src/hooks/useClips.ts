@@ -28,28 +28,17 @@ export function useClips() {
 
       const { data: clipsData } = await supabase
         .from("clips")
-        .select("*")
+        .select("*, clip_tags(tag_name)")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false });
 
       if (!clipsData) { setClips([]); return; }
 
-      const clipIds = clipsData.map((c) => c.id);
-      const { data: tagsData } = await supabase
-        .from("clip_tags")
-        .select("clip_id, tag_name")
-        .in("clip_id", clipIds);
-
-      const tagMap: Record<string, string[]> = {};
-      tagsData?.forEach((t) => {
-        if (!tagMap[t.clip_id]) tagMap[t.clip_id] = [];
-        tagMap[t.clip_id].push(t.tag_name);
-      });
-
       setClips(
-        clipsData.map((c) => ({
+        clipsData.map((c: any) => ({
           ...c,
-          tags: tagMap[c.id] ?? [],
+          tags: (c.clip_tags ?? []).map((t: any) => t.tag_name),
+          clip_tags: undefined,
         }))
       );
     } finally {
@@ -135,31 +124,24 @@ export function useTagClips() {
 
       const { data: clips } = await supabase
         .from("clips")
-        .select("id, video_url, thumbnail_url, duration_seconds")
+        .select("id, video_url, thumbnail_url, duration_seconds, clip_tags(tag_name, is_top)")
         .eq("owner_id", user.id);
 
       if (!clips) { setTagClips({}); return; }
 
-      const clipIds = clips.map((c) => c.id);
-      const { data: tags } = await supabase
-        .from("clip_tags")
-        .select("clip_id, tag_name, is_top")
-        .in("clip_id", clipIds);
-
       const result: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
-      tags?.forEach((t) => {
-        const clip = clips.find((c) => c.id === t.clip_id);
-        if (!clip) return;
-        // Map db tag_name to SKILL_TAGS id
-        const tagId = t.tag_name;
-        if (!result[tagId]) result[tagId] = [];
-        result[tagId].push({
-          id: clip.id,
-          duration: clip.duration_seconds ?? 0,
-          tag: t.tag_name,
-          isTop: t.is_top,
-          videoUrl: clip.video_url,
-          thumbnailUrl: clip.thumbnail_url,
+      (clips as any[]).forEach((clip) => {
+        (clip.clip_tags ?? []).forEach((t: any) => {
+          const tagId = t.tag_name;
+          if (!result[tagId]) result[tagId] = [];
+          result[tagId].push({
+            id: clip.id,
+            duration: clip.duration_seconds ?? 0,
+            tag: t.tag_name,
+            isTop: t.is_top,
+            videoUrl: clip.video_url,
+            thumbnailUrl: clip.thumbnail_url,
+          });
         });
       });
 

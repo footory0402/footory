@@ -186,7 +186,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         onClose={() => setShareOpen(false)}
         url={shareUrl}
         title={`${profile.name} — Footory`}
-        text={`${profile.name} | ${POSITION_LABELS[profile.position] ?? profile.position} | Footory 선수 프로필`}
+        text={`${profile.name}${profile.position ? ` | ${POSITION_LABELS[profile.position] ?? profile.position}` : ""} | Footory 선수 프로필`}
       />
     </div>
   );

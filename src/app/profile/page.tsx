@@ -15,7 +15,6 @@ import { useStats } from "@/hooks/useStats";
 import { useTagClips } from "@/hooks/useClips";
 import type { AwardedMedal } from "@/lib/medals";
 import {
-  MOCK_PROFILE,
   MOCK_SEASONS,
 } from "@/lib/mock-data";
 
@@ -28,7 +27,7 @@ export default function ProfilePage() {
   const { stats, medals, loading: statsLoading, addStat } = useStats();
   const { tagClips, loading: tagClipsLoading, fetchTagClips } = useTagClips();
 
-  const displayProfile = profile ?? (error ? MOCK_PROFILE : null);
+  const displayProfile = profile;
 
   useEffect(() => {
     fetchTagClips();

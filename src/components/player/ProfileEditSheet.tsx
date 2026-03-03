@@ -23,9 +23,9 @@ export default function ProfileEditSheet({
 }: ProfileEditSheetProps) {
   const [name, setName] = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
-  const [position, setPosition] = useState<Position>(profile.position);
-  const [birthYear, setBirthYear] = useState(String(profile.birthYear));
-  const [city, setCity] = useState(profile.city);
+  const [position, setPosition] = useState<Position | "">(profile.position ?? "");
+  const [birthYear, setBirthYear] = useState(profile.birthYear ? String(profile.birthYear) : "");
+  const [city, setCity] = useState(profile.city ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [saving, setSaving] = useState(false);
   const [handleStatus, setHandleStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
@@ -36,9 +36,9 @@ export default function ProfileEditSheet({
   useEffect(() => {
     setName(profile.name);
     setHandle(profile.handle);
-    setPosition(profile.position);
-    setBirthYear(String(profile.birthYear));
-    setCity(profile.city);
+    setPosition(profile.position ?? "");
+    setBirthYear(profile.birthYear ? String(profile.birthYear) : "");
+    setCity(profile.city ?? "");
     setBio(profile.bio ?? "");
     setHandleStatus("idle");
   }, [profile]);
@@ -70,9 +70,9 @@ export default function ProfileEditSheet({
       await onSave({
         name,
         handle,
-        position,
-        birth_year: Number(birthYear),
-        city,
+        position: position || null,
+        birth_year: birthYear ? Number(birthYear) : null,
+        city: city || null,
         bio: bio || null,
       });
       onClose();

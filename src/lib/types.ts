@@ -4,10 +4,10 @@ export interface Profile {
   id: string;
   handle: string;
   name: string;
-  position: Position;
+  position: Position | null;
   subPosition?: string;
-  birthYear: number;
-  city: string;
+  birthYear: number | null;
+  city: string | null;
   teamName?: string;
   teamId?: string;
   avatarUrl?: string;

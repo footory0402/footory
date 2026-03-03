@@ -29,8 +29,8 @@ export async function proxy(request: NextRequest) {
   );
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const { pathname } = request.nextUrl;
 
@@ -41,14 +41,14 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/api/");
 
-  if (!user && !isPublicRoute) {
+  if (!session && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // 로그인 사용자가 auth 라우트 접근 시 → 홈으로
-  if (user && AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+  if (session && AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

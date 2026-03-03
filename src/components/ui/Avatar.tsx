@@ -11,7 +11,7 @@ const sizes = {
   xs: "h-7 w-7 text-[11px]",
   sm: "h-9 w-9 text-[13px]",
   md: "h-12 w-12 text-[15px]",
-  lg: "h-16 w-16 text-[18px]",
+  lg: "h-14 w-14 text-[17px]",
 };
 
 export default function Avatar({ name, size = "md", level = 1, imageUrl }: AvatarProps) {
