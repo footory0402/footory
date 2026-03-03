@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotification } from "@/lib/notifications";
 
 export async function PUT(
   _request: NextRequest,
@@ -62,6 +63,15 @@ export async function PUT(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  // Notify stat owner
+  createNotification(supabase, {
+    userId: stat.profile_id,
+    type: "verified",
+    title: "기록이 검증되었습니다",
+    body: "코치가 회원님의 기록을 검증했습니다",
+    referenceId: id,
+  });
 
   return NextResponse.json({ stat: updated });
 }

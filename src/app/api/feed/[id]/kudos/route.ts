@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(
   _req: NextRequest,
@@ -27,6 +28,27 @@ export async function POST(
     .insert({ feed_item_id: feedItemId, user_id: user.id });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Send notification to feed item owner
+  const { data: feedItem } = await supabase
+    .from("feed_items")
+    .select("profile_id")
+    .eq("id", feedItemId)
+    .single();
+
+  if (feedItem && feedItem.profile_id !== user.id) {
+    const { data: sender } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", user.id)
+      .single();
+    createNotification(supabase, {
+      userId: feedItem.profile_id,
+      type: "kudos",
+      title: `${sender?.name ?? "누군가"}님이 응원했습니다`,
+      referenceId: feedItemId,
+    });
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

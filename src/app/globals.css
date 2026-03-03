@@ -118,3 +118,9 @@ body {
 .animate-scale-up {
   animation: scaleUp 0.3s var(--ease-out) both;
 }
+
+@keyframes logoFadeIn {
+  0% { opacity: 0; transform: scale(0.85); filter: brightness(0.5); }
+  60% { opacity: 1; transform: scale(1.02); filter: brightness(1.2); }
+  100% { opacity: 1; transform: scale(1); filter: brightness(1); }
+}

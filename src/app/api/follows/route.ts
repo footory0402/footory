@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotification } from "@/lib/notifications";
 
 // POST /api/follows — follow a user
 export async function POST(req: NextRequest) {
@@ -39,6 +40,19 @@ export async function POST(req: NextRequest) {
     supabase.from("profiles").update({ following_count: (myProfile?.following_count ?? 0) + 1 }).eq("id", user.id),
     supabase.from("profiles").update({ followers_count: (targetProfile?.followers_count ?? 0) + 1 }).eq("id", targetId),
   ]);
+
+  // Send follow notification
+  const { data: sender } = await supabase
+    .from("profiles")
+    .select("name, handle")
+    .eq("id", user.id)
+    .single();
+  createNotification(supabase, {
+    userId: targetId,
+    type: "follow",
+    title: `${sender?.name ?? "누군가"}님이 팔로우했습니다`,
+    referenceId: sender?.handle ?? user.id,
+  });
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

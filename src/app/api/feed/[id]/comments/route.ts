@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createNotification } from "@/lib/notifications";
 
 // GET /api/feed/[id]/comments — list comments for a feed item
 export async function GET(
@@ -56,6 +57,28 @@ export async function POST(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Send notification to feed item owner
+  const { data: feedItem } = await supabase
+    .from("feed_items")
+    .select("profile_id")
+    .eq("id", feedItemId)
+    .single();
+
+  if (feedItem && feedItem.profile_id !== user.id) {
+    const { data: sender } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", user.id)
+      .single();
+    createNotification(supabase, {
+      userId: feedItem.profile_id,
+      type: "comment",
+      title: `${sender?.name ?? "누군가"}님이 댓글을 남겼습니다`,
+      body: content.trim().slice(0, 100),
+      referenceId: feedItemId,
+    });
+  }
 
   return NextResponse.json({ comment: data }, { status: 201 });
 }

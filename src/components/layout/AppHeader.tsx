@@ -1,9 +1,19 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useUnreadCount } from "@/hooks/useNotifications";
 
 export default function AppHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { count, fetchCount } = useUnreadCount();
+
+  useEffect(() => {
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchCount]);
 
   return (
     <header className="sticky top-0 z-40 flex h-[42px] items-center justify-between border-b border-border bg-bg/90 px-4 backdrop-blur-xl">
@@ -11,11 +21,25 @@ export default function AppHeader() {
         FOOTORY
       </h1>
       <div className="flex items-center gap-2">
-        {pathname === "/" && <HeaderButton icon="bell" />}
-        {pathname.startsWith("/profile") && (
+        {/* Bell icon on all main pages */}
+        <button
+          onClick={() => router.push("/notifications")}
+          className="relative flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+          {count > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {count > 99 ? "99+" : count}
+            </span>
+          )}
+        </button>
+        {pathname.startsWith("/profile") && !pathname.includes("/settings") && (
           <>
             <HeaderButton icon="share" />
-            <HeaderButton icon="settings" />
+            <HeaderButton icon="settings" onClick={() => router.push("/profile/settings")} />
           </>
         )}
         {pathname.startsWith("/team") && <HeaderButton icon="share" />}
@@ -24,15 +48,9 @@ export default function AppHeader() {
   );
 }
 
-function HeaderButton({ icon }: { icon: "bell" | "share" | "settings" }) {
+function HeaderButton({ icon, onClick }: { icon: "share" | "settings"; onClick?: () => void }) {
   return (
-    <button className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card">
-      {icon === "bell" && (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 01-3.46 0" />
-        </svg>
-      )}
+    <button onClick={onClick} className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card">
       {icon === "share" && (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 17l9.2-9.2M17 17V7H7" />
