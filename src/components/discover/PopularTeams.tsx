@@ -32,7 +32,7 @@ export default function PopularTeams({ teams, loading }: PopularTeamsProps) {
       {teams.map((t) => (
         <Link
           key={t.id}
-          href={`/team/${t.handle}`}
+          href={`/team/${t.id}`}
           className="flex w-36 shrink-0 flex-col items-center gap-2 rounded-[12px] bg-card p-4"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card-alt text-[18px]">

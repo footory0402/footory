@@ -38,6 +38,15 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const hasQuery = query.trim().length > 0;
@@ -175,7 +184,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                   {search.teams.map((t) => (
                     <Link
                       key={t.id}
-                      href={`/team/${t.handle}`}
+                      href={`/team/${t.id}`}
                       onClick={onClose}
                       className="flex items-center gap-3 rounded-[10px] bg-card p-3 active:bg-card-alt transition-colors"
                     >

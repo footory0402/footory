@@ -21,7 +21,9 @@ async function getTeam(handle: string) {
   const [members, albums] = await Promise.all([
     supabase
       .from("team_members")
-      .select("id, team_id, profile_id, role, joined_at")
+      .select(
+        "id, team_id, profile_id, role, joined_at, profiles(id, handle, name, avatar_url, position, level)"
+      )
       .eq("team_id", team.id)
       .order("joined_at"),
     supabase

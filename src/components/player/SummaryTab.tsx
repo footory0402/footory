@@ -18,6 +18,8 @@ interface SummaryTabProps {
   level: number;
   stats: Stat[];
   medals: Medal[];
+  onAddStat?: () => void;
+  onShareProfile?: () => void;
 }
 
 /**
@@ -31,7 +33,13 @@ function maxSlotsByLevel(level: number): number {
   return MAX_FEATURED_SLOTS; // 3
 }
 
-export default function SummaryTab({ level, stats, medals }: SummaryTabProps) {
+export default function SummaryTab({
+  level,
+  stats,
+  medals,
+  onAddStat,
+  onShareProfile,
+}: SummaryTabProps) {
   const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -104,7 +112,7 @@ export default function SummaryTab({ level, stats, medals }: SummaryTabProps) {
             ))}
           </div>
         ) : (
-          <EmptyCTA text="첫 측정 기록을 추가하세요" />
+          <EmptyCTA text="첫 측정 기록을 추가하세요" onAction={onAddStat} />
         )}
       </SectionCard>
 
@@ -124,7 +132,10 @@ export default function SummaryTab({ level, stats, medals }: SummaryTabProps) {
       </SectionCard>
 
       {/* Share CTA */}
-      <button className="flex w-full items-center justify-center gap-2 rounded-[10px] py-3 text-[13px] font-semibold text-accent transition-colors active:bg-card">
+      <button
+        onClick={onShareProfile}
+        className="flex w-full items-center justify-center gap-2 rounded-[10px] py-3 text-[13px] font-semibold text-accent transition-colors active:bg-card"
+      >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 17l9.2-9.2M17 17V7H7" />
         </svg>
@@ -142,4 +153,3 @@ export default function SummaryTab({ level, stats, medals }: SummaryTabProps) {
     </ErrorBoundary>
   );
 }
-

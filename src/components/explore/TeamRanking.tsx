@@ -45,7 +45,7 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
         {items.slice(0, 8).map((t, idx) => (
           <Link
             key={t.team_id}
-            href={`/team/${t.handle}`}
+            href={`/team/${t.team_id}`}
             className="flex w-[160px] shrink-0 flex-col items-center gap-2 rounded-[12px] bg-card p-4"
           >
             <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
       {items.map((t, idx) => (
         <Link
           key={t.team_id}
-          href={`/team/${t.handle}`}
+          href={`/team/${t.team_id}`}
           className="flex items-center gap-3 border-b border-card-alt px-4 py-3 last:border-b-0 active:bg-card-alt transition-colors"
         >
           {/* Rank */}

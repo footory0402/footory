@@ -35,10 +35,25 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
       .catch(() => {});
   }, [id]);
 
-  if (loading || !team) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center pt-20">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!team) {
+    return (
+      <div className="px-4 pt-16 text-center">
+        <p className="text-[15px] font-semibold text-text-1">팀을 찾을 수 없습니다</p>
+        <p className="mt-1 text-[13px] text-text-3">존재하지 않거나 접근 권한이 없습니다</p>
+        <Link
+          href="/team"
+          className="mt-4 inline-flex rounded-[10px] border border-border px-4 py-2 text-[13px] text-text-2"
+        >
+          팀 목록으로
+        </Link>
       </div>
     );
   }

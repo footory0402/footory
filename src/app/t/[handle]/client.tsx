@@ -50,7 +50,7 @@ function mapMembers(rows: Record<string, unknown>[]): TeamMember[] {
     id: r.id as string,
     teamId: r.team_id as string,
     profileId: r.profile_id as string,
-    role: r.role as "admin" | "member",
+    role: r.role as "admin" | "member" | "alumni",
     joinedAt: r.joined_at as string,
     profile: r.profiles as TeamMember["profile"],
   }));

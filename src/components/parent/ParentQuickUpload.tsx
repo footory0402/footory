@@ -18,6 +18,27 @@ interface ParentQuickUploadProps {
 
 const STEP_TITLES = ["영상 선택", "태그 선택", "완료"];
 
+async function uploadViaDirectApi(
+  file: Blob,
+  key: string,
+  contentType: string
+): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("key", key);
+  form.append("contentType", contentType);
+
+  const res = await fetch("/api/upload/direct", {
+    method: "POST",
+    body: form,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? "Direct upload failed");
+  }
+}
+
 export default function ParentQuickUpload({ child, onClose, onComplete }: ParentQuickUploadProps) {
   const store = useUploadStore();
   const [uploading, setUploading] = useState(false);
@@ -38,13 +59,19 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
 
       // 2. Upload to R2
       const xhr = new XMLHttpRequest();
-      await new Promise<void>((resolve, reject) => {
-        xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error("Upload failed")));
-        xhr.onerror = () => reject(new Error("Network error"));
-        xhr.open("PUT", url);
-        xhr.setRequestHeader("Content-Type", "video/mp4");
-        xhr.send(store.file);
-      });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          xhr.onload = () =>
+            xhr.status < 300 ? resolve() : reject(new Error("Upload failed"));
+          xhr.onerror = () => reject(new Error("Network error"));
+          xhr.open("PUT", url);
+          xhr.setRequestHeader("Content-Type", "video/mp4");
+          xhr.send(store.file);
+        });
+      } catch {
+        // Fallback for CORS/pre-signed PUT issues.
+        await uploadViaDirectApi(store.file, key, "video/mp4");
+      }
 
       // 3. Capture thumbnail
       const duration = store.file ? await getFileDuration(store.file) : 0;
@@ -60,11 +87,14 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
           });
           if (thumbPresign.ok) {
             const { url: thumbUrl, key: thumbKey } = await thumbPresign.json();
-            await fetch(thumbUrl, {
+            const thumbUploadRes = await fetch(thumbUrl, {
               method: "PUT",
               headers: { "Content-Type": "image/jpeg" },
               body: thumbBlob,
-            });
+            }).catch(() => null);
+            if (!thumbUploadRes || !thumbUploadRes.ok) {
+              await uploadViaDirectApi(thumbBlob, thumbKey, "image/jpeg");
+            }
             thumbnailUrl = getPublicVideoUrl(thumbKey);
           }
         }

@@ -53,6 +53,22 @@ export async function getPresignedThumbnailUrl(
   return { url, key };
 }
 
+export async function putObjectToR2(
+  key: string,
+  body: Uint8Array,
+  contentType: string
+): Promise<void> {
+  const bucket = process.env.R2_BUCKET_NAME || "footory-videos";
+  const client = getR2Client();
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+  await client.send(command);
+}
+
 export function getPublicVideoUrl(key: string): string {
   const publicUrl = process.env.R2_PUBLIC_URL;
   if (!publicUrl) return key;

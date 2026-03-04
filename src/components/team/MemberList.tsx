@@ -31,7 +31,14 @@ export default function MemberList({ members, isAdmin, currentUserId, onRemove }
           key={member.id}
           className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition-colors hover:bg-card"
         >
-          <Link href={`/p/${member.profile?.handle}`} className="flex flex-1 items-center gap-3">
+          <Link
+            href={member.profile?.handle ? `/p/${member.profile.handle}` : "#"}
+            className="flex flex-1 items-center gap-3"
+            aria-disabled={!member.profile?.handle}
+            onClick={(e) => {
+              if (!member.profile?.handle) e.preventDefault();
+            }}
+          >
             <Avatar
               name={member.profile?.name ?? "?"}
               imageUrl={member.profile?.avatar_url ?? undefined}

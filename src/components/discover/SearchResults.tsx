@@ -71,7 +71,7 @@ export default function SearchResults({ players, teams, loading, query }: Search
             {teams.map((t) => (
               <Link
                 key={t.id}
-                href={`/team/${t.handle}`}
+                href={`/team/${t.id}`}
                 className="flex items-center gap-3 rounded-[10px] bg-card p-3 active:bg-card-alt transition-colors"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card-alt text-[14px]">

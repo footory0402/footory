@@ -59,6 +59,27 @@ export default function ProfilePage() {
     }
   };
 
+  const handleOpenStatInput = () => setStatInputOpen(true);
+
+  const handleShareProfile = async () => {
+    const url = `${window.location.origin}/p/${displayProfile.handle}`;
+    const title = `${displayProfile.name} (@${displayProfile.handle}) — Footory`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text: `${displayProfile.name} 선수 프로필을 확인해보세요`,
+          url,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      alert("프로필 링크가 복사되었습니다.");
+    } catch {
+      // User cancelled share sheet or clipboard denied.
+    }
+  };
+
   // Map tagClips from db tag_name keys to SKILL_TAGS id keys
   const mappedTagClips: Record<string, { id: string; duration: number; tag: string; isTop: boolean }[]> = {};
   for (const [key, clips] of Object.entries(tagClips)) {
@@ -84,6 +105,8 @@ export default function ProfilePage() {
             level={displayProfile.level}
             stats={stats}
             medals={medals}
+            onAddStat={handleOpenStatInput}
+            onShareProfile={handleShareProfile}
           />
         )}
         {activeTab === "skills" && (
