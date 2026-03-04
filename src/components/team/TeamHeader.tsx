@@ -5,9 +5,12 @@ import Avatar from "@/components/ui/Avatar";
 
 interface TeamHeaderProps {
   team: Team;
+  activityScore?: number;
+  rank?: number;
+  mvpCount?: number;
 }
 
-export default function TeamHeader({ team }: TeamHeaderProps) {
+export default function TeamHeader({ team, activityScore, rank, mvpCount }: TeamHeaderProps) {
   return (
     <div className="flex flex-col items-center px-4 pb-4 pt-6">
       <Avatar
@@ -38,6 +41,27 @@ export default function TeamHeader({ team }: TeamHeaderProps) {
           {team.memberCount}명
         </span>
       </div>
+
+      {/* Activity score + rank */}
+      {(activityScore !== undefined || mvpCount !== undefined) && (
+        <div className="mt-3 flex items-center gap-3">
+          {rank !== undefined && rank > 0 && (
+            <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-[12px] font-semibold text-accent">
+              팀 랭킹 {rank}위
+            </span>
+          )}
+          {activityScore !== undefined && activityScore > 0 && (
+            <span className="text-[12px] text-text-3">
+              활동 점수 <span className="font-stat font-bold text-text-1">{activityScore}</span>
+            </span>
+          )}
+          {mvpCount !== undefined && mvpCount > 0 && (
+            <span className="text-[12px] text-text-3">
+              MVP 배출 <span className="font-stat font-bold text-accent">{mvpCount}</span>
+            </span>
+          )}
+        </div>
+      )}
 
       {team.description && (
         <p className="mt-3 text-center text-[13px] leading-relaxed text-text-2">

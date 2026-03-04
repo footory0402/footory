@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { calculateLevel, type LevelCounts } from "@/lib/level";
+import { calculateLevel, estimateXp, type LevelCounts } from "@/lib/level";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 async function fetchCounts(supabase: SupabaseClient, userId: string): Promise<LevelCounts> {
@@ -51,9 +51,12 @@ export async function GET() {
 
   const teamData = teamResult.data as unknown as { team_id: string; teams: { name: string } } | null;
 
+  const xp = estimateXp(profile, counts);
+
   return NextResponse.json({
     ...profile,
     level: newLevel,
+    xp,
     teamName: teamData?.teams?.name ?? null,
     teamId: teamData?.team_id ?? null,
     counts,

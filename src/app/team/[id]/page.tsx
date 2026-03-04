@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import { useTeamDetail, useTeamActions } from "@/hooks/useTeam";
 import TeamHeader from "@/components/team/TeamHeader";
 import MemberList from "@/components/team/MemberList";
 import TeamAlbum from "@/components/team/TeamAlbum";
 import ImportToProfileSheet from "@/components/team/ImportToProfileSheet";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 const TABS = ["멤버", "앨범"] as const;
 
@@ -16,6 +17,23 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
   const { removeMember, leaveTeam } = useTeamActions();
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("멤버");
   const [showImport, setShowImport] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
+  const [ranking, setRanking] = useState<{ activity_score?: number; rank?: number; mvp_count?: number }>({});
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? undefined));
+  }, []);
+
+  // Fetch team ranking data
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/teams/${id}?includeRanking=true`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d?.ranking) setRanking(d.ranking);
+      })
+      .catch(() => {});
+  }, [id]);
 
   if (loading || !team) {
     return (
@@ -26,6 +44,8 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   const isAdmin = team.myRole === "admin";
+  const isAlumni = team.myRole === "alumni";
+  const isActiveMember = team.myRole === "admin" || team.myRole === "member";
 
   const handleRemove = async (profileId: string) => {
     if (!confirm("이 멤버를 제거하시겠습니까?")) return;
@@ -41,7 +61,19 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="pb-24">
-      <TeamHeader team={team} />
+      <TeamHeader
+        team={team}
+        activityScore={ranking.activity_score}
+        rank={ranking.rank}
+        mvpCount={ranking.mvp_count}
+      />
+
+      {/* Alumni notice */}
+      {isAlumni && (
+        <div className="mx-4 mb-3 rounded-[10px] bg-card-alt px-4 py-2.5 text-[12px] text-text-3">
+          졸업한 팀입니다. 앨범 열람과 내 영상 가져오기만 가능합니다.
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="flex gap-2 px-4 pb-4">
@@ -53,6 +85,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
             탈퇴
           </button>
         )}
+        {/* Settings — admin only (hidden for alumni) */}
         {isAdmin && (
           <Link
             href={`/team/${id}/settings`}
@@ -61,6 +94,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
             설정
           </Link>
         )}
+        {/* Import — available for all members including alumni (own content only) */}
         {activeTab === "앨범" && team.myRole && (
           <button
             onClick={() => setShowImport(true)}
@@ -100,6 +134,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
           <MemberList
             members={members}
             isAdmin={isAdmin}
+            currentUserId={currentUserId}
             onRemove={handleRemove}
           />
         )}

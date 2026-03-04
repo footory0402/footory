@@ -1,58 +1,56 @@
 # Sprint 04: 프로필 화면
 
-> 예상 소요: 1~2일
-> 선행: Sprint 02 완료
-> 병렬 가능: Sprint 03과 병렬 가능 (목 데이터로 먼저 만들기)
+> 예상 소요: 3~4시간
+> 선행 조건: Sprint 02, Sprint 03
+> **v1.1 변경: MVP 뱃지/등급 표시 + 팀 이력 관리**
 
 ## 목표
-프로필 화면 전체 UI 완성 (목 데이터 기반, DB 연동은 Sprint 05에서)
+프로필 카드 + 3탭(요약/스킬/기록) + MVP 뱃지 + 팀 이력
 
 ## 작업 목록
 
-### 1. ProfileCard 컴포넌트
+### 1. 프로필 카드
 - [ ] `src/components/player/ProfileCard.tsx`
-  - EA FC 스타일: 상단 골드 라인 + 우상단 골드 radial
-  - 좌측 아바타(64px) + 우측 정보 (이름+레벨+핸들+포지션+팀)
-  - 하단: 팔로워/팔로잉 + 조회수 + 레벨 프로그레스 바
-  - 레벨 가이드 문구 (다음 레벨 미션)
+  - EA FC 스타일 카드 (골드 그라데이션 테두리)
+  - 아바타 + 레벨 뱃지 + 이름 + 핸들 + 포지션 + 팀
+  - 팔로워/팔로잉/조회수 카운트
+  - **🏆 MVP 뱃지 (횟수 + 등급)** (v1.1)
+  - [팔로우] 버튼 (타인 프로필 시)
 
-### 2. 서브탭 컴포넌트
-- [ ] `src/components/player/ProfileTabs.tsx`
-  - 3탭: 📋 요약 | 🏷 스킬 | 📊 기록
-  - 필 배경, 활성 탭 골드 하이라이트
+### 2. 서브탭 3개
+- [ ] 요약 탭: Featured 영상 + 최근 기록 + 메달
+- [ ] 스킬 탭: 태그별 클립 아코디언 + Top Clip
+- [ ] 기록 탭: 시즌 이력 + 측정 기록 + 메달
+  - **시즌 이력에 is_current 표시** (v1.1)
+  - **현재 소속 강조 + 이전 소속 회색** (v1.1)
+  ```
+  ● 2026 FC 서울 U-15 [현재 소속]
+  ○ 2025 강남FC U-14
+  ○ 2024 강남FC U-13
+  ```
 
-### 3. 요약 탭
-- [ ] `src/components/player/SummaryTab.tsx`
-  - ⭐ Featured 하이라이트 (2열 그리드 + 빈 슬롯)
-  - 📊 핵심 스탯 (가로 스크롤 카드 3개)
-  - 🏅 메달 (인라인 뱃지 + 기록추가 CTA)
-  - 프로필 공유 버튼
+### 3. Featured 슬롯 (Progressive Disclosure)
+- [ ] Lv.1: 빈 프로필 카드
+- [ ] Lv.2: Featured 1슬롯 열림
+- [ ] Lv.3: Featured 2슬롯
+- [ ] Lv.4: Featured 3슬롯
 
-### 4. 스킬 탭
-- [ ] `src/components/player/SkillsTab.tsx`
-  - 태그 필터 바 (가로 스크롤)
-  - 태그별 아코디언 7개 (접기/펼치기)
-  - TOP 클립 표시, 영상 가로 스크롤
-  - 빈 태그: 골드 배경 CTA ("첫 영상 올리기")
+### 4. 팀 이력 관리 (v1.1)
+- [ ] 시즌 추가 시 "새 팀으로 이동했나요?" [예/아니오]
+- [ ] 예 → 이전 시즌 is_current=false, 이전 팀 role→alumni
+- [ ] 현재 소속 팀: 강조 표시
+- [ ] 이전 소속 팀: 회색 + "(졸업)" 표시
 
-### 5. 기록 탭
-- [ ] `src/components/player/RecordsTab.tsx`
-  - 📊 측정 기록 (리스트형)
-  - 🏅 메달 전체 (3열 그리드)
-  - 📅 시즌 기록 (타임라인 UI)
-
-### 6. 프로필 페이지 조합
-- [ ] `src/app/profile/page.tsx`
-  - ProfileCard + ProfileTabs + 각 탭 콘텐츠
-  - 헤더: FOOTORY + ↗ + ⚙
+### 5. 레벨 자동 계산
+- [ ] 프로필 변경 시 레벨 자동 재계산
 
 ## 완료 기준
-- [ ] 프로필 3탭 전환이 부드럽게 동작
-- [ ] 각 탭이 1~2스크롤 이내
-- [ ] fadeUp 스태거 애니메이션 적용
-- [ ] DESIGN-SYSTEM.md 컬러/폰트 정확히 일치
-- [ ] 목 데이터로 모든 상태 (빈/채움/Verified) 확인 가능
+- [ ] 프로필 카드에 MVP 뱃지가 표시된다 (있을 경우)
+- [ ] 기록 탭에 시즌 이력이 현재/이전으로 구분된다
+- [ ] 3탭 전환이 부드럽게 동작한다
+- [ ] Featured 슬롯이 레벨에 따라 열린다
 
-## 참고
-- docs/DESIGN-SYSTEM.md: Section 7.1 (프로필 카드), 7.2 (서브탭)
-- docs/SPEC.md: Section 3.1 (내 프로필), Section 4 (레벨 시스템)
+## 참고 문서
+- docs/SPEC.md: PART 0 (v1.1 프로필), PART A (원본 프로필 설계)
+- docs/DESIGN-SYSTEM.md: Section 5 (레벨), Section 7 (컴포넌트)
+- docs/ARCHITECTURE.md: Section 7 (레벨 계산)

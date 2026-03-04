@@ -9,7 +9,10 @@ export type NotificationType =
   | "verified"
   | "verify_request"
   | "team_album"
-  | "levelup_nudge";
+  | "levelup_nudge"
+  | "vote_open"
+  | "mvp_result"
+  | "mvp_win";
 
 interface CreateNotificationParams {
   userId: string;

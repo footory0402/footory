@@ -24,8 +24,12 @@ export interface Profile {
   };
   contactPublic: boolean;
   role: "player" | "parent" | "other";
+  mvpCount: number;
+  mvpTier: MvpTier | null;
   createdAt: string;
 }
+
+export type MvpTier = "rookie" | "ace" | "allstar" | "legend";
 
 export interface Clip {
   id: string;
@@ -87,14 +91,14 @@ export interface Team {
   inviteCode: string;
   createdBy: string;
   createdAt: string;
-  myRole?: "admin" | "member" | null;
+  myRole?: "admin" | "member" | "alumni" | null;
 }
 
 export interface TeamMember {
   id: string;
   teamId: string;
   profileId: string;
-  role: "admin" | "member";
+  role: "admin" | "member" | "alumni";
   joinedAt: string;
   profile?: {
     id: string;
@@ -137,9 +141,50 @@ export interface Season {
   playerId: string;
   year: number;
   teamName: string;
+  teamId?: string;
+  isCurrent?: boolean;
   position: Position;
   gamesPlayed?: number;
   goals?: number;
   assists?: number;
   notes?: string;
+}
+
+export interface WeeklyVote {
+  id: string;
+  voterId: string;
+  clipId: string;
+  weekStart: string;
+  message?: string;
+  createdAt: string;
+}
+
+export interface WeeklyMvpResult {
+  id: string;
+  weekStart: string;
+  rank: number;
+  clipId: string;
+  profileId: string;
+  autoScore: number;
+  voteScore: number;
+  totalScore: number;
+  voteCount: number;
+  createdAt: string;
+  profile?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "level" | "teamName">;
+}
+
+export interface PlayerRankingCache {
+  profileId: string;
+  popularityScore: number;
+  weeklyChange: number;
+  updatedAt: string;
+  profile?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "level" | "teamName" | "mvpCount" | "mvpTier">;
+}
+
+export interface TeamRankingCache {
+  teamId: string;
+  activityScore: number;
+  mvpCount: number;
+  updatedAt: string;
+  team?: Pick<Team, "id" | "handle" | "name" | "logoUrl" | "city" | "memberCount">;
 }

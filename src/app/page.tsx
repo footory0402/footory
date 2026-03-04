@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/server";
-import { fetchFeedPage } from "@/lib/server/feed";
+import { fetchFeedPage, fetchWeeklyBest, hasUserUploadedClips } from "@/lib/server/feed";
 import ParentHomeSection from "@/components/parent/ParentHomeSection";
+import BestCarousel from "@/components/feed/BestCarousel";
 
 const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
   loading: () => (
@@ -28,10 +29,12 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Profile role + initial feed in parallel — no waterfall
-  const [profileRes, feedData] = await Promise.all([
+  // Fetch profile role, feed, weekly best, and clip status in parallel — no waterfall
+  const [profileRes, feedData, bestClips, hasClips] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user.id).single(),
     fetchFeedPage(supabase, user.id),
+    fetchWeeklyBest(supabase),
+    hasUserUploadedClips(supabase, user.id),
   ]);
 
   const isParent = profileRes.data?.role === "parent";
@@ -39,9 +42,15 @@ export default async function HomePage() {
   return (
     <div className="px-4 pt-2">
       {isParent && <ParentHomeSection />}
+
+      {/* Weekly Best Carousel — only show if there are items */}
+      <BestCarousel items={bestClips} />
+
+      {/* Recommended Feed with upload nudge for new users */}
       <FeedList
         initialItems={feedData.items}
         initialNextCursor={feedData.nextCursor}
+        showNudge={!hasClips}
       />
     </div>
   );

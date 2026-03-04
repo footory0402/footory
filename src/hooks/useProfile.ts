@@ -25,6 +25,16 @@ interface ProfileApiResponse {
   created_at: string;
   teamName: string | null;
   teamId: string | null;
+  mvp_count: number;
+  mvp_tier: "rookie" | "ace" | "allstar" | "legend" | null;
+  xp?: number;
+  counts?: {
+    featuredCount: number;
+    statsCount: number;
+    topClipsCount: number;
+    medalsCount: number;
+    seasonsCount: number;
+  };
 }
 
 function toProfile(data: ProfileApiResponse): Profile {
@@ -39,7 +49,7 @@ function toProfile(data: ProfileApiResponse): Profile {
     teamId: data.teamId ?? undefined,
     avatarUrl: data.avatar_url ?? undefined,
     level: data.level,
-    xp: 0, // XP is calculated from counts, simplified for now
+    xp: data.xp ?? 0,
     bio: data.bio ?? undefined,
     followers: data.followers_count,
     following: data.following_count,
@@ -50,6 +60,8 @@ function toProfile(data: ProfileApiResponse): Profile {
     },
     contactPublic: data.show_email || data.show_phone,
     role: data.role,
+    mvpCount: data.mvp_count ?? 0,
+    mvpTier: data.mvp_tier ?? null,
     createdAt: data.created_at,
   };
 }

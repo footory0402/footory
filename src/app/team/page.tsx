@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMyTeams } from "@/hooks/useTeam";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
+import AlumniLabel from "@/components/team/AlumniLabel";
 import CreateTeamSheet from "@/components/team/CreateTeamSheet";
 import JoinTeamSheet from "@/components/team/JoinTeamSheet";
 
@@ -46,7 +47,7 @@ export default function TeamPage() {
           </div>
         </div>
       ) : (
-        /* Team list */
+        /* Team list — current / previous separation */
         <>
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-[17px] font-bold text-text-1">내 팀</h1>
@@ -66,50 +67,80 @@ export default function TeamPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {teams.map((team) => (
-              <Link
-                key={team.id}
-                href={`/team/${team.id}`}
-                className="flex items-center gap-3 rounded-[10px] border border-border bg-card p-4 transition-colors hover:border-accent/30"
-              >
-                <Avatar
-                  name={team.name}
-                  imageUrl={team.logoUrl}
-                  size="md"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[15px] font-semibold text-text-1">{team.name}</span>
-                    {team.myRole === "admin" && (
-                      <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
-                        관리자
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-[12px] text-text-3">
-                    <span>@{team.handle}</span>
-                    <span>·</span>
-                    <span>{team.memberCount}명</span>
-                    {team.city && (
-                      <>
-                        <span>·</span>
-                        <span>{team.city}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <svg className="h-4 w-4 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </Link>
-            ))}
-          </div>
+          {/* Current teams */}
+          {teams.filter((t) => t.myRole !== "alumni").length > 0 && (
+            <div className="mb-6">
+              <h2 className="mb-2 text-[13px] font-semibold text-text-2">현재 소속</h2>
+              <div className="space-y-3">
+                {teams
+                  .filter((t) => t.myRole !== "alumni")
+                  .map((team) => (
+                    <TeamCard key={team.id} team={team} />
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Previous teams (alumni) */}
+          {teams.filter((t) => t.myRole === "alumni").length > 0 && (
+            <div>
+              <h2 className="mb-2 text-[13px] font-semibold text-text-3">이전 소속</h2>
+              <div className="space-y-3">
+                {teams
+                  .filter((t) => t.myRole === "alumni")
+                  .map((team) => (
+                    <TeamCard key={team.id} team={team} isAlumni />
+                  ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
       <CreateTeamSheet open={showCreate} onClose={() => setShowCreate(false)} onCreated={refetch} />
       <JoinTeamSheet open={showJoin} onClose={() => setShowJoin(false)} onJoined={refetch} />
     </div>
+  );
+}
+
+function TeamCard({ team, isAlumni }: { team: ReturnType<typeof useMyTeams>["teams"][number]; isAlumni?: boolean }) {
+  return (
+    <Link
+      href={`/team/${team.id}`}
+      className={`flex items-center gap-3 rounded-[10px] border bg-card p-4 transition-colors hover:border-accent/30 ${
+        isAlumni ? "border-border/50 opacity-75" : "border-border"
+      }`}
+    >
+      <Avatar
+        name={team.name}
+        imageUrl={team.logoUrl}
+        size="md"
+      />
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[15px] font-semibold text-text-1">{team.name}</span>
+          {team.myRole === "admin" && (
+            <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+              관리자
+            </span>
+          )}
+          {isAlumni && <AlumniLabel size="sm" />}
+        </div>
+        <div className="mt-0.5 flex items-center gap-2 text-[12px] text-text-3">
+          <span>@{team.handle}</span>
+          <span>·</span>
+          <span>{team.memberCount}명</span>
+          {team.city && (
+            <>
+              <span>·</span>
+              <span>{team.city}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <svg className="h-4 w-4 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </Link>
   );
 }

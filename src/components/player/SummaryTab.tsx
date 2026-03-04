@@ -15,11 +15,23 @@ import { MAX_FEATURED_SLOTS } from "@/lib/constants";
 import type { Stat, Medal } from "@/lib/types";
 
 interface SummaryTabProps {
+  level: number;
   stats: Stat[];
   medals: Medal[];
 }
 
-export default function SummaryTab({ stats, medals }: SummaryTabProps) {
+/**
+ * Progressive Disclosure: max featured slots by level.
+ * Lv.1: 0 (empty profile), Lv.2: 1, Lv.3: 2, Lv.4+: 3
+ */
+function maxSlotsByLevel(level: number): number {
+  if (level <= 1) return 0;
+  if (level === 2) return 1;
+  if (level === 3) return 2;
+  return MAX_FEATURED_SLOTS; // 3
+}
+
+export default function SummaryTab({ level, stats, medals }: SummaryTabProps) {
   const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -35,8 +47,10 @@ export default function SummaryTab({ stats, medals }: SummaryTabProps) {
     await removeFeatured(clipId);
   }, [removeFeatured]);
 
-  // Progressive disclosure: show slots based on how many are filled
-  const slotsToShow = Math.min(featured.length + 1, MAX_FEATURED_SLOTS);
+  // Progressive disclosure: max slots determined by level
+  const maxSlots = maxSlotsByLevel(level);
+  // Within the level cap, show filled + 1 empty slot (for adding)
+  const slotsToShow = maxSlots === 0 ? 0 : Math.min(featured.length + 1, maxSlots);
   const excludeClipIds = featured.map((f) => f.clip_id);
 
   return (
@@ -44,25 +58,39 @@ export default function SummaryTab({ stats, medals }: SummaryTabProps) {
     <div className="flex flex-col gap-5">
       {/* Featured Highlights */}
       <SectionCard title="대표 하이라이트" icon="⭐">
-        <div className="grid grid-cols-2 gap-2">
-          {Array.from({ length: slotsToShow }).map((_, i) => {
-            const feat = featured[i];
-            return (
-              <div key={i} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                <FeaturedSlot
-                  clipId={feat?.clip_id}
-                  videoUrl={feat?.clips?.video_url}
-                  thumbnailUrl={feat?.clips?.thumbnail_url}
-                  highlightStart={feat?.clips?.highlight_start ?? undefined}
-                  highlightEnd={feat?.clips?.highlight_end ?? undefined}
-                  sortOrder={i + 1}
-                  onAdd={handleAdd}
-                  onRemove={handleRemove}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {slotsToShow > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {Array.from({ length: slotsToShow }).map((_, i) => {
+              const feat = featured[i];
+              return (
+                <div key={i} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                  <FeaturedSlot
+                    clipId={feat?.clip_id}
+                    videoUrl={feat?.clips?.video_url}
+                    thumbnailUrl={feat?.clips?.thumbnail_url}
+                    highlightStart={feat?.clips?.highlight_start ?? undefined}
+                    highlightEnd={feat?.clips?.highlight_end ?? undefined}
+                    sortOrder={i + 1}
+                    onAdd={handleAdd}
+                    onRemove={handleRemove}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-4">
+            <span className="text-2xl">🔒</span>
+            <p className="text-[12px] text-text-3">
+              <span className="font-semibold text-accent">Lv.2</span>부터 대표 영상을 등록할 수 있습니다
+            </p>
+          </div>
+        )}
+        {maxSlots > 0 && maxSlots < MAX_FEATURED_SLOTS && (
+          <p className="mt-2 text-center text-[11px] text-text-3">
+            다음 레벨에서 <span className="font-semibold text-accent">{maxSlots + 1}슬롯</span>이 열립니다
+          </p>
+        )}
       </SectionCard>
 
       {/* Key Stats */}

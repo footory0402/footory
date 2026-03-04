@@ -13,10 +13,8 @@ import MedalCelebration from "@/components/stats/MedalCelebration";
 import { useProfile } from "@/hooks/useProfile";
 import { useStats } from "@/hooks/useStats";
 import { useTagClips } from "@/hooks/useClips";
+import { useSeasons } from "@/hooks/useSeasons";
 import type { AwardedMedal } from "@/lib/medals";
-import {
-  MOCK_SEASONS,
-} from "@/lib/mock-data";
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>("summary");
@@ -26,6 +24,7 @@ export default function ProfilePage() {
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
   const { stats, medals, loading: statsLoading, addStat } = useStats();
   const { tagClips, loading: tagClipsLoading, fetchTagClips } = useTagClips();
+  const { seasons, loading: seasonsLoading } = useSeasons();
 
   const displayProfile = profile;
 
@@ -82,6 +81,7 @@ export default function ProfilePage() {
       <div className="mt-5">
         {activeTab === "summary" && (
           <SummaryTab
+            level={displayProfile.level}
             stats={stats}
             medals={medals}
           />
@@ -93,7 +93,7 @@ export default function ProfilePage() {
           <RecordsTab
             stats={stats}
             medals={medals}
-            seasons={MOCK_SEASONS}
+            seasons={seasons}
             onAddStat={() => setStatInputOpen(true)}
           />
         )}

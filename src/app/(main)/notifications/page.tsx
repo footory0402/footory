@@ -15,6 +15,9 @@ const TYPE_CONFIG: Record<string, { icon: string; link?: (refId: string | null) 
   verify_request: { icon: "📋", link: () => "/team" },
   team_album: { icon: "📸", link: () => "/team" },
   levelup_nudge: { icon: "⬆️", link: () => "/profile" },
+  vote_open: { icon: "🗳️", link: () => "/mvp" },
+  mvp_result: { icon: "🏆", link: () => "/mvp" },
+  mvp_win: { icon: "🥇", link: () => "/mvp" },
 };
 
 export default function NotificationsPage() {

@@ -489,3 +489,104 @@ Claude Code 개발 시 아래 기능들이 모두 포함되었는지 확인:
 - [ ] 알림 설정
 - [ ] 차단/신고
 - [ ] 연락처 공개 설정
+
+---
+
+## 8. v1.1 신규 컴포넌트 패턴
+
+### 8.1 MVP 투표 카드 (VoteCard)
+
+```
+┌───────────────────────────┐
+│ 📹 영상 썸네일 (자동재생)   │
+│                           │
+│         🏆 현재 1위        │    ← 순위 오버레이 (골드)
+│                           │
+│ 배준혁 · 부산IP U-15      │    ← text-1, font-body, 14px
+│ 1v1 돌파                  │    ← text-2, 12px
+│                           │
+│ ⚡ 847점                   │    ← Oswald, text-1, 16px bold
+│ 👁 312 · 👏 89 · 🗳 47    │    ← text-3, 12px
+│              [투표하기]    │    ← 골드 CTA (primary button)
+└───────────────────────────┘
+bg: card (#161618)
+border: 1px solid rgba(212,168,83,0.2) — 은은한 골드 보더
+radius: 12px
+1위: border 2px solid accent, 골드 그라데이션 상단 바
+```
+
+### 8.2 MVP 카드 (MvpCard — EA FC In-Form 스타일)
+
+```
+┌─────────────────────┐
+│ 🏆 WEEKLY MVP       │    ← Rajdhani, 골드, 12px uppercase
+│                     │
+│     ┌─────────┐     │
+│     │  📹     │     │    ← 대표 영상 썸네일 (1:1)
+│     │         │     │       border: 2px solid accent
+│     └─────────┘     │
+│                     │
+│  배준혁              │    ← font-body, text-1, 16px bold
+│  FW · 부산IP U-15   │    ← text-2, 12px
+│  ⚡ 847점            │    ← Oswald, accent, 14px
+│                     │
+│  🏆×3  Lv.4 에이스  │    ← text-3, 11px
+│                     │
+│  3.03 ~ 3.09 주차    │    ← text-3, 10px
+└─────────────────────┘
+bg: linear-gradient(135deg, #1a1510 0%, #161618 50%, #1a1510 100%)
+border: 1px solid rgba(212,168,83,0.3)
+radius: 14px
+box-shadow: 0 0 20px rgba(212,168,83,0.1)
+```
+
+### 8.3 선수 랭킹 카드 (PlayerRankingRow)
+
+```
+┌───────────────────────────────────────────┐
+│ 1  (아바타) 김민준                         │    ← 순위(Oswald)+아바타+이름(bold)
+│    FW · 수원FC U-15                       │    ← text-2, 12px
+│    🏆MVP 5회 · 👑 올스타                   │    ← accent, 11px (있을 때만)
+│    👏 342 · 👁 1.2k           [팔로우]    │    ← text-3 + 골드 ghost 버튼
+└───────────────────────────────────────────┘
+bg: card
+border-bottom: 1px solid card-alt
+padding: 12px 16px
+```
+
+### 8.4 팔로우 버튼 (FollowButton)
+
+```
+미팔로우: [팔로우]   ← ghost 버튼, border: accent, text: accent
+팔로잉:  [팔로잉 ✓] ← filled, bg: card-alt, text: text-2
+
+크기: 56px × 28px, radius: 14px, font-size: 12px
+```
+
+### 8.5 이번 주 베스트 캐러셀 (BestCarousel)
+
+```
+┌────┐ ┌────┐ ┌────┐ ┌────┐
+│ 📹 │ │ 📹 │ │ 📹 │ │ 📹 │→
+│    │ │    │ │    │ │    │
+│민준│ │현우│ │지호│ │시우│      ← text-1, 12px bold
+│슈팅│ │돌파│ │패스│ │수비│      ← text-3, 10px
+└────┘ └────┘ └────┘ └────┘
+카드 크기: 120px × 160px (3:4)
+간격: 8px
+bg: card, radius: 10px
+하단 그라데이션 오버레이 (black → transparent)
+```
+
+### 8.6 MVP 뱃지 (프로필용)
+
+```
+MVP 등급별 디자인:
+  ⭐ 루키 (1회)    — text-2 컬러, 작은 뱃지
+  🌟 에이스 (3회)   — accent 컬러, 중간 뱃지
+  👑 올스타 (5회)   — accent + 글로우, 큰 뱃지
+  💎 레전드 (10회)  — accent + 강한 글로우 + 특별 보더
+
+프로필 카드 내 위치: 이름 오른쪽 또는 이름 아래
+형태: 인라인 뱃지, height: 20px, radius: 10px, font-size: 11px
+```

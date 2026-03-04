@@ -52,6 +52,10 @@ CREATE TABLE profiles (
   following_count INTEGER DEFAULT 0,
   views_count INTEGER DEFAULT 0,
   
+  -- MVP 실적 (v1.1)
+  mvp_count INTEGER DEFAULT 0,
+  mvp_tier TEXT CHECK (mvp_tier IN (NULL, 'rookie', 'ace', 'allstar', 'legend')),
+  
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -187,7 +191,7 @@ CREATE TABLE team_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
   profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member', 'alumni')),
   joined_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(team_id, profile_id)
 );
@@ -250,7 +254,7 @@ CREATE TABLE comments (
 CREATE TABLE notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  type TEXT NOT NULL,               -- 'kudos', 'comment', 'follow', 'medal', 'verified' 등
+  type TEXT NOT NULL,               -- 'kudos', 'comment', 'follow', 'medal', 'verified', 'mvp_result', 'vote_open', 'mvp_win' 등
   title TEXT NOT NULL,
   body TEXT,
   reference_id UUID,
@@ -259,7 +263,56 @@ CREATE TABLE notifications (
 );
 ```
 
-### 2.6 시즌
+### 2.6 MVP 시스템 (v1.1 신규)
+
+```sql
+-- MVP 주간 투표
+CREATE TABLE weekly_votes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  voter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  clip_id UUID REFERENCES clips(id) ON DELETE CASCADE,
+  week_start DATE NOT NULL,          -- 해당 주 월요일 날짜
+  message TEXT,                      -- 한줄 응원 메시지 (선택)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(voter_id, clip_id, week_start)
+);
+
+-- MVP 주간 결과 아카이브
+CREATE TABLE weekly_mvp_results (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  week_start DATE NOT NULL,
+  rank INTEGER NOT NULL,
+  clip_id UUID REFERENCES clips(id),
+  profile_id UUID REFERENCES profiles(id),
+  auto_score INTEGER NOT NULL,       -- 자동 점수 (70%)
+  vote_score INTEGER NOT NULL,       -- 투표 점수 (30%)
+  total_score INTEGER NOT NULL,      -- 합산
+  vote_count INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 2.7 랭킹 캐시 (v1.1 신규)
+
+```sql
+-- 선수 인기 점수 캐시 (매일 갱신)
+CREATE TABLE player_ranking_cache (
+  profile_id UUID PRIMARY KEY REFERENCES profiles(id),
+  popularity_score INTEGER DEFAULT 0,
+  weekly_change INTEGER DEFAULT 0,   -- 7일 변화량 (급상승 판별)
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 팀 활동 점수 캐시 (매주 갱신)
+CREATE TABLE team_ranking_cache (
+  team_id UUID PRIMARY KEY REFERENCES teams(id),
+  activity_score INTEGER DEFAULT 0,
+  mvp_count INTEGER DEFAULT 0,       -- 소속 선수 MVP 배출 수
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 2.8 시즌
 
 ```sql
 CREATE TABLE seasons (
@@ -267,6 +320,8 @@ CREATE TABLE seasons (
   profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   year INTEGER NOT NULL,
   team_name TEXT NOT NULL,
+  team_id UUID REFERENCES teams(id),  -- v1.1: 팀 참조
+  is_current BOOLEAN DEFAULT FALSE,   -- v1.1: 현재 소속 여부
   league TEXT,
   highlight_clip_id UUID REFERENCES clips(id),
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -360,9 +415,48 @@ ffmpeg -i input.mp4 -ss 5 -vframes 1 -q:v 2 thumbnail.jpg
 | `/functions/v1/generate-feed` | POST | 피드 카드 자동 생성 |
 | `/functions/v1/send-notification` | POST | 푸시 알림 발송 (FCM) |
 
+| `/functions/v1/mvp-score` | POST | 주간 MVP 자동 점수 집계 (매일 cron) |
+| `/functions/v1/mvp-finalize` | POST | 주간 MVP 최종 확정 (월요일 cron) |
+| `/functions/v1/ranking-update` | POST | 선수/팀 랭킹 캐시 갱신 (매일 cron) |
+| `/functions/v1/feed-recommend` | POST | 추천 피드 생성 (팔로우 기반 가중치) |
 나머지 CRUD는 Supabase Client SDK로 직접 DB 호출.
 
-## 6. 레벨 자동 계산 로직
+## 6. MVP 점수 계산 로직 (v1.1)
+
+```typescript
+// MVP 점수 = 자동(70%) + 투표(30%)
+function calculateMvpScore(clip: ClipWithStats, voteCount: number): number {
+  // 자동 점수
+  const autoRaw = 
+    clip.views_count * 1 +
+    clip.kudos_count * 3 +
+    clip.comments_count * 2 +
+    clip.profile_visits * 2;
+  
+  // 투표 점수
+  const voteRaw = voteCount * 10;
+  
+  // 정규화 후 가중치 적용
+  const maxAuto = getMaxAutoScoreThisWeek(); // 이번 주 최고 자동 점수
+  const maxVote = getMaxVoteCountThisWeek() * 10;
+  
+  const autoNorm = maxAuto > 0 ? (autoRaw / maxAuto) * 700 : 0;  // 70%
+  const voteNorm = maxVote > 0 ? (voteRaw / maxVote) * 300 : 0;  // 30%
+  
+  return Math.round(autoNorm + voteNorm);
+}
+
+// MVP 등급 자동 부여
+function getMvpTier(mvpCount: number): string | null {
+  if (mvpCount >= 10) return 'legend';   // 💎
+  if (mvpCount >= 5) return 'allstar';    // 👑
+  if (mvpCount >= 3) return 'ace';        // 🌟
+  if (mvpCount >= 1) return 'rookie';     // ⭐
+  return null;
+}
+```
+
+## 7. 레벨 자동 계산 로직
 
 ```typescript
 function calculateLevel(profile): number {

@@ -3,16 +3,19 @@
 import Link from "next/link";
 import type { TeamMember } from "@/lib/types";
 import Avatar from "@/components/ui/Avatar";
+import FollowButton from "@/components/social/FollowButton";
+import AlumniLabel from "@/components/team/AlumniLabel";
 import { LevelBadge, PositionBadge } from "@/components/ui/Badge";
 import type { Position } from "@/lib/constants";
 
 interface MemberListProps {
   members: TeamMember[];
   isAdmin?: boolean;
+  currentUserId?: string;
   onRemove?: (profileId: string) => void;
 }
 
-export default function MemberList({ members, isAdmin, onRemove }: MemberListProps) {
+export default function MemberList({ members, isAdmin, currentUserId, onRemove }: MemberListProps) {
   if (members.length === 0) {
     return (
       <div className="py-8 text-center text-[13px] text-text-3">
@@ -45,6 +48,7 @@ export default function MemberList({ members, isAdmin, onRemove }: MemberListPro
                     관리자
                   </span>
                 )}
+                {member.role === "alumni" && <AlumniLabel />}
               </div>
               <div className="flex items-center gap-1.5">
                 {member.profile?.position && (
@@ -54,6 +58,13 @@ export default function MemberList({ members, isAdmin, onRemove }: MemberListPro
               </div>
             </div>
           </Link>
+
+          {/* Follow button (not for self) */}
+          {currentUserId && currentUserId !== member.profileId && (
+            <div className="shrink-0">
+              <FollowButton targetId={member.profileId} size="sm" />
+            </div>
+          )}
 
           {isAdmin && member.role !== "admin" && onRemove && (
             <button

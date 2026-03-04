@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { DiscoverHighlight, DiscoverMedal, DiscoverPlayer, DiscoverTeam } from "@/types/discover";
+import type {
+  DiscoverHighlight,
+  DiscoverMedal,
+  DiscoverPlayer,
+  DiscoverTeam,
+  PlayerRankingItem,
+  TeamRankingItem,
+  RisingPlayerItem,
+  TagClipItem,
+} from "@/types/discover";
 
 interface DiscoverHomeData {
   highlights: DiscoverHighlight[];
@@ -168,4 +177,128 @@ export function usePopularTeams() {
 
   useEffect(() => { fetch_(); }, [fetch_]);
   return { teams, loading, refresh: fetch_ };
+}
+
+// --- Player Ranking ---
+export type PlayerSortKey = "popularity" | "followers" | "mvp";
+
+export function usePlayerRanking(sort: PlayerSortKey = "popularity") {
+  const [items, setItems] = useState<PlayerRankingItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRanking = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/discover/ranking?sort=${sort}&limit=20`);
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [sort]);
+
+  useEffect(() => { fetchRanking(); }, [fetchRanking]);
+  return { items, loading, refresh: fetchRanking };
+}
+
+// --- Team Ranking ---
+export function useTeamRanking() {
+  const [items, setItems] = useState<TeamRankingItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRanking = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/discover/teams/ranking?limit=20");
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchRanking(); }, [fetchRanking]);
+  return { items, loading, refresh: fetchRanking };
+}
+
+// --- Rising Players ---
+export function useRisingPlayers() {
+  const [items, setItems] = useState<RisingPlayerItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRising = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/discover/rising?limit=10");
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchRising(); }, [fetchRising]);
+  return { items, loading, refresh: fetchRising };
+}
+
+// --- Follow Recommendations ---
+export function useFollowRecommendations() {
+  const [items, setItems] = useState<RisingPlayerItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRecommendations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/follows/recommend");
+      if (res.ok) {
+        const data = await res.json();
+        setItems(
+          (data.items ?? []).map((p: Record<string, unknown>) => ({
+            profile_id: p.id,
+            handle: p.handle,
+            name: p.name,
+            avatar_url: p.avatar_url,
+            level: p.level ?? 1,
+            position: p.position,
+            followers_count: p.followers_count ?? 0,
+            weekly_change: 0,
+          }))
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchRecommendations(); }, [fetchRecommendations]);
+  return { items, loading, refresh: fetchRecommendations };
+}
+
+// --- Tag Clips ---
+export function useTagClips(tag: string | null) {
+  const [items, setItems] = useState<TagClipItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchClips = useCallback(async () => {
+    if (!tag) { setItems([]); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/discover/tags?tag=${encodeURIComponent(tag)}&limit=18`);
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [tag]);
+
+  useEffect(() => { fetchClips(); }, [fetchClips]);
+  return { items, loading, refresh: fetchClips };
 }

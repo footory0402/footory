@@ -15,7 +15,7 @@ interface TeamApiResponse {
   created_by: string | null;
   created_at: string;
   memberCount: number;
-  myRole: "admin" | "member" | null;
+  myRole: "admin" | "member" | "alumni" | null;
 }
 
 function toTeam(data: TeamApiResponse): Team {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo } from "react";
 import { useFeed, type FeedItemEnriched } from "@/hooks/useFeed";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import FeedCard from "./FeedCard";
+import UploadNudge from "./UploadNudge";
 import dynamic from "next/dynamic";
 
 const CommentSheet = dynamic(() => import("@/components/social/CommentSheet"), { ssr: false });
@@ -13,6 +14,8 @@ import { useState } from "react";
 interface FeedListProps {
   initialItems?: FeedItemEnriched[];
   initialNextCursor?: string | null;
+  /** Whether the user has uploaded any clips. When false, show nudge at position 3. */
+  showNudge?: boolean;
 }
 
 function FeedSkeleton() {
@@ -34,7 +37,11 @@ function FeedSkeleton() {
   );
 }
 
-export default function FeedList({ initialItems = [], initialNextCursor = null }: FeedListProps) {
+export default function FeedList({
+  initialItems = [],
+  initialNextCursor = null,
+  showNudge = false,
+}: FeedListProps) {
   const { items, loading, hasMore, loadMore, toggleKudos, updateKudosCount, updateCommentCount } = useFeed(
     initialItems,
     initialNextCursor
@@ -80,23 +87,45 @@ export default function FeedList({ initialItems = [], initialNextCursor = null }
           </svg>
         </div>
         <p className="mt-4 text-[15px] font-semibold text-text-1">피드가 비어있어요</p>
-        <p className="mt-1 text-[13px] text-text-3">선수를 팔로우하면 피드가 채워집니다</p>
+        <p className="mt-1 text-[13px] text-text-3 text-center">
+          곧 추천 콘텐츠가 채워질 거예요
+        </p>
+        {showNudge && (
+          <div className="mt-6 w-full">
+            <UploadNudge />
+          </div>
+        )}
       </div>
     );
   }
+
+  // Nudge insertion position (0-indexed, after 2 items = position 3)
+  const NUDGE_POSITION = 2;
 
   return (
     <ErrorBoundary>
       <div className="flex flex-col gap-3 pb-4">
         {items.map((item, i) => (
-          <div key={item.id} ref={i === items.length - 1 ? lastItemRef : null}>
-            <FeedCard
-              item={item}
-              onKudos={toggleKudos}
-              onComment={setCommentTarget}
-            />
+          <div key={item.id}>
+            {/* Insert nudge before the 3rd item (index 2) */}
+            {showNudge && i === NUDGE_POSITION && (
+              <div className="mb-3">
+                <UploadNudge />
+              </div>
+            )}
+            <div ref={i === items.length - 1 ? lastItemRef : null}>
+              <FeedCard
+                item={item}
+                onKudos={toggleKudos}
+                onComment={setCommentTarget}
+              />
+            </div>
           </div>
         ))}
+        {/* If feed has fewer than 3 items, show nudge at the end */}
+        {showNudge && items.length > 0 && items.length < NUDGE_POSITION + 1 && (
+          <UploadNudge />
+        )}
         {loading && (
           <div className="flex justify-center py-4">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />

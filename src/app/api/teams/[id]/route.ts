@@ -13,6 +13,8 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const includeRanking = _request.nextUrl.searchParams.get("includeRanking") === "true";
+
   const [teamResult, memberCount, myMembership] = await Promise.all([
     supabase.from("teams").select("*").eq("id", id).single(),
     supabase.from("team_members").select("id", { count: "exact", head: true }).eq("team_id", id),
@@ -23,11 +25,34 @@ export async function GET(
     return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
 
-  return NextResponse.json({
+  const response: Record<string, unknown> = {
     ...teamResult.data,
     memberCount: memberCount.count ?? 0,
     myRole: myMembership.data?.role ?? null,
-  });
+  };
+
+  if (includeRanking) {
+    const { data: rankingData } = await supabase
+      .from("team_ranking_cache")
+      .select("activity_score, mvp_count")
+      .eq("team_id", id)
+      .maybeSingle();
+
+    if (rankingData) {
+      const { count: higherCount } = await supabase
+        .from("team_ranking_cache")
+        .select("team_id", { count: "exact", head: true })
+        .gt("activity_score", rankingData.activity_score);
+
+      response.ranking = {
+        activity_score: rankingData.activity_score,
+        mvp_count: rankingData.mvp_count,
+        rank: (higherCount ?? 0) + 1,
+      };
+    }
+  }
+
+  return NextResponse.json(response);
 }
 
 export async function PUT(

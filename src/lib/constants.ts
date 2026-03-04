@@ -47,6 +47,21 @@ export const MEASUREMENTS = [
   { id: "agility", label: "민첩성", unit: "초", icon: "\u26A1", lowerIsBetter: true },
 ] as const;
 
+// MVP Tiers
+export const MVP_TIERS = [
+  { tier: "rookie", name: "루키", icon: "⭐", minCount: 1, color: "#A1A1AA" },
+  { tier: "ace", name: "에이스", icon: "🌟", minCount: 3, color: "#D4A853" },
+  { tier: "allstar", name: "올스타", icon: "👑", minCount: 5, color: "#F5C542" },
+  { tier: "legend", name: "레전드", icon: "💎", minCount: 10, color: "#F5D78E" },
+] as const;
+
+export type MvpTierKey = (typeof MVP_TIERS)[number]["tier"];
+
+// Weekly MVP Voting
+export const MAX_WEEKLY_VOTES = 3;
+export const MVP_AUTO_WEIGHT = 0.7;
+export const MVP_VOTE_WEIGHT = 0.3;
+
 // App constants
 export const MAX_HIGHLIGHT_SECONDS = 30;
 export const MAX_FEATURED_SLOTS = 3;

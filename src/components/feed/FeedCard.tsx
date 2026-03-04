@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { LEVELS, POSITION_COLORS } from "@/lib/constants";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
@@ -18,12 +19,30 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
   const meta = item.metadata as Record<string, any>;
 
   switch (item.type) {
-    case "highlight":
+    case "highlight": {
+      // Build description from tags + memo
+      const tags = (meta.tags as string[]) ?? [];
+      const description = (meta.description as string) ?? (meta.memo as string) ?? null;
+      const tagLine = tags.length > 0 ? tags.join(" | ") : null;
+      const displayText = [tagLine, description].filter(Boolean).join(" - ");
+
       return (
         <div>
-          <p className="text-[14px] text-text-1 mb-2">
-            새 하이라이트를 등록했어요
-          </p>
+          {/* Tag + description line (replaces generic "새 하이라이트를 등록했어요") */}
+          {displayText ? (
+            <p className="mb-2 text-[14px] text-text-1">
+              <span className="font-semibold text-accent">
+                {tagLine}
+              </span>
+              {description && (
+                <span className="text-text-2"> {description}</span>
+              )}
+            </p>
+          ) : (
+            <p className="text-[14px] text-text-1 mb-2">
+              새 하이라이트를 등록했어요
+            </p>
+          )}
           {meta.thumbnail_url && (
             <div className="relative aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
               <img
@@ -37,12 +56,33 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
                   {Math.floor(meta.duration as number)}초
                 </span>
               )}
+              {/* Play button overlay */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="white"
+                  >
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </div>
+              </div>
             </div>
           )}
-          {meta.tags && (meta.tags as string[]).length > 0 && (
+          {/* Tags as badges below thumbnail */}
+          {tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {(meta.tags as string[]).map((tag) => (
-                <span key={tag} className="rounded-full bg-card-alt px-2 py-0.5 text-[11px] text-text-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style={{
+                    background: "var(--accent-bg)",
+                    color: "var(--color-accent)",
+                  }}
+                >
                   {tag}
                 </span>
               ))}
@@ -50,12 +90,13 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
           )}
         </div>
       );
+    }
 
     case "featured_change":
       return (
         <div>
           <p className="text-[14px] text-text-1">
-            대표 클립을 변경했어요 ✨
+            대표 클립을 변경했어요
           </p>
           {meta.thumbnail_url && (
             <div className="mt-2 aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
@@ -73,7 +114,7 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
     case "medal":
       return (
         <div className="flex items-center gap-3 rounded-[10px] bg-card-alt p-3">
-          <span className="text-[28px]">{(meta.icon as string) ?? "🏅"}</span>
+          <span className="text-[28px]">{(meta.icon as string) ?? "\u{1F3C5}"}</span>
           <div>
             <p className="text-[14px] font-semibold text-accent">
               {(meta.label as string) ?? "메달 획득!"}
@@ -129,19 +170,25 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
 
   return (
     <div className="rounded-[12px] bg-card p-4">
-      {/* Header */}
+      {/* Header — player name links to profile */}
       <div className="flex items-center gap-3 mb-3">
-        <Avatar
-          name={item.playerName}
-          size="sm"
-          level={item.playerLevel}
-          imageUrl={item.playerAvatarUrl ?? undefined}
-        />
+        <Link href={`/p/${item.playerHandle}`} aria-label={`${item.playerName} 프로필`}>
+          <Avatar
+            name={item.playerName}
+            size="sm"
+            level={item.playerLevel}
+            imageUrl={item.playerAvatarUrl ?? undefined}
+          />
+        </Link>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-[14px] font-semibold text-text-1 truncate">
+            <Link
+              href={`/p/${item.playerHandle}`}
+              className="text-[14px] font-semibold text-text-1 truncate hover:text-accent transition-colors"
+            >
               {item.playerName}
-            </span>
+            </Link>
+            <span className="shrink-0 text-[10px] text-text-3">&#x203A;</span>
             <span className="shrink-0 text-[10px]" style={{ color: posColor }}>
               {item.playerPosition}
             </span>
@@ -167,14 +214,14 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
             item.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
           }`}
         >
-          <span>👏</span>
+          <span>&#x1F44F;</span>
           <span>{item.kudosCount > 0 ? item.kudosCount : "응원"}</span>
         </button>
         <button
           onClick={() => onComment?.(item.id)}
           className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
         >
-          <span>💬</span>
+          <span>&#x1F4AC;</span>
           <span>{item.commentCount > 0 ? item.commentCount : "댓글"}</span>
         </button>
       </div>

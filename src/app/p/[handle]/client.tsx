@@ -79,6 +79,8 @@ function toProfile(data: PublicProfileData): Profile {
     role: (data.role ?? "player") as Profile["role"],
     teamName: (data.teamName as string) ?? undefined,
     teamId: (data.teamId as string) ?? undefined,
+    mvpCount: (data.mvp_count as number) ?? 0,
+    mvpTier: (data.mvp_tier as Profile["mvpTier"]) ?? null,
     createdAt: data.created_at,
   };
 }

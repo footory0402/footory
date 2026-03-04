@@ -18,6 +18,8 @@ export const MOCK_PROFILE: Profile = {
   views: 312,
   contactPublic: false,
   role: "player",
+  mvpCount: 0,
+  mvpTier: null,
   createdAt: "2025-09-01",
 };
 
@@ -59,8 +61,9 @@ export const MOCK_MEDALS: Medal[] = [
 ];
 
 export const MOCK_SEASONS: Season[] = [
-  { id: "ss1", playerId: "1", year: 2025, teamName: "FC 서울 U-15", position: "DF", gamesPlayed: 22, goals: 3, assists: 1 },
-  { id: "ss2", playerId: "1", year: 2024, teamName: "FC 서울 U-13", position: "DF", gamesPlayed: 18, goals: 1, assists: 2, notes: "수비 MVP" },
+  { id: "ss1", playerId: "1", year: 2026, teamName: "FC 서울 U-15", position: "DF", isCurrent: true, gamesPlayed: 22, goals: 3, assists: 1 },
+  { id: "ss2", playerId: "1", year: 2025, teamName: "강남FC U-14", position: "DF", isCurrent: false, gamesPlayed: 18, goals: 1, assists: 2, notes: "수비 MVP" },
+  { id: "ss3", playerId: "1", year: 2024, teamName: "강남FC U-13", position: "DF", isCurrent: false, gamesPlayed: 15, goals: 0, assists: 1 },
 ];
 
 // Tag clips mock — which tags have clips

@@ -29,6 +29,8 @@ export interface Database {
           followers_count: number;
           following_count: number;
           views_count: number;
+          mvp_count: number;
+          mvp_tier: "rookie" | "ace" | "allstar" | "legend" | null;
           created_at: string;
           updated_at: string;
         };
@@ -51,6 +53,8 @@ export interface Database {
           followers_count?: number;
           following_count?: number;
           views_count?: number;
+          mvp_count?: number;
+          mvp_tier?: "rookie" | "ace" | "allstar" | "legend" | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,6 +77,8 @@ export interface Database {
           followers_count?: number;
           following_count?: number;
           views_count?: number;
+          mvp_count?: number;
+          mvp_tier?: "rookie" | "ace" | "allstar" | "legend" | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -292,18 +298,18 @@ export interface Database {
           id: string;
           team_id: string;
           profile_id: string;
-          role: "admin" | "member";
+          role: "admin" | "member" | "alumni";
           joined_at: string;
         };
         Insert: {
           id?: string;
           team_id: string;
           profile_id: string;
-          role?: "admin" | "member";
+          role?: "admin" | "member" | "alumni";
           joined_at?: string;
         };
         Update: {
-          role?: "admin" | "member";
+          role?: "admin" | "member" | "alumni";
         };
         Relationships: [];
       };
@@ -450,6 +456,8 @@ export interface Database {
           profile_id: string;
           year: number;
           team_name: string;
+          team_id: string | null;
+          is_current: boolean;
           league: string | null;
           highlight_clip_id: string | null;
           created_at: string;
@@ -459,6 +467,8 @@ export interface Database {
           profile_id: string;
           year: number;
           team_name: string;
+          team_id?: string | null;
+          is_current?: boolean;
           league?: string | null;
           highlight_clip_id?: string | null;
           created_at?: string;
@@ -466,6 +476,8 @@ export interface Database {
         Update: {
           year?: number;
           team_name?: string;
+          team_id?: string | null;
+          is_current?: boolean;
           league?: string | null;
           highlight_clip_id?: string | null;
         };
@@ -487,6 +499,126 @@ export interface Database {
         Update: {
           parent_id?: string;
           child_id?: string;
+        };
+        Relationships: [];
+      };
+      weekly_votes: {
+        Row: {
+          id: string;
+          voter_id: string;
+          clip_id: string;
+          week_start: string;
+          message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          voter_id: string;
+          clip_id: string;
+          week_start: string;
+          message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          message?: string | null;
+        };
+        Relationships: [];
+      };
+      weekly_mvp_results: {
+        Row: {
+          id: string;
+          week_start: string;
+          rank: number;
+          clip_id: string;
+          profile_id: string;
+          auto_score: number;
+          vote_score: number;
+          total_score: number;
+          vote_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          week_start: string;
+          rank: number;
+          clip_id: string;
+          profile_id: string;
+          auto_score: number;
+          vote_score: number;
+          total_score: number;
+          vote_count: number;
+          created_at?: string;
+        };
+        Update: {
+          rank?: number;
+          auto_score?: number;
+          vote_score?: number;
+          total_score?: number;
+          vote_count?: number;
+        };
+        Relationships: [];
+      };
+      player_ranking_cache: {
+        Row: {
+          profile_id: string;
+          popularity_score: number;
+          weekly_change: number;
+          updated_at: string;
+        };
+        Insert: {
+          profile_id: string;
+          popularity_score?: number;
+          weekly_change?: number;
+          updated_at?: string;
+        };
+        Update: {
+          popularity_score?: number;
+          weekly_change?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      team_ranking_cache: {
+        Row: {
+          team_id: string;
+          activity_score: number;
+          mvp_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          team_id: string;
+          activity_score?: number;
+          mvp_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          activity_score?: number;
+          mvp_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      fcm_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          device_info: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          device_info?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          token?: string;
+          device_info?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };

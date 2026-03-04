@@ -3,8 +3,31 @@ import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { LevelBadge, PositionBadge } from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
-import { LEVELS } from "@/lib/constants";
-import type { Profile } from "@/lib/types";
+import { LEVELS, MVP_TIERS } from "@/lib/constants";
+import type { Profile, MvpTier } from "@/lib/types";
+
+/* ── MVP Badge (inline in profile card) ── */
+function MvpBadge({ count, tier }: { count: number; tier: MvpTier | null }) {
+  const tierInfo = tier ? MVP_TIERS.find((t) => t.tier === tier) : MVP_TIERS[0];
+  const icon = tierInfo?.icon ?? "🏆";
+  const color = tierInfo?.color ?? "#A1A1AA";
+  const isHighTier = tier === "allstar" || tier === "legend";
+
+  return (
+    <span
+      className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+      style={{
+        background: `${color}18`,
+        border: `1px solid ${color}33`,
+        color,
+        boxShadow: isHighTier ? `0 0 8px ${color}33` : undefined,
+      }}
+    >
+      <span>{icon}</span>
+      <span className="font-stat">{count}</span>
+    </span>
+  );
+}
 
 interface ProfileCardProps {
   profile: Profile;
@@ -57,6 +80,7 @@ function ProfileCard({ profile, onEdit }: ProfileCardProps) {
             <div className="flex items-center gap-1.5">
               <span className="truncate text-[19px] font-bold text-text-1">{profile.name}</span>
               <LevelBadge level={profile.level} />
+              {profile.mvpCount > 0 && <MvpBadge count={profile.mvpCount} tier={profile.mvpTier} />}
               {onEdit && (
                 <button onClick={onEdit} className="ml-auto shrink-0 rounded-md p-1 text-text-3 transition-colors hover:bg-border hover:text-text-1">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

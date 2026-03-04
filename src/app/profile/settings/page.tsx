@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/Toast";
+import { usePushNotification } from "@/hooks/usePushNotification";
 
 interface ContactSettings {
   email: string | null;
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { permission: pushPermission, loading: pushLoading, requestPermission } = usePushNotification();
 
   useEffect(() => {
     async function load() {
@@ -137,12 +139,40 @@ export default function SettingsPage() {
 
       {/* 알림 설정 */}
       <SettingsSection title="알림 설정">
-        <SettingsRow
-          icon={<BellIcon />}
-          label="푸시 알림"
-          value="준비 중"
-          dimValue
-        />
+        {pushPermission === "granted" ? (
+          <SettingsRow
+            icon={<BellIcon />}
+            label="푸시 알림"
+            value="활성화됨"
+          />
+        ) : pushPermission === "denied" ? (
+          <SettingsRow
+            icon={<BellIcon />}
+            label="푸시 알림"
+            value="차단됨 (브라우저 설정에서 허용)"
+            dimValue
+          />
+        ) : (
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-accent"><BellIcon /></span>
+              <div>
+                <p className="text-sm text-text-1">푸시 알림</p>
+                <p className="text-xs text-text-3">MVP 투표, 팔로우 등 알림 수신</p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                const ok = await requestPermission();
+                if (ok) toast("푸시 알림이 활성화됐어요", "success");
+              }}
+              disabled={pushLoading}
+              className="rounded-full bg-accent px-3 py-1 text-[12px] font-semibold text-bg disabled:opacity-50"
+            >
+              {pushLoading ? "..." : "허용"}
+            </button>
+          </div>
+        )}
       </SettingsSection>
 
       {/* 차단/신고 */}
