@@ -21,6 +21,7 @@ export interface VoteCardCandidate {
   viewsCount: number;
   kudosCount: number;
   voteCount: number;
+  isFollowing?: boolean;
 }
 
 interface VoteCardProps {
@@ -71,8 +72,8 @@ export default function VoteCard({
         />
       )}
 
-      {/* Thumbnail */}
-      <div className="relative aspect-video w-full overflow-hidden bg-card-alt">
+      {/* Thumbnail — 5:2 ratio (cinematic, compact) */}
+      <div className="relative aspect-[5/2] w-full overflow-hidden bg-card-alt">
         {candidate.thumbnailUrl ? (
           <img
             src={candidate.thumbnailUrl}
@@ -81,7 +82,7 @@ export default function VoteCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <span className="text-[32px] opacity-30">🎬</span>
+            <span className="text-[28px] opacity-30">🎬</span>
           </div>
         )}
 
@@ -89,18 +90,16 @@ export default function VoteCard({
         <div
           className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5"
           style={{
-            background: isFirst
-              ? "var(--accent-gradient)"
-              : "rgba(0,0,0,0.7)",
+            background: isFirst ? "var(--accent-gradient)" : "rgba(0,0,0,0.7)",
             color: isFirst ? "#0C0C0E" : "#FAFAFA",
           }}
         >
-          <span className="font-stat text-[13px] font-bold">
+          <span className="font-stat text-[12px] font-bold">
             {candidate.rank}위
           </span>
         </div>
 
-        {/* Tags */}
+        {/* Tag */}
         {candidate.tags.length > 0 && (
           <div className="absolute right-2 top-2">
             <span
@@ -116,86 +115,55 @@ export default function VoteCard({
           </div>
         )}
 
-        {/* Play button overlay */}
+        {/* Play button */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-full"
-            style={{
-              background: "rgba(0,0,0,0.5)",
-              backdropFilter: "blur(4px)",
-            }}
+            className="flex h-8 w-8 items-center justify-center rounded-full"
+            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="white"
-            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
         </div>
       </div>
 
-      {/* Info section */}
-      <div className="space-y-2 p-3">
-        {/* Player info */}
-        <div className="flex items-center gap-2">
-          <Avatar
-            name={candidate.playerName}
-            size="sm"
-            level={candidate.playerLevel}
-            imageUrl={candidate.playerAvatarUrl}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate text-[14px] font-bold text-text-1">
-                {candidate.playerName}
-              </span>
-              {candidate.playerPosition && (
-                <PositionBadge position={candidate.playerPosition} size="sm" />
-              )}
-            </div>
-            {candidate.teamName && (
-              <p className="truncate text-[12px] text-text-2">
-                {candidate.teamName}
-              </p>
+      {/* Info section — compact single row */}
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <Avatar
+          name={candidate.playerName}
+          size="sm"
+          level={candidate.playerLevel}
+          imageUrl={candidate.playerAvatarUrl}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-[13px] font-bold text-text-1">
+              {candidate.playerName}
+            </span>
+            {candidate.playerPosition && (
+              <PositionBadge position={candidate.playerPosition} size="sm" />
             )}
           </div>
-        </div>
-
-        {/* Score + Stats */}
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-[11px] text-text-3">⚡</span>
-              <span className="font-stat text-[18px] font-bold text-text-1">
-                {candidate.totalScore}
-              </span>
-              <span className="text-[11px] text-text-3">점</span>
-            </div>
-            <div className="mt-0.5 flex gap-2 text-[11px] text-text-3">
-              <span>👁 {formatNum(candidate.viewsCount)}</span>
-              <span>👏 {formatNum(candidate.kudosCount)}</span>
-              <span>🗳 {candidate.voteCount}</span>
-            </div>
+          <div className="flex items-center gap-2 text-[11px] text-text-3">
+            {candidate.teamName && <span className="truncate">{candidate.teamName}</span>}
+            <span>⚡<span className="font-stat font-bold text-text-2">{candidate.totalScore}</span></span>
+            <span>🗳 {candidate.voteCount}</span>
           </div>
-
-          {/* Vote button */}
-          <button
-            onClick={handleVote}
-            disabled={hasVoted || !votingOpen || votesRemaining <= 0 || voting}
-            className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
-            style={{
-              background: hasVoted
-                ? "var(--color-card-alt)"
-                : "var(--accent-gradient)",
-              color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
-            }}
-          >
-            {hasVoted ? "✓ 투표완료" : "투표하기"}
-          </button>
         </div>
+
+        {/* Vote button */}
+        <button
+          onClick={handleVote}
+          disabled={hasVoted || !votingOpen || votesRemaining <= 0 || voting}
+          className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+          style={{
+            background: hasVoted ? "var(--color-card-alt)" : "var(--accent-gradient)",
+            color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
+          }}
+        >
+          {hasVoted ? "✓ 완료" : "투표"}
+        </button>
       </div>
     </div>
   );
@@ -223,7 +191,7 @@ export function VoteCardCompact({
 
   return (
     <div
-      className="animate-fade-up flex gap-3 p-3"
+      className="animate-fade-up flex flex-col overflow-hidden"
       style={{
         background: "#161618",
         border: "1px solid var(--border-accent)",
@@ -231,7 +199,7 @@ export function VoteCardCompact({
       }}
     >
       {/* Thumbnail */}
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-card-alt">
+      <div className="relative aspect-video w-full overflow-hidden bg-card-alt">
         {candidate.thumbnailUrl ? (
           <img
             src={candidate.thumbnailUrl}
@@ -244,55 +212,57 @@ export function VoteCardCompact({
           </div>
         )}
         <div
-          className="absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+          className="absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
           style={{
-            background: "rgba(0,0,0,0.7)",
+            background: "rgba(0,0,0,0.75)",
             color: "#FAFAFA",
           }}
         >
           {candidate.rank}위
         </div>
+        {/* Play icon */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "rgba(0,0,0,0.5)" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
+          </div>
+        </div>
       </div>
 
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate text-[13px] font-bold text-text-1">
+      {/* Info + Vote */}
+      <div className="flex flex-col gap-2 p-2.5">
+        <div className="min-w-0">
+          <span className="block truncate text-[12px] font-bold text-text-1">
             {candidate.playerName}
           </span>
-          {candidate.playerPosition && (
-            <PositionBadge position={candidate.playerPosition} size="sm" />
+          {candidate.teamName && (
+            <p className="truncate text-[10px] text-text-2">
+              {candidate.teamName}
+            </p>
           )}
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="font-stat text-[12px] font-bold text-text-1">
+              ⚡ {candidate.totalScore}점
+            </span>
+            <span className="text-[10px] text-text-3">
+              🗳 {candidate.voteCount}
+            </span>
+          </div>
         </div>
-        {candidate.teamName && (
-          <p className="truncate text-[11px] text-text-2">
-            {candidate.teamName}
-          </p>
-        )}
-        <div className="mt-1 flex items-center gap-2">
-          <span className="font-stat text-[14px] font-bold text-text-1">
-            ⚡ {candidate.totalScore}점
-          </span>
-          <span className="text-[10px] text-text-3">
-            🗳 {candidate.voteCount}
-          </span>
-        </div>
-      </div>
 
-      {/* Vote */}
-      <button
-        onClick={handleVote}
-        disabled={hasVoted || !votingOpen || votesRemaining <= 0 || voting}
-        className="mt-auto shrink-0 self-center rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
-        style={{
-          background: hasVoted
-            ? "var(--color-card-alt)"
-            : "var(--accent-gradient)",
-          color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
-        }}
-      >
-        {hasVoted ? "✓" : "투표"}
-      </button>
+        <button
+          onClick={handleVote}
+          disabled={hasVoted || !votingOpen || votesRemaining <= 0 || voting}
+          className="w-full rounded-lg py-1.5 text-[11px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+          style={{
+            background: hasVoted
+              ? "var(--color-card-alt)"
+              : "var(--accent-gradient)",
+            color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
+          }}
+        >
+          {hasVoted ? "✓ 완료" : "투표"}
+        </button>
+      </div>
     </div>
   );
 }

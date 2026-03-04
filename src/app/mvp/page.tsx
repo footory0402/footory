@@ -284,27 +284,29 @@ export default function MvpPage() {
             />
           )}
 
-          {/* 2nd & 3rd — compact cards */}
-          <div className="space-y-2">
-            {second && (
-              <VoteCardCompact
-                candidate={second}
-                hasVoted={myVotedClipIds.has(second.clipId)}
-                votingOpen={votingOpen}
-                votesRemaining={votesRemaining}
-                onVote={handleVote}
-              />
-            )}
-            {third && (
-              <VoteCardCompact
-                candidate={third}
-                hasVoted={myVotedClipIds.has(third.clipId)}
-                votingOpen={votingOpen}
-                votesRemaining={votesRemaining}
-                onVote={handleVote}
-              />
-            )}
-          </div>
+          {/* 2nd & 3rd — compact cards side by side */}
+          {(second || third) && (
+            <div className="grid grid-cols-2 gap-2">
+              {second && (
+                <VoteCardCompact
+                  candidate={second}
+                  hasVoted={myVotedClipIds.has(second.clipId)}
+                  votingOpen={votingOpen}
+                  votesRemaining={votesRemaining}
+                  onVote={handleVote}
+                />
+              )}
+              {third && (
+                <VoteCardCompact
+                  candidate={third}
+                  hasVoted={myVotedClipIds.has(third.clipId)}
+                  votingOpen={votingOpen}
+                  votesRemaining={votesRemaining}
+                  onVote={handleVote}
+                />
+              )}
+            </div>
+          )}
 
           {/* Full ranking toggle */}
           {candidates.length > 3 && (

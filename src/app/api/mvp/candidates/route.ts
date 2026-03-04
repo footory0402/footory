@@ -105,6 +105,15 @@ export async function GET() {
     .select("id, handle, name, avatar_url, position, level, views_count, mvp_count, mvp_tier")
     .in("id", ownerIds);
 
+  // 5a. Get which ownerIds the current user is already following
+  const { data: myFollows } = await supabase
+    .from("follows")
+    .select("following_id")
+    .eq("follower_id", user.id)
+    .in("following_id", ownerIds);
+
+  const followingSet = new Set((myFollows ?? []).map((f) => f.following_id));
+
   const profileMap: Record<string, (typeof profiles extends (infer T)[] | null ? T : never)> = {};
   (profiles ?? []).forEach((p) => {
     profileMap[p.id] = p;
@@ -171,6 +180,7 @@ export async function GET() {
       voteCount: r.voteCount,
       mvpCount: profile?.mvp_count ?? 0,
       mvpTier: profile?.mvp_tier ?? null,
+      isFollowing: followingSet.has(r.ownerId),
     };
   });
 

@@ -84,7 +84,7 @@ export default function MvpRanking({
 
             {/* Follow button */}
             <div className="shrink-0">
-              <FollowButton targetId={c.ownerId} size="sm" />
+              <FollowButton targetId={c.ownerId} initialFollowing={c.isFollowing} size="sm" />
             </div>
 
             {/* Score */}

@@ -11,9 +11,10 @@ interface RecordsTabProps {
   medals: Medal[];
   seasons: Season[];
   onAddStat?: () => void;
+  onAddSeason?: () => void;
 }
 
-export default function RecordsTab({ stats, medals, seasons, onAddStat }: RecordsTabProps) {
+export default function RecordsTab({ stats, medals, seasons, onAddStat, onAddSeason }: RecordsTabProps) {
   return (
     <div className="flex flex-col gap-5">
       {/* Measurement Records */}
@@ -56,11 +57,11 @@ export default function RecordsTab({ stats, medals, seasons, onAddStat }: Record
       </SectionCard>
 
       {/* Season History */}
-      <SectionCard title="시즌 기록" icon="📅">
+      <SectionCard title="시즌 기록" icon="📅" onEdit={onAddSeason}>
         {seasons.length > 0 ? (
           <SeasonTimeline seasons={seasons} />
         ) : (
-          <EmptyCTA text="시즌 기록을 추가하세요" />
+          <EmptyCTA text="시즌 기록을 추가하세요" onAction={onAddSeason} />
         )}
       </SectionCard>
     </div>

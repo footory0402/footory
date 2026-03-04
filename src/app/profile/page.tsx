@@ -9,6 +9,7 @@ import RecordsTab from "@/components/player/RecordsTab";
 import ProfileSkeleton from "@/components/player/ProfileSkeleton";
 import ProfileEditSheet from "@/components/player/ProfileEditSheet";
 import StatInputSheet from "@/components/stats/StatInputSheet";
+import SeasonAddSheet from "@/components/player/SeasonAddSheet";
 import MedalCelebration from "@/components/stats/MedalCelebration";
 import { useProfile } from "@/hooks/useProfile";
 import { useStats } from "@/hooks/useStats";
@@ -20,11 +21,12 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>("summary");
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
+  const [seasonAddOpen, setSeasonAddOpen] = useState(false);
   const [celebrationMedals, setCelebrationMedals] = useState<AwardedMedal[]>([]);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
   const { stats, medals, loading: statsLoading, addStat } = useStats();
   const { tagClips, loading: tagClipsLoading, fetchTagClips } = useTagClips();
-  const { seasons, loading: seasonsLoading } = useSeasons();
+  const { seasons, addSeason } = useSeasons();
 
   const displayProfile = profile;
 
@@ -118,6 +120,7 @@ export default function ProfilePage() {
             medals={medals}
             seasons={seasons}
             onAddStat={() => setStatInputOpen(true)}
+            onAddSeason={() => setSeasonAddOpen(true)}
           />
         )}
       </div>
@@ -135,6 +138,12 @@ export default function ProfilePage() {
         open={statInputOpen}
         onClose={() => setStatInputOpen(false)}
         onSave={handleAddStat}
+      />
+
+      <SeasonAddSheet
+        open={seasonAddOpen}
+        onClose={() => setSeasonAddOpen(false)}
+        onSave={addSeason}
       />
 
       <MedalCelebration
