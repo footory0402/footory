@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { SKILL_TAGS } from "@/lib/constants";
 
-const VALID_TAGS = [
-  "1v1 돌파", "슈팅", "퍼스트터치", "전진패스", "헤딩경합", "1v1 수비", "기타",
-] as const;
+const VALID_TAGS = SKILL_TAGS.map((t) => t.dbName);
 
 // POST: Parent quick upload — clip goes to child's library
 export async function POST(req: NextRequest) {

@@ -17,7 +17,7 @@ export default function SeasonTimeline({ seasons }: SeasonTimelineProps) {
           {/* Dot */}
           <div
             className="absolute left-[-18px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-accent"
-            style={{ background: i === 0 ? "#D4A853" : "var(--color-bg)" }}
+            style={{ background: i === 0 ? "var(--color-accent)" : "var(--color-bg)" }}
           />
 
           <div className="flex flex-col gap-1">

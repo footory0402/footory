@@ -18,8 +18,8 @@ export default function StatRow({ icon, label, value, unit, previousValue, verif
         <span className="text-[16px]">{icon}</span>
         <span className="text-[13px] text-text-2">{label}</span>
         {verified && (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#4ADE80" className="shrink-0">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--color-green)" className="shrink-0">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
           </svg>
         )}
       </div>

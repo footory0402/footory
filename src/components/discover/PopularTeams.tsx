@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import type { DiscoverTeam } from "@/types/discover";
 
 interface PopularTeamsProps {
-  teams: any[];
+  teams: DiscoverTeam[];
   loading: boolean;
 }
 
@@ -28,7 +29,7 @@ export default function PopularTeams({ teams, loading }: PopularTeamsProps) {
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-      {teams.map((t: any) => (
+      {teams.map((t) => (
         <Link
           key={t.id}
           href={`/team/${t.handle}`}

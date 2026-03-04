@@ -8,9 +8,8 @@ interface StatCardProps {
 export default function StatCard({ stat }: StatCardProps) {
   const measurement = MEASUREMENTS.find((m) => m.id === stat.type);
   const diff = stat.previousValue != null ? stat.value - stat.previousValue : null;
-  const improved = diff != null && diff > 0;
-  const isLowerBetter = stat.unit === "초";
-  const isGood = isLowerBetter ? (diff != null && diff < 0) : improved;
+  const isLowerBetter = measurement?.lowerIsBetter ?? false;
+  const isGood = diff != null && (isLowerBetter ? diff < 0 : diff > 0);
 
   return (
     <div className="flex min-w-[120px] shrink-0 flex-col gap-1.5 rounded-[10px] border border-border bg-card p-3">

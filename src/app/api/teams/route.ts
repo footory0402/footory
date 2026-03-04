@@ -21,34 +21,23 @@ export async function GET() {
   // Get teams where user is a member
   const { data: memberships, error } = await supabase
     .from("team_members")
-    .select("team_id, role, teams(id, handle, name, logo_url, description, city, founded_year, invite_code, created_by, created_at)")
+    .select("team_id, role, teams(id, handle, name, logo_url, description, city, founded_year, invite_code, created_by, created_at, team_members(count))")
     .eq("profile_id", user.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Get member counts for each team
-  const teamIds = (memberships ?? []).map((m) => {
-    const team = m.teams as unknown as { id: string };
-    return team.id;
+  const teams = (memberships ?? []).map((m) => {
+    const team = m.teams as unknown as Record<string, unknown> & { team_members?: { count: number }[] };
+    const members = team.team_members;
+    const { team_members, ...rest } = team;
+    return {
+      ...rest,
+      memberCount: members?.[0]?.count ?? 0,
+      myRole: m.role,
+    };
   });
-
-  const teams = await Promise.all(
-    (memberships ?? []).map(async (m) => {
-      const team = m.teams as unknown as Record<string, unknown>;
-      const { count } = await supabase
-        .from("team_members")
-        .select("id", { count: "exact", head: true })
-        .eq("team_id", team.id as string);
-
-      return {
-        ...team,
-        memberCount: count ?? 0,
-        myRole: m.role,
-      };
-    })
-  );
 
   return NextResponse.json(teams);
 }

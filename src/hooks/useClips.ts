@@ -3,6 +3,26 @@
 import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+interface ClipRow {
+  id: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  duration_seconds: number | null;
+  file_size_bytes: number | null;
+  memo: string | null;
+  highlight_status: string;
+  created_at: string;
+  clip_tags: { tag_name: string }[];
+}
+
+interface TagClipRow {
+  id: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  duration_seconds: number | null;
+  clip_tags: { tag_name: string; is_top: boolean }[];
+}
+
 interface ClipWithTags {
   id: string;
   video_url: string;
@@ -35,9 +55,9 @@ export function useClips() {
       if (!clipsData) { setClips([]); return; }
 
       setClips(
-        clipsData.map((c: any) => ({
+        (clipsData as ClipRow[]).map((c) => ({
           ...c,
-          tags: (c.clip_tags ?? []).map((t: any) => t.tag_name),
+          tags: c.clip_tags.map((t) => t.tag_name),
           clip_tags: undefined,
         }))
       );
@@ -130,8 +150,8 @@ export function useTagClips() {
       if (!clips) { setTagClips({}); return; }
 
       const result: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
-      (clips as any[]).forEach((clip) => {
-        (clip.clip_tags ?? []).forEach((t: any) => {
+      (clips as TagClipRow[]).forEach((clip) => {
+        clip.clip_tags.forEach((t) => {
           const tagId = t.tag_name;
           if (!result[tagId]) result[tagId] = [];
           result[tagId].push({

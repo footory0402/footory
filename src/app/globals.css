@@ -6,6 +6,7 @@
   --color-card: #161618;
   --color-card-alt: #1E1E22;
   --color-elevated: #252528;
+  --color-surface: #252528;
 
   /* Accent */
   --color-accent: #D4A853;
@@ -24,6 +25,7 @@
   --color-pos-gk: #FBBF24;
 
   /* Text */
+  --color-text: #FAFAFA;
   --color-text-1: #FAFAFA;
   --color-text-2: #A1A1AA;
   --color-text-3: #71717A;
@@ -35,6 +37,7 @@
   --font-body: var(--noto-sans-kr), 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-stat: var(--oswald), 'Oswald', 'Noto Sans KR', sans-serif;
   --font-brand: var(--rajdhani), 'Rajdhani', 'Noto Sans KR', sans-serif;
+  --font-display: var(--rajdhani), 'Rajdhani', 'Noto Sans KR', sans-serif;
 
   /* Radius */
   --radius-sm: 4px;

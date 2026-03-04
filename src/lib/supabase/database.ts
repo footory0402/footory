@@ -21,6 +21,7 @@ export interface Database {
           city: string | null;
           bio: string | null;
           level: number;
+          xp: number;
           public_email: string | null;
           public_phone: string | null;
           show_email: boolean;
@@ -42,6 +43,7 @@ export interface Database {
           city?: string | null;
           bio?: string | null;
           level?: number;
+          xp?: number;
           public_email?: string | null;
           public_phone?: string | null;
           show_email?: boolean;
@@ -63,6 +65,7 @@ export interface Database {
           city?: string | null;
           bio?: string | null;
           level?: number;
+          xp?: number;
           public_email?: string | null;
           public_phone?: string | null;
           show_email?: boolean;

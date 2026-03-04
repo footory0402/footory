@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const tabs = [
   { href: "/", label: "홈", icon: HomeIcon },
@@ -12,6 +13,31 @@ const tabs = [
 
 export default function BottomTab() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const targets = tabs
+      .map((tab) => tab.href)
+      .filter((href) => href !== pathname);
+
+    const prefetchAll = () => {
+      for (const href of targets) {
+        router.prefetch(href);
+      }
+    };
+
+    if (typeof window === "undefined") return;
+
+    const requestIdle =
+      window.requestIdleCallback ??
+      ((cb: IdleRequestCallback) => window.setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 } as IdleDeadline), 200));
+    const cancelIdle =
+      window.cancelIdleCallback ??
+      ((id: number) => window.clearTimeout(id));
+
+    const idleId = requestIdle(prefetchAll);
+    return () => cancelIdle(idleId);
+  }, [pathname, router]);
 
   return (
     <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/90 backdrop-blur-[16px]">
@@ -25,6 +51,8 @@ export default function BottomTab() {
             <Link
               key={tab.href}
               href={tab.href}
+              onTouchStart={() => router.prefetch(tab.href)}
+              onMouseEnter={() => router.prefetch(tab.href)}
               className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"
             >
               {active && (
@@ -46,7 +74,7 @@ export default function BottomTab() {
 
 function HomeIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? "#D4A853" : "#71717A"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
       <path d="M9 21V12h6v9" />
     </svg>
@@ -55,7 +83,7 @@ function HomeIcon({ active }: { active: boolean }) {
 
 function SearchIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? "#D4A853" : "#71717A"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35" />
     </svg>
@@ -64,7 +92,7 @@ function SearchIcon({ active }: { active: boolean }) {
 
 function UserIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? "#D4A853" : "#71717A"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
       <circle cx="12" cy="8" r="4" />
       <path d="M20 21a8 8 0 00-16 0" />
     </svg>
@@ -73,7 +101,7 @@ function UserIcon({ active }: { active: boolean }) {
 
 function TeamIcon({ active }: { active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? "#D4A853" : "#71717A"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
       <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87" />

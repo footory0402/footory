@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
+import type { DiscoverHighlight } from "@/types/discover";
 
 interface HotHighlightsProps {
-  items: any[];
+  items: DiscoverHighlight[];
   loading: boolean;
 }
 
@@ -19,9 +20,9 @@ export default function HotHighlights({ items, loading }: HotHighlightsProps) {
 
   return (
     <div className="space-y-3">
-      {items.map((item: any) => {
+      {items.map((item) => {
         const profile = item.profiles;
-        const meta = item.metadata as Record<string, any>;
+        const meta = item.metadata;
         return (
           <div key={item.id} className="rounded-[12px] bg-card overflow-hidden">
             {meta?.thumbnail_url && (
@@ -45,9 +46,9 @@ export default function HotHighlights({ items, loading }: HotHighlightsProps) {
                   <span className="text-[13px] font-medium text-text-1 truncate">{profile.name}</span>
                 </Link>
               )}
-              {meta?.tags && (meta.tags as string[]).length > 0 && (
+              {meta?.tags && meta.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {(meta.tags as string[]).map((tag: string) => (
+                  {meta.tags.map((tag) => (
                     <span key={tag} className="rounded-full bg-card-alt px-2 py-0.5 text-[10px] text-text-3">
                       {tag}
                     </span>

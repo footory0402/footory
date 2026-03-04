@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-
-const POSITIONS = ["FW", "MF", "DF", "GK"] as const;
+import { POSITIONS } from "@/lib/constants";
 const ROLES = [
   { value: "player", label: "선수", emoji: "⚽", desc: "직접 뛰는 선수예요" },
   { value: "parent", label: "부모", emoji: "👨‍👩‍👦", desc: "자녀의 성장을 기록해요" },

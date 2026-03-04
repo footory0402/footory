@@ -4,23 +4,12 @@ import Avatar from "@/components/ui/Avatar";
 import { LEVELS, POSITION_COLORS } from "@/lib/constants";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
 import type { Position } from "@/lib/constants";
+import { timeAgo } from "@/lib/utils";
 
 interface FeedCardProps {
   item: FeedItemEnriched;
   onKudos: (id: string) => void;
   onComment?: (id: string) => void;
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "방금";
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일 전`;
-  return new Date(dateStr).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

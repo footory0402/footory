@@ -4,10 +4,11 @@ import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { POSITION_COLORS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
+import type { DiscoverPlayer, DiscoverTeam } from "@/types/discover";
 
 interface SearchResultsProps {
-  players: any[];
-  teams: any[];
+  players: DiscoverPlayer[];
+  teams: DiscoverTeam[];
   loading: boolean;
   query: string;
 }
@@ -39,7 +40,7 @@ export default function SearchResults({ players, teams, loading, query }: Search
         <section>
           <h3 className="text-[12px] font-semibold text-text-3 uppercase tracking-wider mb-2">선수</h3>
           <div className="space-y-1">
-            {players.map((p: any) => (
+            {players.map((p) => (
               <Link
                 key={p.id}
                 href={`/p/${p.handle}`}
@@ -67,7 +68,7 @@ export default function SearchResults({ players, teams, loading, query }: Search
         <section>
           <h3 className="text-[12px] font-semibold text-text-3 uppercase tracking-wider mb-2">팀</h3>
           <div className="space-y-1">
-            {teams.map((t: any) => (
+            {teams.map((t) => (
               <Link
                 key={t.id}
                 href={`/team/${t.handle}`}

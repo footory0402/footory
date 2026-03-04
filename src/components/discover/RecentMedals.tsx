@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
+import type { DiscoverMedal } from "@/types/discover";
 
 interface RecentMedalsProps {
-  medals: any[];
+  medals: DiscoverMedal[];
   loading: boolean;
 }
 
@@ -29,7 +30,7 @@ export default function RecentMedals({ medals, loading }: RecentMedalsProps) {
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-      {medals.map((m: any) => {
+      {medals.map((m) => {
         const profile = m.profiles;
         return (
           <Link

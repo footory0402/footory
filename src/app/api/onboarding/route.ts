@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       avatar_url: avatar_url || null,
       level: 1,
       xp: 0,
-    } as any)
+    })
     .select()
     .single();
 

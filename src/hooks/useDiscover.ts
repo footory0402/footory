@@ -2,6 +2,48 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
+interface DiscoverHomeData {
+  highlights: any[];
+  medals: any[];
+  players: any[];
+  teams: any[];
+}
+
+// --- Discover Home (single request for all sections) ---
+export function useDiscoverHome() {
+  const [data, setData] = useState<DiscoverHomeData>({
+    highlights: [],
+    medals: [],
+    players: [],
+    teams: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/discover");
+      if (res.ok) {
+        const next = await res.json();
+        setData({
+          highlights: next.highlights ?? [],
+          medals: next.medals ?? [],
+          players: next.players ?? [],
+          teams: next.teams ?? [],
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { ...data, loading, refresh };
+}
+
 // --- Search ---
 export function useSearch(query: string) {
   const [players, setPlayers] = useState<any[]>([]);

@@ -4,9 +4,10 @@ import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { POSITION_COLORS, LEVELS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
+import type { DiscoverPlayer } from "@/types/discover";
 
 interface RecommendedPlayersProps {
-  players: any[];
+  players: DiscoverPlayer[];
   loading: boolean;
 }
 
@@ -31,7 +32,7 @@ export default function RecommendedPlayers({ players, loading }: RecommendedPlay
 
   return (
     <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-      {players.map((p: any) => {
+      {players.map((p) => {
         const lvl = LEVELS[Math.min(p.level ?? 1, 5) - 1];
         const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
         return (

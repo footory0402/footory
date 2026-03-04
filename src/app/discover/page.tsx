@@ -1,55 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
 import HotHighlights from "@/components/discover/HotHighlights";
 import RecentMedals from "@/components/discover/RecentMedals";
 import RecommendedPlayers from "@/components/discover/RecommendedPlayers";
 import PopularTeams from "@/components/discover/PopularTeams";
 import DiscoverSearch from "@/components/discover/DiscoverSearch";
+import { useDiscoverHome } from "@/hooks/useDiscover";
 
-export const revalidate = 60;
-
-async function fetchDiscoverData() {
-  const supabase = await createClient();
-
-  const [highlightsRes, medalsRes, playersRes, teamsRes] = await Promise.all([
-    supabase
-      .from("feed_items")
-      .select("*, profiles!feed_items_profile_id_fkey(id, handle, name, avatar_url, position, level)")
-      .eq("type", "highlight")
-      .order("created_at", { ascending: false })
-      .limit(10),
-    supabase
-      .from("medals")
-      .select("*, profiles!medals_profile_id_fkey(id, handle, name, avatar_url, position, level)")
-      .order("achieved_at", { ascending: false })
-      .limit(10),
-    supabase
-      .from("profiles")
-      .select("id, handle, name, avatar_url, position, level, city, birth_year")
-      .order("updated_at", { ascending: false })
-      .limit(10),
-    supabase
-      .from("teams")
-      .select("id, handle, name, logo_url, city, team_members(count)")
-      .order("created_at", { ascending: false })
-      .limit(10),
-  ]);
-
-  const teams = (teamsRes.data ?? []).map((t) => {
-    const { team_members, ...rest } = t as Record<string, unknown>;
-    const members = team_members as { count: number }[] | undefined;
-    return { ...rest, member_count: members?.[0]?.count ?? 0 };
-  });
-
-  return {
-    highlights: highlightsRes.data ?? [],
-    medals: medalsRes.data ?? [],
-    players: playersRes.data ?? [],
-    teams,
-  };
-}
-
-export default async function DiscoverPage() {
-  const data = await fetchDiscoverData();
+export default function DiscoverPage() {
+  const discover = useDiscoverHome();
 
   return (
     <div className="px-4 pt-4 pb-24">
@@ -57,19 +16,19 @@ export default async function DiscoverPage() {
 
       <div className="mt-6 space-y-6">
         <Section title="인기 하이라이트" emoji="🔥">
-          <HotHighlights items={data.highlights} loading={false} />
+          <HotHighlights items={discover.highlights} loading={discover.loading} />
         </Section>
 
         <Section title="최근 메달" emoji="🏅">
-          <RecentMedals medals={data.medals} loading={false} />
+          <RecentMedals medals={discover.medals} loading={discover.loading} />
         </Section>
 
         <Section title="추천 선수" emoji="⭐">
-          <RecommendedPlayers players={data.players} loading={false} />
+          <RecommendedPlayers players={discover.players} loading={discover.loading} />
         </Section>
 
         <Section title="인기 팀" emoji="🏟">
-          <PopularTeams teams={data.teams} loading={false} />
+          <PopularTeams teams={discover.teams} loading={discover.loading} />
         </Section>
       </div>
     </div>

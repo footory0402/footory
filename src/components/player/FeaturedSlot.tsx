@@ -90,12 +90,7 @@ export default function FeaturedSlot({
       )}
 
       {/* BEST badge — top-left */}
-      {sortOrder === 1 && !tag && (
-        <span className="absolute top-1.5 left-1.5 rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-bg">
-          BEST
-        </span>
-      )}
-      {sortOrder === 1 && tag && (
+      {sortOrder === 1 && (
         <span className="absolute top-1.5 left-1.5 rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-bg">
           BEST
         </span>
