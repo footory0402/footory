@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Avatar from "@/components/ui/Avatar";
 import { LEVELS, POSITION_COLORS } from "@/lib/constants";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
@@ -120,7 +121,7 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
   }
 }
 
-export default function FeedCard({ item, onKudos, onComment }: FeedCardProps) {
+export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProps) {
   const lvl = LEVELS[Math.max(1, Math.min(item.playerLevel, 5)) - 1];
   const posColor = POSITION_COLORS[item.playerPosition as Position] ?? "#A1A1AA";
 
@@ -177,4 +178,4 @@ export default function FeedCard({ item, onKudos, onComment }: FeedCardProps) {
       </div>
     </div>
   );
-}
+});

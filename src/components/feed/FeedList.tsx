@@ -1,13 +1,41 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useFeed } from "@/hooks/useFeed";
+import { useEffect, useRef, useMemo } from "react";
+import { useFeed, type FeedItemEnriched } from "@/hooks/useFeed";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import FeedCard from "./FeedCard";
 import CommentSheet from "@/components/social/CommentSheet";
+import { useState } from "react";
 
-export default function FeedList() {
-  const { items, loading, hasMore, refresh, loadMore, toggleKudos, updateKudosCount } = useFeed();
+interface FeedListProps {
+  initialItems?: FeedItemEnriched[];
+  initialNextCursor?: string | null;
+}
+
+function FeedSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 pb-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="rounded-[12px] bg-card p-4 animate-pulse">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-9 w-9 rounded-full bg-card-alt" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 w-24 rounded bg-card-alt" />
+              <div className="h-2.5 w-16 rounded bg-card-alt" />
+            </div>
+          </div>
+          <div className="aspect-video w-full rounded-[10px] bg-card-alt" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default function FeedList({ initialItems = [], initialNextCursor = null }: FeedListProps) {
+  const { items, loading, hasMore, loadMore, toggleKudos, updateKudosCount } = useFeed(
+    initialItems,
+    initialNextCursor
+  );
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
 
   const feedItemIds = useMemo(() => items.map((i) => i.id), [items]);
@@ -16,10 +44,6 @@ export default function FeedList() {
     feedItemIds,
     onKudosChange: updateKudosCount,
   });
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
 
   // Infinite scroll
   const lastItemRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +61,11 @@ export default function FeedList() {
     observerInstanceRef.current.observe(lastItemRef.current);
     return () => observerInstanceRef.current?.disconnect();
   }, [loading, hasMore, loadMore, items]);
+
+  // Show skeleton only when no initial data and still loading
+  if (loading && items.length === 0) {
+    return <FeedSkeleton />;
+  }
 
   if (!loading && items.length === 0) {
     return (

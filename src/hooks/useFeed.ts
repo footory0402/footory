@@ -20,11 +20,15 @@ export interface FeedItemEnriched {
   commentCount: number;
 }
 
-export function useFeed() {
-  const [items, setItems] = useState<FeedItemEnriched[]>([]);
+export function useFeed(
+  initialItems: FeedItemEnriched[] = [],
+  initialNextCursor: string | null = null
+) {
+  const [items, setItems] = useState<FeedItemEnriched[]>(initialItems);
+  // Start loading=false: server already provided initial data
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const cursorRef = useRef<string | null>(null);
+  const [hasMore, setHasMore] = useState(initialNextCursor !== null || initialItems.length === 0);
+  const cursorRef = useRef<string | null>(initialNextCursor);
 
   const fetchFeed = useCallback(async (reset = false) => {
     setLoading(true);
@@ -54,54 +58,43 @@ export function useFeed() {
   const refresh = useCallback(async () => {
     cursorRef.current = null;
     setHasMore(true);
-    setLoading(true);
-    try {
-      const res = await fetch("/api/feed");
-      if (!res.ok) return;
-      const data = await res.json();
-      setItems(data.items ?? []);
-      cursorRef.current = data.nextCursor;
-      setHasMore(!!data.nextCursor);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    await fetchFeed(true);
+  }, [fetchFeed]);
 
+  // Use functional setState so toggleKudos has no dependency on `items`
+  // This keeps the reference stable and prevents FeedCard re-renders
   const toggleKudos = useCallback(async (feedItemId: string) => {
-    const item = items.find((i) => i.id === feedItemId);
-    if (!item) return;
+    let originalItem: FeedItemEnriched | undefined;
 
-    // Optimistic update
-    setItems((prev) =>
-      prev.map((i) =>
+    setItems((prev) => {
+      originalItem = prev.find((i) => i.id === feedItemId);
+      if (!originalItem) return prev;
+      return prev.map((i) =>
         i.id === feedItemId
-          ? {
-              ...i,
-              hasKudos: !i.hasKudos,
-              kudosCount: i.hasKudos ? i.kudosCount - 1 : i.kudosCount + 1,
-            }
+          ? { ...i, hasKudos: !i.hasKudos, kudosCount: i.hasKudos ? i.kudosCount - 1 : i.kudosCount + 1 }
           : i
-      )
-    );
+      );
+    });
 
-    const method = item.hasKudos ? "DELETE" : "POST";
+    // Wait a tick so originalItem is captured from the setter above
+    await Promise.resolve();
+
+    if (!originalItem) return;
+    const method = originalItem.hasKudos ? "DELETE" : "POST";
     const res = await fetch(`/api/feed/${feedItemId}/kudos`, { method });
 
     if (!res.ok) {
       // Rollback
+      const snap = originalItem;
       setItems((prev) =>
         prev.map((i) =>
           i.id === feedItemId
-            ? {
-                ...i,
-                hasKudos: item.hasKudos,
-                kudosCount: item.kudosCount,
-              }
+            ? { ...i, hasKudos: snap.hasKudos, kudosCount: snap.kudosCount }
             : i
         )
       );
     }
-  }, [items]);
+  }, []);
 
   const updateKudosCount = useCallback((feedItemId: string, count: number) => {
     setItems((prev) =>
