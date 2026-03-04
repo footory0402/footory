@@ -72,7 +72,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ id: str
         <div className="rounded-[10px] border border-border bg-card p-4">
           <label className="mb-2 block text-[12px] font-medium text-text-3">초대코드</label>
           <div className="flex items-center gap-3">
-            <span className="font-[family-name:var(--font-display)] text-[24px] tracking-[0.3em] text-accent">
+            <span className="font-stat text-[24px] tracking-[0.3em] text-accent">
               {team.inviteCode}
             </span>
             <button
@@ -114,7 +114,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ id: str
         </div>
 
         {message && (
-          <p className={`text-[12px] ${message.includes("저장") ? "text-green-400" : "text-red-400"}`}>
+          <p className={`text-[12px] ${message.includes("저장") ? "text-green" : "text-red"}`}>
             {message}
           </p>
         )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { POSITIONS } from "@/lib/constants";
+import { POSITIONS, HANDLE_REGEX } from "@/lib/constants";
 const ROLES = [
   { value: "player", label: "선수", emoji: "⚽", desc: "직접 뛰는 선수예요" },
   { value: "parent", label: "부모", emoji: "👨‍👩‍👦", desc: "자녀의 성장을 기록해요" },
@@ -30,7 +30,7 @@ export default function OnboardingPage() {
       setHandleStatus("idle");
       return;
     }
-    if (!/^[a-z0-9_]{3,20}$/.test(handle)) {
+    if (!HANDLE_REGEX.test(handle)) {
       setHandleStatus("invalid");
       return;
     }

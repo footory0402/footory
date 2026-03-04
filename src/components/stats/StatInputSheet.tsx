@@ -102,7 +102,7 @@ export default function StatInputSheet({ open, onClose, onSave }: StatInputSheet
                   onChange={(e) => setValue(e.target.value)}
                   placeholder="0"
                   autoFocus
-                  className="w-full rounded-xl bg-bg px-4 py-4 pr-16 text-center font-display text-3xl font-bold text-text-1 outline-none ring-1 ring-border focus:ring-accent"
+                  className="w-full rounded-xl bg-bg px-4 py-4 pr-16 text-center font-stat text-3xl font-bold text-text-1 outline-none ring-1 ring-border focus:ring-accent"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-text-3">
                   {measurement.unit}
@@ -119,7 +119,7 @@ export default function StatInputSheet({ open, onClose, onSave }: StatInputSheet
                 <button
                   onClick={handleSave}
                   disabled={saving || !value || parseFloat(value) <= 0}
-                  className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-black disabled:opacity-50"
+                  className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-bg disabled:opacity-50"
                 >
                   {saving ? "저장 중..." : "저장"}
                 </button>

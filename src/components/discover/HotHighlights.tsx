@@ -30,6 +30,7 @@ export default function HotHighlights({ items, loading }: HotHighlightsProps) {
                 <img
                   src={meta.thumbnail_url}
                   alt="Highlight"
+                  loading="lazy"
                   className="h-full w-full object-cover"
                 />
                 {meta.duration && (

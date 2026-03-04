@@ -102,5 +102,13 @@ export function useFeed(
     );
   }, []);
 
-  return { items, loading, hasMore, refresh, loadMore, toggleKudos, updateKudosCount };
+  const updateCommentCount = useCallback((feedItemId: string, delta: number) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === feedItemId ? { ...i, commentCount: Math.max(0, i.commentCount + delta) } : i
+      )
+    );
+  }, []);
+
+  return { items, loading, hasMore, refresh, loadMore, toggleKudos, updateKudosCount, updateCommentCount };
 }

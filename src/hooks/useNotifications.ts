@@ -60,14 +60,18 @@ export function useNotifications() {
   }, []);
 
   const markAsRead = useCallback(async (id: string) => {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-    await fetch(`/api/notifications/${id}/read`, { method: "PUT" });
-  }, []);
+    const prev = items;
+    setItems((s) => s.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    const res = await fetch(`/api/notifications/${id}/read`, { method: "PUT" });
+    if (!res.ok) setItems(prev);
+  }, [items]);
 
   const markAllAsRead = useCallback(async () => {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-    await fetch("/api/notifications/read", { method: "PUT" });
-  }, []);
+    const prev = items;
+    setItems((s) => s.map((n) => ({ ...n, read: true })));
+    const res = await fetch("/api/notifications/read", { method: "PUT" });
+    if (!res.ok) setItems(prev);
+  }, [items]);
 
   return { items, loading, hasMore, refresh, loadMore, markAsRead, markAllAsRead };
 }

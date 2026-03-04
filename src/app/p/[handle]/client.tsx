@@ -11,12 +11,18 @@ import FollowButton from "@/components/social/FollowButton";
 import ShareSheet from "@/components/ui/ShareSheet";
 import { SectionCard } from "@/components/ui/Card";
 import { SKILL_TAGS, POSITION_LABELS } from "@/lib/constants";
+import { APP_URL } from "@/lib/constants";
 import type { Profile, Stat, Medal, Season } from "@/lib/types";
 
 interface FeaturedClip {
   id: string;
   clip_id: string;
   sort_order: number;
+  clips?: {
+    video_url: string;
+    thumbnail_url: string | null;
+    duration_seconds: number | null;
+  } | null;
 }
 
 interface PublicProfileData {
@@ -72,7 +78,7 @@ function toProfile(data: PublicProfileData): Profile {
   };
 }
 
-// Map DB stat rows
+// Map DB stat rows (DB uses recorded_at, not measured_at)
 function mapStats(rows: Record<string, unknown>[]): Stat[] {
   return rows.map((r) => ({
     id: r.id as string,
@@ -81,34 +87,37 @@ function mapStats(rows: Record<string, unknown>[]): Stat[] {
     value: r.value as number,
     previousValue: r.previous_value as number | undefined,
     unit: r.unit as string,
-    measuredAt: r.measured_at as string,
+    measuredAt: r.recorded_at as string,
+    evidenceClipId: (r.evidence_clip_id as string) ?? undefined,
     verified: (r.verified as boolean) ?? false,
   }));
 }
 
+// Map DB medal rows (DB uses medal_code + medal_criteria JOIN, not medal_type/label/value)
 function mapMedals(rows: Record<string, unknown>[]): Medal[] {
-  return rows.map((r) => ({
-    id: r.id as string,
-    playerId: r.profile_id as string,
-    type: r.medal_type as string,
-    label: r.label as string,
-    value: r.value as number,
-    unit: r.unit as string,
-    verified: (r.verified as boolean) ?? false,
-    awardedAt: r.awarded_at as string,
-  }));
+  return rows.map((r) => {
+    const c = r.medal_criteria as { stat_type?: string; label?: string; threshold?: number; code?: string } | null;
+    return {
+      id: r.id as string,
+      playerId: r.profile_id as string,
+      type: c?.stat_type ?? "",
+      label: c?.label ?? (r.medal_code as string),
+      value: c?.threshold ?? 0,
+      unit: "",
+      verified: false,
+      awardedAt: r.achieved_at as string,
+    };
+  });
 }
 
+// Map DB season rows (DB has year, team_name, league, highlight_clip_id only)
 function mapSeasons(rows: Record<string, unknown>[]): Season[] {
   return rows.map((r) => ({
     id: r.id as string,
     playerId: r.profile_id as string,
     year: r.year as number,
     teamName: r.team_name as string,
-    position: r.position as Season["position"],
-    gamesPlayed: r.games_played as number | undefined,
-    goals: r.goals as number | undefined,
-    assists: r.assists as number | undefined,
+    position: (r.position as Season["position"]) ?? "FW",
   }));
 }
 
@@ -124,7 +133,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
   const shareUrl = typeof window !== "undefined"
     ? window.location.href
-    : `https://footory.app/p/${profile.handle}`;
+    : `${APP_URL}/p/${profile.handle}`;
 
   return (
     <div className="mx-auto max-w-[430px] px-4 pb-24 pt-4">
@@ -211,8 +220,9 @@ function PublicSummaryTab({
               <div key={feat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
                 <FeaturedSlot
                   clipId={feat.clip_id}
+                  thumbnailUrl={feat.clips?.thumbnail_url}
+                  durationSeconds={feat.clips?.duration_seconds ?? undefined}
                   sortOrder={i + 1}
-                  onAdd={() => {}}
                 />
               </div>
             ))}

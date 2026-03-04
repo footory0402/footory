@@ -9,7 +9,7 @@ interface FeaturedSlotProps {
   durationSeconds?: number;
   tag?: string;
   sortOrder: number;
-  onAdd: () => void;
+  onAdd?: () => void;
   onRemove?: (clipId: string) => void;
 }
 
@@ -61,7 +61,7 @@ export default function FeaturedSlot({
       />
 
       {thumbnailUrl ? (
-        <img src={thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={thumbnailUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-2xl">
           🎬

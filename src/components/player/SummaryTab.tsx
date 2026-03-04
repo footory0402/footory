@@ -8,6 +8,7 @@ import MedalBadge from "./MedalBadge";
 import ClipPickerSheet from "./ClipPickerSheet";
 import { useFeaturedClips } from "@/hooks/useClips";
 import EmptyCTA from "@/components/ui/EmptyCTA";
+import { MAX_FEATURED_SLOTS } from "@/lib/constants";
 import type { Stat, Medal } from "@/lib/types";
 
 interface SummaryTabProps {
@@ -32,7 +33,7 @@ export default function SummaryTab({ stats, medals }: SummaryTabProps) {
   }, [removeFeatured]);
 
   // Progressive disclosure: show slots based on how many are filled
-  const slotsToShow = Math.min(featured.length + 1, 3);
+  const slotsToShow = Math.min(featured.length + 1, MAX_FEATURED_SLOTS);
   const excludeClipIds = featured.map((f) => f.clip_id);
 
   return (

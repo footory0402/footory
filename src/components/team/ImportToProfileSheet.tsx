@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { TeamAlbumItem } from "@/lib/types";
 import Button from "@/components/ui/Button";
+import { toast } from "@/components/ui/Toast";
 
 interface ImportToProfileSheetProps {
   open: boolean;
@@ -26,12 +27,27 @@ export default function ImportToProfileSheet({ open, onClose, albums }: ImportTo
   const onImport = async () => {
     if (selected.size === 0) return;
     setImporting(true);
-    // TODO: Import selected album items to profile clips
-    setTimeout(() => {
-      setImporting(false);
-      onClose();
+    try {
+      const selectedItems = albums.filter((a) => selected.has(a.id));
+      for (const item of selectedItems) {
+        const res = await fetch("/api/clips", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            videoUrl: item.mediaUrl,
+            thumbnailUrl: item.thumbnailUrl ?? null,
+          }),
+        });
+        if (!res.ok) throw new Error("가져오기 실패");
+      }
+      toast(`${selected.size}개 영상을 프로필에 추가했습니다`, "success");
       setSelected(new Set());
-    }, 1000);
+      onClose();
+    } catch {
+      toast("영상 가져오기에 실패했습니다", "error");
+    } finally {
+      setImporting(false);
+    }
   };
 
   if (!open) return null;
@@ -59,7 +75,7 @@ export default function ImportToProfileSheet({ open, onClose, albums }: ImportTo
                   }`}
                 >
                   {item.thumbnailUrl ? (
-                    <img src={item.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={item.thumbnailUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-card">
                       <svg className="h-5 w-5 text-text-3" viewBox="0 0 24 24" fill="currentColor">

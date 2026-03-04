@@ -52,7 +52,7 @@ export default function LinkChildSheet({ open, onClose, onLink }: LinkChildSheet
             </div>
           </div>
 
-          {error && <p className="text-[12px] text-red-400">{error}</p>}
+          {error && <p className="text-[12px] text-red">{error}</p>}
 
           <Button
             variant="primary"

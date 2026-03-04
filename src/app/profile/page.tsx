@@ -37,8 +37,20 @@ export default function ProfilePage() {
     return <ProfileSkeleton />;
   }
 
-  if (!displayProfile) {
-    return <ProfileSkeleton />;
+  if (error || !displayProfile) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4">
+        <span className="text-3xl">😢</span>
+        <p className="text-[14px] font-medium text-text-1">프로필을 불러올 수 없습니다</p>
+        <p className="text-[12px] text-text-3">네트워크를 확인하고 다시 시도해주세요</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-2 rounded-lg bg-accent px-5 py-2 text-[13px] font-semibold text-bg"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
   }
 
   const handleAddStat = async (statType: string, value: number, evidenceClipId?: string) => {

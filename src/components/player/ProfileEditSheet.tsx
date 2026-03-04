@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Profile } from "@/lib/types";
-import { POSITIONS, POSITION_LABELS, type Position } from "@/lib/constants";
+import { POSITIONS, POSITION_LABELS, HANDLE_REGEX, type Position } from "@/lib/constants";
+import { toast } from "@/components/ui/Toast";
 
 interface ProfileEditSheetProps {
   profile: Profile;
@@ -50,7 +51,7 @@ export default function ProfileEditSheet({
         setHandleStatus("idle");
         return;
       }
-      if (!/^[a-z0-9_]{3,20}$/.test(value)) {
+      if (!HANDLE_REGEX.test(value)) {
         setHandleStatus("taken");
         return;
       }
@@ -77,7 +78,7 @@ export default function ProfileEditSheet({
       });
       onClose();
     } catch {
-      // Error handling delegated to parent
+      toast("프로필 저장에 실패했습니다", "error");
     } finally {
       setSaving(false);
     }
@@ -93,7 +94,7 @@ export default function ProfileEditSheet({
     try {
       await onAvatarUpload(file);
     } catch {
-      // Error handling delegated to parent
+      toast("프로필 사진 업로드에 실패했습니다", "error");
     }
   };
 
@@ -159,10 +160,10 @@ export default function ProfileEditSheet({
                 <p className="mt-1 text-xs text-text-3">확인 중...</p>
               )}
               {handleStatus === "available" && (
-                <p className="mt-1 text-xs text-green-400">사용 가능</p>
+                <p className="mt-1 text-xs text-green">사용 가능</p>
               )}
               {handleStatus === "taken" && (
-                <p className="mt-1 text-xs text-red-400">사용 불가</p>
+                <p className="mt-1 text-xs text-red">사용 불가</p>
               )}
             </div>
 
@@ -175,7 +176,7 @@ export default function ProfileEditSheet({
                     onClick={() => setPosition(pos)}
                     className={`flex-1 rounded-lg py-2 text-xs font-medium transition-colors ${
                       position === pos
-                        ? "bg-accent text-black"
+                        ? "bg-accent text-bg"
                         : "bg-bg text-text-2 ring-1 ring-border"
                     }`}
                   >
@@ -219,7 +220,7 @@ export default function ProfileEditSheet({
             <button
               onClick={handleSave}
               disabled={saving || handleStatus === "taken" || handleStatus === "checking"}
-              className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-black disabled:opacity-50"
+              className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-bg disabled:opacity-50"
             >
               {saving ? "저장 중..." : "저장"}
             </button>

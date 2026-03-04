@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/components/ui/Toast";
 
 interface ContactSettings {
   email: string | null;
@@ -45,18 +46,26 @@ export default function SettingsPage() {
 
   const toggleSetting = async (key: "show_email" | "show_phone") => {
     setSaving(true);
-    const newValue = !settings[key];
+    const prevValue = settings[key];
+    const newValue = !prevValue;
     setSettings((prev) => ({ ...prev, [key]: newValue }));
 
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from("profiles")
-        .update({ [key]: newValue })
-        .eq("id", user.id);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ [key]: newValue })
+          .eq("id", user.id);
+        if (error) throw error;
+      }
+    } catch {
+      setSettings((prev) => ({ ...prev, [key]: prevValue }));
+      toast("설정 변경에 실패했습니다", "error");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleLogout = async () => {

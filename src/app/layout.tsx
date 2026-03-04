@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR, Oswald, Rajdhani } from "next/font/google";
 import AppShell from "@/components/layout/AppShell";
+import ToastContainer from "@/components/ui/Toast";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -50,6 +51,7 @@ export default function RootLayout({
         <div className="mx-auto min-h-dvh max-w-[430px]">
           <AppShell>{children}</AppShell>
         </div>
+        <ToastContainer />
       </body>
     </html>
   );

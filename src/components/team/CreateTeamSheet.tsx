@@ -83,8 +83,8 @@ export default function CreateTeamSheet({ open, onClose, onCreated }: CreateTeam
               className="w-full rounded-[10px] border border-border bg-card px-3 py-2.5 text-[14px] text-text-1 placeholder:text-text-3 focus:border-accent focus:outline-none"
             />
             {handleStatus === "checking" && <p className="mt-1 text-[11px] text-text-3">확인 중...</p>}
-            {handleStatus === "available" && <p className="mt-1 text-[11px] text-green-400">사용 가능</p>}
-            {handleStatus === "taken" && <p className="mt-1 text-[11px] text-red-400">이미 사용 중</p>}
+            {handleStatus === "available" && <p className="mt-1 text-[11px] text-green">사용 가능</p>}
+            {handleStatus === "taken" && <p className="mt-1 text-[11px] text-red">이미 사용 중</p>}
           </div>
 
           <div>
@@ -108,7 +108,7 @@ export default function CreateTeamSheet({ open, onClose, onCreated }: CreateTeam
             />
           </div>
 
-          {error && <p className="text-[12px] text-red-400">{error}</p>}
+          {error && <p className="text-[12px] text-red">{error}</p>}
 
           <Button
             variant="primary"

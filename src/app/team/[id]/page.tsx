@@ -48,7 +48,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
         {team.myRole && (
           <button
             onClick={handleLeave}
-            className="flex-1 rounded-[10px] border border-border bg-card py-2 text-[13px] text-text-2 hover:border-red-400 hover:text-red-400"
+            className="flex-1 rounded-[10px] border border-border bg-card py-2 text-[13px] text-text-2 hover:border-red hover:text-red"
           >
             탈퇴
           </button>

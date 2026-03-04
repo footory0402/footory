@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Avatar from "@/components/ui/Avatar";
 import { useComments } from "@/hooks/useComments";
 import { timeAgo } from "@/lib/utils";
+import { toast } from "@/components/ui/Toast";
 
 interface CommentSheetProps {
   feedItemId: string;
@@ -28,11 +29,15 @@ export default function CommentSheet({ feedItemId, open, onClose }: CommentSheet
   const handleSubmit = async () => {
     if (!text.trim() || submitting) return;
     setSubmitting(true);
-    await addComment(text.trim());
-    setText("");
-    setSubmitting(false);
-    // Scroll to bottom
-    setTimeout(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }), 100);
+    try {
+      await addComment(text.trim());
+      setText("");
+      setTimeout(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }), 100);
+    } catch {
+      toast("댓글 등록에 실패했습니다", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!open) return null;
@@ -76,7 +81,7 @@ export default function CommentSheet({ feedItemId, open, onClose }: CommentSheet
           )}
 
           {comments.map((c) => (
-            <div key={c.id} className="flex gap-2.5">
+            <div key={c.id} className="group flex gap-2.5">
               <Avatar
                 name={c.profile.name}
                 size="xs"
@@ -93,7 +98,7 @@ export default function CommentSheet({ feedItemId, open, onClose }: CommentSheet
               {/* Delete button for own comments — userId check done server-side too */}
               <button
                 onClick={() => deleteComment(c.id)}
-                className="shrink-0 self-start text-text-3 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="shrink-0 self-start text-text-3 hover:text-red p-1 transition-opacity"
                 title="삭제"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -119,7 +124,7 @@ export default function CommentSheet({ feedItemId, open, onClose }: CommentSheet
           <button
             onClick={handleSubmit}
             disabled={!text.trim() || submitting}
-            className="shrink-0 rounded-full bg-accent px-3 py-2 text-[13px] font-semibold text-black disabled:opacity-30 transition-opacity"
+            className="shrink-0 rounded-full bg-accent px-3 py-2 text-[13px] font-semibold text-bg disabled:opacity-30 transition-opacity"
           >
             {submitting ? "..." : "전송"}
           </button>

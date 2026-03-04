@@ -11,7 +11,13 @@ export default function UploadProgress() {
       {status === "error" ? (
         <>
           <span className="text-4xl">❌</span>
-          <p className="text-sm text-red-400">{error ?? "업로드에 실패했습니다."}</p>
+          <p className="text-sm text-red">{error ?? "업로드에 실패했습니다."}</p>
+          <button
+            onClick={() => useUploadStore.getState().reset()}
+            className="mt-2 rounded-lg bg-accent px-5 py-2 text-[13px] font-semibold text-bg"
+          >
+            다시 시도
+          </button>
         </>
       ) : status === "done" ? (
         <>

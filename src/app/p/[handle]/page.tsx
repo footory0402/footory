@@ -29,12 +29,12 @@ const getProfile = cache(async (handle: string) => {
       .from("stats")
       .select("*")
       .eq("profile_id", profile.id)
-      .order("measured_at", { ascending: false }),
+      .order("recorded_at", { ascending: false }),
     supabase
       .from("medals")
-      .select("*")
+      .select("*, medal_criteria(*)")
       .eq("profile_id", profile.id)
-      .order("awarded_at", { ascending: false }),
+      .order("achieved_at", { ascending: false }),
     supabase
       .from("seasons")
       .select("*")
@@ -55,6 +55,26 @@ const getProfile = cache(async (handle: string) => {
 
   const teamData = team.data as unknown as { team_id: string; teams: { name: string } } | null;
 
+  // Enrich featured clips with clip data (thumbnail, duration)
+  const featuredRows = featured.data ?? [];
+  const clipIds = featuredRows.map((f: { clip_id: string }) => f.clip_id).filter(Boolean);
+  let clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null }> = {};
+  if (clipIds.length > 0) {
+    const { data: clipsData } = await supabase
+      .from("clips")
+      .select("id, video_url, thumbnail_url, duration_seconds")
+      .in("id", clipIds);
+    if (clipsData) {
+      for (const c of clipsData) {
+        clipsMap[c.id] = { video_url: c.video_url, thumbnail_url: c.thumbnail_url, duration_seconds: c.duration_seconds };
+      }
+    }
+  }
+  const enrichedFeatured = featuredRows.map((f: { id: string; clip_id: string; sort_order: number }) => ({
+    ...f,
+    clips: clipsMap[f.clip_id] ?? null,
+  }));
+
   // Increment view count (fire and forget)
   supabase
     .from("profiles")
@@ -67,7 +87,7 @@ const getProfile = cache(async (handle: string) => {
     contact: Object.keys(contact).length > 0 ? contact : null,
     teamName: teamData?.teams?.name ?? null,
     teamId: teamData?.team_id ?? null,
-    featured: featured.data ?? [],
+    featured: enrichedFeatured,
     stats: stats.data ?? [],
     medals: medals.data ?? [],
     seasons: seasons.data ?? [],

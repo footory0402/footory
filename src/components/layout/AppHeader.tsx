@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUnreadCount } from "@/hooks/useNotifications";
+import { NOTIFICATION_POLL_MS } from "@/lib/constants";
 
 export default function AppHeader() {
   const pathname = usePathname();
@@ -11,9 +12,9 @@ export default function AppHeader() {
 
   useEffect(() => {
     fetchCount();
-    const interval = setInterval(fetchCount, 30000);
+    const interval = setInterval(fetchCount, NOTIFICATION_POLL_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchCount]);
 
   return (
     <header className="sticky top-0 z-40 flex h-[42px] items-center justify-between border-b border-border bg-bg/90 px-4 backdrop-blur-xl">
@@ -30,7 +31,7 @@ export default function AppHeader() {
             <path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
           {count > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F87171] px-1 text-[10px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red px-1 text-[10px] font-bold text-white">
               {count > 99 ? "99+" : count}
             </span>
           )}

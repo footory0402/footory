@@ -60,7 +60,7 @@ export default function ChildrenPage() {
                     unlinkChild(child.childId);
                   }
                 }}
-                className="text-[12px] text-text-3 hover:text-red-400"
+                className="text-[12px] text-text-3 hover:text-red"
               >
                 연동 해제
               </button>

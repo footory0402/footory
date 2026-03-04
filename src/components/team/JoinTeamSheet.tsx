@@ -49,11 +49,11 @@ export default function JoinTeamSheet({ open, onClose, onJoined }: JoinTeamSheet
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="6자리 코드 입력"
               maxLength={6}
-              className="w-full rounded-[10px] border border-border bg-card px-3 py-2.5 text-center font-[family-name:var(--font-display)] text-[20px] tracking-[0.3em] text-text-1 placeholder:text-text-3 focus:border-accent focus:outline-none"
+              className="w-full rounded-[10px] border border-border bg-card px-3 py-2.5 text-center font-stat text-[20px] tracking-[0.3em] text-text-1 placeholder:text-text-3 focus:border-accent focus:outline-none"
             />
           </div>
 
-          {error && <p className="text-[12px] text-red-400">{error}</p>}
+          {error && <p className="text-[12px] text-red">{error}</p>}
 
           <Button
             variant="primary"

@@ -46,3 +46,10 @@ export const MEASUREMENTS = [
   { id: "vertical_jump", label: "수직 점프", unit: "cm", icon: "\u2B06\uFE0F", lowerIsBetter: false },
   { id: "agility", label: "민첩성", unit: "초", icon: "\u26A1", lowerIsBetter: true },
 ] as const;
+
+// App constants
+export const MAX_HIGHLIGHT_SECONDS = 30;
+export const MAX_FEATURED_SLOTS = 3;
+export const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;
+export const NOTIFICATION_POLL_MS = 30_000;
+export const APP_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://footory.app";

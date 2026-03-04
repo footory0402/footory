@@ -8,6 +8,7 @@ import { captureVideoThumbnail } from "@/lib/thumbnail";
 import VideoSelector from "@/components/upload/VideoSelector";
 import TagMemoForm from "@/components/upload/TagMemoForm";
 import Button from "@/components/ui/Button";
+import { getFileDuration } from "@/lib/video";
 
 interface ParentQuickUploadProps {
   child: LinkedChild;
@@ -183,24 +184,11 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
               >
                 {uploading ? "업로드 중..." : "업로드"}
               </Button>
-              {error && <p className="mt-2 text-center text-[12px] text-red-400">{error}</p>}
+              {error && <p className="mt-2 text-center text-[12px] text-red">{error}</p>}
             </div>
           </>
         )}
       </div>
     </div>
   );
-}
-
-function getFileDuration(file: File): Promise<number> {
-  return new Promise((resolve) => {
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src);
-      resolve(Math.round(video.duration));
-    };
-    video.onerror = () => resolve(0);
-    video.src = URL.createObjectURL(file);
-  });
 }

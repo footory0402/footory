@@ -29,6 +29,7 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
               <img
                 src={meta.thumbnail_url as string}
                 alt="Highlight thumbnail"
+                loading="lazy"
                 className="h-full w-full object-cover"
               />
               {meta.duration && (
@@ -61,6 +62,7 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
               <img
                 src={meta.thumbnail_url as string}
                 alt="Featured clip"
+                loading="lazy"
                 className="h-full w-full object-cover"
               />
             </div>
@@ -90,7 +92,7 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
             새 기록을 등록했어요
           </p>
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-[24px] font-bold text-accent">
+            <span className="font-stat text-[24px] font-bold text-accent">
               {meta.value as number}
             </span>
             <span className="text-[13px] text-text-3">{meta.unit as string}</span>

@@ -28,6 +28,7 @@ export default function TeamAlbum({ albums }: TeamAlbumProps) {
                 <img
                   src={item.thumbnailUrl}
                   alt=""
+                  loading="lazy"
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -47,6 +48,7 @@ export default function TeamAlbum({ albums }: TeamAlbumProps) {
             <img
               src={item.mediaUrl}
               alt=""
+              loading="lazy"
               className="h-full w-full object-cover"
             />
           )}

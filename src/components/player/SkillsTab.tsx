@@ -17,13 +17,21 @@ interface SkillsTabProps {
   loading?: boolean;
 }
 
-export default function SkillsTab({ tagClips }: SkillsTabProps) {
+export default function SkillsTab({ tagClips, loading }: SkillsTabProps) {
   const [filter, setFilter] = useState<string | null>(null);
 
   const tagsWithClips = SKILL_TAGS.filter((t) => (tagClips[t.id]?.length ?? 0) > 0);
   const tagsToShow = filter
     ? SKILL_TAGS.filter((t) => t.id === filter)
     : SKILL_TAGS;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

@@ -5,6 +5,7 @@ import TeamHeader from "@/components/team/TeamHeader";
 import MemberList from "@/components/team/MemberList";
 import TeamAlbum from "@/components/team/TeamAlbum";
 import ShareSheet from "@/components/ui/ShareSheet";
+import { APP_URL } from "@/lib/constants";
 import type { Team, TeamMember, TeamAlbumItem } from "@/lib/types";
 
 interface PublicTeamData {
@@ -75,7 +76,7 @@ export default function PublicTeamClient({ team: data }: { team: PublicTeamData 
 
   const shareUrl = typeof window !== "undefined"
     ? window.location.href
-    : `https://footory.app/t/${team.handle}`;
+    : `${APP_URL}/t/${team.handle}`;
 
   return (
     <div className="mx-auto max-w-[430px] pb-24">

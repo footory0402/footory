@@ -56,7 +56,7 @@ export default function RecordsTab({ stats, medals, seasons, onAddStat }: Record
       </SectionCard>
 
       {/* Season History */}
-      <SectionCard title="시즌 기록" icon="📅" onEdit={() => {}}>
+      <SectionCard title="시즌 기록" icon="📅">
         {seasons.length > 0 ? (
           <SeasonTimeline seasons={seasons} />
         ) : (

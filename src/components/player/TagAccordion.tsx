@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import VideoThumb from "./VideoThumb";
 
 interface TagClip {
@@ -18,6 +19,7 @@ interface TagAccordionProps {
 }
 
 export default function TagAccordion({ tagId, emoji, label, clips }: TagAccordionProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(clips.length > 0);
   const hasClips = clips.length > 0;
   const topClip = clips.find((c) => c.isTop);
@@ -69,7 +71,7 @@ export default function TagAccordion({ tagId, emoji, label, clips }: TagAccordio
               ))}
               {/* Add button */}
               <div className="flex w-[80px] shrink-0 items-center justify-center">
-                <button className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-[var(--border-accent)] text-accent transition-colors active:bg-[var(--accent-bg)]">
+                <button onClick={() => router.push("/upload")} className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-[var(--border-accent)] text-accent transition-colors active:bg-[var(--accent-bg)]">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 5v14M5 12h14" />
                   </svg>
@@ -80,6 +82,7 @@ export default function TagAccordion({ tagId, emoji, label, clips }: TagAccordio
             <div className="flex flex-col items-center gap-3 rounded-lg bg-[var(--accent-bg)] py-5">
               <span className="text-[12px] text-text-3">아직 {label} 영상이 없어요</span>
               <button
+                onClick={() => router.push("/upload")}
                 className="rounded-full px-4 py-1.5 text-[12px] font-semibold text-bg"
                 style={{ background: "var(--accent-gradient)" }}
               >

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { DiscoverHighlight, DiscoverMedal, DiscoverPlayer, DiscoverTeam } from "@/types/discover";
 
 interface DiscoverHomeData {
-  highlights: any[];
-  medals: any[];
-  players: any[];
-  teams: any[];
+  highlights: DiscoverHighlight[];
+  medals: DiscoverMedal[];
+  players: DiscoverPlayer[];
+  teams: DiscoverTeam[];
 }
 
 // --- Discover Home (single request for all sections) ---
@@ -46,8 +47,8 @@ export function useDiscoverHome() {
 
 // --- Search ---
 export function useSearch(query: string) {
-  const [players, setPlayers] = useState<any[]>([]);
-  const [teams, setTeams] = useState<any[]>([]);
+  const [players, setPlayers] = useState<DiscoverPlayer[]>([]);
+  const [teams, setTeams] = useState<DiscoverTeam[]>([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -83,7 +84,7 @@ export function useSearch(query: string) {
 
 // --- Hot Highlights ---
 export function useHotHighlights() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<DiscoverHighlight[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch_ = useCallback(async () => {
@@ -105,7 +106,7 @@ export function useHotHighlights() {
 
 // --- Recent Medals ---
 export function useRecentMedals() {
-  const [medals, setMedals] = useState<any[]>([]);
+  const [medals, setMedals] = useState<DiscoverMedal[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch_ = useCallback(async () => {
@@ -127,7 +128,7 @@ export function useRecentMedals() {
 
 // --- Recommended Players ---
 export function useRecommendedPlayers() {
-  const [players, setPlayers] = useState<any[]>([]);
+  const [players, setPlayers] = useState<DiscoverPlayer[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch_ = useCallback(async () => {
@@ -149,7 +150,7 @@ export function useRecommendedPlayers() {
 
 // --- Popular Teams ---
 export function usePopularTeams() {
-  const [teams, setTeams] = useState<any[]>([]);
+  const [teams, setTeams] = useState<DiscoverTeam[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch_ = useCallback(async () => {

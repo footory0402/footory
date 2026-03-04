@@ -33,7 +33,7 @@ export default function VideoThumb({
       />
 
       {thumbnailUrl && (
-        <img src={thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={thumbnailUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
       )}
 
       {/* Play button */}

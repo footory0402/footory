@@ -29,7 +29,7 @@ export default function Avatar({ name, size = "md", level = 1, imageUrl }: Avata
     >
       <div className={`${sizes[size]} flex items-center justify-center bg-card-alt font-semibold text-text-2`}>
         {imageUrl ? (
-          <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+          <img src={imageUrl} alt={name} loading="lazy" className="h-full w-full object-cover" />
         ) : (
           name.charAt(0)
         )}

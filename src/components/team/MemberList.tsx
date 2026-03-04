@@ -58,7 +58,7 @@ export default function MemberList({ members, isAdmin, onRemove }: MemberListPro
           {isAdmin && member.role !== "admin" && onRemove && (
             <button
               onClick={() => onRemove(member.profileId)}
-              className="text-[12px] text-text-3 hover:text-red-400"
+              className="text-[12px] text-text-3 hover:text-red"
             >
               제거
             </button>
