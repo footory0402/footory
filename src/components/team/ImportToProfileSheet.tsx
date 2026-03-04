@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import type { TeamAlbumItem } from "@/lib/types";
 import Button from "@/components/ui/Button";
 
@@ -60,7 +59,7 @@ export default function ImportToProfileSheet({ open, onClose, albums }: ImportTo
                   }`}
                 >
                   {item.thumbnailUrl ? (
-                    <Image src={item.thumbnailUrl} alt="" fill sizes="(max-width: 430px) 33vw, 130px" className="object-cover" loading="lazy" />
+                    <img src={item.thumbnailUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-card">
                       <svg className="h-5 w-5 text-text-3" viewBox="0 0 24 24" fill="currentColor">

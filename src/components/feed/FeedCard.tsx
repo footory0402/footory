@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { LEVELS, POSITION_COLORS } from "@/lib/constants";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
@@ -37,13 +36,10 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
           </p>
           {meta.thumbnail_url && (
             <div className="relative aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
-              <Image
+              <img
                 src={meta.thumbnail_url as string}
                 alt="Highlight thumbnail"
-                fill
-                sizes="(max-width: 430px) 100vw, 400px"
-                className="object-cover"
-                loading="lazy"
+                className="h-full w-full object-cover"
               />
               {meta.duration && (
                 <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">
@@ -71,14 +67,11 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
             대표 클립을 변경했어요 ✨
           </p>
           {meta.thumbnail_url && (
-            <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
-              <Image
+            <div className="mt-2 aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
+              <img
                 src={meta.thumbnail_url as string}
                 alt="Featured clip"
-                fill
-                sizes="(max-width: 430px) 100vw, 400px"
-                className="object-cover"
-                loading="lazy"
+                className="h-full w-full object-cover"
               />
             </div>
           )}

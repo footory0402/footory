@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 interface FeaturedSlotProps {
   clipId?: string;
   videoUrl?: string;
@@ -63,14 +61,7 @@ export default function FeaturedSlot({
       />
 
       {thumbnailUrl ? (
-        <Image
-          src={thumbnailUrl}
-          alt=""
-          fill
-          sizes="(max-width: 430px) 100vw, 400px"
-          className="object-cover"
-          loading="lazy"
-        />
+        <img src={thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-2xl">
           🎬
@@ -99,7 +90,12 @@ export default function FeaturedSlot({
       )}
 
       {/* BEST badge — top-left */}
-      {sortOrder === 1 && (
+      {sortOrder === 1 && !tag && (
+        <span className="absolute top-1.5 left-1.5 rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-bg">
+          BEST
+        </span>
+      )}
+      {sortOrder === 1 && tag && (
         <span className="absolute top-1.5 left-1.5 rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-bg">
           BEST
         </span>
