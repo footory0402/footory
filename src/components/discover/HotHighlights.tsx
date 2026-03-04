@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import type { DiscoverHighlight } from "@/types/discover";
@@ -27,11 +28,12 @@ export default function HotHighlights({ items, loading }: HotHighlightsProps) {
           <div key={item.id} className="rounded-[12px] bg-card overflow-hidden">
             {meta?.thumbnail_url && (
               <div className="relative aspect-video w-full bg-card-alt">
-                <img
+                <Image
                   src={meta.thumbnail_url}
                   alt="Highlight"
-                  loading="lazy"
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 430px) 100vw, 430px"
+                  className="object-cover"
                 />
                 {meta.duration && (
                   <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">

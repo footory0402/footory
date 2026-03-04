@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
+import { getWeekStart } from "@/lib/mvp-scoring";
 import {
   computeFeedSplit,
   computeRecommendationScore,
@@ -371,6 +372,68 @@ export async function fetchWeeklyBest(
       kudosCount,
     };
   });
+}
+
+/**
+ * Lightweight MVP leader fetch for home page teaser.
+ * 2 fast queries: weekly_votes → top clip_id, then clip + profile + tags in parallel.
+ */
+export interface MvpLeaderData {
+  playerName: string;
+  playerHandle: string;
+  playerAvatarUrl: string | null;
+  teamName: string | null;
+  thumbnailUrl: string | null;
+  voteCount: number;
+  tags: string[];
+}
+
+export async function fetchMvpLeader(supabase: SupabaseClient): Promise<MvpLeaderData | null> {
+  const weekStart = getWeekStart();
+
+  // 1. Get vote counts for this week (one fast query)
+  const { data: votes } = await supabase
+    .from("weekly_votes")
+    .select("clip_id")
+    .eq("week_start", weekStart);
+
+  if (!votes || votes.length === 0) return null;
+
+  // Tally votes and find top clip_id
+  const tally: Record<string, number> = {};
+  for (const v of votes) tally[v.clip_id] = (tally[v.clip_id] ?? 0) + 1;
+  const topClipId = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!topClipId) return null;
+
+  // 2. Fetch clip + tags in parallel
+  const [clipRes, tagsRes] = await Promise.all([
+    supabase
+      .from("clips")
+      .select("owner_id, thumbnail_url, profiles!clips_owner_id_fkey(name, handle, avatar_url)")
+      .eq("id", topClipId)
+      .single(),
+    supabase
+      .from("clip_tags")
+      .select("tag_name")
+      .eq("clip_id", topClipId)
+      .limit(2),
+  ]);
+
+  if (!clipRes.data) return null;
+
+  const profile = clipRes.data.profiles as unknown as {
+    name: string; handle: string; avatar_url: string | null;
+  } | null;
+
+  return {
+    playerName: profile?.name ?? "선수",
+    playerHandle: profile?.handle ?? "",
+    playerAvatarUrl: profile?.avatar_url ?? null,
+    teamName: null,
+    thumbnailUrl: clipRes.data.thumbnail_url ?? null,
+    voteCount: tally[topClipId],
+    tags: (tagsRes.data ?? []).map((t) => t.tag_name),
+  };
 }
 
 /**

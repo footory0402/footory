@@ -21,7 +21,18 @@ export default function ChildrenPage() {
 
   return (
     <div className="px-4 pb-24 pt-4">
-      <h1 className="mb-6 text-[17px] font-bold text-text-1">자녀 연동 관리</h1>
+      {/* Back + Title */}
+      <div className="mb-6 flex items-center gap-3">
+        <button
+          onClick={() => window.history.back()}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <h1 className="text-[17px] font-bold text-text-1">자녀 연동 관리</h1>
+      </div>
 
       {children.length === 0 ? (
         <div className="flex flex-col items-center pt-10">

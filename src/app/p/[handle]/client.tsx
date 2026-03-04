@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
 import RecordsTab from "@/components/player/RecordsTab";
@@ -129,6 +130,7 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
 }
 
 export default function PublicProfileClient({ profile: data }: { profile: PublicProfileData }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProfileTab>("summary");
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -142,9 +144,23 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     ? window.location.href
     : `${APP_URL}/p/${profile.handle}`;
 
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) router.back();
+    else router.push("/");
+  }, [router]);
+
   return (
     <ErrorBoundary>
     <div className="mx-auto max-w-[430px] px-4 pb-24 pt-4">
+      {/* Floating back button */}
+      <button
+        onClick={handleBack}
+        className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-card text-text-2 active:bg-elevated"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
       {/* Profile card (read-only, no edit button) */}
       <ProfileCard profile={profile} />
 

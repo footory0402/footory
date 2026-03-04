@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { TeamAlbumItem } from "@/lib/types";
 
 interface TeamAlbumProps {
@@ -25,11 +26,12 @@ export default function TeamAlbum({ albums }: TeamAlbumProps) {
           {item.mediaType === "video" ? (
             <>
               {item.thumbnailUrl ? (
-                <img
+                <Image
                   src={item.thumbnailUrl}
                   alt=""
-                  loading="lazy"
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 430px) 33vw, 143px"
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-card">
@@ -45,11 +47,12 @@ export default function TeamAlbum({ albums }: TeamAlbumProps) {
               </div>
             </>
           ) : (
-            <img
+            <Image
               src={item.mediaUrl}
               alt=""
-              loading="lazy"
-              className="h-full w-full object-cover"
+              fill
+              sizes="(max-width: 430px) 33vw, 143px"
+              className="object-cover"
             />
           )}
         </div>

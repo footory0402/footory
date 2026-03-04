@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/server";
-import { fetchFeedPage, fetchWeeklyBest, hasUserUploadedClips } from "@/lib/server/feed";
+import { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } from "@/lib/server/feed";
 import ParentHomeSection from "@/components/parent/ParentHomeSection";
-import BestCarousel from "@/components/feed/BestCarousel";
+import MvpTeaser from "@/components/mvp/MvpTeaser";
 
 const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
   loading: () => (
@@ -29,12 +29,12 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch profile role, feed, weekly best, and clip status in parallel — no waterfall
-  const [profileRes, feedData, bestClips, hasClips] = await Promise.all([
+  // Fetch all in parallel — no waterfall
+  const [profileRes, feedData, hasClips, mvpLeader] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", user.id).single(),
     fetchFeedPage(supabase, user.id),
-    fetchWeeklyBest(supabase),
     hasUserUploadedClips(supabase, user.id),
+    fetchMvpLeader(supabase),
   ]);
 
   const isParent = profileRes.data?.role === "parent";
@@ -43,8 +43,8 @@ export default async function HomePage() {
     <div className="px-4 pt-2">
       {isParent && <ParentHomeSection />}
 
-      {/* Weekly Best Carousel — only show if there are items */}
-      <BestCarousel items={bestClips} />
+      {/* MVP Teaser — server-fetched, renders immediately */}
+      <MvpTeaser leader={mvpLeader} />
 
       {/* Recommended Feed with upload nudge for new users */}
       <FeedList

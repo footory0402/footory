@@ -65,7 +65,18 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="px-4 pb-24 pt-4">
-      <h1 className="mb-6 text-[17px] font-bold text-text-1">팀 설정</h1>
+      {/* Back + Title */}
+      <div className="mb-6 flex items-center gap-3">
+        <button
+          onClick={() => window.history.back()}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <h1 className="text-[17px] font-bold text-text-1">팀 설정</h1>
+      </div>
 
       <div className="space-y-4">
         {/* Invite code */}

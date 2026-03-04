@@ -76,6 +76,19 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="pb-24">
+      {/* Back button */}
+      <div className="flex items-center gap-3 px-4 pt-3 pb-1">
+        <button
+          onClick={() => window.history.back()}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <h2 className="text-[15px] font-semibold text-text-1">{team.name}</h2>
+      </div>
+
       <TeamHeader
         team={team}
         activityScore={ranking.activity_score}

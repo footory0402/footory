@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import TeamHeader from "@/components/team/TeamHeader";
 import MemberList from "@/components/team/MemberList";
 import TeamAlbum from "@/components/team/TeamAlbum";
@@ -69,6 +70,7 @@ function mapAlbums(rows: Record<string, unknown>[]): TeamAlbumItem[] {
 }
 
 export default function PublicTeamClient({ team: data }: { team: PublicTeamData }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("멤버");
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -80,8 +82,25 @@ export default function PublicTeamClient({ team: data }: { team: PublicTeamData 
     ? window.location.href
     : `${APP_URL}/t/${team.handle}`;
 
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) router.back();
+    else router.push("/");
+  }, [router]);
+
   return (
     <div className="mx-auto max-w-[430px] pb-24">
+      {/* Back button */}
+      <div className="px-4 pt-3 pb-1">
+        <button
+          onClick={handleBack}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-card text-text-2 active:bg-elevated"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      </div>
+
       <TeamHeader team={team} />
 
       {/* Action buttons */}

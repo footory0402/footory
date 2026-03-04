@@ -41,7 +41,17 @@ export default function NotificationsPage() {
     <div className="min-h-screen bg-bg pb-20">
       {/* Header */}
       <div className="sticky top-[42px] z-30 flex items-center justify-between border-b border-border bg-bg/90 px-4 py-3 backdrop-blur-xl">
-        <h2 className="font-display text-lg font-bold text-text-1">알림</h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <h2 className="font-display text-lg font-bold text-text-1">알림</h2>
+        </div>
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}

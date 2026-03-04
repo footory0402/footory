@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
 import type { Position } from "@/lib/constants";
@@ -16,6 +17,7 @@ export interface VoteCardCandidate {
   playerPosition: Position | null;
   teamName?: string;
   tags: string[];
+  videoUrl?: string;
   thumbnailUrl?: string;
   totalScore: number;
   viewsCount: number;
@@ -42,6 +44,8 @@ export default function VoteCard({
   onVote,
 }: VoteCardProps) {
   const [voting, setVoting] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVote = async () => {
     if (hasVoted || !votingOpen || votesRemaining <= 0 || voting) return;
@@ -51,6 +55,13 @@ export default function VoteCard({
     } finally {
       setVoting(false);
     }
+  };
+
+  const handlePlay = () => {
+    if (!candidate.videoUrl) return;
+    setPlaying(true);
+    // Auto play after render
+    setTimeout(() => videoRef.current?.play(), 50);
   };
 
   return (
@@ -72,60 +83,78 @@ export default function VoteCard({
         />
       )}
 
-      {/* Thumbnail — 5:2 ratio (cinematic, compact) */}
+      {/* Video / Thumbnail — 5:2 ratio */}
       <div className="relative aspect-[5/2] w-full overflow-hidden bg-card-alt">
-        {candidate.thumbnailUrl ? (
-          <img
-            src={candidate.thumbnailUrl}
-            alt={`${candidate.playerName} 클립`}
+        {playing && candidate.videoUrl ? (
+          <video
+            ref={videoRef}
+            src={candidate.videoUrl}
+            controls
+            playsInline
             className="h-full w-full object-cover"
+            onEnded={() => setPlaying(false)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <span className="text-[28px] opacity-30">🎬</span>
-          </div>
-        )}
+          <>
+            {candidate.thumbnailUrl ? (
+              <Image
+                src={candidate.thumbnailUrl}
+                alt={`${candidate.playerName} 클립`}
+                fill
+                sizes="(max-width: 430px) 100vw, 430px"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <span className="text-[28px] opacity-30">🎬</span>
+              </div>
+            )}
 
-        {/* Rank overlay */}
-        <div
-          className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5"
-          style={{
-            background: isFirst ? "var(--accent-gradient)" : "rgba(0,0,0,0.7)",
-            color: isFirst ? "#0C0C0E" : "#FAFAFA",
-          }}
-        >
-          <span className="font-stat text-[12px] font-bold">
-            {candidate.rank}위
-          </span>
-        </div>
-
-        {/* Tag */}
-        {candidate.tags.length > 0 && (
-          <div className="absolute right-2 top-2">
-            <span
-              className="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
+            {/* Rank overlay */}
+            <div
+              className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5"
               style={{
-                background: "rgba(212,168,83,0.15)",
-                color: "var(--color-accent)",
-                border: "1px solid rgba(212,168,83,0.3)",
+                background: isFirst ? "var(--accent-gradient)" : "rgba(0,0,0,0.7)",
+                color: isFirst ? "#0C0C0E" : "#FAFAFA",
               }}
             >
-              {candidate.tags[0]}
-            </span>
-          </div>
-        )}
+              <span className="font-stat text-[12px] font-bold">
+                {candidate.rank}위
+              </span>
+            </div>
 
-        {/* Play button */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-full"
-            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
-        </div>
+            {/* Tag */}
+            {candidate.tags.length > 0 && (
+              <div className="absolute right-2 top-2">
+                <span
+                  className="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
+                  style={{
+                    background: "rgba(212,168,83,0.15)",
+                    color: "var(--color-accent)",
+                    border: "1px solid rgba(212,168,83,0.3)",
+                  }}
+                >
+                  {candidate.tags[0]}
+                </span>
+              </div>
+            )}
+
+            {/* Play button */}
+            <button
+              onClick={handlePlay}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
+                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Info section — compact single row */}
@@ -178,6 +207,8 @@ export function VoteCardCompact({
   onVote,
 }: Omit<VoteCardProps, "isFirst">) {
   const [voting, setVoting] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVote = async () => {
     if (hasVoted || !votingOpen || votesRemaining <= 0 || voting) return;
@@ -189,6 +220,12 @@ export function VoteCardCompact({
     }
   };
 
+  const handlePlay = () => {
+    if (!candidate.videoUrl) return;
+    setPlaying(true);
+    setTimeout(() => videoRef.current?.play(), 50);
+  };
+
   return (
     <div
       className="animate-fade-up flex flex-col overflow-hidden"
@@ -198,34 +235,57 @@ export function VoteCardCompact({
         borderRadius: 12,
       }}
     >
-      {/* Thumbnail */}
+      {/* Thumbnail / Video */}
       <div className="relative aspect-video w-full overflow-hidden bg-card-alt">
-        {candidate.thumbnailUrl ? (
-          <img
-            src={candidate.thumbnailUrl}
-            alt={candidate.playerName}
+        {playing && candidate.videoUrl ? (
+          <video
+            ref={videoRef}
+            src={candidate.videoUrl}
+            controls
+            playsInline
             className="h-full w-full object-cover"
+            onEnded={() => setPlaying(false)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[20px] opacity-30">
-            🎬
-          </div>
+          <>
+            {candidate.thumbnailUrl ? (
+              <Image
+                src={candidate.thumbnailUrl}
+                alt={candidate.playerName}
+                fill
+                sizes="(max-width: 430px) 50vw, 215px"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[20px] opacity-30">
+                🎬
+              </div>
+            )}
+            <div
+              className="absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+              style={{
+                background: "rgba(0,0,0,0.75)",
+                color: "#FAFAFA",
+              }}
+            >
+              {candidate.rank}위
+            </div>
+            {/* Play button */}
+            <button
+              onClick={handlePlay}
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90"
+                style={{ background: "rgba(0,0,0,0.5)" }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </button>
+          </>
         )}
-        <div
-          className="absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-          style={{
-            background: "rgba(0,0,0,0.75)",
-            color: "#FAFAFA",
-          }}
-        >
-          {candidate.rank}위
-        </div>
-        {/* Play icon */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "rgba(0,0,0,0.5)" }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>
-          </div>
-        </div>
       </div>
 
       {/* Info + Vote */}
@@ -265,9 +325,4 @@ export function VoteCardCompact({
       </div>
     </div>
   );
-}
-
-function formatNum(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
 }

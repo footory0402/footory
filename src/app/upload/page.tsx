@@ -7,6 +7,7 @@ import { captureVideoThumbnail } from "@/lib/thumbnail";
 import VideoSelector from "@/components/upload/VideoSelector";
 import TagMemoForm from "@/components/upload/TagMemoForm";
 import UploadProgress from "@/components/upload/UploadProgress";
+import { useRouter } from "next/navigation";
 import { getFileDuration } from "@/lib/video";
 
 const STEP_TITLES = ["영상 선택", "태그 & 메모", "업로드"];
@@ -33,6 +34,7 @@ async function uploadViaDirectApi(
 }
 
 export default function UploadPage() {
+  const router = useRouter();
   const store = useUploadStore();
 
   const startUpload = useCallback(async () => {
@@ -148,6 +150,24 @@ export default function UploadPage() {
 
   return (
     <div className="flex flex-col gap-6 px-4 pb-24 pt-4">
+      {/* Back + Title */}
+      {store.step < 3 && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (store.step === 1) router.back();
+              else store.prevStep();
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <h1 className="text-[17px] font-bold text-text-1">영상 업로드</h1>
+        </div>
+      )}
+
       {/* Step indicator */}
       <div className="flex items-center gap-2">
         {STEP_TITLES.map((title, i) => {

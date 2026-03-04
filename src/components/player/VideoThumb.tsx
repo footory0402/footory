@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 interface VideoThumbProps {
   thumbnailUrl?: string;
   duration: number;
@@ -33,7 +35,7 @@ export default function VideoThumb({
       />
 
       {thumbnailUrl && (
-        <img src={thumbnailUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+        <Image src={thumbnailUrl} alt="" fill sizes="(max-width: 430px) 50vw, 200px" className="object-cover" />
       )}
 
       {/* Play button */}

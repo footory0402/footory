@@ -18,7 +18,7 @@ export async function GET() {
   const weekStartDate = new Date(weekStart + "T00:00:00Z");
   const { data: clips } = await supabase
     .from("clips")
-    .select("id, owner_id, thumbnail_url, memo, duration_seconds, created_at")
+    .select("id, owner_id, video_url, thumbnail_url, memo, duration_seconds, created_at")
     .gte("created_at", weekStartDate.toISOString())
     .order("created_at", { ascending: false });
 
@@ -171,6 +171,7 @@ export async function GET() {
       playerPosition: profile?.position ?? null,
       teamName: teamMap[r.ownerId] ?? undefined,
       tags: tagMap[r.clipId] ?? [],
+      videoUrl: clip?.video_url ?? undefined,
       thumbnailUrl: clip?.thumbnail_url ?? undefined,
       totalScore: r.totalScore,
       autoScore: r.autoNorm,

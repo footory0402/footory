@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect } from "react";
 import { useClips } from "@/hooks/useClips";
 
@@ -65,12 +66,14 @@ export default function ClipPickerSheet({
                   }`}
                 >
                   {/* Thumbnail */}
-                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[var(--color-bg)]">
+                  <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[var(--color-bg)]">
                     {clip.thumbnail_url ? (
-                      <img
+                      <Image
                         src={clip.thumbnail_url}
                         alt=""
-                        className="h-full w-full object-cover"
+                        fill
+                        sizes="80px"
+                        className="object-cover"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-lg">
