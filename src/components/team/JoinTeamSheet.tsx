@@ -35,9 +35,9 @@ export default function JoinTeamSheet({ open, onClose, onJoined }: JoinTeamSheet
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-[430px] rounded-t-2xl bg-surface px-5 pb-8 pt-4">
+      <div className="relative max-h-[85vh] w-full max-w-[430px] overflow-y-auto rounded-t-2xl bg-surface px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-4">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
         <h2 className="mb-5 text-[17px] font-bold text-text-1">팀 가입하기</h2>
 

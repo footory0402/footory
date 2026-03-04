@@ -50,6 +50,8 @@ interface PublicProfileData {
   stats: unknown[];
   medals: unknown[];
   seasons: unknown[];
+  isFollowing?: boolean;
+  isOwnProfile?: boolean;
 }
 
 // Map DB row to Profile type for ProfileCard
@@ -142,7 +144,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
       {/* Follow + Share buttons */}
       <div className="mt-3 flex items-center gap-2">
-        <FollowButton targetId={profile.id} size="md" />
+        {!data.isOwnProfile && (
+          <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
+        )}
         <button
           onClick={() => setShareOpen(true)}
           className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-[13px] font-semibold text-text-2 transition-colors hover:border-accent hover:text-accent"

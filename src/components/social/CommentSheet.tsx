@@ -5,19 +5,28 @@ import Avatar from "@/components/ui/Avatar";
 import { useComments } from "@/hooks/useComments";
 import { timeAgo } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
+import { createClient } from "@/lib/supabase/client";
 
 interface CommentSheetProps {
   feedItemId: string;
   open: boolean;
   onClose: () => void;
+  onCommentCountChange?: (delta: number) => void;
 }
 
-export default function CommentSheet({ feedItemId, open, onClose }: CommentSheetProps) {
+export default function CommentSheet({ feedItemId, open, onClose, onCommentCountChange }: CommentSheetProps) {
   const { comments, loading, fetchComments, addComment, deleteComment } = useComments(feedItemId);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -32,6 +41,7 @@ export default function CommentSheet({ feedItemId, open, onClose }: CommentSheet
     try {
       await addComment(text.trim());
       setText("");
+      onCommentCountChange?.(1);
       setTimeout(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }), 100);
     } catch {
       toast("댓글 등록에 실패했습니다", "error");
@@ -43,7 +53,7 @@ export default function CommentSheet({ feedItemId, open, onClose }: CommentSheet
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
@@ -95,22 +105,24 @@ export default function CommentSheet({ feedItemId, open, onClose }: CommentSheet
                 </div>
                 <p className="text-[13px] text-text-2 mt-0.5 break-words">{c.content}</p>
               </div>
-              {/* Delete button for own comments — userId check done server-side too */}
-              <button
-                onClick={() => deleteComment(c.id)}
-                className="shrink-0 self-start text-text-3 hover:text-red p-1 transition-opacity"
-                title="삭제"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+              {/* Delete button — only for own comments */}
+              {currentUserId === c.userId && (
+                <button
+                  onClick={() => { deleteComment(c.id); onCommentCountChange?.(-1); }}
+                  className="shrink-0 self-start text-text-3 hover:text-red p-1 transition-opacity"
+                  title="삭제"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
             </div>
           ))}
         </div>
 
         {/* Input */}
-        <div className="border-t border-border px-4 py-3 flex items-center gap-2">
+        <div className="border-t border-border px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-2">
           <input
             ref={inputRef}
             type="text"

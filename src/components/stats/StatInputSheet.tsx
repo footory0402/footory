@@ -51,15 +51,15 @@ export default function StatInputSheet({ open, onClose, onSave }: StatInputSheet
   if (!open) return null;
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/60" onClick={handleClose} />
+    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
 
-      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] animate-slide-up rounded-t-2xl bg-card">
+      <div className="relative w-full max-w-[430px] animate-slide-up rounded-t-2xl bg-card">
         <div className="flex justify-center py-3">
           <div className="h-1 w-10 rounded-full bg-border" />
         </div>
 
-        <div className="px-5 pb-8">
+        <div className="px-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           {step === "type" && (
             <>
               <h2 className="mb-4 text-lg font-bold text-text-1">측정 종류 선택</h2>
@@ -128,6 +128,6 @@ export default function StatInputSheet({ open, onClose, onSave }: StatInputSheet
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

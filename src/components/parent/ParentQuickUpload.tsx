@@ -108,7 +108,7 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
   // Done screen
   if (done) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/90">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-bg/90">
         <div className="flex w-full max-w-[360px] flex-col items-center px-6">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/20 text-4xl">
             ✅
@@ -129,7 +129,7 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-bg">
+    <div className="fixed inset-0 z-[60] overflow-y-auto bg-bg">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <button onClick={onClose} className="text-[14px] text-text-2">

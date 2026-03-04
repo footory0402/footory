@@ -101,18 +101,18 @@ export default function ProfileEditSheet({
   if (!open) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center">
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] animate-slide-up rounded-t-2xl bg-card">
+      <div className="relative w-full max-w-[430px] animate-slide-up rounded-t-2xl bg-card">
         {/* Handle bar */}
         <div className="flex justify-center py-3">
           <div className="h-1 w-10 rounded-full bg-border" />
         </div>
 
-        <div className="max-h-[80vh] overflow-y-auto px-5 pb-8">
+        <div className="max-h-[80vh] overflow-y-auto px-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <h2 className="mb-5 text-lg font-bold text-text-1">프로필 편집</h2>
 
           {/* Avatar */}
@@ -227,7 +227,7 @@ export default function ProfileEditSheet({
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

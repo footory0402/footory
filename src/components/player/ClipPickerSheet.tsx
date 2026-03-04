@@ -25,12 +25,12 @@ export default function ClipPickerSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
       {/* Sheet */}
-      <div className="relative z-10 w-full max-w-[430px] rounded-t-2xl bg-[var(--color-surface)] px-4 pb-8 pt-4">
+      <div className="relative w-full max-w-[430px] rounded-t-2xl bg-[var(--color-surface)] px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-4">
         {/* Handle */}
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--color-border)]" />
 

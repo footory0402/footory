@@ -27,9 +27,9 @@ export default function MedalCelebration({ medals, onClose }: MedalCelebrationPr
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/70" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] bg-black/70" onClick={onClose} />
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
         <div className="w-full max-w-[340px] animate-scale-up rounded-2xl bg-card p-6 text-center">
           {/* Celebration header */}
           <div className="mb-4">

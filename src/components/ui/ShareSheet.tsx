@@ -51,10 +51,10 @@ export default function ShareSheet({ open, onClose, url, title, text }: ShareShe
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/60" onClick={onClose} />
+      <div className="fixed inset-0 z-[60] bg-black/60" onClick={onClose} />
 
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-[430px] animate-fade-up rounded-t-2xl bg-card pb-[env(safe-area-inset-bottom)]">
+      <div className="fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-[430px] animate-fade-up rounded-t-2xl bg-card pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-center pt-3 pb-2">
           <div className="h-1 w-10 rounded-full bg-border" />
         </div>

@@ -75,6 +75,19 @@ const getProfile = cache(async (handle: string) => {
     clips: clipsMap[f.clip_id] ?? null,
   }));
 
+  // Check if current user follows this profile
+  let isFollowing = false;
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  if (currentUser && currentUser.id !== profile.id) {
+    const { data: followRow } = await supabase
+      .from("follows")
+      .select("id")
+      .eq("follower_id", currentUser.id)
+      .eq("following_id", profile.id)
+      .maybeSingle();
+    isFollowing = !!followRow;
+  }
+
   // Increment view count (fire and forget)
   supabase
     .from("profiles")
@@ -91,6 +104,8 @@ const getProfile = cache(async (handle: string) => {
     stats: stats.data ?? [],
     medals: medals.data ?? [],
     seasons: seasons.data ?? [],
+    isFollowing,
+    isOwnProfile: currentUser?.id === profile.id,
   };
 });
 

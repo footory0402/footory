@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications";
 
+/** Count rows and update profile field */
+async function syncFollowCounts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  targetId: string,
+) {
+  const [{ count: followingCount }, { count: followersCount }] = await Promise.all([
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", userId),
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", targetId),
+  ]);
+
+  await Promise.all([
+    supabase.from("profiles").update({ following_count: followingCount ?? 0 }).eq("id", userId),
+    supabase.from("profiles").update({ followers_count: followersCount ?? 0 }).eq("id", targetId),
+  ]);
+}
+
 // POST /api/follows — follow a user
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -31,15 +48,8 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Update counts
-  const [{ data: myProfile }, { data: targetProfile }] = await Promise.all([
-    supabase.from("profiles").select("following_count").eq("id", user.id).single(),
-    supabase.from("profiles").select("followers_count").eq("id", targetId).single(),
-  ]);
-  await Promise.all([
-    supabase.from("profiles").update({ following_count: (myProfile?.following_count ?? 0) + 1 }).eq("id", user.id),
-    supabase.from("profiles").update({ followers_count: (targetProfile?.followers_count ?? 0) + 1 }).eq("id", targetId),
-  ]);
+  // Sync counts from actual follows rows
+  await syncFollowCounts(supabase, user.id, targetId);
 
   // Send follow notification
   const { data: sender } = await supabase
@@ -74,15 +84,8 @@ export async function DELETE(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Update counts (decrement, floor at 0)
-  await Promise.all([
-    supabase.from("profiles").select("following_count").eq("id", user.id).single().then(({ data }) => {
-      return supabase.from("profiles").update({ following_count: Math.max((data?.following_count ?? 1) - 1, 0) }).eq("id", user.id);
-    }),
-    supabase.from("profiles").select("followers_count").eq("id", targetId).single().then(({ data }) => {
-      return supabase.from("profiles").update({ followers_count: Math.max((data?.followers_count ?? 1) - 1, 0) }).eq("id", targetId);
-    }),
-  ]);
+  // Sync counts from actual follows rows
+  await syncFollowCounts(supabase, user.id, targetId);
 
   return NextResponse.json({ ok: true });
 }

@@ -32,7 +32,7 @@ function FeedSkeleton() {
 }
 
 export default function FeedList({ initialItems = [], initialNextCursor = null }: FeedListProps) {
-  const { items, loading, hasMore, loadMore, toggleKudos, updateKudosCount } = useFeed(
+  const { items, loading, hasMore, loadMore, toggleKudos, updateKudosCount, updateCommentCount } = useFeed(
     initialItems,
     initialNextCursor
   );
@@ -106,6 +106,7 @@ export default function FeedList({ initialItems = [], initialNextCursor = null }
           feedItemId={commentTarget}
           open={!!commentTarget}
           onClose={() => setCommentTarget(null)}
+          onCommentCountChange={(delta) => updateCommentCount(commentTarget, delta)}
         />
       )}
     </>
