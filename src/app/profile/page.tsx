@@ -93,7 +93,7 @@ export default function ProfilePage() {
 
   return (
     <div className="px-4 pb-24 pt-4">
-      <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} />
+      <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
       <div className="mt-4">
         <ProfileTabs active={activeTab} onChange={setActiveTab} />

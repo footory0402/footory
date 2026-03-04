@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { SKILL_TAGS } from "@/lib/constants";
 import { useTagClips } from "@/hooks/useDiscover";
 
@@ -48,10 +49,11 @@ export default function TagGrid() {
               className="group relative aspect-square overflow-hidden rounded-[6px] bg-card"
             >
               {clip.thumbnail_url ? (
-                <img
+                <Image
                   src={clip.thumbnail_url}
                   alt={`${clip.owner_name} clip`}
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 430px) 33vw, 140px"
                   className="h-full w-full object-cover transition-transform group-active:scale-105"
                 />
               ) : (

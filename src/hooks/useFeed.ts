@@ -29,8 +29,11 @@ export function useFeed(
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialNextCursor !== null || initialItems.length === 0);
   const cursorRef = useRef<string | null>(initialNextCursor);
+  const inFlightRef = useRef(false);
 
   const fetchFeed = useCallback(async (reset = false) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     try {
       const cur = cursorRef.current;
@@ -46,14 +49,15 @@ export function useFeed(
       cursorRef.current = data.nextCursor;
       setHasMore(!!data.nextCursor);
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, []);
 
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return;
+    if (!hasMore) return;
     await fetchFeed(false);
-  }, [fetchFeed, loading, hasMore]);
+  }, [fetchFeed, hasMore]);
 
   const refresh = useCallback(async () => {
     cursorRef.current = null;
@@ -67,47 +71,66 @@ export function useFeed(
     let originalItem: FeedItemEnriched | undefined;
 
     setItems((prev) => {
-      originalItem = prev.find((i) => i.id === feedItemId);
-      if (!originalItem) return prev;
-      return prev.map((i) =>
-        i.id === feedItemId
-          ? { ...i, hasKudos: !i.hasKudos, kudosCount: i.hasKudos ? i.kudosCount - 1 : i.kudosCount + 1 }
-          : i
-      );
+      const index = prev.findIndex((i) => i.id === feedItemId);
+      if (index === -1) return prev;
+
+      const current = prev[index];
+      originalItem = current;
+
+      const next = [...prev];
+      next[index] = {
+        ...current,
+        hasKudos: !current.hasKudos,
+        kudosCount: current.hasKudos
+          ? current.kudosCount - 1
+          : current.kudosCount + 1,
+      };
+      return next;
     });
 
     // Wait a tick so originalItem is captured from the setter above
     await Promise.resolve();
 
-    if (!originalItem) return;
-    const method = originalItem.hasKudos ? "DELETE" : "POST";
+    const snapshot = originalItem;
+    if (!snapshot) return;
+    const method = snapshot.hasKudos ? "DELETE" : "POST";
     const res = await fetch(`/api/feed/${feedItemId}/kudos`, { method });
 
     if (!res.ok) {
       // Rollback
-      const snap = originalItem;
-      setItems((prev) =>
-        prev.map((i) =>
-          i.id === feedItemId
-            ? { ...i, hasKudos: snap.hasKudos, kudosCount: snap.kudosCount }
-            : i
-        )
-      );
+      setItems((prev) => {
+        const index = prev.findIndex((i) => i.id === feedItemId);
+        if (index === -1) return prev;
+        const next = [...prev];
+        next[index] = { ...next[index], hasKudos: snapshot.hasKudos, kudosCount: snapshot.kudosCount };
+        return next;
+      });
     }
   }, []);
 
   const updateKudosCount = useCallback((feedItemId: string, count: number) => {
-    setItems((prev) =>
-      prev.map((i) => (i.id === feedItemId ? { ...i, kudosCount: count } : i))
-    );
+    setItems((prev) => {
+      const index = prev.findIndex((i) => i.id === feedItemId);
+      if (index === -1 || prev[index].kudosCount === count) return prev;
+      const next = [...prev];
+      next[index] = { ...next[index], kudosCount: count };
+      return next;
+    });
   }, []);
 
   const updateCommentCount = useCallback((feedItemId: string, delta: number) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === feedItemId ? { ...i, commentCount: Math.max(0, i.commentCount + delta) } : i
-      )
-    );
+    if (delta === 0) return;
+    setItems((prev) => {
+      const index = prev.findIndex((i) => i.id === feedItemId);
+      if (index === -1) return prev;
+
+      const nextCount = Math.max(0, prev[index].commentCount + delta);
+      if (nextCount === prev[index].commentCount) return prev;
+
+      const next = [...prev];
+      next[index] = { ...next[index], commentCount: nextCount };
+      return next;
+    });
   }, []);
 
   return { items, loading, hasMore, refresh, loadMore, toggleKudos, updateKudosCount, updateCommentCount };

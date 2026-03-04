@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import PlayerRanking from "@/components/explore/PlayerRanking";
 import RisingPlayers from "@/components/explore/RisingPlayers";
 import TeamRanking from "@/components/explore/TeamRanking";
 import TagGrid from "@/components/explore/TagGrid";
-import SearchOverlay from "@/components/explore/SearchOverlay";
+
+const SearchOverlay = dynamic(() => import("@/components/explore/SearchOverlay"), {
+  ssr: false,
+});
 
 type FilterTab = "all" | "player" | "team" | "tag";
 

@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { LEVELS, POSITION_COLORS } from "@/lib/constants";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
@@ -14,9 +15,8 @@ interface FeedCardProps {
   onComment?: (id: string) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function FeedBody({ item }: { item: FeedItemEnriched }) {
-  const meta = item.metadata as Record<string, any>;
+  const meta = item.metadata as Record<string, unknown>;
 
   switch (item.type) {
     case "highlight": {
@@ -25,6 +25,10 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
       const description = (meta.description as string) ?? (meta.memo as string) ?? null;
       const tagLine = tags.length > 0 ? tags.join(" | ") : null;
       const displayText = [tagLine, description].filter(Boolean).join(" - ");
+      const thumbnailUrl =
+        typeof meta.thumbnail_url === "string" ? meta.thumbnail_url : null;
+      const duration =
+        typeof meta.duration === "number" ? meta.duration : null;
 
       return (
         <div>
@@ -43,17 +47,18 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
               새 하이라이트를 등록했어요
             </p>
           )}
-          {meta.thumbnail_url && (
+          {thumbnailUrl && (
             <div className="relative aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
-              <img
-                src={meta.thumbnail_url as string}
+              <Image
+                src={thumbnailUrl}
                 alt="Highlight thumbnail"
-                loading="lazy"
+                fill
+                sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
                 className="h-full w-full object-cover"
               />
-              {meta.duration && (
+              {duration !== null && (
                 <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">
-                  {Math.floor(meta.duration as number)}초
+                  {Math.floor(duration)}초
                 </span>
               )}
               {/* Play button overlay */}
@@ -92,24 +97,29 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
       );
     }
 
-    case "featured_change":
+    case "featured_change": {
+      const featuredThumbnailUrl =
+        typeof meta.thumbnail_url === "string" ? meta.thumbnail_url : null;
+
       return (
         <div>
           <p className="text-[14px] text-text-1">
             대표 클립을 변경했어요
           </p>
-          {meta.thumbnail_url && (
-            <div className="mt-2 aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
-              <img
-                src={meta.thumbnail_url as string}
+          {featuredThumbnailUrl && (
+            <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
+              <Image
+                src={featuredThumbnailUrl}
                 alt="Featured clip"
-                loading="lazy"
+                fill
+                sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
                 className="h-full w-full object-cover"
               />
             </div>
           )}
         </div>
       );
+    }
 
     case "medal":
       return (

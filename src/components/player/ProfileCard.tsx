@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { LevelBadge, PositionBadge } from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
 import { LEVELS, MVP_TIERS } from "@/lib/constants";
 import type { Profile, MvpTier } from "@/lib/types";
+import { toast } from "@/components/ui/Toast";
 
 /* ── MVP Badge (inline in profile card) ── */
 function MvpBadge({ count, tier }: { count: number; tier: MvpTier | null }) {
@@ -32,9 +33,27 @@ function MvpBadge({ count, tier }: { count: number; tier: MvpTier | null }) {
 interface ProfileCardProps {
   profile: Profile;
   onEdit?: () => void;
+  onAvatarUpload?: (file: File) => Promise<void>;
 }
 
-function ProfileCard({ profile, onEdit }: ProfileCardProps) {
+function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !onAvatarUpload) return;
+    setAvatarUploading(true);
+    try {
+      await onAvatarUpload(file);
+      toast("프로필 사진이 변경되었습니다", "success");
+    } catch {
+      toast("프로필 사진 업로드에 실패했습니다", "error");
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
+  };
   const currentYear = new Date().getFullYear();
   const age = profile.birthYear ? currentYear - profile.birthYear : null;
   const lvl = LEVELS[Math.max(1, Math.min(profile.level, 5)) - 1];
@@ -67,12 +86,42 @@ function ProfileCard({ profile, onEdit }: ProfileCardProps) {
         {/* Top: Avatar + Info */}
         <div className="flex gap-3">
           <div className="relative">
-            <Avatar name={profile.name} size="lg" level={profile.level} imageUrl={profile.avatarUrl} />
+            {onAvatarUpload ? (
+              <button
+                onClick={() => avatarFileRef.current?.click()}
+                disabled={avatarUploading}
+                className="group relative block"
+                aria-label="프로필 사진 변경"
+              >
+                <Avatar name={profile.name} size="lg" level={profile.level} imageUrl={profile.avatarUrl} />
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                  {avatarUploading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            ) : (
+              <Avatar name={profile.name} size="lg" level={profile.level} imageUrl={profile.avatarUrl} />
+            )}
             {/* Position badge overlay */}
             {profile.position && (
               <div className="absolute -right-1 -bottom-1">
                 <PositionBadge position={profile.position} />
               </div>
+            )}
+            {onAvatarUpload && (
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
             )}
           </div>
 

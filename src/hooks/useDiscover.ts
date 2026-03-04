@@ -19,39 +19,123 @@ interface DiscoverHomeData {
   teams: DiscoverTeam[];
 }
 
+const DISCOVER_CACHE_TTL_MS = 60_000;
+const SEARCH_CACHE_TTL_MS = 20_000;
+
+interface CacheEntry {
+  expiresAt: number;
+  value: unknown;
+}
+
+const discoverCache = new Map<string, CacheEntry>();
+const discoverInFlight = new Map<string, Promise<unknown>>();
+
+function getCachedValue<T>(key: string): T | null {
+  const cached = discoverCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    discoverCache.delete(key);
+    return null;
+  }
+  return cached.value as T;
+}
+
+function setCachedValue<T>(key: string, value: T, ttlMs = DISCOVER_CACHE_TTL_MS) {
+  discoverCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
+
+async function fetchCachedJson<T>(
+  key: string,
+  url: string,
+  options?: { force?: boolean; ttlMs?: number; signal?: AbortSignal }
+): Promise<T | null> {
+  const force = options?.force ?? false;
+
+  if (!force) {
+    const cached = getCachedValue<T>(key);
+    if (cached) return cached;
+
+    const pending = discoverInFlight.get(key) as Promise<T> | undefined;
+    if (pending) {
+      try {
+        return await pending;
+      } catch {
+        return null;
+      }
+    }
+  }
+
+  const request = fetch(url, { signal: options?.signal })
+    .then(async (res) => {
+      if (!res.ok) return null;
+      const data = (await res.json()) as T;
+      setCachedValue(key, data, options?.ttlMs ?? DISCOVER_CACHE_TTL_MS);
+      return data;
+    })
+    .catch((error: unknown) => {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return null;
+      }
+      return null;
+    })
+    .finally(() => {
+      if (discoverInFlight.get(key) === request) {
+        discoverInFlight.delete(key);
+      }
+    });
+
+  discoverInFlight.set(key, request as Promise<unknown>);
+  return request;
+}
+
 // --- Discover Home (single request for all sections) ---
 export function useDiscoverHome() {
-  const [data, setData] = useState<DiscoverHomeData>({
-    highlights: [],
-    medals: [],
-    players: [],
-    teams: [],
-  });
-  const [loading, setLoading] = useState(true);
+  const cacheKey = "discover:home";
+  const endpoint = "/api/discover";
+  const cached = getCachedValue<DiscoverHomeData>(cacheKey);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/discover");
-      if (res.ok) {
-        const next = await res.json();
-        setData({
-          highlights: next.highlights ?? [],
-          medals: next.medals ?? [],
-          players: next.players ?? [],
-          teams: next.teams ?? [],
-        });
-      }
-    } finally {
-      setLoading(false);
+  const [data, setData] = useState<DiscoverHomeData>(
+    cached ?? {
+      highlights: [],
+      medals: [],
+      players: [],
+      teams: [],
     }
-  }, []);
+  );
+  const [loading, setLoading] = useState(!cached);
+
+  const refresh = useCallback(async (force = false) => {
+    if (!force) {
+      const snapshot = getCachedValue<DiscoverHomeData>(cacheKey);
+      if (snapshot) {
+        setData(snapshot);
+        setLoading(false);
+        return;
+      }
+    }
+
+    setLoading(true);
+    const next = await fetchCachedJson<DiscoverHomeData>(cacheKey, endpoint, { force });
+    if (next) {
+      setData({
+        highlights: next.highlights ?? [],
+        medals: next.medals ?? [],
+        players: next.players ?? [],
+        teams: next.teams ?? [],
+      });
+    }
+    setLoading(false);
+  }, [cacheKey, endpoint]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { ...data, loading, refresh };
+  return {
+    ...data,
+    loading,
+    refresh: useCallback(async () => refresh(true), [refresh]),
+  };
 }
 
 // --- Search ---
@@ -63,29 +147,47 @@ export function useSearch(query: string) {
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    const controller = new AbortController();
 
     const trimmed = query.trim();
     if (!trimmed) {
       setPlayers([]);
       setTeams([]);
+      setLoading(false);
       return;
     }
 
     timerRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/discover/search?q=${encodeURIComponent(trimmed)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setPlayers(data.players ?? []);
-          setTeams(data.teams ?? []);
-        }
-      } finally {
+      const normalized = trimmed.toLowerCase();
+      const cacheKey = `discover:search:${normalized}`;
+      const endpoint = `/api/discover/search?q=${encodeURIComponent(trimmed)}`;
+      const cached = getCachedValue<{ players?: DiscoverPlayer[]; teams?: DiscoverTeam[] }>(cacheKey);
+
+      if (cached) {
+        setPlayers(cached.players ?? []);
+        setTeams(cached.teams ?? []);
         setLoading(false);
+        return;
       }
+
+      setLoading(true);
+      const data = await fetchCachedJson<{ players?: DiscoverPlayer[]; teams?: DiscoverTeam[] }>(
+        cacheKey,
+        endpoint,
+        { ttlMs: SEARCH_CACHE_TTL_MS, signal: controller.signal }
+      );
+
+      if (data) {
+        setPlayers(data.players ?? []);
+        setTeams(data.teams ?? []);
+      }
+      setLoading(false);
     }, 300);
 
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      controller.abort();
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [query]);
 
   return { players, teams, loading };
@@ -183,68 +285,104 @@ export function usePopularTeams() {
 export type PlayerSortKey = "popularity" | "followers" | "mvp";
 
 export function usePlayerRanking(sort: PlayerSortKey = "popularity") {
-  const [items, setItems] = useState<PlayerRankingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `discover:player-ranking:${sort}`;
+  const endpoint = `/api/discover/ranking?sort=${sort}&limit=20`;
+  const cached = getCachedValue<{ items?: PlayerRankingItem[] }>(cacheKey);
+  const [items, setItems] = useState<PlayerRankingItem[]>(cached?.items ?? []);
+  const [loading, setLoading] = useState(!cached);
 
-  const fetchRanking = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/discover/ranking?sort=${sort}&limit=20`);
-      if (res.ok) {
-        const data = await res.json();
-        setItems(data.items ?? []);
+  const fetchRanking = useCallback(async (force = false) => {
+    if (!force) {
+      const snapshot = getCachedValue<{ items?: PlayerRankingItem[] }>(cacheKey);
+      if (snapshot) {
+        setItems(snapshot.items ?? []);
+        setLoading(false);
+        return;
       }
-    } finally {
-      setLoading(false);
     }
-  }, [sort]);
+
+    setLoading(true);
+    const data = await fetchCachedJson<{ items?: PlayerRankingItem[] }>(cacheKey, endpoint, { force });
+    if (data) {
+      setItems(data.items ?? []);
+    }
+    setLoading(false);
+  }, [cacheKey, endpoint]);
 
   useEffect(() => { fetchRanking(); }, [fetchRanking]);
-  return { items, loading, refresh: fetchRanking };
+  return {
+    items,
+    loading,
+    refresh: useCallback(async () => fetchRanking(true), [fetchRanking]),
+  };
 }
 
 // --- Team Ranking ---
 export function useTeamRanking() {
-  const [items, setItems] = useState<TeamRankingItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = "discover:team-ranking";
+  const endpoint = "/api/discover/teams/ranking?limit=20";
+  const cached = getCachedValue<{ items?: TeamRankingItem[] }>(cacheKey);
+  const [items, setItems] = useState<TeamRankingItem[]>(cached?.items ?? []);
+  const [loading, setLoading] = useState(!cached);
 
-  const fetchRanking = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/discover/teams/ranking?limit=20");
-      if (res.ok) {
-        const data = await res.json();
-        setItems(data.items ?? []);
+  const fetchRanking = useCallback(async (force = false) => {
+    if (!force) {
+      const snapshot = getCachedValue<{ items?: TeamRankingItem[] }>(cacheKey);
+      if (snapshot) {
+        setItems(snapshot.items ?? []);
+        setLoading(false);
+        return;
       }
-    } finally {
-      setLoading(false);
     }
-  }, []);
+
+    setLoading(true);
+    const data = await fetchCachedJson<{ items?: TeamRankingItem[] }>(cacheKey, endpoint, { force });
+    if (data) {
+      setItems(data.items ?? []);
+    }
+    setLoading(false);
+  }, [cacheKey, endpoint]);
 
   useEffect(() => { fetchRanking(); }, [fetchRanking]);
-  return { items, loading, refresh: fetchRanking };
+  return {
+    items,
+    loading,
+    refresh: useCallback(async () => fetchRanking(true), [fetchRanking]),
+  };
 }
 
 // --- Rising Players ---
 export function useRisingPlayers() {
-  const [items, setItems] = useState<RisingPlayerItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = "discover:rising";
+  const endpoint = "/api/discover/rising?limit=10";
+  const cached = getCachedValue<{ items?: RisingPlayerItem[] }>(cacheKey);
+  const [items, setItems] = useState<RisingPlayerItem[]>(cached?.items ?? []);
+  const [loading, setLoading] = useState(!cached);
 
-  const fetchRising = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/discover/rising?limit=10");
-      if (res.ok) {
-        const data = await res.json();
-        setItems(data.items ?? []);
+  const fetchRising = useCallback(async (force = false) => {
+    if (!force) {
+      const snapshot = getCachedValue<{ items?: RisingPlayerItem[] }>(cacheKey);
+      if (snapshot) {
+        setItems(snapshot.items ?? []);
+        setLoading(false);
+        return;
       }
-    } finally {
-      setLoading(false);
     }
-  }, []);
+
+    setLoading(true);
+    const data = await fetchCachedJson<{ items?: RisingPlayerItem[] }>(cacheKey, endpoint, { force });
+    if (data) {
+      setItems(data.items ?? []);
+    }
+    setLoading(false);
+  }, [cacheKey, endpoint]);
 
   useEffect(() => { fetchRising(); }, [fetchRising]);
-  return { items, loading, refresh: fetchRising };
+  return {
+    items,
+    loading,
+    refresh: useCallback(async () => fetchRising(true), [fetchRising]),
+  };
 }
 
 // --- Follow Recommendations ---
@@ -282,23 +420,40 @@ export function useFollowRecommendations() {
 
 // --- Tag Clips ---
 export function useTagClips(tag: string | null) {
-  const [items, setItems] = useState<TagClipItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const cacheKey = tag ? `discover:tag-clips:${tag}` : "";
+  const endpoint = tag ? `/api/discover/tags?tag=${encodeURIComponent(tag)}&limit=18` : null;
+  const cached = tag ? getCachedValue<{ items?: TagClipItem[] }>(cacheKey) : null;
+  const [items, setItems] = useState<TagClipItem[]>(cached?.items ?? []);
+  const [loading, setLoading] = useState(Boolean(tag) && !cached);
 
-  const fetchClips = useCallback(async () => {
-    if (!tag) { setItems([]); return; }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/discover/tags?tag=${encodeURIComponent(tag)}&limit=18`);
-      if (res.ok) {
-        const data = await res.json();
-        setItems(data.items ?? []);
-      }
-    } finally {
+  const fetchClips = useCallback(async (force = false) => {
+    if (!tag || !endpoint) {
+      setItems([]);
       setLoading(false);
+      return;
     }
-  }, [tag]);
+
+    if (!force) {
+      const snapshot = getCachedValue<{ items?: TagClipItem[] }>(cacheKey);
+      if (snapshot) {
+        setItems(snapshot.items ?? []);
+        setLoading(false);
+        return;
+      }
+    }
+
+    setLoading(true);
+    const data = await fetchCachedJson<{ items?: TagClipItem[] }>(cacheKey, endpoint, { force });
+    if (data) {
+      setItems(data.items ?? []);
+    }
+    setLoading(false);
+  }, [cacheKey, endpoint, tag]);
 
   useEffect(() => { fetchClips(); }, [fetchClips]);
-  return { items, loading, refresh: fetchClips };
+  return {
+    items,
+    loading,
+    refresh: useCallback(async () => fetchClips(true), [fetchClips]),
+  };
 }

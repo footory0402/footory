@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import FollowButton from "@/components/social/FollowButton";
 import { POSITION_COLORS, SKILL_TAGS } from "@/lib/constants";
@@ -188,9 +189,15 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                       onClick={onClose}
                       className="flex items-center gap-3 rounded-[10px] bg-card p-3 active:bg-card-alt transition-colors"
                     >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card-alt text-[14px] shrink-0">
+                      <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-card-alt text-[14px] shrink-0">
                         {t.logo_url ? (
-                          <img src={t.logo_url} alt={t.name} className="h-full w-full rounded-full object-cover" />
+                          <Image
+                            src={t.logo_url}
+                            alt={t.name}
+                            fill
+                            sizes="36px"
+                            className="h-full w-full rounded-full object-cover"
+                          />
                         ) : (
                           "⚽"
                         )}

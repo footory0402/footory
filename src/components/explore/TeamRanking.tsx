@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useTeamRanking } from "@/hooks/useDiscover";
 
 interface TeamRankingProps {
@@ -55,12 +56,13 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
               >
                 {idx + 1}
               </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card-alt text-[18px] shrink-0">
+              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-card-alt text-[18px] shrink-0">
                 {t.logo_url ? (
-                  <img
+                  <Image
                     src={t.logo_url}
                     alt={t.name}
-                    loading="lazy"
+                    fill
+                    sizes="40px"
                     className="h-full w-full rounded-full object-cover"
                   />
                 ) : (
@@ -98,12 +100,13 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
           </span>
 
           {/* Logo */}
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card-alt text-[16px] shrink-0">
+          <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-card-alt text-[16px] shrink-0">
             {t.logo_url ? (
-              <img
+              <Image
                 src={t.logo_url}
                 alt={t.name}
-                loading="lazy"
+                fill
+                sizes="40px"
                 className="h-full w-full rounded-full object-cover"
               />
             ) : (

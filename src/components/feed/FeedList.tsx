@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFeed, type FeedItemEnriched } from "@/hooks/useFeed";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import FeedCard from "./FeedCard";
 import UploadNudge from "./UploadNudge";
 import dynamic from "next/dynamic";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 const CommentSheet = dynamic(() => import("@/components/social/CommentSheet"), { ssr: false });
-import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { useState } from "react";
 
 interface FeedListProps {
   initialItems?: FeedItemEnriched[];
@@ -59,18 +58,27 @@ export default function FeedList({
   const lastItemRef = useRef<HTMLDivElement | null>(null);
   const observerInstanceRef = useRef<IntersectionObserver | null>(null);
 
-  useEffect(() => {
+  const setLastItemRef = useCallback((node: HTMLDivElement | null) => {
     observerInstanceRef.current?.disconnect();
-    if (loading || !hasMore || !lastItemRef.current) return;
+    lastItemRef.current = node;
+
+    if (loading || !hasMore || !node) return;
+
     observerInstanceRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) loadMore();
       },
       { threshold: 0.5 }
     );
-    observerInstanceRef.current.observe(lastItemRef.current);
-    return () => observerInstanceRef.current?.disconnect();
-  }, [loading, hasMore, loadMore, items]);
+    observerInstanceRef.current.observe(node);
+  }, [hasMore, loadMore, loading]);
+
+  useEffect(
+    () => () => {
+      observerInstanceRef.current?.disconnect();
+    },
+    []
+  );
 
   // Show skeleton only when no initial data and still loading
   if (loading && items.length === 0) {
@@ -106,14 +114,17 @@ export default function FeedList({
     <ErrorBoundary>
       <div className="flex flex-col gap-3 pb-4">
         {items.map((item, i) => (
-          <div key={item.id}>
+          <div
+            key={item.id}
+            style={{ contentVisibility: "auto", containIntrinsicSize: "420px" }}
+          >
             {/* Insert nudge before the 3rd item (index 2) */}
             {showNudge && i === NUDGE_POSITION && (
               <div className="mb-3">
                 <UploadNudge />
               </div>
             )}
-            <div ref={i === items.length - 1 ? lastItemRef : null}>
+            <div ref={i === items.length - 1 ? setLastItemRef : null}>
               <FeedCard
                 item={item}
                 onKudos={toggleKudos}

@@ -8,11 +8,13 @@ const MAX_DURATION = 5 * 60; // 5 minutes
 
 export default function VideoSelector() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { file, setFile, setError, nextStep } = useUploadStore();
+  const { file, error, setFile, setError, nextStep } = useUploadStore();
 
   const handleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
+
+    setError(null);
 
     if (!selected.type.startsWith("video/")) {
       setError("영상 파일만 업로드할 수 있습니다.");
@@ -74,6 +76,13 @@ export default function VideoSelector() {
         className="hidden"
         onChange={handleSelect}
       />
+
+      {error && (
+        <div className="flex w-full items-start gap-2 rounded-lg bg-red/10 px-3 py-2.5 text-sm text-red ring-1 ring-red/30">
+          <span className="mt-0.5 shrink-0">⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
 
       <button
         type="button"

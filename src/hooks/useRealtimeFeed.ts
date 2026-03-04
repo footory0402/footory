@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface UseRealtimeFeedOptions {
@@ -10,10 +10,14 @@ interface UseRealtimeFeedOptions {
 }
 
 export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: UseRealtimeFeedOptions) {
+  const idsKey = feedItemIds.join("|");
+  const kudosFetchInFlightRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
-    if (feedItemIds.length === 0) return;
+    if (!idsKey) return;
 
     const supabase = createClient();
+    const itemIdSet = new Set(idsKey.split("|"));
 
     const channel = supabase
       .channel("feed-realtime")
@@ -28,15 +32,24 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
           const feedItemId = (payload.new as Record<string, unknown>)?.feed_item_id as string
             ?? (payload.old as Record<string, unknown>)?.feed_item_id as string;
 
-          if (feedItemId && feedItemIds.includes(feedItemId) && onKudosChange) {
-            // Refetch kudos count for this item
-            supabase
-              .from("kudos")
-              .select("id", { count: "exact", head: true })
-              .eq("feed_item_id", feedItemId)
-              .then(({ count }) => {
+          if (feedItemId && itemIdSet.has(feedItemId) && onKudosChange) {
+            if (kudosFetchInFlightRef.current.has(feedItemId)) return;
+            kudosFetchInFlightRef.current.add(feedItemId);
+
+            const syncKudosCount = async () => {
+              try {
+                // Refetch kudos count for this item
+                const { count } = await supabase
+                  .from("kudos")
+                  .select("id", { count: "exact", head: true })
+                  .eq("feed_item_id", feedItemId);
                 onKudosChange(feedItemId, count ?? 0);
-              });
+              } finally {
+                kudosFetchInFlightRef.current.delete(feedItemId);
+              }
+            };
+
+            void syncKudosCount();
           }
         }
       )
@@ -49,7 +62,7 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
         },
         (payload) => {
           const feedItemId = (payload.new as Record<string, unknown>)?.feed_item_id as string;
-          if (feedItemId && feedItemIds.includes(feedItemId) && onNewComment) {
+          if (feedItemId && itemIdSet.has(feedItemId) && onNewComment) {
             onNewComment(feedItemId);
           }
         }
@@ -59,5 +72,5 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [feedItemIds, onKudosChange, onNewComment]);
+  }, [idsKey, onKudosChange, onNewComment]);
 }
