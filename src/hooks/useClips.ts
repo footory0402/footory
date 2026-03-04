@@ -55,7 +55,7 @@ export function useClips() {
       if (!clipsData) { setClips([]); return; }
 
       setClips(
-        (clipsData as ClipRow[]).map((c) => ({
+        (clipsData as unknown as ClipRow[]).map((c) => ({
           ...c,
           tags: c.clip_tags.map((t) => t.tag_name),
           clip_tags: undefined,
@@ -150,7 +150,7 @@ export function useTagClips() {
       if (!clips) { setTagClips({}); return; }
 
       const result: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
-      (clips as TagClipRow[]).forEach((clip) => {
+      (clips as unknown as TagClipRow[]).forEach((clip) => {
         clip.clip_tags.forEach((t) => {
           const tagId = t.tag_name;
           if (!result[tagId]) result[tagId] = [];
