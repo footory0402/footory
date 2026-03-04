@@ -72,6 +72,14 @@ export async function PUT(request: NextRequest) {
 
   const body = await request.json();
 
+  // Input length validation
+  const LENGTH_LIMITS: Record<string, number> = { name: 50, bio: 200, city: 50 };
+  for (const [field, max] of Object.entries(LENGTH_LIMITS)) {
+    if (body[field] && typeof body[field] === "string" && body[field].length > max) {
+      return NextResponse.json({ error: "입력값이 너무 깁니다" }, { status: 400 });
+    }
+  }
+
   const allowed = ["name", "handle", "position", "birth_year", "city", "bio", "public_email", "public_phone", "show_email", "show_phone"] as const;
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {

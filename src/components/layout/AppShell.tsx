@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import AppHeader from "./AppHeader";
 import BottomTab from "./BottomTab";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 const BARE_ROUTES = ["/login", "/onboarding"];
 
@@ -18,7 +19,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <AppHeader />
       <main className="pb-[calc(54px+env(safe-area-inset-bottom))]">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </main>
       <BottomTab />
     </>

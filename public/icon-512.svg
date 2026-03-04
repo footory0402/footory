@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Dark background -->
+  <rect width="512" height="512" rx="100" fill="#0C0C0E"/>
+
+  <!-- Gold top accent bar -->
+  <rect x="80" y="0" width="352" height="4" rx="2" fill="#D4A853" opacity="0.8"/>
+
+  <!-- Soccer pentagon patches (decorative background) -->
+  <polygon points="62,60 92,60 107,86 92,112 62,112 47,86"
+           fill="none" stroke="#D4A853" stroke-width="2" opacity="0.12"/>
+  <polygon points="420,60 450,60 465,86 450,112 420,112 405,86"
+           fill="none" stroke="#D4A853" stroke-width="2" opacity="0.12"/>
+  <polygon points="50,380 80,380 95,406 80,432 50,432 35,406"
+           fill="none" stroke="#D4A853" stroke-width="2" opacity="0.1"/>
+  <polygon points="432,380 462,380 477,406 462,432 432,432 417,406"
+           fill="none" stroke="#D4A853" stroke-width="2" opacity="0.1"/>
+
+  <!-- Inner pentagon dots (soccer ball texture) -->
+  <circle cx="78" cy="86" r="3" fill="#D4A853" opacity="0.2"/>
+  <circle cx="450" cy="86" r="3" fill="#D4A853" opacity="0.2"/>
+  <circle cx="66" cy="406" r="2.5" fill="#D4A853" opacity="0.15"/>
+  <circle cx="446" cy="406" r="2.5" fill="#D4A853" opacity="0.15"/>
+
+  <!-- Large "F" text -->
+  <text x="115"
+        y="390"
+        font-family="Impact, Arial Black, sans-serif"
+        font-weight="900"
+        font-size="330"
+        fill="#D4A853"
+        letter-spacing="-8">F</text>
+
+  <!-- "OOTORY" smaller, forms "FOOTORY" with the F above -->
+  <text x="140"
+        y="455"
+        font-family="Arial, sans-serif"
+        font-weight="700"
+        font-size="46"
+        fill="#D4A853"
+        letter-spacing="12"
+        opacity="0.7">OOTORY</text>
+
+  <!-- Bottom gold accent line -->
+  <rect x="80" y="508" width="352" height="4" rx="2" fill="#D4A853" opacity="0.5"/>
+</svg>

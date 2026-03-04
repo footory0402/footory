@@ -4,7 +4,10 @@ import { useEffect, useRef, useMemo } from "react";
 import { useFeed, type FeedItemEnriched } from "@/hooks/useFeed";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import FeedCard from "./FeedCard";
-import CommentSheet from "@/components/social/CommentSheet";
+import dynamic from "next/dynamic";
+
+const CommentSheet = dynamic(() => import("@/components/social/CommentSheet"), { ssr: false });
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { useState } from "react";
 
 interface FeedListProps {
@@ -83,7 +86,7 @@ export default function FeedList({ initialItems = [], initialNextCursor = null }
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <div className="flex flex-col gap-3 pb-4">
         {items.map((item, i) => (
           <div key={item.id} ref={i === items.length - 1 ? lastItemRef : null}>
@@ -109,6 +112,6 @@ export default function FeedList({ initialItems = [], initialNextCursor = null }
           onCommentCountChange={(delta) => updateCommentCount(commentTarget, delta)}
         />
       )}
-    </>
+    </ErrorBoundary>
   );
 }

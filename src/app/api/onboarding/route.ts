@@ -30,6 +30,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Input length validation
+  if ((typeof name === "string" && name.length > 50) ||
+      (typeof handle === "string" && handle.length > 20)) {
+    return NextResponse.json({ error: "입력값이 너무 깁니다" }, { status: 400 });
+  }
+
+  // Enum validation
+  const VALID_ROLES = ["player", "parent", "other"] as const;
+  const VALID_POSITIONS = ["FW", "MF", "DF", "GK"] as const;
+
+  if (!VALID_ROLES.includes(role as typeof VALID_ROLES[number])) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+  if (role === "player" && position && !VALID_POSITIONS.includes(position as typeof VALID_POSITIONS[number])) {
+    return NextResponse.json({ error: "Invalid position" }, { status: 400 });
+  }
+
   // Validate handle format
   if (!/^[a-z0-9_]{3,20}$/.test(handle)) {
     return NextResponse.json({ error: "Invalid handle format" }, { status: 400 });

@@ -1,3 +1,4 @@
+import React from "react";
 import { MEASUREMENTS } from "@/lib/constants";
 import type { Stat } from "@/lib/types";
 
@@ -5,7 +6,7 @@ interface StatCardProps {
   stat: Stat;
 }
 
-export default function StatCard({ stat }: StatCardProps) {
+function StatCard({ stat }: StatCardProps) {
   const measurement = MEASUREMENTS.find((m) => m.id === stat.type);
   const diff = stat.previousValue != null ? stat.value - stat.previousValue : null;
   const isLowerBetter = measurement?.lowerIsBetter ?? false;
@@ -32,3 +33,5 @@ export default function StatCard({ stat }: StatCardProps) {
     </div>
   );
 }
+
+export default React.memo(StatCard);

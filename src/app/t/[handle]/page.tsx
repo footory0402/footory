@@ -68,5 +68,5 @@ export default async function PublicTeamPage({ params }: Props) {
     notFound();
   }
 
-  return <PublicTeamClient team={team as unknown as Parameters<typeof PublicTeamClient>[0]["team"]} />;
+  return <PublicTeamClient team={team as Parameters<typeof PublicTeamClient>[0]["team"]} />;
 }

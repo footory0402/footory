@@ -53,7 +53,7 @@ const getProfile = cache(async (handle: string) => {
   if (profile.show_email && profile.public_email) contact.email = profile.public_email;
   if (profile.show_phone && profile.public_phone) contact.phone = profile.public_phone;
 
-  const teamData = team.data as unknown as { team_id: string; teams: { name: string } } | null;
+  const teamData = team.data as { team_id: string; teams: { name: string } } | null;
 
   // Enrich featured clips with clip data (thumbnail, duration)
   const featuredRows = featured.data ?? [];

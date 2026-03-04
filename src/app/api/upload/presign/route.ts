@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPresignedUploadUrl, getPresignedThumbnailUrl } from "@/lib/r2";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,6 +9,14 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { allowed, retryAfter } = checkRateLimit(`presign:${user.id}`, 3_600_000, 50);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too Many Requests" }, {
+        status: 429,
+        headers: { "Retry-After": String(retryAfter) },
+      });
     }
 
     const body = await req.json().catch(() => ({}));

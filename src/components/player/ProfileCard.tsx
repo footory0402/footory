@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { LevelBadge, PositionBadge } from "@/components/ui/Badge";
@@ -10,7 +11,7 @@ interface ProfileCardProps {
   onEdit?: () => void;
 }
 
-export default function ProfileCard({ profile, onEdit }: ProfileCardProps) {
+function ProfileCard({ profile, onEdit }: ProfileCardProps) {
   const currentYear = new Date().getFullYear();
   const age = profile.birthYear ? currentYear - profile.birthYear : null;
   const lvl = LEVELS[Math.max(1, Math.min(profile.level, 5)) - 1];
@@ -129,3 +130,5 @@ export default function ProfileCard({ profile, onEdit }: ProfileCardProps) {
     </div>
   );
 }
+
+export default React.memo(ProfileCard);

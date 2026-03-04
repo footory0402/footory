@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import type { Profile } from "@/lib/types";
 import { POSITIONS, POSITION_LABELS, HANDLE_REGEX, type Position } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
@@ -43,6 +44,16 @@ export default function ProfileEditSheet({
     setBio(profile.bio ?? "");
     setHandleStatus("idle");
   }, [profile]);
+
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   const checkHandle = useCallback(
     (value: string) => {
@@ -101,7 +112,7 @@ export default function ProfileEditSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
@@ -120,7 +131,7 @@ export default function ProfileEditSheet({
             <button onClick={handleAvatarClick} className="group relative">
               <div className="h-20 w-20 overflow-hidden rounded-full bg-border">
                 {profile.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  <Image src={profile.avatarUrl} alt={profile.name} width={80} height={80} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-2xl text-text-3">
                     {profile.name[0]}

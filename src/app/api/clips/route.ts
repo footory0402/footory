@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SKILL_TAGS } from "@/lib/constants";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const VALID_TAGS = SKILL_TAGS.map((t) => t.dbName);
 
@@ -23,9 +24,17 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { allowed, retryAfter } = checkRateLimit(`clips:${user.id}`, 60_000, 10);
+  if (!allowed) {
+    return NextResponse.json({ error: "Too Many Requests" }, {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
+
   const body = await req.json();
   const {
-    video_url, duration_seconds, file_size_bytes, memo, tags, clip_id,
+    video_url, duration_seconds, file_size_bytes, memo, tags,
     thumbnail_url, highlight_start, highlight_end,
   } = body as {
     video_url: string;
@@ -33,11 +42,13 @@ export async function POST(req: NextRequest) {
     file_size_bytes?: number;
     memo?: string;
     tags?: string[];
-    clip_id?: string;
     thumbnail_url?: string;
     highlight_start?: number;
     highlight_end?: number;
   };
+
+  // Always use server-generated ID — ignore any client-supplied id/clip_id
+  const clip_id = crypto.randomUUID();
 
   if (!video_url) {
     return NextResponse.json({ error: "video_url is required" }, { status: 400 });
@@ -52,7 +63,7 @@ export async function POST(req: NextRequest) {
   const { data: clip, error } = await supabase
     .from("clips")
     .insert({
-      ...(clip_id ? { id: clip_id } : {}),
+      id: clip_id,
       owner_id: user.id,
       uploaded_by: user.id,
       video_url,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 /** Count rows and update profile field */
 async function syncFollowCounts(
@@ -24,6 +25,14 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { allowed, retryAfter } = checkRateLimit(`follows:${user.id}`, 60_000, 30);
+  if (!allowed) {
+    return NextResponse.json({ error: "Too Many Requests" }, {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
+  }
 
   const { targetId } = await req.json();
   if (!targetId || targetId === user.id) {

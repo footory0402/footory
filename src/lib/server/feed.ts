@@ -1,6 +1,24 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
 
+interface FeedPageRow {
+  id: string;
+  profile_id: string;
+  type: FeedItemEnriched["type"];
+  reference_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  player_name: string | null;
+  player_handle: string | null;
+  player_avatar_url: string | null;
+  player_level: number | null;
+  player_position: string | null;
+  team_name: string | null;
+  kudos_count: number | null;
+  has_kudos: boolean | null;
+  comment_count: number | null;
+}
+
 export const FEED_PAGE_SIZE = 20;
 
 export async function fetchFeedPage(
@@ -18,8 +36,7 @@ export async function fetchFeedPage(
     return { items: [], nextCursor: null };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const items: FeedItemEnriched[] = (data as any[]).map((row) => ({
+  const items: FeedItemEnriched[] = (data as FeedPageRow[]).map((row) => ({
     id: row.id,
     profile_id: row.profile_id,
     type: row.type,

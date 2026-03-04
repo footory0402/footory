@@ -5,9 +5,12 @@ import { SectionCard } from "@/components/ui/Card";
 import FeaturedSlot from "./FeaturedSlot";
 import StatCard from "./StatCard";
 import MedalBadge from "./MedalBadge";
-import ClipPickerSheet from "./ClipPickerSheet";
+import dynamic from "next/dynamic";
+
+const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false });
 import { useFeaturedClips } from "@/hooks/useClips";
 import EmptyCTA from "@/components/ui/EmptyCTA";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { MAX_FEATURED_SLOTS } from "@/lib/constants";
 import type { Stat, Medal } from "@/lib/types";
 
@@ -37,6 +40,7 @@ export default function SummaryTab({ stats, medals }: SummaryTabProps) {
   const excludeClipIds = featured.map((f) => f.clip_id);
 
   return (
+    <ErrorBoundary>
     <div className="flex flex-col gap-5">
       {/* Featured Highlights */}
       <SectionCard title="대표 하이라이트" icon="⭐">
@@ -107,6 +111,7 @@ export default function SummaryTab({ stats, medals }: SummaryTabProps) {
         excludeClipIds={excludeClipIds}
       />
     </div>
+    </ErrorBoundary>
   );
 }
 

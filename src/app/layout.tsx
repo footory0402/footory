@@ -31,6 +31,12 @@ const rajdhani = Rajdhani({
 export const metadata: Metadata = {
   title: "FOOTORY — 유스 축구 선수 프로필",
   description: "유소년 축구 선수들의 영상 하이라이트와 스킬 포트폴리오 플랫폼",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "FOOTORY",
+  },
 };
 
 export const viewport: Viewport = {

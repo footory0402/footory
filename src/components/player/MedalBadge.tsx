@@ -1,3 +1,5 @@
+import React from "react";
+
 interface MedalBadgeProps {
   label: string;
   value: number;
@@ -6,7 +8,7 @@ interface MedalBadgeProps {
   size?: "sm" | "md";
 }
 
-export default function MedalBadge({ label, value, unit, verified, size = "sm" }: MedalBadgeProps) {
+function MedalBadge({ label, value, unit, verified, size = "sm" }: MedalBadgeProps) {
   const isSmall = size === "sm";
 
   return (
@@ -33,3 +35,5 @@ export default function MedalBadge({ label, value, unit, verified, size = "sm" }
     </div>
   );
 }
+
+export default React.memo(MedalBadge);

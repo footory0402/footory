@@ -55,11 +55,20 @@ export function useClips() {
       if (!clipsData) { setClips([]); return; }
 
       setClips(
-        (clipsData as unknown as ClipRow[]).map((c) => ({
-          ...c,
-          tags: c.clip_tags.map((t) => t.tag_name),
-          clip_tags: undefined,
-        }))
+        clipsData.map((c) => {
+          const tags = (c.clip_tags as unknown as { tag_name: string }[])?.map((t) => t.tag_name) ?? [];
+          return {
+            id: c.id,
+            video_url: c.video_url,
+            thumbnail_url: c.thumbnail_url,
+            duration_seconds: c.duration_seconds,
+            file_size_bytes: c.file_size_bytes,
+            memo: c.memo,
+            highlight_status: c.highlight_status,
+            created_at: c.created_at,
+            tags,
+          };
+        })
       );
     } finally {
       setLoading(false);
@@ -150,8 +159,9 @@ export function useTagClips() {
       if (!clips) { setTagClips({}); return; }
 
       const result: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
-      (clips as unknown as TagClipRow[]).forEach((clip) => {
-        clip.clip_tags.forEach((t) => {
+      clips.forEach((clip) => {
+        const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
+        clipTags.forEach((t) => {
           const tagId = t.tag_name;
           if (!result[tagId]) result[tagId] = [];
           result[tagId].push({

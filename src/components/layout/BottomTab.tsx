@@ -40,7 +40,7 @@ export default function BottomTab() {
   }, [pathname, router]);
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/90 backdrop-blur-[16px]">
+    <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/90 backdrop-blur-[16px]">
       <div className="flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)]">
         {tabs.map((tab) => {
           const active =
@@ -51,6 +51,7 @@ export default function BottomTab() {
             <Link
               key={tab.href}
               href={tab.href}
+              aria-current={active ? "page" : undefined}
               onTouchStart={() => router.prefetch(tab.href)}
               onMouseEnter={() => router.prefetch(tab.href)}
               className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"

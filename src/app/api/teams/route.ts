@@ -57,6 +57,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Name and handle are required" }, { status: 400 });
   }
 
+  // Input length validation
+  if ((typeof name === "string" && name.length > 50) ||
+      (typeof description === "string" && description.length > 200)) {
+    return NextResponse.json({ error: "입력값이 너무 깁니다" }, { status: 400 });
+  }
+
   // Handle validation
   if (!/^[a-z0-9_]{3,20}$/.test(handle)) {
     return NextResponse.json({ error: "Invalid handle format" }, { status: 400 });

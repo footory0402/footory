@@ -4,7 +4,9 @@ import { useState } from "react";
 import TeamHeader from "@/components/team/TeamHeader";
 import MemberList from "@/components/team/MemberList";
 import TeamAlbum from "@/components/team/TeamAlbum";
-import ShareSheet from "@/components/ui/ShareSheet";
+import dynamic from "next/dynamic";
+
+const ShareSheet = dynamic(() => import("@/components/ui/ShareSheet"), { ssr: false });
 import { APP_URL } from "@/lib/constants";
 import type { Team, TeamMember, TeamAlbumItem } from "@/lib/types";
 

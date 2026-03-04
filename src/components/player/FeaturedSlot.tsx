@@ -1,5 +1,8 @@
 "use client";
 
+import React from "react";
+import Image from "next/image";
+
 interface FeaturedSlotProps {
   clipId?: string;
   videoUrl?: string;
@@ -19,7 +22,7 @@ function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default function FeaturedSlot({
+function FeaturedSlot({
   clipId,
   thumbnailUrl,
   highlightStart,
@@ -51,7 +54,7 @@ export default function FeaturedSlot({
       : durationSeconds ?? 30;
 
   return (
-    <div className="group relative overflow-hidden rounded-lg bg-gradient-to-b from-[#1a1a1e] to-[#121214]" style={{ aspectRatio: "16/10" }}>
+    <div aria-label={`대표 영상 ${sortOrder}`} className="group relative overflow-hidden rounded-lg bg-gradient-to-b from-[#1a1a1e] to-[#121214]" style={{ aspectRatio: "16/10" }}>
       {/* Grass pattern */}
       <div
         className="absolute inset-0 opacity-[0.04]"
@@ -61,7 +64,7 @@ export default function FeaturedSlot({
       />
 
       {thumbnailUrl ? (
-        <img src={thumbnailUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+        <Image src={thumbnailUrl} alt="" fill sizes="(max-width: 430px) 50vw, 215px" className="object-cover" />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-2xl">
           🎬
@@ -109,3 +112,5 @@ export default function FeaturedSlot({
     </div>
   );
 }
+
+export default React.memo(FeaturedSlot);

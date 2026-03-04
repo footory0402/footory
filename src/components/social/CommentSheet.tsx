@@ -30,9 +30,13 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
 
   useEffect(() => {
     if (open) {
+      document.body.style.overflow = "hidden";
       fetchComments();
       setTimeout(() => inputRef.current?.focus(), 300);
     }
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open, fetchComments]);
 
   const handleSubmit = async () => {
@@ -53,7 +57,7 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 

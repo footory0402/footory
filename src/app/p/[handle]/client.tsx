@@ -8,7 +8,10 @@ import FeaturedSlot from "@/components/player/FeaturedSlot";
 import StatCard from "@/components/player/StatCard";
 import MedalBadge from "@/components/player/MedalBadge";
 import FollowButton from "@/components/social/FollowButton";
-import ShareSheet from "@/components/ui/ShareSheet";
+import dynamic from "next/dynamic";
+
+const ShareSheet = dynamic(() => import("@/components/ui/ShareSheet"), { ssr: false });
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import { SKILL_TAGS, POSITION_LABELS } from "@/lib/constants";
 import { APP_URL } from "@/lib/constants";
@@ -47,9 +50,9 @@ interface PublicProfileData {
   teamName?: string | null;
   teamId?: string | null;
   featured: FeaturedClip[];
-  stats: unknown[];
-  medals: unknown[];
-  seasons: unknown[];
+  stats: Record<string, unknown>[];
+  medals: Record<string, unknown>[];
+  seasons: Record<string, unknown>[];
   isFollowing?: boolean;
   isOwnProfile?: boolean;
 }
@@ -128,9 +131,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [shareOpen, setShareOpen] = useState(false);
 
   const profile = toProfile(data);
-  const stats = mapStats(data.stats as unknown as Record<string, unknown>[]);
-  const medals = mapMedals(data.medals as unknown as Record<string, unknown>[]);
-  const seasons = mapSeasons(data.seasons as unknown as Record<string, unknown>[]);
+  const stats = mapStats(data.stats);
+  const medals = mapMedals(data.medals);
+  const seasons = mapSeasons(data.seasons);
   const featured = data.featured;
 
   const shareUrl = typeof window !== "undefined"
@@ -138,6 +141,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     : `${APP_URL}/p/${profile.handle}`;
 
   return (
+    <ErrorBoundary>
     <div className="mx-auto max-w-[430px] px-4 pb-24 pt-4">
       {/* Profile card (read-only, no edit button) */}
       <ProfileCard profile={profile} />
@@ -202,6 +206,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         text={`${profile.name}${profile.position ? ` | ${POSITION_LABELS[profile.position] ?? profile.position}` : ""} | Footory 선수 프로필`}
       />
     </div>
+    </ErrorBoundary>
   );
 }
 
