@@ -100,8 +100,6 @@ export default function NotificationsPage() {
     if (url) router.push(url);
   };
 
-  const unreadCount = items.filter((n) => !n.read).length;
-
   if (showSettings) {
     return <NotificationSettings onBack={() => setShowSettings(false)} />;
   }

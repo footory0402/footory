@@ -1,4 +1,4 @@
-import { LEVELS, POSITION_COLORS, POSITION_LABELS, type Position } from "@/lib/constants";
+import { LEVELS, POSITION_COLORS, type Position } from "@/lib/constants";
 
 interface LevelBadgeProps {
   level: number;

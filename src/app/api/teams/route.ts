@@ -30,8 +30,7 @@ export async function GET() {
 
   const teams = (memberships ?? []).map((m) => {
     const team = m.teams as unknown as Record<string, unknown> & { team_members?: { count: number }[] };
-    const members = team.team_members;
-    const { team_members, ...rest } = team;
+    const { team_members: members, ...rest } = team;
     return {
       ...rest,
       memberCount: members?.[0]?.count ?? 0,

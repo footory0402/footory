@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { LinkedChild } from "@/hooks/useParent";
 import Avatar from "@/components/ui/Avatar";
 import { LevelBadge } from "@/components/ui/Badge";
-import { LEVELS } from "@/lib/constants";
 
 interface ChildCardProps {
   child: LinkedChild;
@@ -12,8 +11,6 @@ interface ChildCardProps {
 }
 
 export default function ChildCard({ child, onUpload }: ChildCardProps) {
-  const lvl = LEVELS[Math.min(child.level, 5) - 1];
-
   return (
     <div className="rounded-[14px] border border-border bg-card p-4">
       <div className="flex items-center gap-3">

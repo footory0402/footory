@@ -111,7 +111,18 @@ export default function FeedList({
 
   // Nudge insertion position (0-indexed, after 2 items = position 3)
   const NUDGE_POSITION = 2;
-  let eagerImageBudget = 2;
+  const eagerImageIndexes = new Set(
+    items
+      .map((item, i) => ({
+        i,
+        hasThumbnail:
+          (item.type === "highlight" || item.type === "featured_change") &&
+          typeof (item.metadata as Record<string, unknown>)?.thumbnail_url === "string",
+      }))
+      .filter(({ hasThumbnail }) => hasThumbnail)
+      .slice(0, 2)
+      .map(({ i }) => i)
+  );
 
   return (
     <ErrorBoundary>
@@ -122,8 +133,7 @@ export default function FeedList({
             const hasThumbnail =
               (item.type === "highlight" || item.type === "featured_change") &&
               typeof meta.thumbnail_url === "string";
-            const eagerImage = hasThumbnail && eagerImageBudget > 0;
-            if (eagerImage) eagerImageBudget -= 1;
+            const eagerImage = hasThumbnail && eagerImageIndexes.has(i);
 
             return (
           <div
@@ -173,7 +183,7 @@ export default function FeedList({
         <ShareSheet
           open={!!shareTarget}
           onClose={() => setShareTarget(null)}
-          shareUrl={typeof window !== "undefined" ? `${window.location.origin}/p/${shareTarget.playerHandle}` : `/p/${shareTarget.playerHandle}`}
+          url={typeof window !== "undefined" ? `${window.location.origin}/p/${shareTarget.playerHandle}` : `/p/${shareTarget.playerHandle}`}
           title={`${shareTarget.playerName}의 하이라이트 — Footory`}
         />
       )}

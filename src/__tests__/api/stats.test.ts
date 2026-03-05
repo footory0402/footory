@@ -15,10 +15,7 @@ const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
   agility: { min: 1, max: 60 },
 };
 
-function validateStatValue(
-  statType: string,
-  value: number
-): { valid: boolean; error?: string } {
+function validateStatValue(statType: string, value: number): { valid: boolean; error?: string } {
   const measurement = MEASUREMENTS.find((m) => m.id === statType);
   if (!measurement) {
     return { valid: false, error: "Invalid stat type" };
@@ -99,7 +96,7 @@ describe("Stats STAT_BOUNDS validation", () => {
   });
 
   it("all STAT_BOUNDS have min < max", () => {
-    for (const [key, bounds] of Object.entries(STAT_BOUNDS)) {
+    for (const bounds of Object.values(STAT_BOUNDS)) {
       expect(bounds.min).toBeLessThan(bounds.max);
     }
   });

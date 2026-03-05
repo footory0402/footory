@@ -38,7 +38,7 @@ export default function ProfilePage() {
   const [pdfExportOpen, setPdfExportOpen] = useState(false);
   const [celebrationMedals, setCelebrationMedals] = useState<AwardedMedal[]>([]);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
-  const { stats, medals, loading: statsLoading, addStat } = useStats();
+  const { stats, medals, addStat } = useStats();
   const { tagClips, loading: tagClipsLoading, fetchTagClips } = useTagClips();
   const { seasons, addSeason } = useSeasons();
   const { achievements, addAchievement, removeAchievement } = useAchievements();

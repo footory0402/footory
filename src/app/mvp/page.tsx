@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useTransition } from "react";
 import { SectionCard } from "@/components/ui/Card";
 import VoteCard, {
   VoteCardCompact,
@@ -37,6 +37,8 @@ export default function MvpPage() {
     minutes: number;
     seconds: number;
   } | null>(null);
+
+  const [, startTimerTransition] = useTransition();
 
   // Sub-tabs
   const [activeTab, setActiveTab] = useState<MvpTab>("ranking");
@@ -116,8 +118,10 @@ export default function MvpPage() {
   // Voting timer
   useEffect(() => {
     const update = () => {
-      setVotingOpen(isVotingOpen());
-      setTimeRemaining(getVotingTimeRemaining());
+      startTimerTransition(() => {
+        setVotingOpen(isVotingOpen());
+        setTimeRemaining(getVotingTimeRemaining());
+      });
     };
     update();
     const interval = setInterval(update, 1000);

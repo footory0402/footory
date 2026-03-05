@@ -88,7 +88,11 @@ export default function ProfilePdfExport({
 
           <div className="space-y-3">
             {OPTION_LABELS.map(({ key, label }) => (
-              <label key={key} className="flex cursor-pointer items-center gap-3">
+              <label
+                key={key}
+                onClick={() => toggleOption(key)}
+                className="flex cursor-pointer items-center gap-3"
+              >
                 <div
                   className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${
                     options[key]

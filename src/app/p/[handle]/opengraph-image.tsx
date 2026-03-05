@@ -129,7 +129,13 @@ export default async function OGImage({ params }: { params: Promise<{ handle: st
               }}
             >
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} width={220} height={220} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.name}
+                  width={220}
+                  height={220}
+                  style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                />
               ) : (
                 profile.name[0]
               )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 interface ShareSheetProps {
   open: boolean;
@@ -12,10 +12,6 @@ interface ShareSheetProps {
 
 export default function ShareSheet({ open, onClose, url, title, text }: ShareSheetProps) {
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!open) setCopied(false);
-  }, [open]);
 
   const handleCopy = useCallback(async () => {
     try {

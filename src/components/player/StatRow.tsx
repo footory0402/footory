@@ -10,7 +10,6 @@ interface StatRowProps {
 export default function StatRow({ icon, label, value, unit, previousValue, verified }: StatRowProps) {
   const diff = previousValue != null ? value - previousValue : null;
   const improved = diff != null && diff > 0;
-  const declined = diff != null && diff < 0;
 
   return (
     <div className="animate-slide-r flex items-center justify-between py-2.5">

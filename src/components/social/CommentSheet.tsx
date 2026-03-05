@@ -19,13 +19,11 @@ interface CommentSheetProps {
 function CommentRow({
   comment,
   currentUserId,
-  feedItemId,
   onReply,
   onDelete,
 }: {
   comment: Comment;
   currentUserId: string | null;
-  feedItemId: string;
   onReply: (comment: Comment) => void;
   onDelete: (id: string) => void;
 }) {
@@ -163,7 +161,6 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
               <CommentRow
                 comment={c}
                 currentUserId={currentUserId}
-                feedItemId={feedItemId}
                 onReply={setReplyTo}
                 onDelete={handleDelete}
               />
@@ -174,13 +171,12 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
                   {(c.replies ?? []).map((reply) => (
                     <CommentRow
                       key={reply.id}
-                      comment={reply}
-                      currentUserId={currentUserId}
-                      feedItemId={feedItemId}
-                      onReply={setReplyTo}
-                      onDelete={handleDelete}
-                    />
-                  ))}
+                    comment={reply}
+                    currentUserId={currentUserId}
+                    onReply={setReplyTo}
+                    onDelete={handleDelete}
+                  />
+                ))}
                 </div>
               )}
             </div>

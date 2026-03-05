@@ -54,9 +54,6 @@ export default function CoachReviewBadge({ clipId, isOwner, className = "" }: Pr
 
   if (loading || reviews.length === 0) return null;
 
-  const first = reviews[0];
-  const config = RATING_CONFIG[first.rating];
-
   return (
     <div className={className}>
       {/* Badge Trigger */}

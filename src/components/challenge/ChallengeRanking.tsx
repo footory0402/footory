@@ -35,69 +35,74 @@ export default function ChallengeRanking({ challenge, open, onClose, onParticipa
   useEffect(() => {
     if (!open || !challenge.skill_tag) return;
 
-    setLoading(true);
-    const supabase = createClient();
+    let mounted = true;
 
-    async function load() {
-      // clip_tags로 해당 태그의 clip_id 목록 조회
-      const { data: tagRows } = await supabase
-        .from("clip_tags")
-        .select("clip_id")
-        .eq("tag_name", challenge.skill_tag!)
-        .limit(100);
+    const load = async () => {
+      const supabase = createClient();
+      setLoading(true);
 
-      if (!tagRows || tagRows.length === 0) {
-        setItems([]);
-        setLoading(false);
-        return;
+      try {
+        const { data: tagRows } = await supabase
+          .from("clip_tags")
+          .select("clip_id")
+          .eq("tag_name", challenge.skill_tag!)
+          .limit(100);
+
+        if (!tagRows || tagRows.length === 0) {
+          if (mounted) setItems([]);
+          return;
+        }
+
+        const clipIds = tagRows.map((r) => r.clip_id);
+
+        const { data: feedRows } = await supabase
+          .from("feed_items")
+          .select(
+            `id, profile_id, metadata,
+             profiles!feed_items_profile_id_fkey(name, handle, avatar_url),
+             kudos(count)`
+          )
+          .eq("type", "highlight")
+          .in("reference_id", clipIds)
+          .limit(50);
+
+        if (!feedRows) {
+          if (mounted) setItems([]);
+          return;
+        }
+
+        type Row = {
+          id: string;
+          profile_id: string;
+          metadata: Record<string, unknown> | null;
+          profiles: { name: string; handle: string; avatar_url: string | null } | null;
+          kudos: { count: number }[];
+        };
+
+        const ranked = (feedRows as unknown as Row[])
+          .map((row) => ({
+            feedItemId: row.id,
+            playerName: row.profiles?.name ?? "선수",
+            playerHandle: row.profiles?.handle ?? "",
+            playerAvatarUrl: row.profiles?.avatar_url ?? null,
+            thumbnailUrl: (row.metadata?.thumbnail_url as string) ?? null,
+            kudosCount: row.kudos?.[0]?.count ?? 0,
+          }))
+          .sort((a, b) => b.kudosCount - a.kudosCount)
+          .slice(0, 10)
+          .map((item, idx) => ({ ...item, rank: idx + 1 }));
+
+        if (mounted) setItems(ranked);
+      } finally {
+        if (mounted) setLoading(false);
       }
+    };
 
-      const clipIds = tagRows.map((r) => r.clip_id);
+    void load();
 
-      // 해당 클립들의 피드 아이템 조회 (kudos 포함)
-      const { data: feedRows } = await supabase
-        .from("feed_items")
-        .select(
-          `id, profile_id, metadata,
-           profiles!feed_items_profile_id_fkey(name, handle, avatar_url),
-           kudos(count)`
-        )
-        .eq("type", "highlight")
-        .in("reference_id", clipIds)
-        .limit(50);
-
-      if (!feedRows) {
-        setItems([]);
-        setLoading(false);
-        return;
-      }
-
-      type Row = {
-        id: string;
-        profile_id: string;
-        metadata: Record<string, unknown> | null;
-        profiles: { name: string; handle: string; avatar_url: string | null } | null;
-        kudos: { count: number }[];
-      };
-
-      const ranked = (feedRows as unknown as Row[])
-        .map((row) => ({
-          feedItemId: row.id,
-          playerName: row.profiles?.name ?? "선수",
-          playerHandle: row.profiles?.handle ?? "",
-          playerAvatarUrl: row.profiles?.avatar_url ?? null,
-          thumbnailUrl: (row.metadata?.thumbnail_url as string) ?? null,
-          kudosCount: row.kudos?.[0]?.count ?? 0,
-        }))
-        .sort((a, b) => b.kudosCount - a.kudosCount)
-        .slice(0, 10)
-        .map((item, idx) => ({ ...item, rank: idx + 1 }));
-
-      setItems(ranked);
-      setLoading(false);
-    }
-
-    load();
+    return () => {
+      mounted = false;
+    };
   }, [open, challenge.skill_tag]);
 
   if (!open) return null;

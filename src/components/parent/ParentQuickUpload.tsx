@@ -127,7 +127,7 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
     } finally {
       setUploading(false);
     }
-  }, [store, child.childId]);
+  }, [store, child.childId, uploading]);
 
   const handleFinish = () => {
     store.reset();

@@ -65,7 +65,7 @@ export default function AppHeader({ onSearchOpen }: AppHeaderProps) {
         </Link>
         {pathname.startsWith("/profile") && !pathname.includes("/settings") && (
           <>
-            <HeaderButton icon="share" />
+            <HeaderButton />
             <Link href="/profile/settings" className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3" />
@@ -74,13 +74,13 @@ export default function AppHeader({ onSearchOpen }: AppHeaderProps) {
             </Link>
           </>
         )}
-        {pathname.startsWith("/team") && <HeaderButton icon="share" />}
+        {pathname.startsWith("/team") && <HeaderButton />}
       </div>
     </header>
   );
 }
 
-function HeaderButton({ icon }: { icon: "share" }) {
+function HeaderButton() {
   return (
     <button className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

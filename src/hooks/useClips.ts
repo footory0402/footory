@@ -3,26 +3,6 @@
 import { useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-interface ClipRow {
-  id: string;
-  video_url: string;
-  thumbnail_url: string | null;
-  duration_seconds: number | null;
-  file_size_bytes: number | null;
-  memo: string | null;
-  highlight_status: string;
-  created_at: string;
-  clip_tags: { tag_name: string }[];
-}
-
-interface TagClipRow {
-  id: string;
-  video_url: string;
-  thumbnail_url: string | null;
-  duration_seconds: number | null;
-  clip_tags: { tag_name: string; is_top: boolean }[];
-}
-
 interface ClipWithTags {
   id: string;
   video_url: string;

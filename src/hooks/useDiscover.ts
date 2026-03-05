@@ -127,9 +127,11 @@ export function useDiscoverHome() {
     setLoading(false);
   }, [cacheKey, endpoint]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     refresh();
   }, [refresh]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return {
     ...data,
@@ -145,6 +147,7 @@ export function useSearch(query: string) {
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const controller = new AbortController();
@@ -189,6 +192,7 @@ export function useSearch(query: string) {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [query]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { players, teams, loading };
 }
@@ -309,7 +313,9 @@ export function usePlayerRanking(sort: PlayerSortKey = "popularity") {
     setLoading(false);
   }, [cacheKey, endpoint]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { fetchRanking(); }, [fetchRanking]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   return {
     items,
     loading,
@@ -343,7 +349,9 @@ export function useTeamRanking() {
     setLoading(false);
   }, [cacheKey, endpoint]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { fetchRanking(); }, [fetchRanking]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   return {
     items,
     loading,
@@ -377,7 +385,9 @@ export function useRisingPlayers() {
     setLoading(false);
   }, [cacheKey, endpoint]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { fetchRising(); }, [fetchRising]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   return {
     items,
     loading,
@@ -450,7 +460,9 @@ export function useTagClips(tag: string | null) {
     setLoading(false);
   }, [cacheKey, endpoint, tag]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { fetchClips(); }, [fetchClips]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   return {
     items,
     loading,

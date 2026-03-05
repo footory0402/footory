@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
@@ -29,24 +29,30 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const search = useSearch(query);
 
+  const close = useCallback(() => {
+    setQuery("");
+    setTab("all");
+    onClose();
+  }, [onClose]);
+
   // Focus input when opened
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    } else {
-      setQuery("");
-      setTab("all");
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => {
+        clearTimeout(timer);
+      };
     }
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  }, [open, close]);
 
   if (!open) return null;
 
@@ -68,7 +74,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-3 pb-2">
         <button
-          onClick={onClose}
+          onClick={close}
           className="shrink-0 text-text-2 active:text-text-1 p-1"
           aria-label="닫기"
         >
@@ -152,7 +158,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                       key={p.id}
                       className="flex items-center gap-3 rounded-[10px] bg-card p-3 active:bg-card-alt transition-colors"
                     >
-                      <Link href={`/p/${p.handle}`} onClick={onClose} className="flex items-center gap-3 min-w-0 flex-1">
+                      <Link href={`/p/${p.handle}`} onClick={close} className="flex items-center gap-3 min-w-0 flex-1">
                         <Avatar name={p.name} size="sm" level={p.level} imageUrl={p.avatar_url ?? undefined} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
@@ -186,7 +192,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                     <Link
                       key={t.id}
                       href={`/team/${t.id}`}
-                      onClick={onClose}
+                      onClick={close}
                       className="flex items-center gap-3 rounded-[10px] bg-card p-3 active:bg-card-alt transition-colors"
                     >
                       <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-card-alt text-[14px] shrink-0">
@@ -224,7 +230,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                   {matchedTags.map((tag) => (
                     <button
                       key={tag.id}
-                      onClick={onClose}
+                      onClick={close}
                       className="rounded-full bg-card px-3 py-1.5 text-[12px] text-text-1 active:bg-card-alt transition-colors"
                     >
                       {tag.emoji} {tag.label}

@@ -81,7 +81,7 @@ export default function QuestChecklist({ profileId }: { profileId: string }) {
     }
 
     load();
-  }, [profileId]);
+  }, [profileId, weeklyQuests]);
 
   const completedKeys = new Set(
     progress.filter((p) => p.completed_at !== null).map((p) => p.quest_key)
@@ -96,13 +96,15 @@ export default function QuestChecklist({ profileId }: { profileId: string }) {
   const weeklyAllDone = weeklyCompleted === weeklyTotal;
 
   // 전체 완료 축하
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!loading && (onboardingAllDone || weeklyAllDone) && !showCelebration) {
       setShowCelebration(true);
       const timer = setTimeout(() => setShowCelebration(false), 2500);
       return () => clearTimeout(timer);
     }
-  }, [loading, onboardingAllDone, weeklyAllDone]);
+  }, [loading, onboardingAllDone, weeklyAllDone, showCelebration]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (loading) return null;
 

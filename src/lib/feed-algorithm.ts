@@ -86,7 +86,7 @@ export function computeFeedSplit(
   pageSize: number,
   followCount: number
 ): { followLimit: number; recommendLimit: number } {
-  const { followRatio, recommendRatio } = getFeedRatio(followCount);
+  const { followRatio } = getFeedRatio(followCount);
   const followLimit = Math.round(pageSize * followRatio);
   const recommendLimit = pageSize - followLimit;
   return { followLimit, recommendLimit };

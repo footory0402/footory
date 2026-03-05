@@ -7,8 +7,6 @@ import ChildSelector from "./ChildSelector";
 import WeeklyRecap from "./WeeklyRecap";
 import LinkChildSheet from "./LinkChildSheet";
 import ParentQuickUpload from "./ParentQuickUpload";
-import Avatar from "@/components/ui/Avatar";
-import { LevelBadge } from "@/components/ui/Badge";
 
 interface DashboardData {
   parentName: string;

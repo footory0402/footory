@@ -88,9 +88,11 @@ export function useConversations(userId: string | null) {
     setLoading(false);
   }, [userId]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchConversations();
   }, [fetchConversations]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { conversations, loading, refetch: fetchConversations };
 }
@@ -141,9 +143,11 @@ export function useMessages(conversationId: string | null) {
     );
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { messages, loading, refetch: fetchMessages, addOptimistic, updateMessage };
 }
@@ -168,9 +172,11 @@ export function useUnreadDmCount(userId: string | null) {
     }
   }, [userId]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     fetchCount();
   }, [fetchCount]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return { count, fetchCount };
 }

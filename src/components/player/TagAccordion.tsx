@@ -12,13 +12,12 @@ interface TagClip {
 }
 
 interface TagAccordionProps {
-  tagId: string;
   emoji: string;
   label: string;
   clips: TagClip[];
 }
 
-export default function TagAccordion({ tagId, emoji, label, clips }: TagAccordionProps) {
+export default function TagAccordion({ emoji, label, clips }: TagAccordionProps) {
   const router = useRouter();
   const [open, setOpen] = useState(clips.length > 0);
   const hasClips = clips.length > 0;

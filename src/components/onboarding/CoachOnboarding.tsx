@@ -34,6 +34,7 @@ export default function CoachOnboarding({ onBack }: Props) {
   const [teamCode, setTeamCode] = useState("");
 
   // Handle check
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!handle) {
       setHandleStatus("idle");
@@ -43,18 +44,28 @@ export default function CoachOnboarding({ onBack }: Props) {
       setHandleStatus("invalid");
       return;
     }
+
     setHandleStatus("checking");
+    let cancelled = false;
+
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/profile/handle-check?handle=${handle}`);
         const data = await res.json();
-        setHandleStatus(data.available ? "available" : "taken");
+        if (!cancelled) {
+          setHandleStatus(data.available ? "available" : "taken");
+        }
       } catch {
-        setHandleStatus("idle");
+        if (!cancelled) setHandleStatus("idle");
       }
     }, 400);
-    return () => clearTimeout(timer);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [handle]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const canProceedStep1 =
     name.trim().length >= 1 && handleStatus === "available" && coachRole;

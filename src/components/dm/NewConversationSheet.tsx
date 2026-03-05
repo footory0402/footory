@@ -19,11 +19,27 @@ export default function NewConversationSheet({
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    fetch("/api/follows?type=following")
-      .then((r) => r.json())
-      .then((d) => setFollowing(d.items ?? []))
-      .finally(() => setLoading(false));
+
+    let isActive = true;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/follows?type=following");
+        const data = await res.json();
+        if (isActive) setFollowing(data.items ?? []);
+      } catch {
+        if (isActive) setFollowing([]);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
+
+    void load();
+
+    return () => {
+      isActive = false;
+    };
   }, [open]);
 
   if (!open) return null;

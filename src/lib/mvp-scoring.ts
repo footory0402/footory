@@ -127,7 +127,7 @@ export function getWeekStart(date: Date = new Date()): string {
  * Check if current time (KST) is within voting window.
  * 현재는 상시 투표 가능 (추후 시즌제 도입 시 제한 가능)
  */
-export function isVotingOpen(_now: Date = new Date()): boolean {
+export function isVotingOpen(): boolean {
   return true;
 }
 
@@ -140,7 +140,7 @@ export function getVotingTimeRemaining(now: Date = new Date()): {
   minutes: number;
   seconds: number;
 } | null {
-  if (!isVotingOpen(now)) return null;
+  if (!isVotingOpen()) return null;
 
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const day = kst.getUTCDay();

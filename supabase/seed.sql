@@ -28,7 +28,8 @@ VALUES
   ('a0000012-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'junhyuk.bae@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '40 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false),
   ('a0000013-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'taemin.shin@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '38 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false),
   ('a0000014-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'minseo.ryu@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '36 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false),
-  ('a0000015-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'woojin.jang@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '34 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false);
+  ('a0000015-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'woojin.jang@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '34 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false)
+ON CONFLICT (id) DO NOTHING;
 
 -- auth.identities (Supabase Auth가 요구)
 INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -43,7 +44,8 @@ WHERE id IN (
   'a0000011-0000-0000-0000-000000000011', 'a0000012-0000-0000-0000-000000000012',
   'a0000013-0000-0000-0000-000000000013', 'a0000014-0000-0000-0000-000000000014',
   'a0000015-0000-0000-0000-000000000015'
-);
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- =============================================
 -- 2. Profiles — UPDATE (트리거가 이미 생성한 row를 덮어씀)
@@ -69,10 +71,28 @@ UPDATE profiles SET role='player', handle='woojin_gk21', name='장우진', posit
 -- =============================================
 -- 3. Teams (3팀)
 -- =============================================
+-- 핸들이 충돌하는 임시 데이터가 있으면 정리 후 고정 ID로 재시드
+DELETE FROM teams
+WHERE handle IN ('suwon-fc-u15', 'seongnam-fc-u15', 'busan-ipark-u15')
+  AND id NOT IN (
+    'b0000000-0000-0000-0000-000000000001',
+    'b0000000-0000-0000-0000-000000000002',
+    'b0000000-0000-0000-0000-000000000003'
+  );
+
 INSERT INTO teams (id, handle, name, logo_url, description, city, founded_year, invite_code, created_by, created_at) VALUES
   ('b0000000-0000-0000-0000-000000000001', 'suwon-fc-u15', '수원FC U-15', 'https://r2.thesportsdb.com/images/media/team/badge/x39pm41589559443.png', '수원FC 유소년 축구팀. K리그1 수원FC 산하 U-15 팀. 체계적인 훈련 시스템과 우수한 시설을 보유.', '수원', 2004, 'suwon15a', 'a0000001-0000-0000-0000-000000000001', NOW() - INTERVAL '60 days'),
   ('b0000000-0000-0000-0000-000000000002', 'seongnam-fc-u15', '성남FC U-15', 'https://www.thesportsdb.com/images/media/team/badge/cjt4z31769097634.png', '성남FC 유소년 축구팀. K리그 성남FC 산하 U-15 팀. 기술 축구를 지향하며 많은 프로 선수를 배출.', '성남', 2003, 'snam15b', 'a0000006-0000-0000-0000-000000000006', NOW() - INTERVAL '58 days'),
-  ('b0000000-0000-0000-0000-000000000003', 'busan-ipark-u15', '부산아이파크 U-15', 'https://r2.thesportsdb.com/images/media/team/badge/rc0vie1579473061.png', '부산아이파크 유소년 축구팀. 부산 지역 최고의 유스 시스템. 강인한 체력과 투지의 축구.', '부산', 2005, 'busan15c', 'a0000011-0000-0000-0000-000000000011', NOW() - INTERVAL '55 days');
+  ('b0000000-0000-0000-0000-000000000003', 'busan-ipark-u15', '부산아이파크 U-15', 'https://r2.thesportsdb.com/images/media/team/badge/rc0vie1579473061.png', '부산아이파크 유소년 축구팀. 부산 지역 최고의 유스 시스템. 강인한 체력과 투지의 축구.', '부산', 2005, 'busan15c', 'a0000011-0000-0000-0000-000000000011', NOW() - INTERVAL '55 days')
+ON CONFLICT (id) DO UPDATE SET
+  handle = EXCLUDED.handle,
+  name = EXCLUDED.name,
+  logo_url = EXCLUDED.logo_url,
+  description = EXCLUDED.description,
+  city = EXCLUDED.city,
+  founded_year = EXCLUDED.founded_year,
+  invite_code = EXCLUDED.invite_code,
+  created_by = EXCLUDED.created_by;
 
 -- =============================================
 -- 4. Team Members
@@ -95,7 +115,9 @@ INSERT INTO team_members (team_id, profile_id, role) VALUES
   ('b0000000-0000-0000-0000-000000000003', 'a0000012-0000-0000-0000-000000000012', 'member'),
   ('b0000000-0000-0000-0000-000000000003', 'a0000013-0000-0000-0000-000000000013', 'member'),
   ('b0000000-0000-0000-0000-000000000003', 'a0000014-0000-0000-0000-000000000014', 'member'),
-  ('b0000000-0000-0000-0000-000000000003', 'a0000015-0000-0000-0000-000000000015', 'member');
+  ('b0000000-0000-0000-0000-000000000003', 'a0000015-0000-0000-0000-000000000015', 'member')
+ON CONFLICT (team_id, profile_id) DO UPDATE SET
+  role = EXCLUDED.role;
 
 -- =============================================
 -- 5. Clips (선수당 2~3개, 총 40개)
@@ -595,5 +617,367 @@ INSERT INTO comments (feed_item_id, user_id, content, created_at) VALUES
   ('f0000000-0000-0000-0000-000000000022', 'a0000013-0000-0000-0000-000000000013', '1000m 4분이면 체력 개좋다', NOW() - INTERVAL '2 days');
 
 -- =============================================
--- DONE! 시드 데이터 삽입 완료
+-- 15. v1.2 추가 계정 (부모/코치/스카우터)
+-- =============================================
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, confirmation_token, recovery_token, is_super_admin)
+VALUES
+  ('a0000101-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'soyeon.parent@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '33 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false),
+  ('a0000102-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'jiyoung.parent@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '29 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false),
+  ('a0000201-0000-0000-0000-000000000201', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'jinwoo.coach@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '31 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false),
+  ('a0000202-0000-0000-0000-000000000202', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'hanseo.scout@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '28 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false),
+  ('a0000203-0000-0000-0000-000000000203', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'minho.coach@test.footory.kr', crypt('Test1234!', gen_salt('bf')), NOW(), NOW() - INTERVAL '24 days', NOW(), '{"provider":"email","providers":["email"]}', '{}', '', '', false)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+SELECT id, id, id, json_build_object('sub', id, 'email', email), 'email', NOW(), NOW(), NOW()
+FROM auth.users
+WHERE id IN (
+  'a0000101-0000-0000-0000-000000000101',
+  'a0000102-0000-0000-0000-000000000102',
+  'a0000201-0000-0000-0000-000000000201',
+  'a0000202-0000-0000-0000-000000000202',
+  'a0000203-0000-0000-0000-000000000203'
+)
+ON CONFLICT (id) DO NOTHING;
+
+UPDATE profiles SET role='parent', handle='parent_soyeon', name='김소연 보호자', birth_year=1987, city='수원', bio='중학생 선수 보호자. 주간 리캡과 팀 소식을 꾸준히 확인합니다.', level=2, xp=95, public_email='soyeon.parent@test.footory.kr', public_phone='010-9001-0101', show_email=true, show_phone=true, followers_count=6, following_count=9, views_count=120, created_at=NOW()-INTERVAL '33 days' WHERE id='a0000101-0000-0000-0000-000000000101';
+UPDATE profiles SET role='parent', handle='parent_jiyoung', name='박지영 보호자', birth_year=1988, city='부산', bio='자녀 영상 업로드를 대신 도와주는 보호자 계정.', level=2, xp=80, public_email='jiyoung.parent@test.footory.kr', public_phone='010-9001-0102', show_email=true, show_phone=false, followers_count=4, following_count=7, views_count=94, created_at=NOW()-INTERVAL '29 days' WHERE id='a0000102-0000-0000-0000-000000000102';
+UPDATE profiles SET role='coach', handle='coach_jinwoo', name='박진우 코치', birth_year=1984, city='성남', bio='U-15 공격 코치. 전방 압박과 피니시 훈련 전문.', level=3, xp=210, public_email='jinwoo.coach@test.footory.kr', is_verified=true, verified_at=NOW()-INTERVAL '12 days', followers_count=42, following_count=26, views_count=880, created_at=NOW()-INTERVAL '31 days' WHERE id='a0000201-0000-0000-0000-000000000201';
+UPDATE profiles SET role='scout', handle='scout_hanseo', name='최한서 스카우터', birth_year=1982, city='서울', bio='중등 선수 관찰 및 포지션별 성장 곡선 분석.', level=3, xp=240, public_email='hanseo.scout@test.footory.kr', is_verified=true, verified_at=NOW()-INTERVAL '10 days', followers_count=35, following_count=31, views_count=730, created_at=NOW()-INTERVAL '28 days' WHERE id='a0000202-0000-0000-0000-000000000202';
+UPDATE profiles SET role='coach', handle='coach_minho', name='한민호 코치', birth_year=1989, city='용인', bio='수비 전술 코치. 현재 인증 심사 대기 중.', level=2, xp=70, is_verified=false, followers_count=18, following_count=19, views_count=260, created_at=NOW()-INTERVAL '24 days' WHERE id='a0000203-0000-0000-0000-000000000203';
+
+-- MVP/신규 v1.2 프로필 필드 보강
+UPDATE profiles SET mvp_count=2, mvp_tier='rookie', xp=340, height_cm=171, weight_kg=61, preferred_foot='왼발' WHERE id='a0000001-0000-0000-0000-000000000001';
+UPDATE profiles SET mvp_count=5, mvp_tier='allstar', xp=520, height_cm=173, weight_kg=64, preferred_foot='오른발' WHERE id='a0000006-0000-0000-0000-000000000006';
+UPDATE profiles SET mvp_count=3, mvp_tier='ace', xp=470, height_cm=170, weight_kg=60, preferred_foot='오른발' WHERE id='a0000011-0000-0000-0000-000000000011';
+UPDATE profiles SET mvp_count=1, mvp_tier='rookie', xp=300, height_cm=176, weight_kg=67, preferred_foot='오른발' WHERE id='a0000012-0000-0000-0000-000000000012';
+
+-- =============================================
+-- 16. 시즌 current team 표시 보강 (v1.2 화면용)
+-- =============================================
+UPDATE seasons SET team_id='b0000000-0000-0000-0000-000000000001', is_current=true WHERE profile_id IN (
+  'a0000001-0000-0000-0000-000000000001','a0000002-0000-0000-0000-000000000002','a0000003-0000-0000-0000-000000000003',
+  'a0000004-0000-0000-0000-000000000004','a0000005-0000-0000-0000-000000000005'
+) AND year=2025;
+UPDATE seasons SET team_id='b0000000-0000-0000-0000-000000000002', is_current=true WHERE profile_id IN (
+  'a0000006-0000-0000-0000-000000000006','a0000007-0000-0000-0000-000000000007','a0000008-0000-0000-0000-000000000008',
+  'a0000009-0000-0000-0000-000000000009','a0000010-0000-0000-0000-000000000010'
+) AND year=2025;
+UPDATE seasons SET team_id='b0000000-0000-0000-0000-000000000003', is_current=true WHERE profile_id IN (
+  'a0000011-0000-0000-0000-000000000011','a0000012-0000-0000-0000-000000000012','a0000013-0000-0000-0000-000000000013',
+  'a0000014-0000-0000-0000-000000000014','a0000015-0000-0000-0000-000000000015'
+) AND year=2025;
+
+-- =============================================
+-- 17. v1.2 추가 클립/태그/피드 (최근 활동 강화)
+-- =============================================
+INSERT INTO clips (id, owner_id, uploaded_by, video_url, thumbnail_url, duration_seconds, file_size_bytes, memo, highlight_status, highlight_start, highlight_end, created_at) VALUES
+  ('c0000000-0000-0000-0000-000000000036', 'a0000002-0000-0000-0000-000000000002', 'a0000101-0000-0000-0000-000000000101', 'https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4', NULL, 31, 4200000, '부모 업로드: 경기 전개 훈련 영상', 'done', 6, 24, NOW() - INTERVAL '1 day'),
+  ('c0000000-0000-0000-0000-000000000037', 'a0000012-0000-0000-0000-000000000012', 'a0000102-0000-0000-0000-000000000102', 'https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4', NULL, 27, 3600000, '부모 업로드: 헤딩 타이밍 훈련', 'done', 4, 22, NOW() - INTERVAL '18 hours'),
+  ('c0000000-0000-0000-0000-000000000038', 'a0000007-0000-0000-0000-000000000007', NULL, 'https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4', NULL, 29, 3900000, '중앙 압박 후 탈취 장면 모음', 'done', 5, 24, NOW() - INTERVAL '3 days'),
+  ('c0000000-0000-0000-0000-000000000039', 'a0000014-0000-0000-0000-000000000014', NULL, 'https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4', NULL, 24, 3400000, '중원 볼 간수 + 전개 연결', 'done', 4, 20, NOW() - INTERVAL '2 days'),
+  ('c0000000-0000-0000-0000-000000000040', 'a0000001-0000-0000-0000-000000000001', NULL, 'https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4', NULL, 35, 5100000, '페널티 박스 앞 턴 동작 후 슈팅', 'done', 7, 30, NOW() - INTERVAL '4 days');
+
+-- 시드 클립 미디어 보정: MVP/피드/팀 화면에서 항상 축구 썸네일/영상이 보이도록 통일
+UPDATE clips
+SET
+  thumbnail_url = CASE (right(id::text, 3)::int % 10)
+    WHEN 0 THEN 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=960'
+    WHEN 1 THEN 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=960'
+    WHEN 2 THEN 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=960'
+    WHEN 3 THEN 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=960'
+    WHEN 4 THEN 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=960'
+    WHEN 5 THEN 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=960'
+    WHEN 6 THEN 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=960'
+    WHEN 7 THEN 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=960'
+    WHEN 8 THEN 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=960'
+    ELSE 'https://images.unsplash.com/photo-1600679472829-3044539ce8ed?w=960'
+  END,
+  video_url = CASE (right(id::text, 3)::int % 8)
+    WHEN 0 THEN 'https://assets.mixkit.co/videos/43484/43484-1080.mp4'
+    WHEN 1 THEN 'https://assets.mixkit.co/videos/43494/43494-1080.mp4'
+    WHEN 2 THEN 'https://assets.mixkit.co/videos/43495/43495-1080.mp4'
+    WHEN 3 THEN 'https://assets.mixkit.co/videos/43487/43487-1080.mp4'
+    WHEN 4 THEN 'https://assets.mixkit.co/videos/43499/43499-1080.mp4'
+    WHEN 5 THEN 'https://assets.mixkit.co/videos/43491/43491-1080.mp4'
+    WHEN 6 THEN 'https://assets.mixkit.co/videos/43485/43485-1080.mp4'
+    ELSE 'https://assets.mixkit.co/videos/43497/43497-1080.mp4'
+  END
+WHERE id::text LIKE 'c0000000%';
+
+INSERT INTO clip_tags (clip_id, tag_name, is_top) VALUES
+  ('c0000000-0000-0000-0000-000000000036', '전진패스', true),
+  ('c0000000-0000-0000-0000-000000000036', '슈팅', false),
+  ('c0000000-0000-0000-0000-000000000037', '헤딩경합', true),
+  ('c0000000-0000-0000-0000-000000000037', '슈팅', false),
+  ('c0000000-0000-0000-0000-000000000038', '1v1 수비', true),
+  ('c0000000-0000-0000-0000-000000000038', '전진패스', false),
+  ('c0000000-0000-0000-0000-000000000039', '퍼스트터치', true),
+  ('c0000000-0000-0000-0000-000000000039', '전진패스', false),
+  ('c0000000-0000-0000-0000-000000000040', '슈팅', true),
+  ('c0000000-0000-0000-0000-000000000040', '1v1 돌파', false);
+
+INSERT INTO feed_items (id, profile_id, type, reference_id, metadata, created_at) VALUES
+  ('f0000000-0000-0000-0000-000000000031', 'a0000002-0000-0000-0000-000000000002', 'highlight', 'c0000000-0000-0000-0000-000000000036', '{"memo":"부모 업로드: 경기 전개 훈련 영상","thumbnail_url":"https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=640","tags":["전진패스","슈팅"],"duration":31}', NOW() - INTERVAL '1 day'),
+  ('f0000000-0000-0000-0000-000000000032', 'a0000012-0000-0000-0000-000000000012', 'highlight', 'c0000000-0000-0000-0000-000000000037', '{"memo":"부모 업로드: 헤딩 타이밍 훈련","thumbnail_url":"https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=640","tags":["헤딩경합","슈팅"],"duration":27}', NOW() - INTERVAL '18 hours'),
+  ('f0000000-0000-0000-0000-000000000033', 'a0000007-0000-0000-0000-000000000007', 'highlight', 'c0000000-0000-0000-0000-000000000038', '{"memo":"중앙 압박 후 탈취 장면 모음","thumbnail_url":"https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=640","tags":["1v1 수비","전진패스"],"duration":29}', NOW() - INTERVAL '3 days'),
+  ('f0000000-0000-0000-0000-000000000034', 'a0000014-0000-0000-0000-000000000014', 'highlight', 'c0000000-0000-0000-0000-000000000039', '{"memo":"중원 볼 간수 + 전개 연결","thumbnail_url":"https://images.unsplash.com/photo-1624880357913-a8539238245b?w=640","tags":["퍼스트터치","전진패스"],"duration":24}', NOW() - INTERVAL '2 days'),
+  ('f0000000-0000-0000-0000-000000000035', 'a0000001-0000-0000-0000-000000000001', 'highlight', 'c0000000-0000-0000-0000-000000000040', '{"memo":"페널티 박스 앞 턴 동작 후 슈팅","thumbnail_url":"https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=640","tags":["슈팅","1v1 돌파"],"duration":35}', NOW() - INTERVAL '4 days');
+
+INSERT INTO kudos (feed_item_id, user_id) VALUES
+  ('f0000000-0000-0000-0000-000000000031', 'a0000001-0000-0000-0000-000000000001'),
+  ('f0000000-0000-0000-0000-000000000031', 'a0000005-0000-0000-0000-000000000005'),
+  ('f0000000-0000-0000-0000-000000000031', 'a0000201-0000-0000-0000-000000000201'),
+  ('f0000000-0000-0000-0000-000000000032', 'a0000011-0000-0000-0000-000000000011'),
+  ('f0000000-0000-0000-0000-000000000032', 'a0000202-0000-0000-0000-000000000202'),
+  ('f0000000-0000-0000-0000-000000000033', 'a0000006-0000-0000-0000-000000000006'),
+  ('f0000000-0000-0000-0000-000000000033', 'a0000008-0000-0000-0000-000000000008'),
+  ('f0000000-0000-0000-0000-000000000034', 'a0000011-0000-0000-0000-000000000011'),
+  ('f0000000-0000-0000-0000-000000000035', 'a0000006-0000-0000-0000-000000000006'),
+  ('f0000000-0000-0000-0000-000000000035', 'a0000201-0000-0000-0000-000000000201');
+
+INSERT INTO comments (id, feed_item_id, user_id, content, parent_id, created_at) VALUES
+  ('ea000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000031', 'a0000001-0000-0000-0000-000000000001', '패스 템포 좋아졌다!', NULL, NOW() - INTERVAL '20 hours'),
+  ('ea000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000031', 'a0000101-0000-0000-0000-000000000101', '고마워요! 다음 경기 영상도 올릴게요', 'ea000000-0000-0000-0000-000000000001', NOW() - INTERVAL '19 hours'),
+  ('ea000000-0000-0000-0000-000000000003', 'f0000000-0000-0000-0000-000000000032', 'a0000202-0000-0000-0000-000000000202', '공중볼 타점이 안정적이네요', NULL, NOW() - INTERVAL '15 hours'),
+  ('ea000000-0000-0000-0000-000000000004', 'f0000000-0000-0000-0000-000000000035', 'a0000201-0000-0000-0000-000000000201', '턴 이후 슈팅까지 연결이 아주 좋습니다', NULL, NOW() - INTERVAL '3 days');
+
+-- =============================================
+-- 18. 추가 팔로우 관계 (DM/추천 다양화)
+-- =============================================
+INSERT INTO follows (follower_id, following_id) VALUES
+  ('a0000201-0000-0000-0000-000000000201', 'a0000001-0000-0000-0000-000000000001'),
+  ('a0000201-0000-0000-0000-000000000201', 'a0000012-0000-0000-0000-000000000012'),
+  ('a0000202-0000-0000-0000-000000000202', 'a0000006-0000-0000-0000-000000000006'),
+  ('a0000101-0000-0000-0000-000000000101', 'a0000201-0000-0000-0000-000000000201'),
+  ('a0000102-0000-0000-0000-000000000102', 'a0000012-0000-0000-0000-000000000012');
+
+-- v1.2 계정도 팀 화면에서 기본 팀이 보이도록 멤버 연결
+INSERT INTO team_members (team_id, profile_id, role) VALUES
+  ('b0000000-0000-0000-0000-000000000001', 'a0000101-0000-0000-0000-000000000101', 'member'),
+  ('b0000000-0000-0000-0000-000000000003', 'a0000102-0000-0000-0000-000000000102', 'member'),
+  ('b0000000-0000-0000-0000-000000000002', 'a0000201-0000-0000-0000-000000000201', 'member'),
+  ('b0000000-0000-0000-0000-000000000001', 'a0000203-0000-0000-0000-000000000203', 'member')
+ON CONFLICT (team_id, profile_id) DO NOTHING;
+
+-- =============================================
+-- 19. 팀 앨범 (공개 팀 페이지용)
+-- =============================================
+INSERT INTO team_albums (id, team_id, uploaded_by, media_type, media_url, thumbnail_url, created_at) VALUES
+  ('eb000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 'photo', 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=960', NULL, NOW() - INTERVAL '11 days'),
+  ('eb000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'a0000002-0000-0000-0000-000000000002', 'video', 'https://assets.mixkit.co/videos/43484/43484-1080.mp4', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=640', NOW() - INTERVAL '8 days'),
+  ('eb000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000002', 'a0000006-0000-0000-0000-000000000006', 'photo', 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=960', NULL, NOW() - INTERVAL '9 days'),
+  ('eb000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000002', 'a0000007-0000-0000-0000-000000000007', 'video', 'https://assets.mixkit.co/videos/43495/43495-1080.mp4', 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=640', NOW() - INTERVAL '6 days'),
+  ('eb000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000003', 'a0000011-0000-0000-0000-000000000011', 'photo', 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=960', NULL, NOW() - INTERVAL '7 days'),
+  ('eb000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000003', 'a0000012-0000-0000-0000-000000000012', 'video', 'https://assets.mixkit.co/videos/43499/43499-1080.mp4', 'https://images.unsplash.com/photo-1600679472829-3044539ce8ed?w=640', NOW() - INTERVAL '2 days');
+
+-- =============================================
+-- 20. 부모 연동 + 알림 설정
+-- =============================================
+INSERT INTO parent_links (id, parent_id, child_id, consent_given, consent_at, created_at) VALUES
+  ('e6000000-0000-0000-0000-000000000001', 'a0000101-0000-0000-0000-000000000101', 'a0000002-0000-0000-0000-000000000002', true, NOW() - INTERVAL '18 days', NOW() - INTERVAL '18 days'),
+  ('e6000000-0000-0000-0000-000000000002', 'a0000101-0000-0000-0000-000000000101', 'a0000005-0000-0000-0000-000000000005', true, NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'),
+  ('e6000000-0000-0000-0000-000000000003', 'a0000102-0000-0000-0000-000000000102', 'a0000012-0000-0000-0000-000000000012', true, NOW() - INTERVAL '9 days', NOW() - INTERVAL '9 days'),
+  ('e6000000-0000-0000-0000-000000000004', 'a0000102-0000-0000-0000-000000000102', 'a0000011-0000-0000-0000-000000000011', false, NULL, NOW() - INTERVAL '3 days');
+
+INSERT INTO notification_preferences (profile_id, push_enabled, kudos, comments, follows, dm, mentions, vote_open, vote_remind, mvp_result, team_invite, weekly_recap, upload_nudge, quiet_start, quiet_end, updated_at)
+SELECT
+  id,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  false,
+  '22:00',
+  '08:00',
+  NOW()
+FROM profiles
+WHERE id::text LIKE 'a0000%';
+
+-- =============================================
+-- 21. DM 대화/메시지/요청
+-- =============================================
+INSERT INTO conversations (id, participant_1, participant_2, last_message_at, last_message_preview, created_at) VALUES
+  ('e0000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 'a0000006-0000-0000-0000-000000000006', NOW() - INTERVAL '2 hours', '주말 경기 준비 잘 됐어?', NOW() - INTERVAL '20 days'),
+  ('e0000000-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001', 'a0000011-0000-0000-0000-000000000011', NOW() - INTERVAL '1 hours', '프리킥 폼 좋아 보이더라', NOW() - INTERVAL '15 days'),
+  ('e0000000-0000-0000-0000-000000000003', 'a0000001-0000-0000-0000-000000000001', 'a0000201-0000-0000-0000-000000000201', NOW() - INTERVAL '30 minutes', '영상 확인했고 피드백 남겼어요', NOW() - INTERVAL '6 days'),
+  ('e0000000-0000-0000-0000-000000000004', 'a0000101-0000-0000-0000-000000000101', 'a0000201-0000-0000-0000-000000000201', NOW() - INTERVAL '3 hours', '학부모입니다. 상담 가능하실까요?', NOW() - INTERVAL '4 days'),
+  ('e0000000-0000-0000-0000-000000000005', 'a0000012-0000-0000-0000-000000000012', 'a0000202-0000-0000-0000-000000000202', NOW() - INTERVAL '26 hours', '이번 경기 영상 확인 부탁드립니다', NOW() - INTERVAL '5 days');
+
+INSERT INTO messages (id, conversation_id, sender_id, content, shared_clip_id, is_read, deleted_at, created_at) VALUES
+  ('e1000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'a0000006-0000-0000-0000-000000000006', '이번 주말 경기 선발 나올 것 같아?', NULL, true, NULL, NOW() - INTERVAL '2 days'),
+  ('e1000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', '응, 감독님이 컨디션 좋으면 선발이라고 하셨어.', NULL, true, NULL, NOW() - INTERVAL '1 days 22 hours'),
+  ('e1000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000001', 'a0000006-0000-0000-0000-000000000006', '주말 경기 준비 잘 됐어?', NULL, false, NULL, NOW() - INTERVAL '2 hours'),
+  ('e1000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000002', 'a0000011-0000-0000-0000-000000000011', '어제 훈련 영상 봤는데 턴 동작 좋아졌네', NULL, false, NULL, NOW() - INTERVAL '1 day'),
+  ('e1000000-0000-0000-0000-000000000005', 'e0000000-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001', '고마워! 너 프리킥 루틴도 참고했어', NULL, true, NULL, NOW() - INTERVAL '23 hours'),
+  ('e1000000-0000-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000002', 'a0000011-0000-0000-0000-000000000011', '프리킥 폼 좋아 보이더라', NULL, false, NULL, NOW() - INTERVAL '1 hours'),
+  ('e1000000-0000-0000-0000-000000000007', 'e0000000-0000-0000-0000-000000000003', 'a0000001-0000-0000-0000-000000000001', '코치님, 최근 경기 영상 피드백 부탁드립니다.', 'c0000000-0000-0000-0000-000000000040', true, NULL, NOW() - INTERVAL '1 day'),
+  ('e1000000-0000-0000-0000-000000000008', 'e0000000-0000-0000-0000-000000000003', 'a0000201-0000-0000-0000-000000000201', '영상 확인했고 피드백 남겼어요', NULL, false, NULL, NOW() - INTERVAL '30 minutes'),
+  ('e1000000-0000-0000-0000-000000000009', 'e0000000-0000-0000-0000-000000000004', 'a0000101-0000-0000-0000-000000000101', '학부모입니다. 상담 가능하실까요?', NULL, true, NULL, NOW() - INTERVAL '6 hours'),
+  ('e1000000-0000-0000-0000-000000000010', 'e0000000-0000-0000-0000-000000000004', 'a0000201-0000-0000-0000-000000000201', '네, 내일 저녁 8시 이후 가능합니다.', NULL, false, NULL, NOW() - INTERVAL '3 hours'),
+  ('e1000000-0000-0000-0000-000000000011', 'e0000000-0000-0000-0000-000000000005', 'a0000012-0000-0000-0000-000000000012', '이번 경기 영상 확인 부탁드립니다', 'c0000000-0000-0000-0000-000000000037', true, NULL, NOW() - INTERVAL '26 hours');
+
+INSERT INTO dm_requests (id, sender_id, receiver_id, preview_message, status, created_at) VALUES
+  ('e2000000-0000-0000-0000-000000000001', 'a0000203-0000-0000-0000-000000000203', 'a0000001-0000-0000-0000-000000000001', '수비 라인 컨트롤 관련해서 질문이 있어요.', 'pending', NOW() - INTERVAL '5 hours'),
+  ('e2000000-0000-0000-0000-000000000002', 'a0000202-0000-0000-0000-000000000202', 'a0000005-0000-0000-0000-000000000005', '최근 윙 돌파 영상 인상적이었습니다.', 'accepted', NOW() - INTERVAL '10 days'),
+  ('e2000000-0000-0000-0000-000000000003', 'a0000009-0000-0000-0000-000000000009', 'a0000011-0000-0000-0000-000000000011', '연습 경기 일정 문의드려요.', 'rejected', NOW() - INTERVAL '6 days'),
+  ('e2000000-0000-0000-0000-000000000004', 'a0000102-0000-0000-0000-000000000102', 'a0000201-0000-0000-0000-000000000201', '학부모 상담 가능 시간 문의드립니다.', 'pending', NOW() - INTERVAL '1 day');
+
+-- =============================================
+-- 22. 코치 인증/리뷰/워치리스트
+-- =============================================
+INSERT INTO coach_verifications (id, profile_id, method, document_url, referrer_id, team_code, status, reviewed_by, reviewed_at, created_at) VALUES
+  ('e5000000-0000-0000-0000-000000000001', 'a0000201-0000-0000-0000-000000000201', 'team_code', NULL, NULL, 'snam15b', 'approved', 'system_admin', NOW() - INTERVAL '12 days', NOW() - INTERVAL '13 days'),
+  ('e5000000-0000-0000-0000-000000000002', 'a0000202-0000-0000-0000-000000000202', 'document', 'https://example.com/scout-license.pdf', NULL, NULL, 'approved', 'system_admin', NOW() - INTERVAL '10 days', NOW() - INTERVAL '11 days'),
+  ('e5000000-0000-0000-0000-000000000003', 'a0000203-0000-0000-0000-000000000203', 'referral', NULL, 'a0000201-0000-0000-0000-000000000201', NULL, 'pending', NULL, NULL, NOW() - INTERVAL '2 days');
+
+INSERT INTO coach_reviews (id, coach_id, clip_id, comment, private_note, rating, hidden_by_owner, created_at) VALUES
+  ('e3000000-0000-0000-0000-000000000001', 'a0000201-0000-0000-0000-000000000201', 'c0000000-0000-0000-0000-000000000015', '침투 타이밍과 마무리 모두 좋습니다.', '첫 터치 후 슈팅 각도 만드는 동작을 반복하세요.', 'excellent', false, NOW() - INTERVAL '2 days'),
+  ('e3000000-0000-0000-0000-000000000002', 'a0000201-0000-0000-0000-000000000201', 'c0000000-0000-0000-0000-000000000029', '박스 안에서의 움직임이 매우 효율적입니다.', '등지는 상황에서 오른발 터치 길이를 조금 줄여보세요.', 'great', false, NOW() - INTERVAL '1 day'),
+  ('e3000000-0000-0000-0000-000000000003', 'a0000202-0000-0000-0000-000000000202', 'c0000000-0000-0000-0000-000000000003', '좁은 공간에서 판단이 빠릅니다.', '상대 수비가 붙을 때 패스 페인트를 한 템포 더 길게 가져가도 좋습니다.', 'good', false, NOW() - INTERVAL '16 hours'),
+  ('e3000000-0000-0000-0000-000000000004', 'a0000201-0000-0000-0000-000000000201', 'c0000000-0000-0000-0000-000000000011', '속도 유지하면서 슈팅까지 연결한 점이 좋아요.', '골문 앞에서 시야 분배를 더 해보면 득점 루트가 늘어납니다.', 'great', true, NOW() - INTERVAL '3 days');
+
+INSERT INTO scout_watchlist (id, scout_id, player_id, note, notify_on_upload, created_at) VALUES
+  ('e4000000-0000-0000-0000-000000000001', 'a0000202-0000-0000-0000-000000000202', 'a0000001-0000-0000-0000-000000000001', '양발 전환 속도와 박스 근처 침투 타이밍이 좋음', true, NOW() - INTERVAL '9 days'),
+  ('e4000000-0000-0000-0000-000000000002', 'a0000202-0000-0000-0000-000000000202', 'a0000006-0000-0000-0000-000000000006', '수비 뒷공간 활용 능력 우수, 연속 경기 관찰 필요', false, NOW() - INTERVAL '8 days'),
+  ('e4000000-0000-0000-0000-000000000003', 'a0000202-0000-0000-0000-000000000202', 'a0000012-0000-0000-0000-000000000012', '공중볼 경합 능력 강점, 피지컬 성장 추적', true, NOW() - INTERVAL '6 days'),
+  ('e4000000-0000-0000-0000-000000000004', 'a0000201-0000-0000-0000-000000000201', 'a0000005-0000-0000-0000-000000000005', '윙 돌파 이후 크로스 선택이 안정적', true, NOW() - INTERVAL '5 days');
+
+-- =============================================
+-- 23. 알림 데이터 (센터/배지/그룹핑 확인)
+-- =============================================
+INSERT INTO notifications (id, user_id, type, title, body, reference_id, read, group_key, action_url, created_at) VALUES
+  ('fa000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 'dm', '배준혁님이 메시지를 보냈어요', '주말 경기 준비 잘 됐어?', 'e0000000-0000-0000-0000-000000000001', false, NULL, '/dm/e0000000-0000-0000-0000-000000000001', NOW() - INTERVAL '2 hours'),
+  ('fa000000-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001', 'coach_review', '코치 리뷰', '📋 박진우 코치가 리뷰를 남겼어요', 'c0000000-0000-0000-0000-000000000015', false, NULL, '/clips/c0000000-0000-0000-0000-000000000015', NOW() - INTERVAL '1 day'),
+  ('fa000000-0000-0000-0000-000000000003', 'a0000001-0000-0000-0000-000000000001', 'comment', '댓글 알림', '내 영상에 새 댓글이 달렸어요', 'f0000000-0000-0000-0000-000000000035', false, 'comment:f0000000-0000-0000-0000-000000000035', '/p/minjun_10', NOW() - INTERVAL '4 hours'),
+  ('fa000000-0000-0000-0000-000000000004', 'a0000001-0000-0000-0000-000000000001', 'follow', '최한서 스카우터님이 팔로우를 시작했어요', NULL, 'a0000202-0000-0000-0000-000000000202', false, NULL, '/p/scout_hanseo', NOW() - INTERVAL '6 hours'),
+  ('fa000000-0000-0000-0000-000000000005', 'a0000001-0000-0000-0000-000000000001', 'kudos', '응원 알림', '회원님 영상에 응원이 4개 도착했어요', 'f0000000-0000-0000-0000-000000000031', true, 'kudos:f0000000-0000-0000-0000-000000000031', '/p/minjun_10', NOW() - INTERVAL '9 hours'),
+  ('fa000000-0000-0000-0000-000000000006', 'a0000001-0000-0000-0000-000000000001', 'vote_open', '🏆 이번 주 MVP 투표 시작!', NULL, NULL, true, NULL, '/mvp', NOW() - INTERVAL '4 days'),
+  ('fa000000-0000-0000-0000-000000000007', 'a0000001-0000-0000-0000-000000000001', 'mvp_result', 'MVP 집계 업데이트', '현재 2위입니다. 마지막까지 화이팅!', 'c0000000-0000-0000-0000-000000000040', false, NULL, '/mvp', NOW() - INTERVAL '3 hours'),
+  ('fa000000-0000-0000-0000-000000000008', 'a0000006-0000-0000-0000-000000000006', 'mvp_win', '축하해요! 이번 주 MVP! 🏆🏆🏆', '강지호 선수가 이번 주 MVP로 선정됐어요', 'c0000000-0000-0000-0000-000000000015', false, NULL, '/mvp', NOW() - INTERVAL '2 hours'),
+  ('fa000000-0000-0000-0000-000000000009', 'a0000012-0000-0000-0000-000000000012', 'dm', '최한서 스카우터님이 메시지를 보냈어요', '이번 경기 영상 확인 부탁드립니다', 'e0000000-0000-0000-0000-000000000005', false, NULL, '/dm/e0000000-0000-0000-0000-000000000005', NOW() - INTERVAL '1 day'),
+  ('fa000000-0000-0000-0000-000000000010', 'a0000101-0000-0000-0000-000000000101', 'weekly_recap', '주간 리캡 도착', '이번 주 자녀 활동 요약을 확인해보세요', 'a0000002-0000-0000-0000-000000000002', false, NULL, '/?child=a0000002-0000-0000-0000-000000000002', NOW() - INTERVAL '5 hours'),
+  ('fa000000-0000-0000-0000-000000000011', 'a0000102-0000-0000-0000-000000000102', 'team_invite', '팀 초대 승인 완료', '부산아이파크 U-15 활동 소식을 받아보세요', 'b0000000-0000-0000-0000-000000000003', false, NULL, '/team/b0000000-0000-0000-0000-000000000003', NOW() - INTERVAL '7 hours'),
+  ('fa000000-0000-0000-0000-000000000012', 'a0000201-0000-0000-0000-000000000201', 'verify_request', '코치 인증 추천 요청', '@coach_minho 님이 추천 인증을 요청했습니다', 'a0000203-0000-0000-0000-000000000203', false, NULL, '/profile', NOW() - INTERVAL '1 day'),
+  ('fa000000-0000-0000-0000-000000000013', 'a0000202-0000-0000-0000-000000000202', 'watchlist_upload', '워치리스트 업데이트', '김민준 선수가 새 영상을 업로드했어요', 'c0000000-0000-0000-0000-000000000040', false, NULL, '/p/minjun_10', NOW() - INTERVAL '2 hours'),
+  ('fa000000-0000-0000-0000-000000000014', 'a0000002-0000-0000-0000-000000000002', 'team_album', '팀 앨범이 업데이트됐어요', '수원FC U-15 새 비디오가 올라왔습니다', 'eb000000-0000-0000-0000-000000000002', true, NULL, '/t/suwon-fc-u15', NOW() - INTERVAL '6 days');
+
+-- =============================================
+-- 24. MVP/랭킹 캐시 (v1.2 화면 데이터)
+-- =============================================
+WITH seed_week AS (
+  SELECT date_trunc('week', timezone('Asia/Seoul', NOW()))::date AS ws
+)
+INSERT INTO weekly_votes (id, voter_id, clip_id, week_start, message, created_at) VALUES
+  ('fc000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000029', (SELECT ws FROM seed_week), '피니시가 안정적이네요', NOW() - INTERVAL '2 days'),
+  ('fc000000-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000024', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '2 days'),
+  ('fc000000-0000-0000-0000-000000000003', 'a0000001-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000014', (SELECT ws FROM seed_week), '침투 타이밍 최고', NOW() - INTERVAL '1 day'),
+  ('fc000000-0000-0000-0000-000000000004', 'a0000002-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000015', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '1 day'),
+  ('fc000000-0000-0000-0000-000000000005', 'a0000002-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000029', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '1 day'),
+  ('fc000000-0000-0000-0000-000000000006', 'a0000005-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000015', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '20 hours'),
+  ('fc000000-0000-0000-0000-000000000007', 'a0000006-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000040', (SELECT ws FROM seed_week), '턴 동작 인상적', NOW() - INTERVAL '19 hours'),
+  ('fc000000-0000-0000-0000-000000000008', 'a0000007-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-000000000029', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '18 hours'),
+  ('fc000000-0000-0000-0000-000000000009', 'a0000008-0000-0000-0000-000000000008', 'c0000000-0000-0000-0000-000000000040', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '17 hours'),
+  ('fc000000-0000-0000-0000-000000000010', 'a0000009-0000-0000-0000-000000000009', 'c0000000-0000-0000-0000-000000000024', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '16 hours'),
+  ('fc000000-0000-0000-0000-000000000011', 'a0000011-0000-0000-0000-000000000011', 'c0000000-0000-0000-0000-000000000015', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '15 hours'),
+  ('fc000000-0000-0000-0000-000000000012', 'a0000012-0000-0000-0000-000000000012', 'c0000000-0000-0000-0000-000000000040', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '14 hours'),
+  ('fc000000-0000-0000-0000-000000000013', 'a0000013-0000-0000-0000-000000000013', 'c0000000-0000-0000-0000-000000000036', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '13 hours'),
+  ('fc000000-0000-0000-0000-000000000014', 'a0000014-0000-0000-0000-000000000014', 'c0000000-0000-0000-0000-000000000015', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '12 hours'),
+  ('fc000000-0000-0000-0000-000000000015', 'a0000015-0000-0000-0000-000000000015', 'c0000000-0000-0000-0000-000000000029', (SELECT ws FROM seed_week), NULL, NOW() - INTERVAL '11 hours');
+
+WITH seed_week AS (
+  SELECT date_trunc('week', timezone('Asia/Seoul', NOW()))::date AS ws
+)
+INSERT INTO weekly_votes (id, voter_id, clip_id, week_start, message, created_at) VALUES
+  ('fc000000-0000-0000-0000-000000000101', 'a0000003-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000024', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, NULL, NOW() - INTERVAL '8 days'),
+  ('fc000000-0000-0000-0000-000000000102', 'a0000004-0000-0000-0000-000000000004', 'c0000000-0000-0000-0000-000000000024', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, NULL, NOW() - INTERVAL '8 days'),
+  ('fc000000-0000-0000-0000-000000000103', 'a0000005-0000-0000-0000-000000000005', 'c0000000-0000-0000-0000-000000000013', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, NULL, NOW() - INTERVAL '8 days'),
+  ('fc000000-0000-0000-0000-000000000104', 'a0000006-0000-0000-0000-000000000006', 'c0000000-0000-0000-0000-000000000024', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, NULL, NOW() - INTERVAL '8 days'),
+  ('fc000000-0000-0000-0000-000000000105', 'a0000007-0000-0000-0000-000000000007', 'c0000000-0000-0000-0000-000000000013', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, NULL, NOW() - INTERVAL '8 days'),
+  ('fc000000-0000-0000-0000-000000000106', 'a0000011-0000-0000-0000-000000000011', 'c0000000-0000-0000-0000-000000000001', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, NULL, NOW() - INTERVAL '8 days');
+
+WITH seed_week AS (
+  SELECT date_trunc('week', timezone('Asia/Seoul', NOW()))::date AS ws
+)
+INSERT INTO weekly_mvp_results (id, week_start, rank, clip_id, profile_id, auto_score, vote_score, total_score, vote_count, created_at) VALUES
+  ('fd000000-0000-0000-0000-000000000001', (SELECT ws FROM seed_week), 1, 'c0000000-0000-0000-0000-000000000015', 'a0000006-0000-0000-0000-000000000006', 640, 270, 910, 9, NOW() - INTERVAL '6 hours'),
+  ('fd000000-0000-0000-0000-000000000002', (SELECT ws FROM seed_week), 2, 'c0000000-0000-0000-0000-000000000040', 'a0000001-0000-0000-0000-000000000001', 620, 250, 870, 7, NOW() - INTERVAL '6 hours'),
+  ('fd000000-0000-0000-0000-000000000003', (SELECT ws FROM seed_week), 3, 'c0000000-0000-0000-0000-000000000029', 'a0000012-0000-0000-0000-000000000012', 590, 240, 830, 6, NOW() - INTERVAL '6 hours'),
+  ('fd000000-0000-0000-0000-000000000101', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, 1, 'c0000000-0000-0000-0000-000000000024', 'a0000011-0000-0000-0000-000000000011', 650, 250, 900, 8, NOW() - INTERVAL '7 days'),
+  ('fd000000-0000-0000-0000-000000000102', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, 2, 'c0000000-0000-0000-0000-000000000013', 'a0000006-0000-0000-0000-000000000006', 630, 230, 860, 6, NOW() - INTERVAL '7 days'),
+  ('fd000000-0000-0000-0000-000000000103', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, 3, 'c0000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 560, 230, 790, 4, NOW() - INTERVAL '7 days');
+
+INSERT INTO player_ranking_cache (profile_id, popularity_score, weekly_change, updated_at) VALUES
+  ('a0000006-0000-0000-0000-000000000006', 980, 52, NOW()),
+  ('a0000001-0000-0000-0000-000000000001', 910, 35, NOW()),
+  ('a0000011-0000-0000-0000-000000000011', 870, 31, NOW()),
+  ('a0000012-0000-0000-0000-000000000012', 845, 27, NOW()),
+  ('a0000005-0000-0000-0000-000000000005', 810, 24, NOW()),
+  ('a0000002-0000-0000-0000-000000000002', 780, 18, NOW()),
+  ('a0000007-0000-0000-0000-000000000007', 740, 15, NOW()),
+  ('a0000009-0000-0000-0000-000000000009', 690, 12, NOW()),
+  ('a0000013-0000-0000-0000-000000000013', 670, 11, NOW()),
+  ('a0000014-0000-0000-0000-000000000014', 650, 10, NOW()),
+  ('a0000003-0000-0000-0000-000000000003', 640, 8, NOW()),
+  ('a0000008-0000-0000-0000-000000000008', 620, 7, NOW()),
+  ('a0000004-0000-0000-0000-000000000004', 590, 5, NOW()),
+  ('a0000010-0000-0000-0000-000000000010', 560, 4, NOW()),
+  ('a0000015-0000-0000-0000-000000000015', 540, 3, NOW());
+
+INSERT INTO team_ranking_cache (team_id, activity_score, mvp_count, updated_at) VALUES
+  ('b0000000-0000-0000-0000-000000000002', 1240, 7, NOW()),
+  ('b0000000-0000-0000-0000-000000000001', 1170, 5, NOW()),
+  ('b0000000-0000-0000-0000-000000000003', 1120, 4, NOW());
+
+-- =============================================
+-- 25. 챌린지 + 퀘스트 진행도
+-- =============================================
+WITH seed_week AS (
+  SELECT date_trunc('week', timezone('Asia/Seoul', NOW()))::date AS ws
+)
+INSERT INTO challenges (id, title, description, skill_tag, week_start, is_active, created_at) VALUES
+  ('e7000000-0000-0000-0000-000000000001', '원터치 피니시 챌린지', '박스 안에서 원터치 슈팅 장면을 올려보세요!', '슈팅', (SELECT ws FROM seed_week), true, NOW() - INTERVAL '4 days'),
+  ('e7000000-0000-0000-0000-000000000002', '전개 패스 챌린지', '수비 라인을 흔드는 전진패스를 기록해보세요.', '전진패스', ((SELECT ws FROM seed_week) - INTERVAL '7 days')::date, false, NOW() - INTERVAL '12 days');
+
+WITH week_key AS (
+  SELECT to_char(date_trunc('week', timezone('Asia/Seoul', NOW()))::date, 'YYYY-MM-DD') AS k
+)
+INSERT INTO quest_progress (id, profile_id, quest_type, quest_key, completed_at, created_at) VALUES
+  ('e8000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 'onboarding', 'profile_photo', NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+  ('e8000000-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001', 'onboarding', 'first_upload', NOW() - INTERVAL '29 days', NOW() - INTERVAL '29 days'),
+  ('e8000000-0000-0000-0000-000000000003', 'a0000001-0000-0000-0000-000000000001', 'onboarding', 'first_follow', NOW() - INTERVAL '28 days', NOW() - INTERVAL '28 days'),
+  ('e8000000-0000-0000-0000-000000000004', 'a0000001-0000-0000-0000-000000000001', 'onboarding', 'first_kudos', NOW() - INTERVAL '27 days', NOW() - INTERVAL '27 days'),
+  ('e8000000-0000-0000-0000-000000000005', 'a0000001-0000-0000-0000-000000000001', 'onboarding', 'first_dm', NULL, NOW() - INTERVAL '1 day'),
+  ('e8000000-0000-0000-0000-000000000006', 'a0000001-0000-0000-0000-000000000001', 'weekly', 'weekly_upload_' || (SELECT k FROM week_key), NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+  ('e8000000-0000-0000-0000-000000000007', 'a0000001-0000-0000-0000-000000000001', 'weekly', 'weekly_vote_' || (SELECT k FROM week_key), NOW() - INTERVAL '10 hours', NOW() - INTERVAL '10 hours'),
+  ('e8000000-0000-0000-0000-000000000008', 'a0000001-0000-0000-0000-000000000001', 'weekly', 'weekly_kudos_' || (SELECT k FROM week_key), NULL, NOW() - INTERVAL '8 hours'),
+  ('e8000000-0000-0000-0000-000000000101', 'a0000006-0000-0000-0000-000000000006', 'onboarding', 'profile_photo', NOW() - INTERVAL '40 days', NOW() - INTERVAL '40 days'),
+  ('e8000000-0000-0000-0000-000000000102', 'a0000006-0000-0000-0000-000000000006', 'onboarding', 'first_upload', NOW() - INTERVAL '39 days', NOW() - INTERVAL '39 days'),
+  ('e8000000-0000-0000-0000-000000000103', 'a0000006-0000-0000-0000-000000000006', 'onboarding', 'first_follow', NOW() - INTERVAL '39 days', NOW() - INTERVAL '39 days'),
+  ('e8000000-0000-0000-0000-000000000104', 'a0000006-0000-0000-0000-000000000006', 'onboarding', 'first_kudos', NOW() - INTERVAL '38 days', NOW() - INTERVAL '38 days'),
+  ('e8000000-0000-0000-0000-000000000105', 'a0000006-0000-0000-0000-000000000006', 'onboarding', 'first_dm', NOW() - INTERVAL '37 days', NOW() - INTERVAL '37 days'),
+  ('e8000000-0000-0000-0000-000000000106', 'a0000006-0000-0000-0000-000000000006', 'onboarding', 'onboarding_complete', NOW() - INTERVAL '37 days', NOW() - INTERVAL '37 days'),
+  ('e8000000-0000-0000-0000-000000000107', 'a0000006-0000-0000-0000-000000000006', 'weekly', 'weekly_upload_' || (SELECT k FROM week_key), NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+  ('e8000000-0000-0000-0000-000000000108', 'a0000006-0000-0000-0000-000000000006', 'weekly', 'weekly_vote_' || (SELECT k FROM week_key), NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+  ('e8000000-0000-0000-0000-000000000109', 'a0000006-0000-0000-0000-000000000006', 'weekly', 'weekly_kudos_' || (SELECT k FROM week_key), NOW() - INTERVAL '18 hours', NOW() - INTERVAL '18 hours'),
+  ('e8000000-0000-0000-0000-000000000110', 'a0000006-0000-0000-0000-000000000006', 'weekly', 'weekly_bonus_' || (SELECT k FROM week_key), NOW() - INTERVAL '17 hours', NOW() - INTERVAL '17 hours');
+
+-- =============================================
+-- 26. 안전 기능 샘플 데이터
+-- =============================================
+INSERT INTO blocks (id, blocker_id, blocked_id, created_at) VALUES
+  ('e9000000-0000-0000-0000-000000000001', 'a0000009-0000-0000-0000-000000000009', 'a0000003-0000-0000-0000-000000000003', NOW() - INTERVAL '3 days');
+
+INSERT INTO reports (id, reporter_id, reported_id, message_id, comment_id, clip_id, category, description, status, created_at) VALUES
+  ('ea100000-0000-0000-0000-000000000001', 'a0000009-0000-0000-0000-000000000009', 'a0000003-0000-0000-0000-000000000003', NULL, NULL, 'c0000000-0000-0000-0000-000000000007', 'abuse', '반복적인 비방성 댓글', 'pending', NOW() - INTERVAL '2 days');
+
+-- =============================================
+-- DONE! 시드 데이터 삽입 완료 (v1.2 확장 포함)
 -- =============================================
