@@ -10,6 +10,8 @@ import StatCard from "@/components/player/StatCard";
 import MedalBadge from "@/components/player/MedalBadge";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
+import { getOrCreateConversation } from "@/lib/dm";
+import { createClient } from "@/lib/supabase/client";
 
 const ShareSheet = dynamic(() => import("@/components/ui/ShareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -78,6 +80,7 @@ function toProfile(data: PublicProfileData): Profile {
     contact: (data.contact as Profile["contact"]) ?? undefined,
     contactPublic: !!data.contact_public,
     role: (data.role ?? "player") as Profile["role"],
+    isVerified: false,
     teamName: (data.teamName as string) ?? undefined,
     teamId: (data.teamId as string) ?? undefined,
     mvpCount: (data.mvp_count as number) ?? 0,
@@ -167,7 +170,24 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       {/* Follow + Share buttons */}
       <div className="mt-3 flex items-center gap-2">
         {!data.isOwnProfile && (
-          <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
+          <>
+            <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
+            <button
+              onClick={async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const convId = await getOrCreateConversation(user.id, profile.id);
+                router.push(`/dm/${convId}`);
+              }}
+              className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-[13px] font-semibold text-text-2 transition-colors hover:border-accent hover:text-accent"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+              메시지
+            </button>
+          </>
         )}
         <button
           onClick={() => setShareOpen(true)}

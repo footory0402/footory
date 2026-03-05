@@ -24,6 +24,10 @@ export interface Profile {
   };
   contactPublic: boolean;
   role: "player" | "parent" | "other";
+  isVerified: boolean;
+  heightCm?: number | null;
+  weightKg?: number | null;
+  preferredFoot?: string | null;
   mvpCount: number;
   mvpTier: MvpTier | null;
   createdAt: string;
@@ -187,4 +191,92 @@ export interface TeamRankingCache {
   mvpCount: number;
   updatedAt: string;
   team?: Pick<Team, "id" | "handle" | "name" | "logoUrl" | "city" | "memberCount">;
+}
+
+// DM types
+export interface Conversation {
+  id: string;
+  participant1: string;
+  participant2: string;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  createdAt: string;
+  // Joined fields
+  otherUser?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName">;
+  unreadCount?: number;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string | null;
+  sharedClipId: string | null;
+  isRead: boolean;
+  deletedAt: string | null;
+  createdAt: string;
+  // Joined fields
+  sharedClip?: Pick<Clip, "id" | "videoUrl" | "thumbnailUrl" | "title"> | null;
+}
+
+// Safety types
+export interface Block {
+  id: string;
+  blockerId: string;
+  blockedId: string;
+  createdAt: string;
+}
+
+export type ReportCategory = "harassment" | "spam" | "inappropriate" | "other";
+
+export interface Report {
+  id: string;
+  reporterId: string;
+  reportedId: string;
+  messageId?: string;
+  commentId?: string;
+  clipId?: string;
+  category: ReportCategory;
+  description?: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface Achievement {
+  id: string;
+  profileId: string;
+  title: string;
+  competition?: string;
+  year?: number;
+  evidenceUrl?: string;
+  createdAt: string;
+}
+
+export type TimelineEventType =
+  | "first_upload"
+  | "level_up"
+  | "mvp_win"
+  | "team_join"
+  | "team_leave"
+  | "achievement"
+  | "follower_milestone"
+  | "kudos_milestone";
+
+export interface TimelineEvent {
+  id: string;
+  profileId: string;
+  eventType: TimelineEventType;
+  eventData: Record<string, unknown>;
+  clipId?: string;
+  createdAt: string;
+}
+
+export interface DmRequest {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  previewMessage: string | null;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+  sender?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName">;
 }

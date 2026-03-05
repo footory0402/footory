@@ -6,7 +6,11 @@ import { usePathname } from "next/navigation";
 import { useUnreadCount } from "@/hooks/useNotifications";
 import { NOTIFICATION_POLL_MS } from "@/lib/constants";
 
-export default function AppHeader() {
+interface AppHeaderProps {
+  onSearchOpen?: () => void;
+}
+
+export default function AppHeader({ onSearchOpen }: AppHeaderProps) {
   const pathname = usePathname();
   const { count, fetchCount } = useUnreadCount();
 
@@ -22,6 +26,29 @@ export default function AppHeader() {
         FOOTORY
       </h1>
       <div className="flex items-center gap-2">
+        {/* Search button */}
+        <button
+          onClick={onSearchOpen}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card"
+          aria-label="검색"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </button>
+
+        {/* DM */}
+        <Link
+          href="/dm"
+          className="relative flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </Link>
+
+        {/* Notifications */}
         <Link
           href="/notifications"
           className="relative flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card"
