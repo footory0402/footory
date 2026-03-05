@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { role, name, handle, position, birth_year, avatar_url } = body;
+  const { role, name, handle, position, birth_year, avatar_url, height_cm, weight_kg, preferred_foot, bio } = body;
 
   // Validate required fields
   if (!name || !handle || !role) {
@@ -63,6 +63,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Handle already taken" }, { status: 409 });
   }
 
+  // Validate optional numeric fields
+  if (height_cm != null && (typeof height_cm !== "number" || height_cm < 100 || height_cm > 220)) {
+    return NextResponse.json({ error: "Invalid height" }, { status: 400 });
+  }
+  if (weight_kg != null && (typeof weight_kg !== "number" || weight_kg < 20 || weight_kg > 150)) {
+    return NextResponse.json({ error: "Invalid weight" }, { status: 400 });
+  }
+  const VALID_FEET = ["left", "right", "both"];
+  if (preferred_foot && !VALID_FEET.includes(preferred_foot)) {
+    return NextResponse.json({ error: "Invalid preferred foot" }, { status: 400 });
+  }
+
   // Insert profile
   const { data: profile, error } = await supabase
     .from("profiles")
@@ -74,6 +86,10 @@ export async function POST(request: Request) {
       position: role === "player" ? position : null,
       birth_year: birth_year || null,
       avatar_url: avatar_url || null,
+      height_cm: role === "player" ? (height_cm || null) : null,
+      weight_kg: role === "player" ? (weight_kg || null) : null,
+      preferred_foot: role === "player" ? (preferred_foot || null) : null,
+      bio: bio || null,
       level: 1,
       xp: 0,
     })
