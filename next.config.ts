@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
+const turbopackRoot = process.env.INIT_CWD ?? process.cwd();
 
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+  turbopack: { root: turbopackRoot },
   serverExternalPackages: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
   images: {
     unoptimized: isDev,

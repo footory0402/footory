@@ -183,7 +183,7 @@ export default function FeedList({
         <ShareSheet
           open={!!shareTarget}
           onClose={() => setShareTarget(null)}
-          url={typeof window !== "undefined" ? `${window.location.origin}/p/${shareTarget.playerHandle}` : `/p/${shareTarget.playerHandle}`}
+          shareUrl={typeof window !== "undefined" ? `${window.location.origin}/p/${shareTarget.playerHandle}` : `/p/${shareTarget.playerHandle}`}
           title={`${shareTarget.playerName}의 하이라이트 — Footory`}
         />
       )}

@@ -23,7 +23,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import { APP_URL } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS } from "@/lib/constants";
 import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 
 interface FeaturedClip {

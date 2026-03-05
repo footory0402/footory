@@ -60,7 +60,6 @@ export default function SkillsTab({ tagClips, loading }: SkillsTabProps) {
       {tagsToShow.map((tag, i) => (
         <div key={tag.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
           <TagAccordion
-            tagId={tag.id}
             emoji={tag.emoji}
             label={tag.label}
             clips={tagClips[tag.id] ?? []}
