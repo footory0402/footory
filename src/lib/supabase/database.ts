@@ -31,6 +31,12 @@ export interface Database {
           views_count: number;
           mvp_count: number;
           mvp_tier: "rookie" | "ace" | "allstar" | "legend" | null;
+          is_verified: boolean;
+          verified_at: string | null;
+          height_cm: number | null;
+          weight_kg: number | null;
+          preferred_foot: string | null;
+          profile_views: number;
           created_at: string;
           updated_at: string;
         };
@@ -55,6 +61,12 @@ export interface Database {
           views_count?: number;
           mvp_count?: number;
           mvp_tier?: "rookie" | "ace" | "allstar" | "legend" | null;
+          is_verified?: boolean;
+          verified_at?: string | null;
+          height_cm?: number | null;
+          weight_kg?: number | null;
+          preferred_foot?: string | null;
+          profile_views?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -79,6 +91,12 @@ export interface Database {
           views_count?: number;
           mvp_count?: number;
           mvp_tier?: "rookie" | "ace" | "allstar" | "legend" | null;
+          is_verified?: boolean;
+          verified_at?: string | null;
+          height_cm?: number | null;
+          weight_kg?: number | null;
+          preferred_foot?: string | null;
+          profile_views?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -430,6 +448,8 @@ export interface Database {
           body: string | null;
           reference_id: string | null;
           read: boolean;
+          group_key: string | null;
+          action_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -440,6 +460,8 @@ export interface Database {
           body?: string | null;
           reference_id?: string | null;
           read?: boolean;
+          group_key?: string | null;
+          action_url?: string | null;
           created_at?: string;
         };
         Update: {
@@ -447,6 +469,88 @@ export interface Database {
           title?: string;
           body?: string | null;
           read?: boolean;
+          group_key?: string | null;
+          action_url?: string | null;
+        };
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: {
+          profile_id: string;
+          push_enabled: boolean;
+          kudos: boolean;
+          comments: boolean;
+          follows: boolean;
+          dm: boolean;
+          mentions: boolean;
+          vote_open: boolean;
+          vote_remind: boolean;
+          mvp_result: boolean;
+          team_invite: boolean;
+          weekly_recap: boolean;
+          upload_nudge: boolean;
+          quiet_start: string;
+          quiet_end: string;
+          updated_at: string;
+        };
+        Insert: {
+          profile_id: string;
+          push_enabled?: boolean;
+          kudos?: boolean;
+          comments?: boolean;
+          follows?: boolean;
+          dm?: boolean;
+          mentions?: boolean;
+          vote_open?: boolean;
+          vote_remind?: boolean;
+          mvp_result?: boolean;
+          team_invite?: boolean;
+          weekly_recap?: boolean;
+          upload_nudge?: boolean;
+          quiet_start?: string;
+          quiet_end?: string;
+          updated_at?: string;
+        };
+        Update: {
+          push_enabled?: boolean;
+          kudos?: boolean;
+          comments?: boolean;
+          follows?: boolean;
+          dm?: boolean;
+          mentions?: boolean;
+          vote_open?: boolean;
+          vote_remind?: boolean;
+          mvp_result?: boolean;
+          team_invite?: boolean;
+          weekly_recap?: boolean;
+          upload_nudge?: boolean;
+          quiet_start?: string;
+          quiet_end?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      push_tokens: {
+        Row: {
+          id: string;
+          profile_id: string;
+          token: string;
+          platform: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          token: string;
+          platform?: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          token?: string;
+          platform?: string;
+          is_active?: boolean;
         };
         Relationships: [];
       };
@@ -488,17 +592,59 @@ export interface Database {
           id: string;
           parent_id: string;
           child_id: string;
+          consent_given: boolean;
+          consent_at: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           parent_id: string;
           child_id: string;
+          consent_given?: boolean;
+          consent_at?: string | null;
           created_at?: string;
         };
         Update: {
           parent_id?: string;
           child_id?: string;
+          consent_given?: boolean;
+          consent_at?: string | null;
+        };
+        Relationships: [];
+      };
+      coach_verifications: {
+        Row: {
+          id: string;
+          profile_id: string;
+          method: string;
+          document_url: string | null;
+          referrer_id: string | null;
+          team_code: string | null;
+          status: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          method: string;
+          document_url?: string | null;
+          referrer_id?: string | null;
+          team_code?: string | null;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          method?: string;
+          document_url?: string | null;
+          referrer_id?: string | null;
+          team_code?: string | null;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
         };
         Relationships: [];
       };
@@ -595,6 +741,108 @@ export interface Database {
           activity_score?: number;
           mvp_count?: number;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      conversations: {
+        Row: {
+          id: string;
+          participant_1: string;
+          participant_2: string;
+          last_message_at: string | null;
+          last_message_preview: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          participant_1: string;
+          participant_2: string;
+          last_message_at?: string | null;
+          last_message_preview?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          last_message_at?: string | null;
+          last_message_preview?: string | null;
+        };
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string | null;
+          shared_clip_id: string | null;
+          is_read: boolean;
+          deleted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          content?: string | null;
+          shared_clip_id?: string | null;
+          is_read?: boolean;
+          deleted_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          content?: string | null;
+          is_read?: boolean;
+          deleted_at?: string | null;
+        };
+        Relationships: [];
+      };
+      achievements: {
+        Row: {
+          id: string;
+          profile_id: string;
+          title: string;
+          competition: string | null;
+          year: number | null;
+          evidence_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          title: string;
+          competition?: string | null;
+          year?: number | null;
+          evidence_url?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          competition?: string | null;
+          year?: number | null;
+          evidence_url?: string | null;
+        };
+        Relationships: [];
+      };
+      timeline_events: {
+        Row: {
+          id: string;
+          profile_id: string;
+          event_type: string;
+          event_data: Record<string, unknown>;
+          clip_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          event_type: string;
+          event_data?: Record<string, unknown>;
+          clip_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          event_type?: string;
+          event_data?: Record<string, unknown>;
+          clip_id?: string | null;
         };
         Relationships: [];
       };

@@ -10,6 +10,8 @@ export interface Notification {
   body: string | null;
   reference_id: string | null;
   read: boolean;
+  group_key: string | null;
+  action_url: string | null;
   created_at: string;
 }
 
