@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } from "@/lib/server/feed";
 import ParentHomeSection from "@/components/parent/ParentHomeSection";
 import MvpTeaser from "@/components/mvp/MvpTeaser";
+import ChallengeBanner from "@/components/challenge/ChallengeBanner";
 
 const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
   loading: () => (
@@ -45,6 +46,9 @@ export default async function HomePage() {
 
       {/* MVP Teaser — server-fetched, renders immediately */}
       <MvpTeaser leader={mvpLeader} />
+
+      {/* Weekly Challenge Banner */}
+      <ChallengeBanner />
 
       {/* Recommended Feed with upload nudge for new users */}
       <FeedList

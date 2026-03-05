@@ -938,9 +938,64 @@ export interface Database {
         };
         Relationships: [];
       };
+      challenges: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          skill_tag: string | null;
+          week_start: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          skill_tag?: string | null;
+          week_start: string;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          description?: string | null;
+          skill_tag?: string | null;
+          week_start?: string;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      quest_progress: {
+        Row: {
+          id: string;
+          profile_id: string;
+          quest_type: string;
+          quest_key: string;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          quest_type: string;
+          quest_key: string;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          completed_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      increment_xp: {
+        Args: { profile_id: string; amount: number };
+        Returns: void;
+      };
+    };
     Enums: {};
     CompositeTypes: {};
   };

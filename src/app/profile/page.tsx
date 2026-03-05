@@ -15,7 +15,9 @@ import MedalCelebration from "@/components/stats/MedalCelebration";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
 import { SectionCard } from "@/components/ui/Card";
+import QuestChecklist from "@/components/quest/QuestChecklist";
 import { useProfile } from "@/hooks/useProfile";
+import Link from "next/link";
 import { useStats } from "@/hooks/useStats";
 import { useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
@@ -112,7 +114,18 @@ export default function ProfilePage() {
       <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
       {/* PDF Export button */}
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex items-center justify-between">
+        <div>
+          {displayProfile.isVerified && ["coach", "scout"].includes(displayProfile.role) && (
+            <Link
+              href="/profile/watchlist"
+              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
+            >
+              <span>⭐</span>
+              관심 선수
+            </Link>
+          )}
+        </div>
         <button
           onClick={() => setPdfExportOpen(true)}
           className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
@@ -124,6 +137,11 @@ export default function ProfilePage() {
           </svg>
           PDF 내보내기
         </button>
+      </div>
+
+      {/* Quest Checklist — 레벨 아래, 탭 위 */}
+      <div className="mt-3 relative">
+        <QuestChecklist profileId={displayProfile.id} />
       </div>
 
       <div className="mt-3">
