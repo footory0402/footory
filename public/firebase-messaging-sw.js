@@ -17,13 +17,14 @@ const messaging = firebase.messaging();
 // Handle background push notifications
 messaging.onBackgroundMessage((payload) => {
   const { title, body, icon } = payload.notification ?? {};
+  const data = payload.data ?? {};
 
-  self.registration.showNotification(title ?? "Footory", {
+  self.registration.showNotification(title ?? "FOOTORY", {
     body: body ?? "",
-    icon: icon ?? "/icons/icon-192.png",
-    badge: "/icons/icon-72.png",
-    data: payload.data,
-    tag: payload.data?.type ?? "default",
+    icon: icon ?? "/icons/footory-192.png",
+    badge: "/icons/badge-72.png",
+    data: { url: data.url ?? "/", type: data.type },
+    tag: data.group_key ?? data.type ?? "default",
   });
 });
 
