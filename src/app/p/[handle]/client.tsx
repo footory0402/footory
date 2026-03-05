@@ -13,6 +13,11 @@ import dynamic from "next/dynamic";
 import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
 import { createClient } from "@/lib/supabase/client";
 
+const AddToWatchlistButton = dynamic(
+  () => import("@/components/scout/AddToWatchlistButton"),
+  { ssr: false }
+);
+
 const ShareSheet = dynamic(() => import("@/components/ui/ShareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
@@ -84,7 +89,7 @@ function toProfile(data: PublicProfileData): Profile {
     contact: (data.contact as Profile["contact"]) ?? undefined,
     contactPublic: !!data.contact_public,
     role: (data.role ?? "player") as Profile["role"],
-    isVerified: false,
+    isVerified: !!(data.is_verified as boolean),
     teamName: (data.teamName as string) ?? undefined,
     teamId: (data.teamId as string) ?? undefined,
     heightCm: (data.height_cm as number) ?? null,
@@ -200,10 +205,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       <ProfileCard profile={profile} />
 
       {/* Follow + Share buttons */}
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         {!data.isOwnProfile && (
           <>
             <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
+            <AddToWatchlistButton playerId={profile.id} />
             <button
               onClick={async () => {
                 const supabase = createClient();

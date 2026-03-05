@@ -14,7 +14,7 @@ interface ProfileApiResponse {
   bio: string | null;
   avatar_url: string | null;
   level: number;
-  role: "player" | "parent" | "other";
+  role: "player" | "parent" | "other" | "coach" | "scout";
   followers_count: number;
   following_count: number;
   views_count: number;

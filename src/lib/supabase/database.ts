@@ -12,7 +12,7 @@ export interface Database {
       profiles: {
         Row: {
           id: string;
-          role: "player" | "parent" | "other";
+          role: "player" | "parent" | "other" | "coach" | "scout";
           handle: string;
           name: string;
           avatar_url: string | null;
@@ -405,17 +405,20 @@ export interface Database {
           id: string;
           feed_item_id: string;
           user_id: string;
+          reaction: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           feed_item_id: string;
           user_id: string;
+          reaction?: string;
           created_at?: string;
         };
         Update: {
           feed_item_id?: string;
           user_id?: string;
+          reaction?: string;
         };
         Relationships: [];
       };
@@ -425,6 +428,7 @@ export interface Database {
           feed_item_id: string;
           user_id: string;
           content: string;
+          parent_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -432,10 +436,12 @@ export interface Database {
           feed_item_id: string;
           user_id: string;
           content: string;
+          parent_id?: string | null;
           created_at?: string;
         };
         Update: {
           content?: string;
+          parent_id?: string | null;
         };
         Relationships: [];
       };
@@ -985,6 +991,58 @@ export interface Database {
         };
         Update: {
           completed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      coach_reviews: {
+        Row: {
+          id: string;
+          coach_id: string;
+          clip_id: string;
+          comment: string | null;
+          private_note: string | null;
+          rating: "good" | "great" | "excellent";
+          hidden_by_owner: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          clip_id: string;
+          comment?: string | null;
+          private_note?: string | null;
+          rating: "good" | "great" | "excellent";
+          hidden_by_owner?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          comment?: string | null;
+          private_note?: string | null;
+          rating?: "good" | "great" | "excellent";
+          hidden_by_owner?: boolean;
+        };
+        Relationships: [];
+      };
+      scout_watchlist: {
+        Row: {
+          id: string;
+          scout_id: string;
+          player_id: string;
+          note: string | null;
+          notify_on_upload: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          scout_id: string;
+          player_id: string;
+          note?: string | null;
+          notify_on_upload?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          note?: string | null;
+          notify_on_upload?: boolean;
         };
         Relationships: [];
       };
