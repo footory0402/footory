@@ -69,7 +69,7 @@ const getProfile = cache(async (handle: string) => {
   // Enrich featured clips with clip data (thumbnail, duration)
   const featuredRows = featured.data ?? [];
   const clipIds = featuredRows.map((f: { clip_id: string }) => f.clip_id).filter(Boolean);
-  let clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null }> = {};
+  const clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null }> = {};
   if (clipIds.length > 0) {
     const { data: clipsData } = await supabase
       .from("clips")

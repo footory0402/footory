@@ -68,8 +68,8 @@ export async function GET() {
 
   const feedItemIds = (feedItems ?? []).map((f) => f.id);
 
-  let kudosCounts: Record<string, number> = {};
-  let commentsCounts: Record<string, number> = {};
+  const kudosCounts: Record<string, number> = {};
+  const commentsCounts: Record<string, number> = {};
 
   if (feedItemIds.length > 0) {
     const { data: kudos } = await supabase

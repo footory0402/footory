@@ -8,6 +8,8 @@ export default [
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
     },
   },
 ];

@@ -37,15 +37,27 @@ async function registerToken() {
     // Register service worker
     await navigator.serviceWorker.register("/firebase-messaging-sw.js");
 
-    // Firebase SDK must be installed: npm install firebase
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let firebaseApp: any, firebaseMessaging: any;
+    type FirebaseAppModule = {
+      initializeApp: (config: {
+        apiKey?: string;
+        projectId?: string;
+        messagingSenderId?: string;
+        appId?: string;
+      }) => unknown;
+    };
+    type FirebaseMessagingModule = {
+      getMessaging: (app: unknown) => unknown;
+      getToken: (messaging: unknown, options: { vapidKey?: string }) => Promise<string | null>;
+    };
+
+    let firebaseApp: FirebaseAppModule;
+    let firebaseMessaging: FirebaseMessagingModule;
     try {
       // Use indirect dynamic import to avoid TS module resolution errors
       // when firebase is not installed
-      const importModule = new Function("m", "return import(m)") as (m: string) => Promise<any>;
-      firebaseApp = await importModule("firebase/app");
-      firebaseMessaging = await importModule("firebase/messaging");
+      const importModule = new Function("m", "return import(m)") as (m: string) => Promise<unknown>;
+      firebaseApp = await importModule("firebase/app") as FirebaseAppModule;
+      firebaseMessaging = await importModule("firebase/messaging") as FirebaseMessagingModule;
     } catch {
       console.warn("[push] Firebase SDK not installed. Run: npm install firebase");
       return;

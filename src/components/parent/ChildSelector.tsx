@@ -3,17 +3,17 @@
 import type { LinkedChild } from "@/hooks/useParent";
 
 interface ChildSelectorProps {
-  children: LinkedChild[];
+  childList: LinkedChild[];
   selectedId: string;
   onSelect: (childId: string) => void;
 }
 
-export default function ChildSelector({ children, selectedId, onSelect }: ChildSelectorProps) {
-  if (children.length <= 1) return null;
+export default function ChildSelector({ childList, selectedId, onSelect }: ChildSelectorProps) {
+  if (childList.length <= 1) return null;
 
   return (
     <div className="mb-4 flex gap-2">
-      {children.map((child) => {
+      {childList.map((child) => {
         const active = child.childId === selectedId;
         return (
           <button

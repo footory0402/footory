@@ -889,7 +889,7 @@ export interface Database {
           blocked_id: string;
           created_at?: string;
         };
-        Update: {};
+        Update: Record<string, never>;
         Relationships: [];
       };
       reports: {
@@ -1047,14 +1047,14 @@ export interface Database {
         Relationships: [];
       };
     };
-    Views: {};
+    Views: Record<string, never>;
     Functions: {
       increment_xp: {
         Args: { profile_id: string; amount: number };
         Returns: void;
       };
     };
-    Enums: {};
-    CompositeTypes: {};
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }

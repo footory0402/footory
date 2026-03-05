@@ -118,7 +118,7 @@ export default function ChildDashboard() {
     <div className="px-4 pb-24 pt-2">
       {/* Multi-child selector */}
       <ChildSelector
-        children={children}
+        childList={children}
         selectedId={selectedChild.childId}
         onSelect={setSelectedChildId}
       />

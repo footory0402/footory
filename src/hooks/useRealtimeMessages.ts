@@ -14,7 +14,10 @@ export function useRealtimeMessages(
   callbacks: RealtimeCallbacks
 ) {
   const cbRef = useRef(callbacks);
-  cbRef.current = callbacks;
+
+  useEffect(() => {
+    cbRef.current = callbacks;
+  }, [callbacks]);
 
   useEffect(() => {
     if (!conversationId) return;
