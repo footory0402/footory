@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { timeAgo } from "@/lib/utils";
 import type { Conversation } from "@/lib/types";
 
 function AvatarCircle({ url, name }: { url?: string; name: string }) {
   if (url) {
     return (
-      <img
+      <Image
         src={url}
         alt={name}
+        width={48}
+        height={48}
+        sizes="48px"
         className="h-12 w-12 rounded-full object-cover"
       />
     );

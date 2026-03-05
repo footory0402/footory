@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 function relativeTime(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -133,9 +134,12 @@ export default function WatchlistPanel({ onClose }: Props) {
                 <Link href={`/p/${p.handle}`} className="shrink-0">
                   <div className="h-11 w-11 overflow-hidden rounded-full bg-card">
                     {p.avatar_url ? (
-                      <img
+                      <Image
                         src={p.avatar_url}
                         alt={p.name}
+                        width={44}
+                        height={44}
+                        sizes="44px"
                         className="h-full w-full object-cover"
                       />
                     ) : (

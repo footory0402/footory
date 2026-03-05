@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Avatar from "@/components/ui/Avatar";
+import Image from "next/image";
 import { PositionBadge } from "@/components/ui/Badge";
 import { formatWeekRange, getMvpTierInfo } from "@/lib/mvp-scoring";
 import type { Position, MvpTierKey } from "@/lib/constants";
@@ -131,9 +131,12 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
                       {/* Thumbnail */}
                       <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-card-alt">
                         {result.thumbnailUrl ? (
-                          <img
+                          <Image
                             src={result.thumbnailUrl}
                             alt=""
+                            width={40}
+                            height={40}
+                            sizes="40px"
                             className="h-full w-full object-cover"
                           />
                         ) : (

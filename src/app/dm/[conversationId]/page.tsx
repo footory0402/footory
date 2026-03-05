@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { sendMessage, markAsRead, deleteMessage } from "@/lib/dm";
 import { blockUser } from "@/lib/blocks";
@@ -136,7 +137,7 @@ export default function ConversationPage({
   return (
     <div className="flex h-dvh flex-col bg-bg">
       {/* Header */}
-      <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-bg/90 px-4 py-3 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-bg/95 px-4 py-3">
         <button
           onClick={() => router.push("/dm")}
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
@@ -155,9 +156,12 @@ export default function ConversationPage({
           </svg>
         </button>
         {otherUser?.avatar_url ? (
-          <img
+          <Image
             src={otherUser.avatar_url}
             alt={otherUser.name}
+            width={32}
+            height={32}
+            sizes="32px"
             className="h-8 w-8 rounded-full object-cover"
           />
         ) : (

@@ -13,6 +13,7 @@ interface MvpRankingProps {
   votingOpen: boolean;
   votesRemaining: number;
   onVote?: (clipId: string) => void;
+  onUnvote?: (clipId: string) => void;
 }
 
 export default function MvpRanking({
@@ -21,6 +22,7 @@ export default function MvpRanking({
   votingOpen,
   votesRemaining,
   onVote,
+  onUnvote,
 }: MvpRankingProps) {
   if (candidates.length === 0) {
     return (
@@ -44,6 +46,7 @@ export default function MvpRanking({
           votingOpen={votingOpen}
           votesRemaining={votesRemaining}
           onVote={onVote}
+          onUnvote={onUnvote}
           delay={idx * 0.05}
         />
       ))}
@@ -57,6 +60,7 @@ function RankingRow({
   votingOpen,
   votesRemaining,
   onVote,
+  onUnvote,
   delay,
 }: {
   candidate: VoteCardCandidate;
@@ -64,6 +68,7 @@ function RankingRow({
   votingOpen: boolean;
   votesRemaining: number;
   onVote?: (clipId: string) => void;
+  onUnvote?: (clipId: string) => void;
   delay: number;
 }) {
   const [playing, setPlaying] = useState(false);
@@ -156,17 +161,16 @@ function RankingRow({
         {/* Vote button */}
         {votingOpen && (
           <button
-            onClick={() => !isVoted && votesRemaining > 0 && onVote?.(c.clipId)}
-            disabled={isVoted || votesRemaining <= 0}
+            onClick={() => isVoted ? onUnvote?.(c.clipId) : (votesRemaining > 0 && onVote?.(c.clipId))}
+            disabled={(!isVoted && votesRemaining <= 0)}
             className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
             style={{
-              background: isVoted
-                ? "var(--color-card-alt)"
-                : "var(--accent-gradient)",
+              background: isVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
               color: isVoted ? "var(--color-text-2)" : "#0C0C0E",
+              border: isVoted ? "1px solid rgba(113,113,122,0.3)" : "none",
             }}
           >
-            {isVoted ? "✓" : "투표"}
+            {isVoted ? "✓ 취소" : "투표"}
           </button>
         )}
       </div>

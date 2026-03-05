@@ -142,7 +142,24 @@ async function fetchFollowFeed(
   const { data, error } = await query;
   if (error || !data) return [];
 
-  return (data as unknown as FeedRow[]).map((row) => mapRowToEnriched(row));
+  const rows = data as unknown as FeedRow[];
+
+  // Fetch team names for all authors
+  const authorIds = [...new Set(rows.map((r) => r.profile_id))];
+  const { data: teamMembers } = await supabase
+    .from("team_members")
+    .select("profile_id, teams(name)")
+    .in("profile_id", authorIds)
+    .neq("role", "alumni") as { data: Array<{ profile_id: string; teams: { name: string } | null }> | null };
+
+  const teamNameMap = new Map<string, string>();
+  for (const tm of teamMembers ?? []) {
+    if (tm.teams?.name && !teamNameMap.has(tm.profile_id)) {
+      teamNameMap.set(tm.profile_id, tm.teams.name);
+    }
+  }
+
+  return rows.map((row) => mapRowToEnriched(row, teamNameMap.get(row.profile_id)));
 }
 
 /**
@@ -184,15 +201,21 @@ async function fetchRecommendedFeed(
   const authorIds = [...new Set((data as unknown as FeedRow[]).map((r) => r.profile_id))];
   const { data: authorTeams } = await supabase
     .from("team_members")
-    .select("profile_id, team_id")
+    .select("profile_id, team_id, teams(name)")
     .in("profile_id", authorIds)
-    .in("role", ["admin", "member"]);
+    .neq("role", "alumni") as {
+      data: Array<{ profile_id: string; team_id: string; teams: { name: string } | null }> | null;
+    };
 
   const authorTeamMap = new Map<string, string[]>();
-  for (const row of (authorTeams ?? []) as { profile_id: string; team_id: string }[]) {
+  const authorTeamNameMap = new Map<string, string>();
+  for (const row of authorTeams ?? []) {
     const existing = authorTeamMap.get(row.profile_id) ?? [];
     existing.push(row.team_id);
     authorTeamMap.set(row.profile_id, existing);
+    if (row.teams?.name && !authorTeamNameMap.has(row.profile_id)) {
+      authorTeamNameMap.set(row.profile_id, row.teams.name);
+    }
   }
 
   // Score and sort
@@ -218,16 +241,14 @@ async function fetchRecommendedFeed(
     return new Date(b.row.created_at).getTime() - new Date(a.row.created_at).getTime();
   });
 
-  return scored.slice(0, limit).map(({ row }) => mapRowToEnriched(row));
+  return scored.slice(0, limit).map(({ row }) => mapRowToEnriched(row, authorTeamNameMap.get(row.profile_id)));
 }
 
 /**
  * Map a DB row to FeedItemEnriched.
  */
-function mapRowToEnriched(row: FeedRow): FeedItemEnriched {
+function mapRowToEnriched(row: FeedRow, teamName?: string | null): FeedItemEnriched {
   const profile = row.profiles;
-  // Get team name from metadata if available
-  const teamName = (row.metadata as Record<string, unknown>)?.team_name as string | null;
 
   return {
     id: row.id,

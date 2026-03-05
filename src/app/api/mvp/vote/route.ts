@@ -155,3 +155,68 @@ export async function POST(req: NextRequest) {
     { status: 201 }
   );
 }
+
+export async function DELETE(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const { clipId } = body as { clipId: string };
+  if (!clipId) {
+    return NextResponse.json({ error: "clipId is required" }, { status: 400 });
+  }
+
+  if (!isVotingOpen()) {
+    return NextResponse.json(
+      { error: "투표 기간에만 취소할 수 있습니다" },
+      { status: 403 }
+    );
+  }
+
+  const weekStart = getWeekStart();
+
+  const { error: deleteError } = await supabase
+    .from("weekly_votes")
+    .delete()
+    .eq("voter_id", user.id)
+    .eq("clip_id", clipId)
+    .eq("week_start", weekStart);
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  // Remove kudos from the feed item as well
+  const { data: feedItem } = await supabase
+    .from("feed_items")
+    .select("id")
+    .eq("reference_id", clipId)
+    .eq("type", "highlight")
+    .limit(1)
+    .single();
+
+  if (feedItem) {
+    await supabase
+      .from("kudos")
+      .delete()
+      .eq("feed_item_id", feedItem.id)
+      .eq("user_id", user.id);
+  }
+
+  // Get remaining votes
+  const { data: remainingVotes } = await supabase
+    .from("weekly_votes")
+    .select("id")
+    .eq("voter_id", user.id)
+    .eq("week_start", weekStart);
+
+  return NextResponse.json({
+    success: true,
+    votesRemaining: MAX_WEEKLY_VOTES - (remainingVotes?.length ?? 0),
+  });
+}

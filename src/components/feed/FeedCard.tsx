@@ -9,15 +9,16 @@ import type { FeedItemEnriched } from "@/hooks/useFeed";
 import type { Position } from "@/lib/constants";
 import { timeAgo } from "@/lib/utils";
 import ReactionPicker, { REACTIONS, type ReactionKey } from "@/components/social/ReactionPicker";
-import ShareSheet from "@/components/social/ShareSheet";
 
 interface FeedCardProps {
   item: FeedItemEnriched;
   onKudos: (id: string, reaction?: string) => void;
   onComment?: (id: string) => void;
+  onShare?: (item: FeedItemEnriched) => void;
+  eagerImage?: boolean;
 }
 
-function FeedBody({ item }: { item: FeedItemEnriched }) {
+function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerImage?: boolean }) {
   const meta = item.metadata as Record<string, unknown>;
 
   switch (item.type) {
@@ -45,6 +46,9 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
                 src={thumbnailUrl}
                 alt="Highlight thumbnail"
                 fill
+                quality={60}
+                loading={eagerImage ? "eager" : "lazy"}
+                fetchPriority={eagerImage ? "high" : "auto"}
                 sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
                 className="h-full w-full object-cover"
               />
@@ -86,7 +90,16 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
           <p className="text-[14px] text-text-1">대표 클립을 변경했어요</p>
           {thumbnailUrl && (
             <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
-              <Image src={thumbnailUrl} alt="Featured clip" fill sizes="(max-width: 430px) calc(100vw - 2rem), 398px" className="h-full w-full object-cover" />
+              <Image
+                src={thumbnailUrl}
+                alt="Featured clip"
+                fill
+                quality={60}
+                loading={eagerImage ? "eager" : "lazy"}
+                fetchPriority={eagerImage ? "high" : "auto"}
+                sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
+                className="h-full w-full object-cover"
+              />
             </div>
           )}
         </div>
@@ -136,12 +149,11 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
   }
 }
 
-export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProps) {
+export default memo(function FeedCard({ item, onKudos, onComment, onShare, eagerImage = false }: FeedCardProps) {
   const lvl = LEVELS[Math.max(1, Math.min(item.playerLevel, 5)) - 1];
   const posColor = POSITION_COLORS[item.playerPosition as Position] ?? "#A1A1AA";
 
   const [showPicker, setShowPicker] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -167,10 +179,6 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
     onKudos(item.id, reaction);
     setShowPicker(false);
   }, [item.id, onKudos]);
-
-  const shareUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/p/${item.playerHandle}`
-    : `/p/${item.playerHandle}`;
 
   const myReactionEmoji = item.myReaction
     ? REACTIONS.find((r) => r.key === item.myReaction)?.emoji ?? "👏"
@@ -199,7 +207,7 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
         </div>
         {/* Share button */}
         <button
-          onClick={() => setShowShare(true)}
+          onClick={() => onShare?.(item)}
           className="shrink-0 p-1.5 text-text-3 hover:text-text-1 transition-colors"
           aria-label="공유"
         >
@@ -212,7 +220,7 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
       </div>
 
       {/* Body */}
-      <FeedBody item={item} />
+      <FeedBody item={item} eagerImage={eagerImage} />
 
       {/* Footer */}
       <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 relative">
@@ -251,14 +259,6 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
           <span>{item.commentCount > 0 ? item.commentCount : "댓글"}</span>
         </button>
       </div>
-
-      {/* Share sheet */}
-      <ShareSheet
-        open={showShare}
-        onClose={() => setShowShare(false)}
-        shareUrl={shareUrl}
-        title={`${item.playerName}의 하이라이트 — Footory`}
-      />
     </div>
   );
 });

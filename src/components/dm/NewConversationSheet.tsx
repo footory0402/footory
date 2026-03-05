@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
 import type { FollowUser } from "@/hooks/useFollow";
 
 export default function NewConversationSheet({
@@ -86,9 +86,12 @@ export default function NewConversationSheet({
                 className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-card"
               >
                 {user.avatar_url ? (
-                  <img
+                  <Image
                     src={user.avatar_url}
                     alt={user.name}
+                    width={40}
+                    height={40}
+                    sizes="40px"
                     className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : (

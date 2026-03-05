@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 const RATING_CONFIG = {
   good: { emoji: "⚽", label: "좋음", color: "text-blue-400" },
@@ -83,9 +84,12 @@ export default function CoachReviewBadge({ clipId, isOwner, className = "" }: Pr
                   <div className="flex items-center gap-2">
                     <div className="h-7 w-7 overflow-hidden rounded-full bg-card">
                       {review.coach.avatar_url ? (
-                        <img
+                        <Image
                           src={review.coach.avatar_url}
                           alt={review.coach.name}
+                          width={28}
+                          height={28}
+                          sizes="28px"
                           className="h-full w-full object-cover"
                         />
                       ) : (

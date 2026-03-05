@@ -7,6 +7,7 @@ import FeedCard from "./FeedCard";
 import UploadNudge from "./UploadNudge";
 import dynamic from "next/dynamic";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import ShareSheet from "@/components/social/ShareSheet";
 
 const CommentSheet = dynamic(() => import("@/components/social/CommentSheet"), { ssr: false });
 
@@ -46,6 +47,7 @@ export default function FeedList({
     initialNextCursor
   );
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
+  const [shareTarget, setShareTarget] = useState<FeedItemEnriched | null>(null);
 
   const feedItemIds = useMemo(() => items.map((i) => i.id), [items]);
 
@@ -109,11 +111,21 @@ export default function FeedList({
 
   // Nudge insertion position (0-indexed, after 2 items = position 3)
   const NUDGE_POSITION = 2;
+  let eagerImageBudget = 2;
 
   return (
     <ErrorBoundary>
       <div className="flex flex-col gap-3 pb-4">
         {items.map((item, i) => (
+          (() => {
+            const meta = item.metadata as Record<string, unknown>;
+            const hasThumbnail =
+              (item.type === "highlight" || item.type === "featured_change") &&
+              typeof meta.thumbnail_url === "string";
+            const eagerImage = hasThumbnail && eagerImageBudget > 0;
+            if (eagerImage) eagerImageBudget -= 1;
+
+            return (
           <div
             key={item.id}
             style={{ contentVisibility: "auto", containIntrinsicSize: "420px" }}
@@ -129,9 +141,13 @@ export default function FeedList({
                 item={item}
                 onKudos={toggleKudos}
                 onComment={setCommentTarget}
+                onShare={setShareTarget}
+                eagerImage={eagerImage}
               />
             </div>
           </div>
+            );
+          })()
         ))}
         {/* If feed has fewer than 3 items, show nudge at the end */}
         {showNudge && items.length > 0 && items.length < NUDGE_POSITION + 1 && (
@@ -150,6 +166,15 @@ export default function FeedList({
           open={!!commentTarget}
           onClose={() => setCommentTarget(null)}
           onCommentCountChange={(delta) => updateCommentCount(commentTarget, delta)}
+        />
+      )}
+
+      {shareTarget && (
+        <ShareSheet
+          open={!!shareTarget}
+          onClose={() => setShareTarget(null)}
+          shareUrl={typeof window !== "undefined" ? `${window.location.origin}/p/${shareTarget.playerHandle}` : `/p/${shareTarget.playerHandle}`}
+          title={`${shareTarget.playerName}의 하이라이트 — Footory`}
         />
       )}
     </ErrorBoundary>

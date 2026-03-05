@@ -33,6 +33,7 @@ interface VoteCardProps {
   votingOpen?: boolean;
   votesRemaining?: number;
   onVote?: (clipId: string, message?: string) => void;
+  onUnvote?: (clipId: string) => void;
 }
 
 export default function VoteCard({
@@ -42,19 +43,19 @@ export default function VoteCard({
   votingOpen = false,
   votesRemaining = 0,
   onVote,
+  onUnvote,
 }: VoteCardProps) {
-  const [voting, setVoting] = useState(false);
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleVote = async () => {
-    if (hasVoted || !votingOpen || votesRemaining <= 0 || voting) return;
-    setVoting(true);
-    try {
-      onVote?.(candidate.clipId);
-    } finally {
-      setVoting(false);
-    }
+  const handleVote = () => {
+    if (hasVoted || !votingOpen || votesRemaining <= 0) return;
+    onVote?.(candidate.clipId);
+  };
+
+  const handleUnvote = () => {
+    if (!hasVoted || !votingOpen) return;
+    onUnvote?.(candidate.clipId);
   };
 
   const handlePlay = () => {
@@ -183,15 +184,16 @@ export default function VoteCard({
 
         {/* Vote button */}
         <button
-          onClick={handleVote}
-          disabled={hasVoted || !votingOpen || votesRemaining <= 0 || voting}
+          onClick={hasVoted ? handleUnvote : handleVote}
+          disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
           className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
           style={{
-            background: hasVoted ? "var(--color-card-alt)" : "var(--accent-gradient)",
+            background: hasVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
             color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
+            border: hasVoted ? "1px solid rgba(113,113,122,0.3)" : "none",
           }}
         >
-          {hasVoted ? "✓ 완료" : "투표"}
+          {hasVoted ? "✓ 취소" : "투표"}
         </button>
       </div>
     </div>
@@ -205,19 +207,19 @@ export function VoteCardCompact({
   votingOpen = false,
   votesRemaining = 0,
   onVote,
+  onUnvote,
 }: Omit<VoteCardProps, "isFirst">) {
-  const [voting, setVoting] = useState(false);
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleVote = async () => {
-    if (hasVoted || !votingOpen || votesRemaining <= 0 || voting) return;
-    setVoting(true);
-    try {
-      onVote?.(candidate.clipId);
-    } finally {
-      setVoting(false);
-    }
+  const handleVote = () => {
+    if (hasVoted || !votingOpen || votesRemaining <= 0) return;
+    onVote?.(candidate.clipId);
+  };
+
+  const handleUnvote = () => {
+    if (!hasVoted || !votingOpen) return;
+    onUnvote?.(candidate.clipId);
   };
 
   const handlePlay = () => {
@@ -310,17 +312,16 @@ export function VoteCardCompact({
         </div>
 
         <button
-          onClick={handleVote}
-          disabled={hasVoted || !votingOpen || votesRemaining <= 0 || voting}
+          onClick={hasVoted ? handleUnvote : handleVote}
+          disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
           className="w-full rounded-lg py-1.5 text-[11px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
           style={{
-            background: hasVoted
-              ? "var(--color-card-alt)"
-              : "var(--accent-gradient)",
+            background: hasVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
             color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
+            border: hasVoted ? "1px solid rgba(113,113,122,0.3)" : "none",
           }}
         >
-          {hasVoted ? "✓ 완료" : "투표"}
+          {hasVoted ? "✓ 취소" : "투표"}
         </button>
       </div>
     </div>

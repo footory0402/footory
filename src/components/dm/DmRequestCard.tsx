@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { respondDmRequest } from "@/lib/dm";
 import { timeAgo } from "@/lib/utils";
 import type { DmRequest } from "@/lib/types";
@@ -28,9 +29,12 @@ export default function DmRequestCard({ request }: { request: DmRequest }) {
     <div className="border-b border-border px-4 py-4">
       <div className="flex items-start gap-3">
         {request.sender?.avatarUrl ? (
-          <img
+          <Image
             src={request.sender.avatarUrl}
             alt={request.sender.name}
+            width={40}
+            height={40}
+            sizes="40px"
             className="h-10 w-10 rounded-full object-cover"
           />
         ) : (

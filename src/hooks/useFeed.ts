@@ -22,6 +22,8 @@ export interface FeedItemEnriched {
   myReaction: string | null;
 }
 
+const FEED_MEMORY_LIMIT = 40;
+
 export function useFeed(
   initialItems: FeedItemEnriched[] = [],
   initialNextCursor: string | null = null
@@ -47,7 +49,13 @@ export function useFeed(
       const data = await res.json();
       const newItems: FeedItemEnriched[] = data.items ?? [];
 
-      setItems((prev) => reset ? newItems : [...prev, ...newItems]);
+      setItems((prev) => {
+        const merged = reset ? newItems : [...prev, ...newItems];
+        // Keep a bounded list so long scrolling sessions don't degrade UI responsiveness.
+        return merged.length > FEED_MEMORY_LIMIT
+          ? merged.slice(-FEED_MEMORY_LIMIT)
+          : merged;
+      });
       cursorRef.current = data.nextCursor;
       setHasMore(!!data.nextCursor);
     } finally {

@@ -124,8 +124,12 @@ export default function MvpPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle vote
+  // Handle vote (optimistic update)
   const handleVote = async (clipId: string) => {
+    // Optimistic update
+    setMyVotedClipIds((prev) => new Set([...prev, clipId]));
+    setVotesRemaining((prev) => prev - 1);
+
     try {
       const res = await fetch("/api/mvp/vote", {
         method: "POST",
@@ -134,18 +138,66 @@ export default function MvpPage() {
       });
 
       if (!res.ok) {
+        // Revert
+        setMyVotedClipIds((prev) => {
+          const next = new Set(prev);
+          next.delete(clipId);
+          return next;
+        });
+        setVotesRemaining((prev) => prev + 1);
         const err = await res.json();
         alert(err.error ?? "투표에 실패했습니다");
         return;
       }
 
       const data = await res.json();
-      setMyVotedClipIds((prev) => new Set([...prev, clipId]));
       setVotesRemaining(data.votesRemaining);
-
-      // Refresh candidates to update scores
       fetchCandidates();
     } catch {
+      // Revert
+      setMyVotedClipIds((prev) => {
+        const next = new Set(prev);
+        next.delete(clipId);
+        return next;
+      });
+      setVotesRemaining((prev) => prev + 1);
+      alert("네트워크 오류가 발생했습니다");
+    }
+  };
+
+  // Handle unvote (optimistic update)
+  const handleUnvote = async (clipId: string) => {
+    // Optimistic update
+    setMyVotedClipIds((prev) => {
+      const next = new Set(prev);
+      next.delete(clipId);
+      return next;
+    });
+    setVotesRemaining((prev) => prev + 1);
+
+    try {
+      const res = await fetch("/api/mvp/vote", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clipId }),
+      });
+
+      if (!res.ok) {
+        // Revert
+        setMyVotedClipIds((prev) => new Set([...prev, clipId]));
+        setVotesRemaining((prev) => prev - 1);
+        const err = await res.json();
+        alert(err.error ?? "투표 취소에 실패했습니다");
+        return;
+      }
+
+      const data = await res.json();
+      setVotesRemaining(data.votesRemaining);
+      fetchCandidates();
+    } catch {
+      // Revert
+      setMyVotedClipIds((prev) => new Set([...prev, clipId]));
+      setVotesRemaining((prev) => prev - 1);
       alert("네트워크 오류가 발생했습니다");
     }
   };
@@ -281,6 +333,7 @@ export default function MvpPage() {
               votingOpen={votingOpen}
               votesRemaining={votesRemaining}
               onVote={handleVote}
+              onUnvote={handleUnvote}
             />
           )}
 
@@ -294,6 +347,7 @@ export default function MvpPage() {
                   votingOpen={votingOpen}
                   votesRemaining={votesRemaining}
                   onVote={handleVote}
+                  onUnvote={handleUnvote}
                 />
               )}
               {third && (
@@ -303,6 +357,7 @@ export default function MvpPage() {
                   votingOpen={votingOpen}
                   votesRemaining={votesRemaining}
                   onVote={handleVote}
+                  onUnvote={handleUnvote}
                 />
               )}
             </div>
@@ -326,6 +381,7 @@ export default function MvpPage() {
                 votingOpen={votingOpen}
                 votesRemaining={votesRemaining}
                 onVote={handleVote}
+                onUnvote={handleUnvote}
               />
             </div>
           )}
@@ -377,6 +433,7 @@ export default function MvpPage() {
             votingOpen={votingOpen}
             votesRemaining={votesRemaining}
             onVote={handleVote}
+            onUnvote={handleUnvote}
           />
         </div>
       )}

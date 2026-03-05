@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge, LevelBadge } from "@/components/ui/Badge";
 import { getMvpTierInfo } from "@/lib/mvp-scoring";
@@ -61,9 +62,12 @@ export default function MvpCard({ data, className = "" }: MvpCardProps) {
           style={{ border: "2px solid var(--color-accent)" }}
         >
           {data.thumbnailUrl ? (
-            <img
+            <Image
               src={data.thumbnailUrl}
               alt={`${data.playerName} MVP 클립`}
+              fill
+              quality={60}
+              sizes="200px"
               className="h-full w-full object-cover"
             />
           ) : (
@@ -88,8 +92,7 @@ export default function MvpCard({ data, className = "" }: MvpCardProps) {
             <div
               className="flex h-12 w-12 items-center justify-center rounded-full"
               style={{
-                background: "rgba(0,0,0,0.5)",
-                backdropFilter: "blur(4px)",
+                background: "rgba(0,0,0,0.6)",
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white">

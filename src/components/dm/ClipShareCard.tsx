@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 export default function ClipShareCard({
   thumbnailUrl,
   title,
@@ -18,9 +20,11 @@ export default function ClipShareCard({
     >
       <div className="relative aspect-video bg-surface">
         {thumbnailUrl ? (
-          <img
+          <Image
             src={thumbnailUrl}
             alt={title ?? "클립"}
+            fill
+            sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
             className="h-full w-full object-cover"
           />
         ) : (
