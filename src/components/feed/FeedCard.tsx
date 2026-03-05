@@ -9,7 +9,6 @@ import type { FeedItemEnriched } from "@/hooks/useFeed";
 import type { Position } from "@/lib/constants";
 import { timeAgo } from "@/lib/utils";
 import ReactionPicker, { REACTIONS, type ReactionKey } from "@/components/social/ReactionPicker";
-import ReactionDisplay from "@/components/social/ReactionDisplay";
 import ShareSheet from "@/components/social/ShareSheet";
 
 interface FeedCardProps {
@@ -215,15 +214,8 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
       {/* Body */}
       <FeedBody item={item} />
 
-      {/* Reaction counts */}
-      <ReactionDisplay
-        reactions={item.reactions ?? {}}
-        myReaction={item.myReaction as ReactionKey | null}
-        className="mt-2"
-      />
-
       {/* Footer */}
-      <div className="mt-3 flex items-center gap-4 border-t border-border pt-3 relative">
+      <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 relative">
         {/* Kudos / Reaction button — tap=clap, long-press=picker */}
         <div ref={pickerRef} className="relative">
           <button
@@ -253,7 +245,7 @@ export default memo(function FeedCard({ item, onKudos, onComment }: FeedCardProp
 
         <button
           onClick={() => onComment?.(item.id)}
-          className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
+          className="ml-auto flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
         >
           <span>💬</span>
           <span>{item.commentCount > 0 ? item.commentCount : "댓글"}</span>
