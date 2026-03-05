@@ -4,21 +4,20 @@ import { useState, useEffect, use } from "react";
 import { useTeamDetail, useTeamActions } from "@/hooks/useTeam";
 import TeamHeader from "@/components/team/TeamHeader";
 import MemberList from "@/components/team/MemberList";
-import TeamAlbum from "@/components/team/TeamAlbum";
-import ImportToProfileSheet from "@/components/team/ImportToProfileSheet";
+import TeamFeed from "@/components/team/TeamFeed";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-const TABS = ["멤버", "앨범"] as const;
+const TABS = ["멤버", "피드"] as const;
 
 export default function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { team, members, albums, loading, refetch } = useTeamDetail(id);
+  const { team, members, loading, refetch } = useTeamDetail(id);
   const { removeMember, leaveTeam } = useTeamActions();
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("멤버");
-  const [showImport, setShowImport] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [ranking, setRanking] = useState<{ activity_score?: number; rank?: number; mvp_count?: number }>({});
+  const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? undefined));
@@ -60,7 +59,6 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
 
   const isAdmin = team.myRole === "admin";
   const isAlumni = team.myRole === "alumni";
-  const isActiveMember = team.myRole === "admin" || team.myRole === "member";
 
   const handleRemove = async (profileId: string) => {
     if (!confirm("이 멤버를 제거하시겠습니까?")) return;
@@ -72,6 +70,35 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
     if (!confirm("팀에서 탈퇴하시겠습니까?")) return;
     await leaveTeam(team.id);
     window.location.href = "/team";
+  };
+
+  const handleCopyCode = async () => {
+    if (!team.inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(team.inviteCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {
+      // fallback
+      const input = document.createElement("input");
+      input.value = team.inviteCode;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
+  const handleShareCode = () => {
+    if (!team.inviteCode) return;
+    const text = `${team.name}에 참여하세요! 코드: ${team.inviteCode}\nFootory에서 입력하세요`;
+    if (navigator.share) {
+      navigator.share({ title: team.name, text }).catch(() => {});
+    } else {
+      handleCopyCode();
+    }
   };
 
   return (
@@ -99,7 +126,33 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
       {/* Alumni notice */}
       {isAlumni && (
         <div className="mx-4 mb-3 rounded-[10px] bg-card-alt px-4 py-2.5 text-[12px] text-text-3">
-          졸업한 팀입니다. 앨범 열람과 내 영상 가져오기만 가능합니다.
+          졸업한 팀입니다. 팀 피드 열람만 가능합니다.
+        </div>
+      )}
+
+      {/* Invite code */}
+      {team.inviteCode && (
+        <div className="mx-4 mb-4 flex items-center justify-between rounded-[10px] border border-border bg-card px-4 py-3">
+          <div>
+            <p className="text-[11px] text-text-3">팀 코드</p>
+            <p className="mt-0.5 font-stat text-[16px] font-bold tracking-wider text-text-1">
+              {team.inviteCode}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopyCode}
+              className="rounded-lg border border-border px-3 py-1.5 text-[12px] text-text-2 transition-colors active:bg-card-alt"
+            >
+              {codeCopied ? "복사됨!" : "복사"}
+            </button>
+            <button
+              onClick={handleShareCode}
+              className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-semibold text-bg transition-colors active:bg-accent/80"
+            >
+              공유
+            </button>
+          </div>
         </div>
       )}
 
@@ -113,7 +166,6 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
             탈퇴
           </button>
         )}
-        {/* Settings — admin only (hidden for alumni) */}
         {isAdmin && (
           <Link
             href={`/team/${id}/settings`}
@@ -121,15 +173,6 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
           >
             설정
           </Link>
-        )}
-        {/* Import — available for all members including alumni (own content only) */}
-        {activeTab === "앨범" && team.myRole && (
-          <button
-            onClick={() => setShowImport(true)}
-            className="flex-1 rounded-[10px] border border-accent bg-card py-2 text-[13px] text-accent"
-          >
-            가져오기
-          </button>
         )}
       </div>
 
@@ -149,9 +192,6 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
             {tab === "멤버" && (
               <span className="ml-1 text-[11px]">{members.length}</span>
             )}
-            {tab === "앨범" && (
-              <span className="ml-1 text-[11px]">{albums.length}</span>
-            )}
           </button>
         ))}
       </div>
@@ -166,14 +206,8 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
             onRemove={handleRemove}
           />
         )}
-        {activeTab === "앨범" && <TeamAlbum albums={albums} />}
+        {activeTab === "피드" && <TeamFeed teamId={id} />}
       </div>
-
-      <ImportToProfileSheet
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        albums={albums}
-      />
     </div>
   );
 }

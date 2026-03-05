@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Team, TeamMember, TeamAlbumItem } from "@/lib/types";
+import type { Team, TeamMember } from "@/lib/types";
 
 interface TeamApiResponse {
   id: string;
@@ -66,7 +66,6 @@ export function useMyTeams() {
 export function useTeamDetail(teamId: string | null) {
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [albums, setAlbums] = useState<TeamAlbumItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,10 +73,9 @@ export function useTeamDetail(teamId: string | null) {
     if (!teamId) return;
     try {
       setLoading(true);
-      const [teamRes, membersRes, albumsRes] = await Promise.all([
+      const [teamRes, membersRes] = await Promise.all([
         fetch(`/api/teams/${teamId}`),
         fetch(`/api/teams/${teamId}/members`),
-        fetch(`/api/teams/${teamId}/albums`),
       ]);
 
       if (!teamRes.ok) throw new Error("Failed to fetch team");
@@ -99,21 +97,6 @@ export function useTeamDetail(teamId: string | null) {
         );
       }
 
-      if (albumsRes.ok) {
-        const albumsData = await albumsRes.json();
-        setAlbums(
-          albumsData.map((a: Record<string, unknown>) => ({
-            id: a.id,
-            teamId: a.team_id,
-            uploadedBy: a.uploaded_by,
-            mediaType: a.media_type,
-            mediaUrl: a.media_url,
-            thumbnailUrl: a.thumbnail_url,
-            createdAt: a.created_at,
-          }))
-        );
-      }
-
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -124,7 +107,7 @@ export function useTeamDetail(teamId: string | null) {
 
   useEffect(() => { fetchTeam(); }, [fetchTeam]);
 
-  return { team, members, albums, loading, error, refetch: fetchTeam };
+  return { team, members, loading, error, refetch: fetchTeam };
 }
 
 export function useTeamActions() {
