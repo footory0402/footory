@@ -156,7 +156,11 @@ export default function MvpPage() {
 
       const data = await res.json();
       setVotesRemaining(data.votesRemaining);
-      fetchCandidates();
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.clipId === clipId ? { ...c, voteCount: c.voteCount + 1 } : c
+        )
+      );
     } catch {
       // Revert
       setMyVotedClipIds((prev) => {
@@ -197,7 +201,11 @@ export default function MvpPage() {
 
       const data = await res.json();
       setVotesRemaining(data.votesRemaining);
-      fetchCandidates();
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.clipId === clipId ? { ...c, voteCount: c.voteCount - 1 } : c
+        )
+      );
     } catch {
       // Revert
       setMyVotedClipIds((prev) => new Set([...prev, clipId]));
