@@ -237,7 +237,7 @@ export default function ParentOnboarding({ onBack }: Props) {
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-border text-sm text-text-3">
                       {result.avatar_url ? (
-                        <img src={result.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                        <img src={result.avatar_url} alt="" loading="lazy" className="h-full w-full rounded-full object-cover" />
                       ) : (
                         result.name.charAt(0)
                       )}

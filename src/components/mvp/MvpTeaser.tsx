@@ -35,7 +35,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
         className="overflow-hidden rounded-[12px] transition-opacity active:opacity-80"
         style={{
           background: "var(--color-card)",
-          border: "1px solid rgba(212,168,83,0.2)",
+          border: "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)",
         }}
       >
         {/* Gold accent line */}
@@ -60,7 +60,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
             <div className="absolute inset-0 flex items-center justify-center">
               <div
                 className="flex h-5 w-5 items-center justify-center rounded-full"
-                style={{ background: "rgba(0,0,0,0.55)" }}
+                style={{ background: "color-mix(in srgb, var(--color-bg) 55%, transparent)" }}
               >
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="white">
                   <path d="M8 5v14l11-7z" />
@@ -95,7 +95,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
               {leader.tags[0] && (
                 <span
                   className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold"
-                  style={{ background: "rgba(212,168,83,0.12)", color: "var(--color-accent)" }}
+                  style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)", color: "var(--color-accent)" }}
                 >
                   {leader.tags[0]}
                 </span>
@@ -110,7 +110,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
           {/* CTA */}
           <div
             className="shrink-0 flex items-center gap-1 rounded-[8px] px-3 py-2 text-[11px] font-bold"
-            style={{ background: "var(--accent-gradient)", color: "#0C0C0E" }}
+            style={{ background: "var(--accent-gradient)", color: "var(--color-bg)" }}
           >
             투표
             <svg

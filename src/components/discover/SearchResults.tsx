@@ -76,7 +76,7 @@ export default function SearchResults({ players, teams, loading, query }: Search
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card-alt text-[14px]">
                   {t.logo_url ? (
-                    <img src={t.logo_url} alt={t.name} className="h-full w-full rounded-full object-cover" />
+                    <img src={t.logo_url} alt={t.name} loading="lazy" className="h-full w-full rounded-full object-cover" />
                   ) : (
                     "⚽"
                   )}

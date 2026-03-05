@@ -79,7 +79,7 @@ export default function ChallengeBanner() {
           className="overflow-hidden rounded-[12px] transition-opacity active:opacity-80"
           style={{
             background: "var(--color-card)",
-            border: "1px solid rgba(212,168,83,0.2)",
+            border: "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)",
           }}
         >
           {/* Gold accent line */}
@@ -89,7 +89,7 @@ export default function ChallengeBanner() {
             {/* Icon */}
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-[22px]"
-              style={{ background: "rgba(212,168,83,0.12)" }}
+              style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}
             >
               🎯
             </div>
@@ -119,7 +119,7 @@ export default function ChallengeBanner() {
             <button
               onClick={handleParticipate}
               className="shrink-0 rounded-[8px] px-3 py-2 text-[11px] font-bold transition-opacity active:opacity-75"
-              style={{ background: "var(--accent-gradient)", color: "#0C0C0E" }}
+              style={{ background: "var(--accent-gradient)", color: "var(--color-bg)" }}
             >
               참여하기 →
             </button>
