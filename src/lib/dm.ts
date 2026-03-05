@@ -1,6 +1,179 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { isBlocked } from "@/lib/blocks";
+
+export type DmPermission = "allowed" | "request" | "blocked";
+
+export async function canSendDm(
+  senderId: string,
+  targetId: string
+): Promise<DmPermission> {
+  const supabase = createClient();
+
+  // Check block
+  const blocked = await isBlocked(senderId, targetId);
+  if (blocked) return "blocked";
+
+  // Check if same team
+  const { data: senderTeams } = await supabase
+    .from("team_members")
+    .select("team_id")
+    .eq("profile_id", senderId)
+    .neq("role", "alumni");
+
+  const { data: targetTeams } = await supabase
+    .from("team_members")
+    .select("team_id")
+    .eq("profile_id", targetId)
+    .neq("role", "alumni");
+
+  const senderTeamIds = new Set((senderTeams ?? []).map((t) => t.team_id));
+  const isSameTeam = (targetTeams ?? []).some((t) => senderTeamIds.has(t.team_id));
+  if (isSameTeam) return "allowed";
+
+  // Check if following
+  const { data: followData } = await supabase
+    .from("follows")
+    .select("id")
+    .eq("follower_id", senderId)
+    .eq("following_id", targetId)
+    .maybeSingle();
+
+  if (followData) return "allowed";
+
+  // Check if sender is verified coach
+  const { data: senderProfile } = await supabase
+    .from("profiles")
+    .select("role, is_verified")
+    .eq("id", senderId)
+    .single();
+
+  if (senderProfile?.role === "other" && senderProfile.is_verified) {
+    return "allowed";
+  }
+
+  // Check if target is minor (under 18) and sender is unverified coach
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("birth_year, role")
+    .eq("id", targetId)
+    .single();
+
+  const currentYear = new Date().getFullYear();
+  const isMinor =
+    targetProfile?.birth_year && currentYear - targetProfile.birth_year < 18;
+
+  if (isMinor && senderProfile?.role === "other" && !senderProfile.is_verified) {
+    return "blocked";
+  }
+
+  return "request";
+}
+
+export async function sendDmRequest(
+  targetId: string,
+  previewMessage: string
+): Promise<void> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase.from("dm_requests").insert({
+    sender_id: user.id,
+    receiver_id: targetId,
+    preview_message: previewMessage || null,
+  });
+
+  if (error && !error.message.includes("duplicate"))
+    throw new Error(error.message);
+}
+
+export async function respondDmRequest(
+  requestId: string,
+  accept: boolean
+): Promise<string | null> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const newStatus = accept ? "accepted" : "rejected";
+
+  const { data: req } = await supabase
+    .from("dm_requests")
+    .update({ status: newStatus })
+    .eq("id", requestId)
+    .eq("receiver_id", user.id)
+    .select("sender_id, preview_message")
+    .single();
+
+  if (!req) return null;
+
+  // If accepted, create conversation
+  if (accept) {
+    const convId = await getOrCreateConversation(user.id, req.sender_id);
+
+    // Send the preview message as first message
+    if (req.preview_message) {
+      await sendMessage(convId, req.preview_message);
+    }
+
+    return convId;
+  }
+
+  return null;
+}
+
+export async function getPendingDmRequests() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("dm_requests")
+    .select("*")
+    .eq("receiver_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (!data || data.length === 0) return [];
+
+  const senderIds = data.map((r) => r.sender_id);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, handle, name, avatar_url, position, city")
+    .in("id", senderIds);
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return data.map((r) => {
+    const p = profileMap.get(r.sender_id);
+    return {
+      id: r.id,
+      senderId: r.sender_id,
+      receiverId: r.receiver_id,
+      previewMessage: r.preview_message,
+      status: r.status as "pending",
+      createdAt: r.created_at,
+      sender: p
+        ? {
+            id: p.id,
+            handle: p.handle,
+            name: p.name,
+            avatarUrl: p.avatar_url ?? undefined,
+            position: p.position,
+            teamName: p.city ?? undefined,
+          }
+        : undefined,
+    };
+  });
+}
 
 export async function getOrCreateConversation(
   userId: string,

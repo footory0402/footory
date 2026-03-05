@@ -870,6 +870,74 @@ export interface Database {
         };
         Relationships: [];
       };
+      blocks: {
+        Row: {
+          id: string;
+          blocker_id: string;
+          blocked_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          blocker_id: string;
+          blocked_id: string;
+          created_at?: string;
+        };
+        Update: {};
+        Relationships: [];
+      };
+      reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          reported_id: string;
+          message_id: string | null;
+          comment_id: string | null;
+          clip_id: string | null;
+          category: string;
+          description: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          reported_id: string;
+          message_id?: string | null;
+          comment_id?: string | null;
+          clip_id?: string | null;
+          category: string;
+          description?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+        };
+        Relationships: [];
+      };
+      dm_requests: {
+        Row: {
+          id: string;
+          sender_id: string;
+          receiver_id: string;
+          preview_message: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sender_id: string;
+          receiver_id: string;
+          preview_message?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          status?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};

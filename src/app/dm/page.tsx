@@ -3,20 +3,25 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getOrCreateConversation } from "@/lib/dm";
+import { getOrCreateConversation, getPendingDmRequests } from "@/lib/dm";
 import { useConversations } from "@/hooks/useDm";
 import ConversationList from "@/components/dm/ConversationList";
 import NewConversationSheet from "@/components/dm/NewConversationSheet";
+import DmRequestCard from "@/components/dm/DmRequestCard";
+import type { DmRequest } from "@/lib/types";
 
 export default function DmPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [dmRequests, setDmRequests] = useState<DmRequest[]>([]);
 
   useEffect(() => {
     createClient()
       .auth.getUser()
       .then(({ data }) => setUserId(data.user?.id ?? null));
+
+    getPendingDmRequests().then(setDmRequests);
   }, []);
 
   const { conversations, loading } = useConversations(userId);
@@ -53,6 +58,20 @@ export default function DmPage() {
           </svg>
         </button>
       </div>
+
+      {/* DM Requests */}
+      {dmRequests.length > 0 && (
+        <div className="border-b border-border">
+          <div className="px-4 py-2">
+            <p className="text-[13px] font-semibold text-accent">
+              DM 요청 ({dmRequests.length})
+            </p>
+          </div>
+          {dmRequests.map((req) => (
+            <DmRequestCard key={req.id} request={req} />
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       {loading ? (

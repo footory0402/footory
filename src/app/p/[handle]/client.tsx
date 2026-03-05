@@ -10,15 +10,17 @@ import StatCard from "@/components/player/StatCard";
 import MedalBadge from "@/components/player/MedalBadge";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
-import { getOrCreateConversation } from "@/lib/dm";
+import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
 import { createClient } from "@/lib/supabase/client";
 
 const ShareSheet = dynamic(() => import("@/components/ui/ShareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
+import AchievementList from "@/components/portfolio/AchievementList";
+import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
 import { SKILL_TAGS, POSITION_LABELS } from "@/lib/constants";
 import { APP_URL } from "@/lib/constants";
-import type { Profile, Stat, Medal, Season } from "@/lib/types";
+import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 
 interface FeaturedClip {
   id: string;
@@ -56,6 +58,8 @@ interface PublicProfileData {
   stats: Record<string, unknown>[];
   medals: Record<string, unknown>[];
   seasons: Record<string, unknown>[];
+  achievements: Record<string, unknown>[];
+  timelineEvents: Record<string, unknown>[];
   isFollowing?: boolean;
   isOwnProfile?: boolean;
 }
@@ -83,10 +87,36 @@ function toProfile(data: PublicProfileData): Profile {
     isVerified: false,
     teamName: (data.teamName as string) ?? undefined,
     teamId: (data.teamId as string) ?? undefined,
+    heightCm: (data.height_cm as number) ?? null,
+    weightKg: (data.weight_kg as number) ?? null,
+    preferredFoot: (data.preferred_foot as string) ?? null,
     mvpCount: (data.mvp_count as number) ?? 0,
     mvpTier: (data.mvp_tier as Profile["mvpTier"]) ?? null,
     createdAt: data.created_at,
   };
+}
+
+function mapAchievements(rows: Record<string, unknown>[]): Achievement[] {
+  return rows.map((r) => ({
+    id: r.id as string,
+    profileId: r.profile_id as string,
+    title: r.title as string,
+    competition: (r.competition as string) ?? undefined,
+    year: (r.year as number) ?? undefined,
+    evidenceUrl: (r.evidence_url as string) ?? undefined,
+    createdAt: r.created_at as string,
+  }));
+}
+
+function mapTimelineEvents(rows: Record<string, unknown>[]): TimelineEvent[] {
+  return rows.map((r) => ({
+    id: r.id as string,
+    profileId: r.profile_id as string,
+    eventType: r.event_type as TimelineEventType,
+    eventData: (r.event_data as Record<string, unknown>) ?? {},
+    clipId: (r.clip_id as string) ?? undefined,
+    createdAt: r.created_at as string,
+  }));
 }
 
 // Map DB stat rows (DB uses recorded_at, not measured_at)
@@ -141,6 +171,8 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const stats = mapStats(data.stats);
   const medals = mapMedals(data.medals);
   const seasons = mapSeasons(data.seasons);
+  const achievements = mapAchievements(data.achievements ?? []);
+  const timelineEvents = mapTimelineEvents(data.timelineEvents ?? []);
   const featured = data.featured;
 
   const shareUrl = typeof window !== "undefined"
@@ -177,6 +209,20 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
+
+                const perm = await canSendDm(user.id, profile.id);
+                if (perm === "blocked") {
+                  alert("이 사용자에게 메시지를 보낼 수 없습니다.");
+                  return;
+                }
+                if (perm === "request") {
+                  const msg = prompt("대화 요청 메시지를 입력하세요:");
+                  if (msg === null) return;
+                  await sendDmRequest(profile.id, msg);
+                  alert("대화 요청을 보냈습니다.");
+                  return;
+                }
+
                 const convId = await getOrCreateConversation(user.id, profile.id);
                 router.push(`/dm/${convId}`);
               }}
@@ -232,7 +278,17 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           </div>
         )}
         {activeTab === "records" && (
-          <RecordsTab stats={stats} medals={medals} seasons={seasons} />
+          <div className="flex flex-col gap-5">
+            <RecordsTab stats={stats} medals={medals} seasons={seasons} />
+            {achievements.length > 0 && (
+              <AchievementList achievements={achievements} />
+            )}
+            {timelineEvents.length > 0 && (
+              <SectionCard title="성장 타임라인" icon="📈">
+                <GrowthTimeline events={timelineEvents} />
+              </SectionCard>
+            )}
+          </div>
         )}
       </div>
 

@@ -4,10 +4,12 @@ import { use, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { sendMessage, markAsRead, deleteMessage } from "@/lib/dm";
+import { blockUser } from "@/lib/blocks";
 import { useMessages } from "@/hooks/useDm";
 import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
 import ChatBubble from "@/components/dm/ChatBubble";
 import MessageInput from "@/components/dm/MessageInput";
+import ReportModal from "@/components/social/ReportModal";
 import type { Message } from "@/lib/types";
 
 interface OtherUser {
@@ -29,6 +31,8 @@ export default function ConversationPage({
   const [userId, setUserId] = useState<string | null>(null);
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
   const [menuMsgId, setMenuMsgId] = useState<string | null>(null);
+  const [showActions, setShowActions] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const { messages, loading, addOptimistic, updateMessage } =
     useMessages(conversationId);
@@ -172,6 +176,16 @@ export default function ConversationPage({
             </p>
           )}
         </div>
+        <button
+          onClick={() => setShowActions(true)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-text-2">
+            <circle cx="12" cy="5" r="2" />
+            <circle cx="12" cy="12" r="2" />
+            <circle cx="12" cy="19" r="2" />
+          </svg>
+        </button>
       </div>
 
       {/* Messages */}
@@ -216,6 +230,49 @@ export default function ConversationPage({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Actions sheet */}
+      {showActions && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowActions(false)}>
+          <div className="w-full max-w-[430px] rounded-t-2xl bg-card p-4 pb-[calc(16px+env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={async () => {
+                if (!otherUser) return;
+                await blockUser(otherUser.id);
+                setShowActions(false);
+                router.push("/dm");
+              }}
+              className="w-full rounded-xl bg-surface py-3 text-center text-sm font-semibold text-red-400"
+            >
+              차단하기
+            </button>
+            <button
+              onClick={() => {
+                setShowActions(false);
+                setShowReport(true);
+              }}
+              className="mt-2 w-full rounded-xl bg-surface py-3 text-center text-sm font-semibold text-text-2"
+            >
+              신고하기
+            </button>
+            <button
+              onClick={() => setShowActions(false)}
+              className="mt-2 w-full rounded-xl bg-surface py-3 text-center text-sm text-text-3"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Report modal */}
+      {otherUser && (
+        <ReportModal
+          open={showReport}
+          onClose={() => setShowReport(false)}
+          reportedId={otherUser.id}
+        />
       )}
 
       {/* Input */}
