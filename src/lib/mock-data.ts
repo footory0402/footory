@@ -18,6 +18,7 @@ export const MOCK_PROFILE: Profile = {
   views: 312,
   contactPublic: false,
   role: "player",
+  isVerified: false,
   mvpCount: 0,
   mvpTier: null,
   createdAt: "2025-09-01",

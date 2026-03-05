@@ -27,6 +27,10 @@ interface ProfileApiResponse {
   teamId: string | null;
   mvp_count: number;
   mvp_tier: "rookie" | "ace" | "allstar" | "legend" | null;
+  is_verified: boolean;
+  height_cm: number | null;
+  weight_kg: number | null;
+  preferred_foot: string | null;
   xp?: number;
   counts?: {
     featuredCount: number;
@@ -60,6 +64,10 @@ function toProfile(data: ProfileApiResponse): Profile {
     },
     contactPublic: data.show_email || data.show_phone,
     role: data.role,
+    isVerified: data.is_verified ?? false,
+    heightCm: data.height_cm,
+    weightKg: data.weight_kg,
+    preferredFoot: data.preferred_foot,
     mvpCount: data.mvp_count ?? 0,
     mvpTier: data.mvp_tier ?? null,
     createdAt: data.created_at,
