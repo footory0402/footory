@@ -129,12 +129,21 @@ export default function SettingsPage() {
 
       {/* 부모/자녀 연동 */}
       <SettingsSection title="부모/자녀 연동">
-        <SettingsRow
-          icon={<LinkIcon />}
-          label="연동 코드"
-          value="준비 중"
-          dimValue
-        />
+        <button
+          onClick={() => router.push("/profile/children")}
+          className="flex w-full items-center justify-between px-4 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-accent"><LinkIcon /></span>
+            <div className="text-left">
+              <p className="text-sm text-text-1">자녀 연동 관리</p>
+              <p className="text-xs text-text-3">연결된 자녀 확인 및 추가/해제</p>
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
       </SettingsSection>
 
       {/* 알림 설정 */}
@@ -207,7 +216,7 @@ export default function SettingsPage() {
         로그아웃
       </button>
 
-      <p className="mt-4 text-center text-xs text-text-3">FOOTORY v1.0.0</p>
+      <p className="mt-4 text-center text-xs text-text-3">FOOTORY v1.2.0</p>
     </div>
   );
 }

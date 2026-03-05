@@ -2,9 +2,10 @@ import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } from "@/lib/server/feed";
-import ParentHomeSection from "@/components/parent/ParentHomeSection";
 import MvpTeaser from "@/components/mvp/MvpTeaser";
 import ChallengeBanner from "@/components/challenge/ChallengeBanner";
+
+const ChildDashboard = dynamic(() => import("@/components/parent/ChildDashboard"));
 
 const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
   loading: () => (
@@ -30,20 +31,23 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch all in parallel — no waterfall
-  const [profileRes, feedData, hasClips, mvpLeader] = await Promise.all([
-    supabase.from("profiles").select("role").eq("id", user.id).single(),
+  const profileRes = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const isParent = profileRes.data?.role === "parent";
+
+  // Parent gets a dedicated dashboard — no feed/MVP
+  if (isParent) {
+    return <ChildDashboard />;
+  }
+
+  // Player/coach: normal feed home
+  const [feedData, hasClips, mvpLeader] = await Promise.all([
     fetchFeedPage(supabase, user.id),
     hasUserUploadedClips(supabase, user.id),
     fetchMvpLeader(supabase),
   ]);
 
-  const isParent = profileRes.data?.role === "parent";
-
   return (
     <div className="px-4 pt-2">
-      {isParent && <ParentHomeSection />}
-
       {/* MVP Teaser — server-fetched, renders immediately */}
       <MvpTeaser leader={mvpLeader} />
 
