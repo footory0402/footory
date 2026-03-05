@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
 import SummaryTab from "@/components/player/SummaryTab";
@@ -11,22 +12,35 @@ import ProfileEditSheet from "@/components/player/ProfileEditSheet";
 import StatInputSheet from "@/components/stats/StatInputSheet";
 import SeasonAddSheet from "@/components/player/SeasonAddSheet";
 import MedalCelebration from "@/components/stats/MedalCelebration";
+import AchievementList from "@/components/portfolio/AchievementList";
+import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
+import { SectionCard } from "@/components/ui/Card";
 import { useProfile } from "@/hooks/useProfile";
 import { useStats } from "@/hooks/useStats";
 import { useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
+import { useAchievements } from "@/hooks/useAchievements";
+import { useTimeline } from "@/hooks/useTimeline";
 import type { AwardedMedal } from "@/lib/medals";
+
+const ProfilePdfExport = dynamic(
+  () => import("@/components/portfolio/ProfilePdfExport"),
+  { ssr: false }
+);
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>("summary");
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
+  const [pdfExportOpen, setPdfExportOpen] = useState(false);
   const [celebrationMedals, setCelebrationMedals] = useState<AwardedMedal[]>([]);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
   const { stats, medals, loading: statsLoading, addStat } = useStats();
   const { tagClips, loading: tagClipsLoading, fetchTagClips } = useTagClips();
   const { seasons, addSeason } = useSeasons();
+  const { achievements, addAchievement, removeAchievement } = useAchievements();
+  const { events: timelineEvents, loading: timelineLoading } = useTimeline();
 
   const displayProfile = profile;
 
@@ -97,7 +111,22 @@ export default function ProfilePage() {
     <div className="px-4 pb-24 pt-4">
       <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
-      <div className="mt-4">
+      {/* PDF Export button */}
+      <div className="mt-3 flex justify-end">
+        <button
+          onClick={() => setPdfExportOpen(true)}
+          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          PDF 내보내기
+        </button>
+      </div>
+
+      <div className="mt-3">
         <ProfileTabs active={activeTab} onChange={setActiveTab} />
       </div>
 
@@ -115,13 +144,27 @@ export default function ProfilePage() {
           <SkillsTab tagClips={mappedTagClips} loading={tagClipsLoading} />
         )}
         {activeTab === "records" && (
-          <RecordsTab
-            stats={stats}
-            medals={medals}
-            seasons={seasons}
-            onAddStat={() => setStatInputOpen(true)}
-            onAddSeason={() => setSeasonAddOpen(true)}
-          />
+          <div className="flex flex-col gap-5">
+            <RecordsTab
+              stats={stats}
+              medals={medals}
+              seasons={seasons}
+              onAddStat={() => setStatInputOpen(true)}
+              onAddSeason={() => setSeasonAddOpen(true)}
+            />
+
+            {/* Achievements */}
+            <AchievementList
+              achievements={achievements}
+              onAdd={addAchievement}
+              onRemove={removeAchievement}
+            />
+
+            {/* Growth Timeline */}
+            <SectionCard title="성장 타임라인" icon="📈">
+              <GrowthTimeline events={timelineEvents} loading={timelineLoading} />
+            </SectionCard>
+          </div>
         )}
       </div>
 
@@ -149,6 +192,16 @@ export default function ProfilePage() {
       <MedalCelebration
         medals={celebrationMedals}
         onClose={() => setCelebrationMedals([])}
+      />
+
+      <ProfilePdfExport
+        open={pdfExportOpen}
+        onClose={() => setPdfExportOpen(false)}
+        profile={displayProfile}
+        stats={stats}
+        medals={medals}
+        seasons={seasons}
+        achievements={achievements}
       />
     </div>
   );

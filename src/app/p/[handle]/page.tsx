@@ -19,7 +19,7 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
-  const [featured, stats, medals, seasons, team] = await Promise.all([
+  const [featured, stats, medals, seasons, team, achievements, timelineEvents] = await Promise.all([
     supabase
       .from("featured_clips")
       .select("id, clip_id, sort_order")
@@ -46,6 +46,17 @@ const getProfile = cache(async (handle: string) => {
       .eq("profile_id", profile.id)
       .limit(1)
       .single(),
+    supabase
+      .from("achievements")
+      .select("*")
+      .eq("profile_id", profile.id)
+      .order("year", { ascending: false }),
+    supabase
+      .from("timeline_events")
+      .select("*")
+      .eq("profile_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   // Filter contact
@@ -104,6 +115,8 @@ const getProfile = cache(async (handle: string) => {
     stats: stats.data ?? [],
     medals: medals.data ?? [],
     seasons: seasons.data ?? [],
+    achievements: achievements.data ?? [],
+    timelineEvents: timelineEvents.data ?? [],
     isFollowing,
     isOwnProfile: currentUser?.id === profile.id,
   };

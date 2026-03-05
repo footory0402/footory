@@ -152,6 +152,17 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
                 <span className="text-text-3">프로필을 설정해주세요</span>
               )}
             </div>
+            {(profile.heightCm || profile.weightKg || profile.preferredFoot) && (
+              <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-text-3">
+                {profile.heightCm && <span>{profile.heightCm}cm</span>}
+                {profile.weightKg && (
+                  <>{profile.heightCm && <span>·</span>}<span>{profile.weightKg}kg</span></>
+                )}
+                {profile.preferredFoot && (
+                  <>{(profile.heightCm || profile.weightKg) && <span>·</span>}<span>{profile.preferredFoot}</span></>
+                )}
+              </div>
+            )}
             {profile.teamName && (
               <span className="mt-0.5 text-[12px] text-accent">{profile.teamName}</span>
             )}

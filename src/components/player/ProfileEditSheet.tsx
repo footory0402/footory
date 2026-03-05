@@ -29,6 +29,9 @@ export default function ProfileEditSheet({
   const [birthYear, setBirthYear] = useState(profile.birthYear ? String(profile.birthYear) : "");
   const [city, setCity] = useState(profile.city ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
+  const [heightCm, setHeightCm] = useState(profile.heightCm ? String(profile.heightCm) : "");
+  const [weightKg, setWeightKg] = useState(profile.weightKg ? String(profile.weightKg) : "");
+  const [preferredFoot, setPreferredFoot] = useState(profile.preferredFoot ?? "");
   const [saving, setSaving] = useState(false);
   const [handleStatus, setHandleStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +45,9 @@ export default function ProfileEditSheet({
     setBirthYear(profile.birthYear ? String(profile.birthYear) : "");
     setCity(profile.city ?? "");
     setBio(profile.bio ?? "");
+    setHeightCm(profile.heightCm ? String(profile.heightCm) : "");
+    setWeightKg(profile.weightKg ? String(profile.weightKg) : "");
+    setPreferredFoot(profile.preferredFoot ?? "");
     setHandleStatus("idle");
   }, [profile]);
 
@@ -86,6 +92,9 @@ export default function ProfileEditSheet({
         birth_year: birthYear ? Number(birthYear) : null,
         city: city || null,
         bio: bio || null,
+        height_cm: heightCm ? Number(heightCm) : null,
+        weight_kg: weightKg ? Number(weightKg) : null,
+        preferred_foot: preferredFoot || null,
       });
       onClose();
     } catch {
@@ -206,6 +215,42 @@ export default function ProfileEditSheet({
             />
 
             <Field label="도시" value={city} onChange={setCity} />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label="키 (cm)"
+                value={heightCm}
+                onChange={setHeightCm}
+                type="number"
+                inputMode="numeric"
+              />
+              <Field
+                label="몸무게 (kg)"
+                value={weightKg}
+                onChange={setWeightKg}
+                type="number"
+                inputMode="numeric"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs text-text-3">선호 발</label>
+              <div className="flex gap-2">
+                {["오른발", "왼발", "양발"].map((foot) => (
+                  <button
+                    key={foot}
+                    onClick={() => setPreferredFoot(foot)}
+                    className={`flex-1 rounded-lg py-2 text-xs font-medium transition-colors ${
+                      preferredFoot === foot
+                        ? "bg-accent text-bg"
+                        : "bg-bg text-text-2 ring-1 ring-border"
+                    }`}
+                  >
+                    {foot}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div>
               <label className="mb-1 block text-xs text-text-3">자기소개</label>
