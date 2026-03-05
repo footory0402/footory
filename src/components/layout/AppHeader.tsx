@@ -21,7 +21,7 @@ export default function AppHeader({ onSearchOpen }: AppHeaderProps) {
   }, [fetchCount]);
 
   return (
-    <header className="sticky top-0 z-40 flex h-[42px] items-center justify-between border-b border-border bg-bg/90 px-4 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 flex h-[42px] items-center justify-between border-b border-border bg-bg/95 px-4">
       <h1 className="font-brand text-[20px] font-bold tracking-wide text-accent">
         FOOTORY
       </h1>

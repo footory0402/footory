@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
 
 const playerTabs = [
@@ -26,32 +25,8 @@ export default function BottomTab() {
 
   const tabs = role === "parent" ? parentTabs : playerTabs;
 
-  useEffect(() => {
-    const targets = tabs
-      .map((tab) => tab.href)
-      .filter((href) => href !== pathname);
-
-    const prefetchAll = () => {
-      for (const href of targets) {
-        router.prefetch(href);
-      }
-    };
-
-    if (typeof window === "undefined") return;
-
-    const requestIdle =
-      window.requestIdleCallback ??
-      ((cb: IdleRequestCallback) => window.setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 } as IdleDeadline), 200));
-    const cancelIdle =
-      window.cancelIdleCallback ??
-      ((id: number) => window.clearTimeout(id));
-
-    const idleId = requestIdle(prefetchAll);
-    return () => cancelIdle(idleId);
-  }, [pathname, router, tabs]);
-
   return (
-    <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/90 backdrop-blur-[16px]">
+    <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/95">
       <div className="flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)]">
         {tabs.map((tab) => {
           const active =
@@ -62,9 +37,10 @@ export default function BottomTab() {
             <Link
               key={tab.href}
               href={tab.href}
+              prefetch={false}
               aria-current={active ? "page" : undefined}
-              onTouchStart={() => router.prefetch(tab.href)}
               onMouseEnter={() => router.prefetch(tab.href)}
+              onFocus={() => router.prefetch(tab.href)}
               className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"
             >
               {active && (

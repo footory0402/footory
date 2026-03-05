@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { POSITION_COLORS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
@@ -76,7 +77,14 @@ export default function SearchResults({ players, teams, loading, query }: Search
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card-alt text-[14px]">
                   {t.logo_url ? (
-                    <img src={t.logo_url} alt={t.name} loading="lazy" className="h-full w-full rounded-full object-cover" />
+                    <Image
+                      src={t.logo_url}
+                      alt={t.name}
+                      width={36}
+                      height={36}
+                      sizes="36px"
+                      className="h-full w-full rounded-full object-cover"
+                    />
                   ) : (
                     "⚽"
                   )}

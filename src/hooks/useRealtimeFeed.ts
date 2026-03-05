@@ -10,14 +10,15 @@ interface UseRealtimeFeedOptions {
 }
 
 export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: UseRealtimeFeedOptions) {
-  const idsKey = feedItemIds.join("|");
+  const itemIdSetRef = useRef<Set<string>>(new Set(feedItemIds));
   const kudosFetchInFlightRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!idsKey) return;
+    itemIdSetRef.current = new Set(feedItemIds);
+  }, [feedItemIds]);
 
+  useEffect(() => {
     const supabase = createClient();
-    const itemIdSet = new Set(idsKey.split("|"));
 
     const channel = supabase
       .channel("feed-realtime")
@@ -32,7 +33,7 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
           const feedItemId = (payload.new as Record<string, unknown>)?.feed_item_id as string
             ?? (payload.old as Record<string, unknown>)?.feed_item_id as string;
 
-          if (feedItemId && itemIdSet.has(feedItemId) && onKudosChange) {
+          if (feedItemId && itemIdSetRef.current.has(feedItemId) && onKudosChange) {
             if (kudosFetchInFlightRef.current.has(feedItemId)) return;
             kudosFetchInFlightRef.current.add(feedItemId);
 
@@ -62,7 +63,7 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
         },
         (payload) => {
           const feedItemId = (payload.new as Record<string, unknown>)?.feed_item_id as string;
-          if (feedItemId && itemIdSet.has(feedItemId) && onNewComment) {
+          if (feedItemId && itemIdSetRef.current.has(feedItemId) && onNewComment) {
             onNewComment(feedItemId);
           }
         }
@@ -72,5 +73,5 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [idsKey, onKudosChange, onNewComment]);
+  }, [onKudosChange, onNewComment]);
 }

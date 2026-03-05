@@ -54,7 +54,7 @@ function FeedBody({ item }: { item: FeedItemEnriched }) {
                 </span>
               )}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>

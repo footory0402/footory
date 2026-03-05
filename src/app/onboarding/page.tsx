@@ -35,6 +35,8 @@ export default function OnboardingPage() {
             {ROLES.map((r) => (
               <button
                 key={r.value}
+                type="button"
+                aria-label={r.label}
                 onClick={() => setRole(r.value)}
                 className={`flex items-center gap-4 rounded-xl border p-4 text-left transition-all ${
                   role === r.value

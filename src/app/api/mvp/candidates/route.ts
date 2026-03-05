@@ -62,7 +62,7 @@ export async function GET() {
 
   const { data: feedItems } = await supabase
     .from("feed_items")
-    .select("id, profile_id, reference_id")
+    .select("id, profile_id, reference_id, metadata")
     .eq("type", "highlight")
     .in("reference_id", clipIds);
 
@@ -70,6 +70,16 @@ export async function GET() {
 
   const kudosCounts: Record<string, number> = {};
   const commentsCounts: Record<string, number> = {};
+  const feedThumbByClip: Record<string, string> = {};
+
+  (feedItems ?? []).forEach((f) => {
+    if (!f.reference_id) return;
+    const meta = f.metadata as Record<string, unknown> | null;
+    const thumb = typeof meta?.thumbnail_url === "string" ? meta.thumbnail_url : null;
+    if (thumb && !feedThumbByClip[f.reference_id]) {
+      feedThumbByClip[f.reference_id] = thumb;
+    }
+  });
 
   if (feedItemIds.length > 0) {
     const { data: kudos } = await supabase
@@ -172,7 +182,7 @@ export async function GET() {
       teamName: teamMap[r.ownerId] ?? undefined,
       tags: tagMap[r.clipId] ?? [],
       videoUrl: clip?.video_url ?? undefined,
-      thumbnailUrl: clip?.thumbnail_url ?? undefined,
+      thumbnailUrl: clip?.thumbnail_url ?? feedThumbByClip[r.clipId] ?? undefined,
       totalScore: r.totalScore,
       autoScore: r.autoNorm,
       voteScore: r.voteNorm,

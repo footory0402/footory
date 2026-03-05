@@ -5,7 +5,10 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
   images: {
-    formats: ["image/avif", "image/webp"],
+    formats: ["image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
+    deviceSizes: [320, 375, 414, 430, 768],
+    imageSizes: [28, 36, 40, 48, 56, 120, 160, 200, 215, 398],
     remotePatterns: [
       {
         protocol: "https",
