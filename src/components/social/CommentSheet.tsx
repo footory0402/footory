@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import Avatar from "@/components/ui/Avatar";
-import { useComments } from "@/hooks/useComments";
+import { useComments, type Comment } from "@/hooks/useComments";
 import { timeAgo } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
+import MentionInput, { renderMentionText } from "./MentionInput";
+import Link from "next/link";
 
 interface CommentSheetProps {
   feedItemId: string;
@@ -14,12 +16,68 @@ interface CommentSheetProps {
   onCommentCountChange?: (delta: number) => void;
 }
 
+function CommentRow({
+  comment,
+  currentUserId,
+  feedItemId,
+  onReply,
+  onDelete,
+}: {
+  comment: Comment;
+  currentUserId: string | null;
+  feedItemId: string;
+  onReply: (comment: Comment) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="flex gap-2.5">
+      <Link href={`/p/${comment.profile.handle}`} className="shrink-0">
+        <Avatar
+          name={comment.profile.name}
+          size="xs"
+          level={comment.profile.level}
+          imageUrl={comment.profile.avatar_url ?? undefined}
+        />
+      </Link>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <Link href={`/p/${comment.profile.handle}`} className="text-[13px] font-semibold text-text-1 hover:text-accent transition-colors">
+            {comment.profile.name}
+          </Link>
+          <span className="text-[11px] text-text-3">{timeAgo(comment.createdAt)}</span>
+        </div>
+        <p className="text-[13px] text-text-2 mt-0.5 break-words leading-relaxed">
+          {renderMentionText(comment.content)}
+        </p>
+        {/* Reply button */}
+        <button
+          onClick={() => onReply(comment)}
+          className="text-[11px] text-text-3 hover:text-accent mt-1 transition-colors"
+        >
+          답글달기
+        </button>
+      </div>
+      {currentUserId === comment.userId && (
+        <button
+          onClick={() => onDelete(comment.id)}
+          className="shrink-0 self-start text-text-3 hover:text-red-500 p-1"
+          title="삭제"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function CommentSheet({ feedItemId, open, onClose, onCommentCountChange }: CommentSheetProps) {
-  const { comments, loading, fetchComments, addComment, deleteComment } = useComments(feedItemId);
+  const { comments, loading, fetchComments, addComment, deleteComment, totalCount } = useComments(feedItemId);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +90,6 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
     if (open) {
       document.body.style.overflow = "hidden";
       fetchComments();
-      setTimeout(() => inputRef.current?.focus(), 300);
     }
     return () => {
       document.body.style.overflow = "";
@@ -43,8 +100,9 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
     if (!text.trim() || submitting) return;
     setSubmitting(true);
     try {
-      await addComment(text.trim());
+      await addComment(text.trim(), replyTo?.id ?? null);
       setText("");
+      setReplyTo(null);
       onCommentCountChange?.(1);
       setTimeout(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" }), 100);
     } catch {
@@ -52,6 +110,11 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteComment(id);
+    onCommentCountChange?.(-1);
   };
 
   if (!open) return null;
@@ -71,7 +134,7 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-3 border-b border-border">
           <h3 className="text-[15px] font-semibold text-text-1">
-            댓글 {comments.length > 0 && <span className="text-text-3 font-normal">{comments.length}</span>}
+            댓글 {totalCount > 0 && <span className="text-text-3 font-normal">{totalCount}</span>}
           </h3>
           <button onClick={onClose} className="text-text-3 hover:text-text-1 p-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -95,47 +158,61 @@ export default function CommentSheet({ feedItemId, open, onClose, onCommentCount
           )}
 
           {comments.map((c) => (
-            <div key={c.id} className="group flex gap-2.5">
-              <Avatar
-                name={c.profile.name}
-                size="xs"
-                level={c.profile.level}
-                imageUrl={c.profile.avatar_url ?? undefined}
+            <div key={c.id} className="space-y-3">
+              {/* Root comment */}
+              <CommentRow
+                comment={c}
+                currentUserId={currentUserId}
+                feedItemId={feedItemId}
+                onReply={setReplyTo}
+                onDelete={handleDelete}
               />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[13px] font-semibold text-text-1">{c.profile.name}</span>
-                  <span className="text-[11px] text-text-3">{timeAgo(c.createdAt)}</span>
+
+              {/* Replies — 1 level indent */}
+              {(c.replies ?? []).length > 0 && (
+                <div className="ml-[36px] space-y-3 border-l-2 border-border pl-3">
+                  {(c.replies ?? []).map((reply) => (
+                    <CommentRow
+                      key={reply.id}
+                      comment={reply}
+                      currentUserId={currentUserId}
+                      feedItemId={feedItemId}
+                      onReply={setReplyTo}
+                      onDelete={handleDelete}
+                    />
+                  ))}
                 </div>
-                <p className="text-[13px] text-text-2 mt-0.5 break-words">{c.content}</p>
-              </div>
-              {/* Delete button — only for own comments */}
-              {currentUserId === c.userId && (
-                <button
-                  onClick={() => { deleteComment(c.id); onCommentCountChange?.(-1); }}
-                  className="shrink-0 self-start text-text-3 hover:text-red p-1 transition-opacity"
-                  title="삭제"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
               )}
             </div>
           ))}
         </div>
 
+        {/* Reply indicator */}
+        {replyTo && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-surface border-t border-border">
+            <span className="text-[12px] text-text-3 flex-1 truncate">
+              <span className="text-accent font-semibold">@{replyTo.profile.handle}</span>에게 답글
+            </span>
+            <button
+              onClick={() => setReplyTo(null)}
+              className="text-text-3 hover:text-text-1 shrink-0"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         <div className="border-t border-border px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-2">
-          <input
-            ref={inputRef}
-            type="text"
+          <MentionInput
             value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="댓글 입력..."
-            maxLength={500}
-            className="flex-1 bg-surface rounded-full px-4 py-2 text-[13px] text-text-1 placeholder:text-text-3 outline-none focus:ring-1 focus:ring-accent/50"
+            onChange={setText}
+            onSubmit={handleSubmit}
+            placeholder={replyTo ? `@${replyTo.profile.handle}에게 답글...` : "댓글 입력..."}
+            disabled={submitting}
+            feedItemId={feedItemId}
           />
           <button
             onClick={handleSubmit}

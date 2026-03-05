@@ -18,6 +18,8 @@ export interface FeedItemEnriched {
   kudosCount: number;
   hasKudos: boolean;
   commentCount: number;
+  reactions: Partial<Record<string, number>>;
+  myReaction: string | null;
 }
 
 export function useFeed(
@@ -65,9 +67,8 @@ export function useFeed(
     await fetchFeed(true);
   }, [fetchFeed]);
 
-  // Use functional setState so toggleKudos has no dependency on `items`
-  // This keeps the reference stable and prevents FeedCard re-renders
-  const toggleKudos = useCallback(async (feedItemId: string) => {
+  // Toggle 👏 clap (default reaction) — keeps original behavior
+  const toggleKudos = useCallback(async (feedItemId: string, reaction = "clap") => {
     let originalItem: FeedItemEnriched | undefined;
 
     setItems((prev) => {
@@ -77,24 +78,40 @@ export function useFeed(
       const current = prev[index];
       originalItem = current;
 
+      const alreadyReacted = current.myReaction === reaction;
+      const nextReactions = { ...current.reactions };
+      if (alreadyReacted) {
+        nextReactions[reaction] = Math.max(0, (nextReactions[reaction] ?? 1) - 1);
+      } else {
+        // Remove old reaction count if switching
+        if (current.myReaction) {
+          nextReactions[current.myReaction] = Math.max(0, (nextReactions[current.myReaction] ?? 1) - 1);
+        }
+        nextReactions[reaction] = (nextReactions[reaction] ?? 0) + 1;
+      }
+
       const next = [...prev];
       next[index] = {
         ...current,
-        hasKudos: !current.hasKudos,
-        kudosCount: current.hasKudos
-          ? current.kudosCount - 1
-          : current.kudosCount + 1,
+        hasKudos: alreadyReacted ? false : true,
+        kudosCount: alreadyReacted ? current.kudosCount - 1 : current.kudosCount + (current.myReaction ? 0 : 1),
+        myReaction: alreadyReacted ? null : reaction,
+        reactions: nextReactions,
       };
       return next;
     });
 
-    // Wait a tick so originalItem is captured from the setter above
     await Promise.resolve();
 
     const snapshot = originalItem;
     if (!snapshot) return;
-    const method = snapshot.hasKudos ? "DELETE" : "POST";
-    const res = await fetch(`/api/feed/${feedItemId}/kudos`, { method });
+    const alreadyReacted = snapshot.myReaction === reaction;
+    const method = alreadyReacted ? "DELETE" : "POST";
+    const res = await fetch(`/api/feed/${feedItemId}/kudos`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reaction }),
+    });
 
     if (!res.ok) {
       // Rollback
@@ -102,7 +119,13 @@ export function useFeed(
         const index = prev.findIndex((i) => i.id === feedItemId);
         if (index === -1) return prev;
         const next = [...prev];
-        next[index] = { ...next[index], hasKudos: snapshot.hasKudos, kudosCount: snapshot.kudosCount };
+        next[index] = {
+          ...next[index],
+          hasKudos: snapshot.hasKudos,
+          kudosCount: snapshot.kudosCount,
+          myReaction: snapshot.myReaction,
+          reactions: snapshot.reactions,
+        };
         return next;
       });
     }

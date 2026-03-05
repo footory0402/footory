@@ -245,6 +245,8 @@ function mapRowToEnriched(row: FeedRow): FeedItemEnriched {
     kudosCount: row.kudos?.[0]?.count ?? 0,
     hasKudos: false, // will be set in attachKudosStatus
     commentCount: row.comments?.[0]?.count ?? 0,
+    reactions: {}, // will be set in attachKudosStatus
+    myReaction: null, // will be set in attachKudosStatus
   };
 }
 
@@ -275,7 +277,7 @@ function mergeFeeds(
 }
 
 /**
- * Attach hasKudos status for the current user.
+ * Attach hasKudos status, per-reaction counts, and myReaction for the current user.
  */
 async function attachKudosStatus(
   supabase: SupabaseClient,
@@ -285,18 +287,39 @@ async function attachKudosStatus(
   if (items.length === 0) return items;
 
   const itemIds = items.map((i) => i.id);
-  const { data: myKudos } = await supabase
+
+  // Fetch all kudos for these items to get per-reaction counts + user's own
+  const { data: allKudos } = await supabase
     .from("kudos")
-    .select("feed_item_id")
-    .eq("user_id", userId)
+    .select("feed_item_id, user_id, reaction")
     .in("feed_item_id", itemIds);
 
-  const kudosSet = new Set((myKudos ?? []).map((k) => (k as { feed_item_id: string }).feed_item_id));
+  const kudosList = (allKudos ?? []) as { feed_item_id: string; user_id: string; reaction: string }[];
 
-  return items.map((item) => ({
-    ...item,
-    hasKudos: kudosSet.has(item.id),
-  }));
+  // Build per-item reaction maps
+  const reactionCounts = new Map<string, Partial<Record<string, number>>>();
+  const myReactions = new Map<string, string>();
+
+  for (const k of kudosList) {
+    const map = reactionCounts.get(k.feed_item_id) ?? {};
+    map[k.reaction] = (map[k.reaction] ?? 0) + 1;
+    reactionCounts.set(k.feed_item_id, map);
+
+    if (k.user_id === userId) {
+      myReactions.set(k.feed_item_id, k.reaction);
+    }
+  }
+
+  return items.map((item) => {
+    const reactions = reactionCounts.get(item.id) ?? {};
+    const myReaction = myReactions.get(item.id) ?? null;
+    return {
+      ...item,
+      hasKudos: myReaction !== null,
+      reactions,
+      myReaction,
+    };
+  });
 }
 
 /**

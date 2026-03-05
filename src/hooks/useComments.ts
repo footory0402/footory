@@ -7,6 +7,7 @@ export interface Comment {
   content: string;
   createdAt: string;
   userId: string;
+  parentId: string | null;
   profile: {
     id: string;
     handle: string;
@@ -15,6 +16,7 @@ export interface Comment {
     level: number;
     position: string;
   };
+  replies?: Comment[];
 }
 
 export function useComments(feedItemId: string) {
@@ -27,21 +29,37 @@ export function useComments(feedItemId: string) {
       const res = await fetch(`/api/feed/${feedItemId}/comments`);
       if (!res.ok) return;
       const data = await res.json();
-      setComments(data.comments ?? []);
+      const flat: Comment[] = data.comments ?? [];
+
+      // Build tree: root comments + attach replies
+      const roots: Comment[] = [];
+      const replyMap = new Map<string, Comment[]>();
+
+      for (const c of flat) {
+        if (!c.parentId) {
+          roots.push({ ...c, replies: [] });
+        } else {
+          const list = replyMap.get(c.parentId) ?? [];
+          list.push(c);
+          replyMap.set(c.parentId, list);
+        }
+      }
+
+      const tree = roots.map((r) => ({ ...r, replies: replyMap.get(r.id) ?? [] }));
+      setComments(tree);
     } finally {
       setLoading(false);
     }
   }, [feedItemId]);
 
-  const addComment = useCallback(async (content: string) => {
+  const addComment = useCallback(async (content: string, parentId?: string | null) => {
     const res = await fetch(`/api/feed/${feedItemId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, parentId: parentId ?? null }),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    // Refetch to get full profile info
     await fetchComments();
     return data.comment;
   }, [feedItemId, fetchComments]);
@@ -53,9 +71,16 @@ export function useComments(feedItemId: string) {
       body: JSON.stringify({ commentId }),
     });
     if (res.ok) {
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      setComments((prev) =>
+        prev
+          .filter((c) => c.id !== commentId)
+          .map((c) => ({ ...c, replies: (c.replies ?? []).filter((r) => r.id !== commentId) }))
+      );
     }
   }, [feedItemId]);
 
-  return { comments, loading, fetchComments, addComment, deleteComment };
+  // Flat total count (root + replies)
+  const totalCount = comments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0);
+
+  return { comments, loading, fetchComments, addComment, deleteComment, totalCount };
 }
