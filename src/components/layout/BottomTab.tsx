@@ -3,18 +3,28 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { usePermissions } from "@/hooks/usePermissions";
 
-const tabs = [
+const playerTabs = [
   { href: "/", label: "홈", icon: HomeIcon },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
-  { href: "/discover", label: "탐색", icon: SearchIcon },
+  { href: "/dm", label: "DM", icon: DmIcon },
   { href: "/profile", label: "프로필", icon: UserIcon },
   { href: "/team", label: "팀", icon: TeamIcon },
+] as const;
+
+const parentTabs = [
+  { href: "/", label: "홈", icon: HomeIcon },
+  { href: "/dm", label: "DM", icon: DmIcon },
+  { href: "/profile/settings", label: "설정", icon: SettingsIcon },
 ] as const;
 
 export default function BottomTab() {
   const pathname = usePathname();
   const router = useRouter();
+  const { role } = usePermissions();
+
+  const tabs = role === "parent" ? parentTabs : playerTabs;
 
   useEffect(() => {
     const targets = tabs
@@ -38,7 +48,7 @@ export default function BottomTab() {
 
     const idleId = requestIdle(prefetchAll);
     return () => cancelIdle(idleId);
-  }, [pathname, router]);
+  }, [pathname, router, tabs]);
 
   return (
     <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/90 backdrop-blur-[16px]">
@@ -83,11 +93,10 @@ function HomeIcon({ active }: { active: boolean }) {
   );
 }
 
-function SearchIcon({ active }: { active: boolean }) {
+function DmIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M21 21l-4.35-4.35" />
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
     </svg>
   );
 }
@@ -121,6 +130,15 @@ function TeamIcon({ active }: { active: boolean }) {
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87" />
       <path d="M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  );
+}
+
+function SettingsIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
     </svg>
   );
 }
