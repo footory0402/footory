@@ -103,9 +103,11 @@ export default function ChallengeRanking({ challenge, open, onClose, onParticipa
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end">
+    <div className="fixed inset-0 z-[70] flex items-end">
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="챌린지 랭킹 닫기"
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -126,6 +128,7 @@ export default function ChallengeRanking({ challenge, open, onClose, onParticipa
             <div className="mt-0.5 text-[16px] font-bold text-text-1">{challenge.title}</div>
           </div>
           <button
+            type="button"
             onClick={onParticipate}
             className="rounded-[8px] px-3 py-2 text-[12px] font-bold"
             style={{ background: "var(--accent-gradient)", color: "#0C0C0E" }}
@@ -133,6 +136,15 @@ export default function ChallengeRanking({ challenge, open, onClose, onParticipa
             참여하기 →
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="챌린지 랭킹 닫기"
+          className="absolute right-3 top-3 rounded-full p-2 text-text-2 transition-opacity active:opacity-70"
+        >
+          ✕
+        </button>
 
         <div className="h-px bg-border" />
 

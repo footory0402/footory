@@ -26,17 +26,31 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    role: "player",
+    verified: false,
+    canUploadClip: true,
+    canVoteMvp: true,
+    canFollow: true,
+    canCoachReview: false,
+    canUseWatchlist: false,
+    canDm: () => true,
+  }),
+}));
+
 describe("BottomTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders all 4 tab labels", () => {
+  it("renders all 5 tab labels", () => {
     mockUsePathname.mockReturnValue("/");
     render(<BottomTab />);
 
     expect(screen.getByText("홈")).toBeInTheDocument();
-    expect(screen.getByText("탐색")).toBeInTheDocument();
+    expect(screen.getByText("MVP")).toBeInTheDocument();
+    expect(screen.getByText("DM")).toBeInTheDocument();
     expect(screen.getByText("프로필")).toBeInTheDocument();
     expect(screen.getByText("팀")).toBeInTheDocument();
   });
@@ -60,12 +74,12 @@ describe("BottomTab", () => {
     expect(homeLabel.className).toContain("text-text-3");
   });
 
-  it("highlights discover tab when pathname starts with /discover", () => {
-    mockUsePathname.mockReturnValue("/discover");
+  it("highlights dm tab when pathname starts with /dm", () => {
+    mockUsePathname.mockReturnValue("/dm");
     render(<BottomTab />);
 
-    const discoverLabel = screen.getByText("탐색");
-    expect(discoverLabel.className).toContain("text-accent");
+    const dmLabel = screen.getByText("DM");
+    expect(dmLabel.className).toContain("text-accent");
   });
 
   it("highlights team tab when pathname starts with /team", () => {

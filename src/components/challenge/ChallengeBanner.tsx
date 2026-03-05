@@ -61,19 +61,39 @@ export default function ChallengeBanner() {
 
   const daysLeft = getDaysLeft(challenge.week_start);
 
-  function handleParticipate(e: React.MouseEvent) {
-    e.stopPropagation();
+  function openRanking() {
+    setRankingOpen(true);
+  }
+
+  function handleBannerKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openRanking();
+    }
+  }
+
+  function goToParticipate() {
+    if (!challenge) return;
+
     const params = new URLSearchParams();
-    if (challenge!.skill_tag) params.set("challenge_tag", challenge!.skill_tag);
-    params.set("challenge_title", challenge!.title);
+    if (challenge.skill_tag) params.set("challenge_tag", challenge.skill_tag);
+    params.set("challenge_title", challenge.title);
     router.push(`/upload?${params.toString()}`);
+  }
+
+  function handleParticipate(e: React.MouseEvent<HTMLButtonElement>) {
+    e.stopPropagation();
+    goToParticipate();
   }
 
   return (
     <>
-      <button
+      <div
         className="mb-4 w-full text-left"
-        onClick={() => setRankingOpen(true)}
+        role="button"
+        tabIndex={0}
+        onClick={openRanking}
+        onKeyDown={handleBannerKeyDown}
       >
         <div
           className="overflow-hidden rounded-[12px] transition-opacity active:opacity-80"
@@ -117,6 +137,7 @@ export default function ChallengeBanner() {
 
             {/* CTA */}
             <button
+              type="button"
               onClick={handleParticipate}
               className="shrink-0 rounded-[8px] px-3 py-2 text-[11px] font-bold transition-opacity active:opacity-75"
               style={{ background: "var(--accent-gradient)", color: "var(--color-bg)" }}
@@ -125,13 +146,13 @@ export default function ChallengeBanner() {
             </button>
           </div>
         </div>
-      </button>
+      </div>
 
       <ChallengeRanking
         challenge={challenge}
         open={rankingOpen}
         onClose={() => setRankingOpen(false)}
-        onParticipate={handleParticipate as () => void}
+        onParticipate={goToParticipate}
       />
     </>
   );
