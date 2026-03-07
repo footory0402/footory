@@ -353,8 +353,8 @@ export default function MvpPage() {
               <MvpRanking
                 candidates={candidates}
                 votedClipIds={myVotedClipIds}
-                votingOpen={votingOpen}
-                votesRemaining={votesRemaining}
+                votingOpen={canVoteMvp && votingOpen}
+                votesRemaining={canVoteMvp ? votesRemaining : 0}
                 onVote={handleVote}
                 onUnvote={handleUnvote}
               />
@@ -405,8 +405,8 @@ export default function MvpPage() {
           <MvpRanking
             candidates={candidates}
             votedClipIds={myVotedClipIds}
-            votingOpen={votingOpen}
-            votesRemaining={votesRemaining}
+            votingOpen={canVoteMvp && votingOpen}
+            votesRemaining={canVoteMvp ? votesRemaining : 0}
             onVote={handleVote}
             onUnvote={handleUnvote}
           />

@@ -22,13 +22,15 @@ export default function BottomTab() {
   const pathname = usePathname();
   const router = useRouter();
   const shouldLoadPermissions = !pathname.startsWith("/p/") && !pathname.startsWith("/t/");
-  const { role } = usePermissions({ enabled: shouldLoadPermissions });
+  const { role, userId } = usePermissions({ enabled: shouldLoadPermissions });
 
+  // role 로딩 전에는 탭을 숨겨서 5→3탭 깜빡임 방지
+  const isLoading = shouldLoadPermissions && !userId;
   const tabs = role === "parent" ? parentTabs : playerTabs;
 
   return (
     <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/95">
-      <div className="flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)]">
+      <div className={`flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)] transition-opacity duration-150 ${isLoading ? "opacity-0" : "opacity-100"}`}>
         {tabs.map((tab) => {
           const active =
             tab.href === "/"

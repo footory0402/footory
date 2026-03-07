@@ -1,6 +1,7 @@
 "use client";
 
 import { useFollow } from "@/hooks/useFollow";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface FollowButtonProps {
   targetId: string;
@@ -9,7 +10,10 @@ interface FollowButtonProps {
 }
 
 export default function FollowButton({ targetId, initialFollowing = false, size = "sm" }: FollowButtonProps) {
+  const { canFollow } = usePermissions();
   const { isFollowing, toggle, loading } = useFollow(targetId, initialFollowing);
+
+  if (!canFollow) return null;
 
   const sizeClasses = size === "sm"
     ? "px-3 py-1 text-[12px]"

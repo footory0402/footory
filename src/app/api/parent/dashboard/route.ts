@@ -45,22 +45,26 @@ export async function GET(req: NextRequest) {
   weekStart.setHours(0, 0, 0, 0);
   const weekStartISO = weekStart.toISOString();
 
-  // Fetch all data in parallel
+  // Fetch all data in parallel — each query wrapped to prevent single failure from crashing all
   const [childProfile, weeklyClips, weeklyKudos, weeklyViews, mvpResult, recentActivity, teamNews] =
     await Promise.all([
       // Child profile
-      supabase
-        .from("profiles")
-        .select("id, name, handle, avatar_url, position, level, xp, followers_count, views_count")
-        .eq("id", childId)
-        .single(),
+      Promise.resolve(
+        supabase
+          .from("profiles")
+          .select("id, name, handle, avatar_url, position, level, xp, followers_count, views_count")
+          .eq("id", childId)
+          .single()
+      ).catch(() => ({ data: null, error: null })),
 
       // New clips this week
-      supabase
-        .from("clips")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", childId)
-        .gte("created_at", weekStartISO),
+      Promise.resolve(
+        supabase
+          .from("clips")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_id", childId)
+          .gte("created_at", weekStartISO)
+      ).catch(() => ({ count: 0 })),
 
       // Kudos received this week (via feed_items → kudos)
       (supabase as unknown as { rpc: (fn: string, args: Record<string, string>) => Promise<{ data: number }> })
@@ -68,32 +72,38 @@ export async function GET(req: NextRequest) {
         .catch(() => ({ data: 0 })),
 
       // Profile views this week (approximation: total views)
-      supabase
-        .from("profiles")
-        .select("views_count")
-        .eq("id", childId)
-        .single(),
+      Promise.resolve(
+        supabase
+          .from("profiles")
+          .select("views_count")
+          .eq("id", childId)
+          .single()
+      ).catch(() => ({ data: null })),
 
       // MVP rank this week
-      supabase
-        .from("weekly_mvp_results")
-        .select("rank, total_score")
-        .eq("profile_id", childId)
-        .gte("week_start", weekStartISO)
-        .order("rank", { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+      Promise.resolve(
+        supabase
+          .from("weekly_mvp_results")
+          .select("rank, total_score")
+          .eq("profile_id", childId)
+          .gte("week_start", weekStartISO)
+          .order("rank", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+      ).catch(() => ({ data: null })),
 
       // Recent activity (feed items)
-      supabase
-        .from("feed_items")
-        .select("id, type, metadata, created_at")
-        .eq("profile_id", childId)
-        .order("created_at", { ascending: false })
-        .limit(5),
+      Promise.resolve(
+        supabase
+          .from("feed_items")
+          .select("id, type, metadata, created_at")
+          .eq("profile_id", childId)
+          .order("created_at", { ascending: false })
+          .limit(5)
+      ).catch(() => ({ data: [] as { id: string; type: string; metadata: unknown; created_at: string }[] })),
 
       // Team news (latest feed from team members)
-      getTeamNews(supabase, childId),
+      getTeamNews(supabase, childId).catch(() => []),
     ]);
 
   return NextResponse.json({
@@ -106,7 +116,7 @@ export async function GET(req: NextRequest) {
       mvpRank: mvpResult.data?.rank ?? null,
       level: childProfile.data?.level ?? 1,
     },
-    recentActivity: (recentActivity.data ?? []).map((item) => ({
+    recentActivity: ((recentActivity as { data?: { id: string; type: string; metadata: unknown; created_at: string }[] }).data ?? []).map((item) => ({
       id: item.id,
       type: item.type,
       metadata: item.metadata,

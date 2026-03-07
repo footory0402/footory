@@ -34,6 +34,17 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // 선수만 팔로우 가능
+  const { data: senderProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (senderProfile?.role !== "player") {
+    return NextResponse.json({ error: "Only players can follow" }, { status: 403 });
+  }
+
   const { targetId } = await req.json();
   if (!targetId || targetId === user.id) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
