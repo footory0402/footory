@@ -18,7 +18,7 @@ export function useConversations(userId: string | null) {
   const [loading, setLoading] = useState(true);
 
   const fetchConversations = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) { setLoading(false); return; }
     setLoading(true);
     const supabase = createClient();
 
