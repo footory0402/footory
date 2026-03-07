@@ -22,7 +22,7 @@ export default function AddToWatchlistButton({ playerId }: Props) {
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
-          if (data?.is_verified && ["coach", "scout"].includes(data.role)) {
+          if (data?.is_verified && data.role === "scout") {
             setVisible(true);
             fetch(`/api/watchlist/${playerId}`)
               .then((r) => r.json())

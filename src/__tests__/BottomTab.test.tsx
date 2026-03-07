@@ -35,7 +35,7 @@ vi.mock("@/hooks/usePermissions", () => ({
     canUploadClip: true,
     canVoteMvp: true,
     canFollow: true,
-    canCoachReview: false,
+    canScoutReview: false,
     canUseWatchlist: false,
     canDm: () => true,
   }),

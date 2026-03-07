@@ -12,7 +12,8 @@ export interface Database {
       profiles: {
         Row: {
           id: string;
-          role: "player" | "parent" | "other" | "coach" | "scout";
+          role: "player" | "parent" | "scout";
+          auth_provider: string | null;
           handle: string;
           name: string;
           avatar_url: string | null;
@@ -42,7 +43,8 @@ export interface Database {
         };
         Insert: {
           id: string;
-          role?: "player" | "parent" | "other";
+          role?: "player" | "parent" | "scout";
+          auth_provider?: string | null;
           handle: string;
           name: string;
           avatar_url?: string | null;
@@ -72,7 +74,8 @@ export interface Database {
         };
         Update: {
           id?: string;
-          role?: "player" | "parent" | "other";
+          role?: "player" | "parent" | "scout";
+          auth_provider?: string | null;
           handle?: string;
           name?: string;
           avatar_url?: string | null;

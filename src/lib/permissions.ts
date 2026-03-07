@@ -1,4 +1,4 @@
-export type UserRole = "player" | "parent" | "other" | "coach" | "scout";
+export type UserRole = "player" | "parent" | "scout";
 export type DmActionState = "allowed" | "request" | "blocked" | "hidden";
 
 interface DmActionOptions {
@@ -22,7 +22,7 @@ export function canUploadClip(role: UserRole): boolean {
   return role === "player";
 }
 
-/** 선수만 MVP 투표 가능 (부모/코치는 어뷰징 방지) */
+/** 선수만 MVP 투표 가능 (부모/스카우터는 어뷰징 방지) */
 export function canVoteMvp(role: UserRole): boolean {
   return role === "player";
 }
@@ -40,8 +40,8 @@ export function canDm(
   isFollowing: boolean,
   isSameTeam: boolean
 ): boolean {
-  // 인증된 코치/스카우터는 선수에게 DM 가능
-  if (["coach", "scout", "other"].includes(senderRole) && senderVerified && targetRole === "player") {
+  // 인증된 스카우터는 선수에게 DM 가능
+  if (senderRole === "scout" && senderVerified && targetRole === "player") {
     return true;
   }
   // 같은 팀이면 DM 가능
@@ -58,7 +58,6 @@ export function getDmAction({
   isFollowing,
   isSameTeam,
   isBlocked,
-  targetIsMinor,
 }: DmActionOptions): DmAction {
   if (!senderRole) {
     return {
@@ -76,7 +75,7 @@ export function getDmAction({
   }
 
   if (senderRole === "parent") {
-    if (targetRole === "coach" || targetRole === "scout" || targetRole === "other") {
+    if (targetRole === "scout") {
       return {
         state: "request",
         label: "대화 요청",
@@ -87,22 +86,7 @@ export function getDmAction({
     return {
       state: "blocked",
       label: "메시지 제한",
-      message: "보호자 계정은 코치·스카우터에게만 메시지를 보낼 수 있어요.",
-    };
-  }
-
-  if (senderRole === "coach") {
-    if (!senderVerified && (targetRole === "player" || targetRole === "parent" || targetIsMinor)) {
-      return {
-        state: "blocked",
-        label: "인증 필요",
-        message: "인증된 코치만 미성년 선수나 보호자에게 먼저 메시지를 보낼 수 있어요.",
-      };
-    }
-
-    return {
-      state: "allowed",
-      label: "메시지",
+      message: "보호자 계정은 스카우터에게만 메시지를 보낼 수 있어요.",
     };
   }
 
@@ -152,21 +136,6 @@ export function getDmAction({
     };
   }
 
-  if (senderRole === "other") {
-    if (senderVerified) {
-      return {
-        state: "allowed",
-        label: "메시지",
-      };
-    }
-
-    return {
-      state: "request",
-      label: "대화 요청",
-      message: "상대가 수락하면 대화를 시작할 수 있어요.",
-    };
-  }
-
   return {
     state: "request",
     label: "대화 요청",
@@ -174,12 +143,12 @@ export function getDmAction({
   };
 }
 
-/** 코치 리뷰 작성 권한 (인증된 코치/스카우터만) */
-export function canCoachReview(role: UserRole, verified: boolean): boolean {
-  return ["coach", "scout"].includes(role) && verified;
+/** 스카우터 리뷰 작성 권한 (인증된 스카우터만) */
+export function canScoutReview(role: UserRole, verified: boolean): boolean {
+  return role === "scout" && verified;
 }
 
-/** 관심 선수 리스트 (인증된 코치/스카우터만) */
+/** 관심 선수 리스트 (인증된 스카우터만) */
 export function canUseWatchlist(role: UserRole, verified: boolean): boolean {
-  return ["coach", "scout"].includes(role) && verified;
+  return role === "scout" && verified;
 }

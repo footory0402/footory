@@ -3,12 +3,12 @@
 import { useState } from "react";
 import PlayerOnboarding from "@/components/onboarding/PlayerOnboarding";
 import ParentOnboarding from "@/components/onboarding/ParentOnboarding";
-import CoachOnboarding from "@/components/onboarding/CoachOnboarding";
+import ScoutOnboarding from "@/components/onboarding/ScoutOnboarding";
 
 const ROLES = [
   { value: "player", label: "선수", emoji: "⚽", desc: "직접 뛰는 선수예요" },
   { value: "parent", label: "부모/보호자", emoji: "👨‍👩‍👦", desc: "자녀의 성장을 기록해요" },
-  { value: "other", label: "코치/스카우터", emoji: "📋", desc: "선수를 지도하거나 발굴해요" },
+  { value: "scout", label: "스카우터", emoji: "🔭", desc: "유망한 선수를 발굴해요" },
 ] as const;
 
 export default function OnboardingPage() {
@@ -70,8 +70,8 @@ export default function OnboardingPage() {
       {!showRoleSelect && role === "parent" && (
         <ParentOnboarding onBack={handleBack} />
       )}
-      {!showRoleSelect && role === "other" && (
-        <CoachOnboarding onBack={handleBack} />
+      {!showRoleSelect && role === "scout" && (
+        <ScoutOnboarding onBack={handleBack} />
       )}
     </div>
   );

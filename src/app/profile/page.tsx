@@ -117,7 +117,7 @@ export default function ProfilePage() {
       {/* PDF Export button */}
       <div className="mt-3 flex items-center justify-between">
         <div>
-          {displayProfile.isVerified && ["coach", "scout"].includes(displayProfile.role) && (
+          {displayProfile.isVerified && displayProfile.role === "scout" && (
             <Link
               href="/profile/watchlist"
               className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
@@ -126,7 +126,7 @@ export default function ProfilePage() {
               관심 선수
             </Link>
           )}
-          {!displayProfile.isVerified && ["coach", "scout"].includes(displayProfile.role) && (
+          {!displayProfile.isVerified && displayProfile.role === "scout" && (
             <div className="flex flex-col gap-1">
               <button
                 type="button"

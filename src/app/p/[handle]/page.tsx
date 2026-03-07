@@ -179,14 +179,14 @@ const getProfile = cache(async (handle: string) => {
       verified: viewerVerified,
       canFollow: viewerRole === "player" && targetRole === "player" && canFollow(viewerRole),
       watchlist: {
-        visible: (viewerRole === "coach" || viewerRole === "scout") && targetRole === "player",
+        visible: viewerRole === "scout" && targetRole === "player",
         enabled: viewerRole !== null && canUseWatchlist(viewerRole, viewerVerified),
         label: viewerVerified ? "관심 선수 추가" : "인증 후 관심 선수 저장",
         message:
-          viewerRole === "coach" || viewerRole === "scout"
+          viewerRole === "scout"
             ? viewerVerified
               ? ""
-              : "관심 선수 저장은 인증된 코치·스카우터만 사용할 수 있어요."
+              : "관심 선수 저장은 인증된 스카우터만 사용할 수 있어요."
             : "",
       },
       dm: getDmAction({

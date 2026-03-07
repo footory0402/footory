@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     .eq("id", user.id)
     .single();
 
-  if (!profile || !profile.is_verified || !["coach", "scout"].includes(profile.role)) {
+  if (!profile || !profile.is_verified || profile.role !== "scout") {
     return NextResponse.json(
       { error: "인증된 코치/스카우터만 리뷰를 남길 수 있습니다" },
       { status: 403 }

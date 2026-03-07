@@ -23,7 +23,8 @@ export interface Profile {
     kakao?: string;
   };
   contactPublic: boolean;
-  role: "player" | "parent" | "other" | "coach" | "scout";
+  role: "player" | "parent" | "scout";
+  authProvider?: string;
   isVerified: boolean;
   heightCm?: number | null;
   weightKg?: number | null;

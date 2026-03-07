@@ -49,7 +49,7 @@ export default function FeedList({
     initialItems,
     initialNextCursor
   );
-  const { canCoachReview, userId } = usePermissions();
+  const { canScoutReview, userId } = usePermissions();
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<FeedItemEnriched | null>(null);
 
@@ -164,7 +164,7 @@ export default function FeedList({
                   <CoachReviewBadge
                     clipId={item.reference_id}
                     isOwner={item.profile_id === userId}
-                    canReview={canCoachReview}
+                    canReview={canScoutReview}
                   />
                 </div>
               )}

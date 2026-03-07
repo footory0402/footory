@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   }
 
   // Enum validation
-  const VALID_ROLES = ["player", "parent", "other"] as const;
+  const VALID_ROLES = ["player", "parent", "scout"] as const;
   const VALID_POSITIONS = ["FW", "MF", "DF", "GK"] as const;
 
   if (!VALID_ROLES.includes(role as typeof VALID_ROLES[number])) {

@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
     query = query.or(`name.ilike.%${q}%,handle.ilike.%${q}%`);
   }
 
-  if (role && ["player", "parent", "other"].includes(role)) {
-    query = query.eq("role", role as "player" | "parent" | "other");
+  if (role && ["player", "parent", "scout"].includes(role)) {
+    query = query.eq("role", role as "player" | "parent" | "scout");
   }
 
   const { data, error } = await query;
