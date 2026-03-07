@@ -1,9 +1,16 @@
 import { test, expect } from "@playwright/test";
-import { gotoProtectedOrSkip } from "./utils/auth";
+import { ensureSeedDataOrSkip } from "./setup/seed-data";
+import { loginAsPlayer } from "./setup/test-accounts";
 
 test.describe("MVP 페이지", () => {
   test.beforeEach(async ({ page }) => {
-    await gotoProtectedOrSkip(page, "/mvp");
+    await ensureSeedDataOrSkip();
+    await loginAsPlayer(page, "/");
+    const mvpTab = page
+      .getByRole("navigation", { name: "하단 탭 네비게이션" })
+      .getByRole("link", { name: "MVP", exact: true });
+    await mvpTab.click();
+    await expect(page).toHaveURL(/\/mvp/);
   });
 
   test("페이지 타이틀 렌더링", async ({ page }) => {
@@ -21,8 +28,6 @@ test.describe("MVP 페이지", () => {
 
   test("투표 상태 뱃지 표시 (진행중 or 집계중)", async ({ page }) => {
     const statusBadge = page.getByText(/투표 진행중|집계중|투표 준비중/);
-    const count = await statusBadge.count();
-    test.skip(count === 0, "Status badge not rendered in current fixture");
     await expect(statusBadge.first()).toBeVisible();
   });
 

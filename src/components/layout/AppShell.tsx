@@ -2,14 +2,10 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import dynamic from "next/dynamic";
 import AppHeader from "./AppHeader";
 import BottomTab from "./BottomTab";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-
-const SearchOverlay = dynamic(() => import("@/components/explore/SearchOverlay"), {
-  ssr: false,
-});
+import SearchOverlay from "@/components/explore/SearchOverlay";
 
 const BARE_ROUTES = ["/login", "/onboarding"];
 

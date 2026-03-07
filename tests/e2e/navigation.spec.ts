@@ -4,7 +4,7 @@ import { gotoProtectedOrSkip } from "./utils/auth";
 async function clickTab(page: Page, label: string) {
   const nav = page.getByRole("navigation", { name: "하단 탭 네비게이션" });
   const link = nav.getByRole("link", { name: label, exact: true });
-  await link.evaluate((el) => (el as HTMLAnchorElement).click());
+  await link.dispatchEvent("click");
 }
 
 async function hasTab(page: Page, label: string): Promise<boolean> {
