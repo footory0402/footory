@@ -21,7 +21,8 @@ const parentTabs = [
 export default function BottomTab() {
   const pathname = usePathname();
   const router = useRouter();
-  const { role } = usePermissions();
+  const shouldLoadPermissions = !pathname.startsWith("/p/") && !pathname.startsWith("/t/");
+  const { role } = usePermissions({ enabled: shouldLoadPermissions });
 
   const tabs = role === "parent" ? parentTabs : playerTabs;
 

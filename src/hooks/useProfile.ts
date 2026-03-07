@@ -74,12 +74,21 @@ function toProfile(data: ProfileApiResponse): Profile {
   };
 }
 
-export function useProfile() {
+interface UseProfileOptions {
+  enabled?: boolean;
+}
+
+export function useProfile({ enabled = true }: UseProfileOptions = {}) {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch("/api/profile");
@@ -98,11 +107,17 @@ export function useProfile() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     fetchProfile();
-  }, [fetchProfile]);
+  }, [enabled, fetchProfile]);
 
   const updateProfile = useCallback(
     async (updates: Record<string, unknown>) => {

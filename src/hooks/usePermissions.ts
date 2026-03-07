@@ -12,8 +12,12 @@ import {
   type UserRole,
 } from "@/lib/permissions";
 
-export function usePermissions() {
-  const { profile } = useProfile();
+interface UsePermissionsOptions {
+  enabled?: boolean;
+}
+
+export function usePermissions({ enabled = true }: UsePermissionsOptions = {}) {
+  const { profile } = useProfile({ enabled });
 
   return useMemo(() => {
     const role: UserRole = profile?.role ?? "player";
