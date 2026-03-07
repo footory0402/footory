@@ -139,6 +139,15 @@ export default function ProfilePage() {
         </button>
       </div>
 
+      {/* I13: 이번 주 조회 수 (본인 제외) */}
+      <div className="mt-2 flex items-center gap-1.5 text-[12px] text-text-3">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        이번 주 조회 {displayProfile.views ?? 0}회
+      </div>
+
       {/* Quest Checklist — 레벨 아래, 탭 위 */}
       <div className="mt-3 relative">
         <QuestChecklist profileId={displayProfile.id} />

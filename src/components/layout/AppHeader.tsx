@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUnreadCount } from "@/hooks/useNotifications";
+import { useUnreadDmCount } from "@/hooks/useDm";
+import { usePermissions } from "@/hooks/usePermissions";
 import { NOTIFICATION_POLL_MS } from "@/lib/constants";
 
 interface AppHeaderProps {
@@ -13,12 +15,21 @@ interface AppHeaderProps {
 export default function AppHeader({ onSearchOpen }: AppHeaderProps) {
   const pathname = usePathname();
   const { count, fetchCount } = useUnreadCount();
+  const { userId } = usePermissions({ enabled: true });
+  const { count: dmCount, fetchCount: fetchDmCount } = useUnreadDmCount(userId ?? null);
 
   useEffect(() => {
     fetchCount();
     const interval = setInterval(fetchCount, NOTIFICATION_POLL_MS);
     return () => clearInterval(interval);
   }, [fetchCount]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchDmCount();
+    const interval = setInterval(fetchDmCount, NOTIFICATION_POLL_MS);
+    return () => clearInterval(interval);
+  }, [userId, fetchDmCount]);
 
   return (
     <header className="sticky top-0 z-40 flex h-[42px] items-center justify-between border-b border-border bg-bg/95 px-4">
@@ -38,7 +49,7 @@ export default function AppHeader({ onSearchOpen }: AppHeaderProps) {
           </svg>
         </button>
 
-        {/* DM */}
+        {/* DM — C14: 미읽은 DM 뱃지 */}
         <Link
           href="/dm"
           className="relative flex h-8 w-8 items-center justify-center rounded-full text-text-2 transition-colors active:bg-card"
@@ -46,6 +57,11 @@ export default function AppHeader({ onSearchOpen }: AppHeaderProps) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
           </svg>
+          {dmCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red px-1 text-[10px] font-bold text-white">
+              {dmCount > 99 ? "99+" : dmCount}
+            </span>
+          )}
         </Link>
 
         {/* Notifications */}

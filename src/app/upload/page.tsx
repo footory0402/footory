@@ -7,7 +7,7 @@ import { captureVideoThumbnail } from "@/lib/thumbnail";
 import VideoSelector from "@/components/upload/VideoSelector";
 import TagMemoForm from "@/components/upload/TagMemoForm";
 import UploadProgress from "@/components/upload/UploadProgress";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getFileDuration } from "@/lib/video";
 
 const STEP_TITLES = ["영상 선택", "태그 & 메모", "업로드"];
@@ -36,6 +36,16 @@ async function uploadViaDirectApi(
 export default function UploadPage() {
   const router = useRouter();
   const store = useUploadStore();
+  const searchParams = useSearchParams();
+
+  // J4: 챌린지 참여 — URL에서 challenge_tag 읽어 초기 태그로 설정
+  useEffect(() => {
+    const challengeTag = searchParams.get("challenge_tag");
+    if (challengeTag && !store.tags.includes(challengeTag)) {
+      store.setTags([challengeTag, ...store.tags].slice(0, 3));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startUpload = useCallback(async () => {
     if (!store.file || store.status !== "idle") return;

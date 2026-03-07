@@ -30,6 +30,7 @@ export interface Profile {
   preferredFoot?: string | null;
   mvpCount: number;
   mvpTier: MvpTier | null;
+  challengeWins?: number;
   createdAt: string;
 }
 

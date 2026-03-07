@@ -1,12 +1,25 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import Link from "next/link";
+import PushPermissionPrompt, { shouldShowPushPrompt } from "@/components/notifications/PushPermissionPrompt";
 
 export default function UploadProgress() {
   const { progress, status, error } = useUploadStore();
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+
+  // E15: 첫 영상 업로드 완료 직후 푸시 권한 요청
+  useEffect(() => {
+    if (status === "done" && shouldShowPushPrompt()) {
+      const timer = setTimeout(() => setShowPushPrompt(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
 
   return (
+    <>
+    {showPushPrompt && <PushPermissionPrompt onClose={() => setShowPushPrompt(false)} />}
     <div className="flex flex-col items-center gap-6 py-8">
       {status === "error" ? (
         <>
@@ -53,5 +66,6 @@ export default function UploadProgress() {
         </>
       )}
     </div>
+    </>
   );
 }

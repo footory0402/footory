@@ -17,10 +17,12 @@ import {
   formatWeekRange,
 } from "@/lib/mvp-scoring";
 import { MAX_WEEKLY_VOTES } from "@/lib/constants";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type MvpTab = "ranking" | "archive" | "hallOfFame";
 
 export default function MvpPage() {
+  const { canVoteMvp } = usePermissions();
   const [candidates, setCandidates] = useState<VoteCardCandidate[]>([]);
   const [myVotedClipIds, setMyVotedClipIds] = useState<Set<string>>(new Set());
   const [votesRemaining, setVotesRemaining] = useState(MAX_WEEKLY_VOTES);
@@ -336,14 +338,21 @@ export default function MvpPage() {
         </SectionCard>
       ) : (
         <>
+          {/* B8: 선수만 투표 가능 — role != 'player'이면 투표 버튼 비활성 */}
+          {!canVoteMvp && votingOpen && (
+            <p className="rounded-[10px] bg-card-alt px-4 py-2 text-center text-[12px] text-text-3">
+              MVP 투표는 선수 계정만 참여할 수 있어요
+            </p>
+          )}
+
           {/* 1st place — large card */}
           {first && (
             <VoteCard
               candidate={first}
               isFirst
               hasVoted={myVotedClipIds.has(first.clipId)}
-              votingOpen={votingOpen}
-              votesRemaining={votesRemaining}
+              votingOpen={canVoteMvp && votingOpen}
+              votesRemaining={canVoteMvp ? votesRemaining : 0}
               onVote={handleVote}
               onUnvote={handleUnvote}
             />
@@ -356,8 +365,8 @@ export default function MvpPage() {
                 <VoteCardCompact
                   candidate={second}
                   hasVoted={myVotedClipIds.has(second.clipId)}
-                  votingOpen={votingOpen}
-                  votesRemaining={votesRemaining}
+                  votingOpen={canVoteMvp && votingOpen}
+                  votesRemaining={canVoteMvp ? votesRemaining : 0}
                   onVote={handleVote}
                   onUnvote={handleUnvote}
                 />
@@ -366,8 +375,8 @@ export default function MvpPage() {
                 <VoteCardCompact
                   candidate={third}
                   hasVoted={myVotedClipIds.has(third.clipId)}
-                  votingOpen={votingOpen}
-                  votesRemaining={votesRemaining}
+                  votingOpen={canVoteMvp && votingOpen}
+                  votesRemaining={canVoteMvp ? votesRemaining : 0}
                   onVote={handleVote}
                   onUnvote={handleUnvote}
                 />

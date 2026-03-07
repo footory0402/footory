@@ -30,7 +30,44 @@ export async function GET(req: NextRequest) {
     }
 
     const { data } = await query;
-    players = data ?? [];
+
+    // K8: 코치 리뷰 있는 영상 소유자 → 검색 결과 상위 노출
+    const rawPlayers = data ?? [];
+    if (rawPlayers.length > 0) {
+      const playerIds = rawPlayers.map((p) => (p as { id: string }).id);
+      // Step 1: find clips owned by these players that have coach reviews
+      const { data: reviewedClipRows } = await supabase
+        .from("clips")
+        .select("owner_id")
+        .in("owner_id", playerIds)
+        .not("id", "is", null);
+
+      // Step 2: check which of those clip_ids have reviews
+      const clipIds = (reviewedClipRows ?? []).map((c) => (c as { owner_id: string }).owner_id);
+      let reviewedOwners = new Set<string>();
+      if (clipIds.length > 0) {
+        const { data: clipsWithReviews } = await supabase
+          .from("coach_reviews")
+          .select("clip_id, clips(owner_id)")
+          .in("clip_id", clipIds);
+        reviewedOwners = new Set<string>(
+          (clipsWithReviews ?? [])
+            .map((r) => {
+              const row = r as unknown as { clips?: { owner_id: string } | null };
+              return row.clips?.owner_id;
+            })
+            .filter((id): id is string => !!id)
+        );
+      }
+
+      players = [...rawPlayers].sort((a, b) => {
+        const aId = (a as { id: string }).id;
+        const bId = (b as { id: string }).id;
+        return (reviewedOwners.has(bId) ? 1 : 0) - (reviewedOwners.has(aId) ? 1 : 0);
+      });
+    } else {
+      players = rawPlayers;
+    }
   }
 
   if (type === "all" || type === "team") {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import CoachReviewForm from "./CoachReviewForm";
 
 const RATING_CONFIG = {
   good: { emoji: "⚽", label: "좋음", color: "text-blue-400" },
@@ -28,13 +29,15 @@ interface Review {
 interface Props {
   clipId: string;
   isOwner?: boolean;
+  canReview?: boolean;
   className?: string;
 }
 
-export default function CoachReviewBadge({ clipId, isOwner, className = "" }: Props) {
+export default function CoachReviewBadge({ clipId, isOwner, canReview, className = "" }: Props) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
 
   useEffect(() => {
     fetch(`/api/coach-reviews?clip_id=${clipId}`)
@@ -52,19 +55,53 @@ export default function CoachReviewBadge({ clipId, isOwner, className = "" }: Pr
     setReviews((prev) => prev.filter((r) => r.id !== reviewId));
   };
 
-  if (loading || reviews.length === 0) return null;
+  if (loading && !canReview) return null;
+  if (!loading && reviews.length === 0 && !canReview) return null;
 
   return (
     <div className={className}>
-      {/* Badge Trigger */}
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2 active:bg-card"
-      >
-        <span>📋</span>
-        <span>코치 리뷰 {reviews.length}개</span>
-        <span className="text-[10px] text-text-3">{expanded ? "▲" : "▼"}</span>
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        {/* K5: 코치 리뷰 뱃지 */}
+        {reviews.length > 0 && (
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2 active:bg-card"
+          >
+            <span>📋</span>
+            <span>코치 리뷰 {reviews.length}개</span>
+            <span className="text-[10px] text-text-3">{expanded ? "▲" : "▼"}</span>
+          </button>
+        )}
+
+        {/* K3: 인증 코치 → 리뷰 남기기 버튼 */}
+        {canReview && (
+          <button
+            onClick={() => setReviewFormOpen(true)}
+            className="flex items-center gap-1 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2 active:bg-card"
+          >
+            <span>📋</span>
+            <span>리뷰 남기기</span>
+          </button>
+        )}
+      </div>
+
+      {/* K4: 리뷰 폼 */}
+      {reviewFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50">
+          <div className="w-full max-w-[430px] rounded-t-[16px] bg-bg">
+            <CoachReviewForm
+              clipId={clipId}
+              onClose={() => setReviewFormOpen(false)}
+              onSaved={() => {
+                setReviewFormOpen(false);
+                fetch(`/api/coach-reviews?clip_id=${clipId}`)
+                  .then((r) => r.json())
+                  .then((d) => setReviews(d.reviews ?? []));
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Expanded Reviews */}
       {expanded && (

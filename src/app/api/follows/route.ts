@@ -73,6 +73,24 @@ export async function POST(req: NextRequest) {
     referenceId: sender?.handle ?? user.id,
   });
 
+  // E13: 맞팔 감지 — 상대방이 이미 나를 팔로우하면 '서로 팔로우!' 알림
+  const { data: reverseFollow } = await supabase
+    .from("follows")
+    .select("id")
+    .eq("follower_id", targetId)
+    .eq("following_id", user.id)
+    .maybeSingle();
+
+  if (reverseFollow) {
+    await createNotification(supabase, {
+      userId: user.id,
+      type: "follow",
+      title: `${sender?.name ?? "누군가"}님과 서로 팔로우했어요!`,
+      referenceId: sender?.handle ?? targetId,
+      groupKey: `follow_back:${[user.id, targetId].sort().join(":")}`,
+    });
+  }
+
   return NextResponse.json({ ok: true }, { status: 201 });
 }
 

@@ -297,6 +297,20 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         )}
       </div>
 
+      {/* I16: Footory에서 보기 버튼 */}
+      <div className="mt-6 flex flex-col items-center gap-2 border-t border-border py-6">
+        <p className="text-[11px] text-text-3">Footory에서 전체 프로필 보기</p>
+        <a
+          href={`${APP_URL}/p/${data.handle}`}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-[13px] font-bold text-bg"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 17l9.2-9.2M17 17V7H7" />
+          </svg>
+          Footory에서 보기
+        </a>
+      </div>
+
       <ShareSheet
         open={shareOpen}
         onClose={() => setShareOpen(false)}

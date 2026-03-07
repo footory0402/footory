@@ -58,10 +58,12 @@ export async function fetchFeedPage(
   // 3. Merge — follow items first, then recommended (interleaved by time)
   const merged = mergeFeeds(followItems, recommendItems);
 
-  // 4. Deduplicate by id
+  // 4. Deduplicate by id + G3: 차단 사용자 콘텐츠 제외
+  const blockedSet = new Set(ctx.blockedIds ?? []);
   const seen = new Set<string>();
   const unique = merged.filter((item) => {
     if (seen.has(item.id)) return false;
+    if (blockedSet.has(item.profile_id)) return false;
     seen.add(item.id);
     return true;
   });
@@ -84,7 +86,7 @@ async function buildUserContext(
   supabase: SupabaseClient,
   userId: string
 ): Promise<UserContext> {
-  const [profileRes, followsRes, teamsRes] = await Promise.all([
+  const [profileRes, followsRes, teamsRes, blocksRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("city, birth_year, position")
@@ -99,7 +101,17 @@ async function buildUserContext(
       .select("team_id")
       .eq("profile_id", userId)
       .in("role", ["admin", "member"]),
+    // G3: 차단 목록 조회 (내가 차단하거나 나를 차단한 사람)
+    supabase
+      .from("blocks")
+      .select("blocker_id, blocked_id")
+      .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
   ]);
+
+  const blockedIds = new Set<string>();
+  for (const row of (blocksRes.data ?? []) as { blocker_id: string; blocked_id: string }[]) {
+    blockedIds.add(row.blocker_id === userId ? row.blocked_id : row.blocker_id);
+  }
 
   return {
     userId,
@@ -108,6 +120,7 @@ async function buildUserContext(
     city: (profileRes.data as { city: string | null } | null)?.city ?? null,
     birthYear: (profileRes.data as { birth_year: number | null } | null)?.birth_year ?? null,
     position: (profileRes.data as { position: string | null } | null)?.position ?? null,
+    blockedIds: [...blockedIds],
   };
 }
 

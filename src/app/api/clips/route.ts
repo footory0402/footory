@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SKILL_TAGS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { createNotification } from "@/lib/notifications";
 
 const VALID_TAGS = SKILL_TAGS.map((t) => t.dbName);
 
@@ -126,6 +127,34 @@ export async function POST(req: NextRequest) {
       memo: clip.memo,
     },
   });
+
+  // K11: 관심 선수 새 영상 업로드 시 스카우터에게 알림
+  const { data: uploader } = await supabase
+    .from("profiles")
+    .select("name, handle")
+    .eq("id", user.id)
+    .single();
+
+  const { data: watchers } = await supabase
+    .from("scout_watchlist")
+    .select("scout_id")
+    .eq("player_id", user.id);
+
+  if (watchers && watchers.length > 0 && uploader) {
+    await Promise.all(
+      watchers.map((w) =>
+        createNotification(supabase, {
+          userId: w.scout_id,
+          type: "watchlist_clip",
+          title: `${uploader.name}님이 새 영상을 올렸어요`,
+          body: "관심 선수의 새 클립을 확인하세요",
+          referenceId: clip.id,
+          actionUrl: `/p/${uploader.handle}`,
+          groupKey: `watchlist_clip:${user.id}`,
+        })
+      )
+    );
+  }
 
   return NextResponse.json({ clip }, { status: 201 });
 }

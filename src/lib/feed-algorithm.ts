@@ -22,6 +22,7 @@ export interface UserContext {
   city: string | null;
   birthYear: number | null;
   position: string | null;
+  blockedIds?: string[]; // G3: 차단된 사용자 ID 목록
 }
 
 export interface FeedRatio {

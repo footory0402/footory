@@ -26,6 +26,7 @@ export function usePermissions({ enabled = true }: UsePermissionsOptions = {}) {
     return {
       role,
       verified,
+      userId: profile?.id ?? null,
       canUploadClip: canUploadClip(role),
       canVoteMvp: canVoteMvp(role),
       canFollow: canFollow(role),
@@ -34,5 +35,5 @@ export function usePermissions({ enabled = true }: UsePermissionsOptions = {}) {
       canDm: (targetRole: UserRole, isFollowing: boolean, isSameTeam: boolean) =>
         canDm(role, verified, targetRole, isFollowing, isSameTeam),
     };
-  }, [profile?.role, profile?.isVerified]);
+  }, [profile?.id, profile?.role, profile?.isVerified]);
 }

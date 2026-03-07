@@ -128,8 +128,22 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="flex items-center gap-1.5">
               <span className="truncate text-[19px] font-bold text-text-1">{profile.name}</span>
+              {/* A15: 인증 완료 시 ✅ 표시 */}
+              {profile.isVerified && (
+                <span title="인증된 코치/스카우터" className="text-[16px] leading-none">✅</span>
+              )}
               <LevelBadge level={profile.level} />
               {profile.mvpCount > 0 && <MvpBadge count={profile.mvpCount} tier={profile.mvpTier} />}
+              {/* J6: 챌린지 1위 뱃지 */}
+              {(profile.challengeWins ?? 0) > 0 && (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                  style={{ background: "#D4A85318", border: "1px solid #D4A85333", color: "#D4A853" }}
+                  title={`챌린지 ${profile.challengeWins}회 우승`}
+                >
+                  🎯<span className="font-stat">{profile.challengeWins}</span>
+                </span>
+              )}
               {onEdit && (
                 <button onClick={onEdit} className="ml-auto shrink-0 rounded-md p-1 text-text-3 transition-colors hover:bg-border hover:text-text-1">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

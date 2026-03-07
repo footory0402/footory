@@ -3,11 +3,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Avatar from "@/components/ui/Avatar";
 import FollowButton from "@/components/social/FollowButton";
 import { POSITION_COLORS, SKILL_TAGS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
 import { useSearch } from "@/hooks/useDiscover";
+
+const PlayerRanking = dynamic(() => import("./PlayerRanking"), { ssr: false });
+const RisingPlayers = dynamic(() => import("./RisingPlayers"), { ssr: false });
+const TeamRanking = dynamic(() => import("./TeamRanking"), { ssr: false });
+const TagGrid = dynamic(() => import("./TagGrid"), { ssr: false });
 
 interface SearchOverlayProps {
   open: boolean;
@@ -52,6 +58,15 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, close]);
+
+  // C10: 브라우저 뒤로가기로 오버레이 닫기
+  useEffect(() => {
+    if (!open) return;
+    history.pushState({ searchOverlay: true }, "");
+    const onPopState = () => close();
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, [open, close]);
 
   if (!open) return null;
@@ -137,10 +152,33 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
           </div>
         )}
 
-        {!search.loading && !hasQuery && (
-          <div className="flex flex-col items-center pt-16">
-            <span className="text-[28px] mb-2">🔍</span>
-            <p className="text-[13px] text-text-3">선수, 팀, 태그를 검색해보세요</p>
+        {/* C8: 검색어 없을 때 인기 콘텐츠 표시 */}
+        {!hasQuery && (
+          <div className="space-y-6 mt-2">
+            <section>
+              <h3 className="text-[12px] font-semibold text-text-3 uppercase tracking-wider mb-3">
+                🚀 떠오르는 선수
+              </h3>
+              <RisingPlayers />
+            </section>
+            <section>
+              <h3 className="text-[12px] font-semibold text-text-3 uppercase tracking-wider mb-3">
+                🏆 인기 선수 랭킹
+              </h3>
+              <PlayerRanking compact />
+            </section>
+            <section>
+              <h3 className="text-[12px] font-semibold text-text-3 uppercase tracking-wider mb-3">
+                🏟 팀 랭킹
+              </h3>
+              <TeamRanking compact />
+            </section>
+            <section>
+              <h3 className="text-[12px] font-semibold text-text-3 uppercase tracking-wider mb-3">
+                🏷 인기 태그
+              </h3>
+              <TagGrid />
+            </section>
           </div>
         )}
 

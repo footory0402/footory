@@ -121,9 +121,9 @@ export default function ChildDashboard() {
         onSelect={setSelectedChildId}
       />
 
-      {/* Greeting */}
+      {/* L2: '👋 {자녀이름} 보호자님' 인사 텍스트 */}
       <p className="mb-4 text-[16px] text-text-2">
-        👋 <span className="font-semibold text-text-1">{dashboard?.parentName ?? ""}</span>님
+        👋 <span className="font-semibold text-text-1">{selectedChild.name}</span> 보호자님
       </p>
 
       {/* Weekly Recap (Monday only) */}
