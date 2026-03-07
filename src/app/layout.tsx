@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_KR, Oswald, Rajdhani } from "next/font/google";
+import { Noto_Sans_KR, Oswald, Rajdhani, Geist } from "next/font/google";
 import AppShell from "@/components/layout/AppShell";
 import ToastContainer from "@/components/ui/Toast";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -52,7 +55,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${notoSansKr.variable} ${oswald.variable} ${rajdhani.variable}`}>
+    <html lang="ko" className={cn(notoSansKr.variable, oswald.variable, rajdhani.variable, "font-sans", geist.variable)}>
       <body>
         <div className="mx-auto min-h-dvh max-w-[430px]">
           <AppShell>{children}</AppShell>
