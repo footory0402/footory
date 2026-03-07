@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+type QueryResult<T> = {
+  data: T | null;
+  error?: { message?: string } | null;
+  count?: number | null;
+};
+
 // GET /api/parent/dashboard?childId=<uuid>
 // Returns aggregated dashboard data for a linked child
 export async function GET(req: NextRequest) {
@@ -46,65 +52,81 @@ export async function GET(req: NextRequest) {
     weekStart.setHours(0, 0, 0, 0);
     const weekStartISO = weekStart.toISOString();
 
-    // Fetch all data in parallel — each query wrapped to prevent single failure from crashing all
-    const [childProfile, weeklyClips, weeklyKudos, weeklyViews, mvpResult, recentActivity, teamNews] =
-      await Promise.all([
-        Promise.resolve(
-          supabase
-            .from("profiles")
-            .select("id, name, handle, avatar_url, position, level, xp, followers_count, views_count")
-            .eq("id", childId)
-            .maybeSingle()
-        ).catch(() => ({ data: null, error: null })),
-        Promise.resolve(
-          supabase
-            .from("clips")
-            .select("id", { count: "exact", head: true })
-            .eq("owner_id", childId)
-            .gte("created_at", weekStartISO)
-        ).catch(() => ({ count: 0 })),
-        (supabase as unknown as { rpc: (fn: string, args: Record<string, string>) => Promise<{ data: number }> })
-          .rpc("count_weekly_kudos", { p_profile_id: childId, p_week_start: weekStartISO })
-          .catch(() => ({ data: 0 })),
-        Promise.resolve(
-          supabase
-            .from("profiles")
-            .select("views_count")
-            .eq("id", childId)
-            .maybeSingle()
-        ).catch(() => ({ data: null })),
-        Promise.resolve(
-          supabase
-            .from("weekly_mvp_results")
-            .select("rank, total_score")
-            .eq("profile_id", childId)
-            .gte("week_start", weekStartISO)
-            .order("rank", { ascending: true })
-            .limit(1)
-            .maybeSingle()
-        ).catch(() => ({ data: null })),
-        Promise.resolve(
-          supabase
-            .from("feed_items")
-            .select("id, type, metadata, created_at")
-            .eq("profile_id", childId)
-            .order("created_at", { ascending: false })
-            .limit(5)
-        ).catch(() => ({ data: [] as { id: string; type: string; metadata: unknown; created_at: string }[] })),
-        getTeamNews(supabase, childId).catch(() => []),
-      ]);
+    const [
+      childProfileResult,
+      weeklyClipsResult,
+      weeklyKudosResult,
+      weeklyViewsResult,
+      mvpResultResult,
+      recentActivityResult,
+      teamNewsResult,
+    ] = await Promise.allSettled([
+      supabase
+        .from("profiles")
+        .select("id, name, handle, avatar_url, position, level, xp, followers_count, views_count")
+        .eq("id", childId)
+        .maybeSingle(),
+      supabase
+        .from("clips")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", childId)
+        .gte("created_at", weekStartISO),
+      (supabase as unknown as { rpc: (fn: string, args: Record<string, string>) => Promise<{ data: number | null }> })
+        .rpc("count_weekly_kudos", { p_profile_id: childId, p_week_start: weekStartISO }),
+      supabase
+        .from("profiles")
+        .select("views_count")
+        .eq("id", childId)
+        .maybeSingle(),
+      supabase
+        .from("weekly_mvp_results")
+        .select("rank, total_score")
+        .eq("profile_id", childId)
+        .gte("week_start", weekStartISO)
+        .order("rank", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("feed_items")
+        .select("id, type, metadata, created_at")
+        .eq("profile_id", childId)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      getTeamNews(supabase, childId),
+    ]);
+
+    const childProfile = getSettledQueryData<{
+      id: string;
+      name: string;
+      handle: string;
+      avatar_url: string | null;
+      position: string | null;
+      level: number;
+      xp: number;
+      followers_count: number;
+      views_count: number;
+    }>(childProfileResult);
+    const weeklyClipsCount = getSettledCount(weeklyClipsResult);
+    const weeklyKudos = getSettledQueryData<number>(weeklyKudosResult) ?? 0;
+    const weeklyViews = getSettledQueryData<{ views_count: number | null }>(weeklyViewsResult);
+    const mvpResult = getSettledQueryData<{ rank: number | null; total_score: number | null }>(mvpResultResult);
+    const recentActivity =
+      getSettledQueryData<{ id: string; type: string; metadata: unknown; created_at: string }[]>(
+        recentActivityResult
+      ) ?? [];
+    const teamNews = teamNewsResult.status === "fulfilled" ? teamNewsResult.value : [];
 
     return NextResponse.json({
       parentName: profile.name,
-      child: childProfile.data,
+      child: childProfile,
       weeklyStats: {
-        newClips: weeklyClips.count ?? 0,
-        kudosReceived: typeof weeklyKudos.data === "number" ? weeklyKudos.data : 0,
-        profileViews: weeklyViews.data?.views_count ?? 0,
-        mvpRank: mvpResult.data?.rank ?? null,
-        level: childProfile.data?.level ?? 1,
+        newClips: weeklyClipsCount,
+        kudosReceived: typeof weeklyKudos === "number" ? weeklyKudos : 0,
+        profileViews: weeklyViews?.views_count ?? 0,
+        mvpRank: mvpResult?.rank ?? null,
+        level: childProfile?.level ?? 1,
       },
-      recentActivity: ((recentActivity as { data?: { id: string; type: string; metadata: unknown; created_at: string }[] }).data ?? []).map((item) => ({
+      recentActivity: recentActivity.map((item) => ({
         id: item.id,
         type: item.type,
         metadata: item.metadata,
@@ -120,7 +142,7 @@ export async function GET(req: NextRequest) {
 
 async function getTeamNews(supabase: Awaited<ReturnType<typeof createClient>>, childId: string) {
   // Get child's current team
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from("team_members")
     .select("team_id, teams(name)")
     .eq("profile_id", childId)
@@ -128,27 +150,31 @@ async function getTeamNews(supabase: Awaited<ReturnType<typeof createClient>>, c
     .limit(1)
     .maybeSingle();
 
-  if (!membership) return [];
+  if (membershipError || !membership) return [];
 
   // Get recent team activity
   const teamId = membership.team_id;
   const teamName = (membership as unknown as { teams: { name: string } }).teams?.name ?? "팀";
 
-  const memberIds = (
-    await supabase
-      .from("team_members")
-      .select("profile_id")
-      .eq("team_id", teamId)
-      .neq("role", "alumni")
-  ).data?.map((m) => m.profile_id) ?? [];
+  const { data: memberRows, error: membersError } = await supabase
+    .from("team_members")
+    .select("profile_id")
+    .eq("team_id", teamId)
+    .neq("role", "alumni");
+
+  if (membersError) return [];
+
+  const memberIds = memberRows?.map((m) => m.profile_id) ?? [];
 
   if (memberIds.length === 0) return [];
 
-  const { count: teamClipCount } = await supabase
+  const { count: teamClipCount, error: teamClipsError } = await supabase
     .from("clips")
     .select("id", { count: "exact", head: true })
     .in("owner_id", memberIds)
     .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+  if (teamClipsError) return [];
 
   return [
     {
@@ -157,4 +183,22 @@ async function getTeamNews(supabase: Awaited<ReturnType<typeof createClient>>, c
       newClips: teamClipCount ?? 0,
     },
   ];
+}
+
+function getSettledQueryData<T>(
+  result: PromiseSettledResult<QueryResult<T>>
+): T | null {
+  if (result.status !== "fulfilled" || result.value.error) {
+    return null;
+  }
+
+  return result.value.data ?? null;
+}
+
+function getSettledCount(result: PromiseSettledResult<QueryResult<unknown>>): number {
+  if (result.status !== "fulfilled" || result.value.error) {
+    return 0;
+  }
+
+  return result.value.count ?? 0;
 }

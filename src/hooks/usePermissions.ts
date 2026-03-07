@@ -7,7 +7,7 @@ import {
   canVoteMvp,
   canFollow,
   canDm,
-  canCoachReview,
+  canScoutReview,
   canUseWatchlist,
   type UserRole,
 } from "@/lib/permissions";
@@ -17,23 +17,25 @@ interface UsePermissionsOptions {
 }
 
 export function usePermissions({ enabled = true }: UsePermissionsOptions = {}) {
-  const { profile } = useProfile({ enabled });
+  const { profile, loading, error } = useProfile({ enabled });
 
   return useMemo(() => {
     const role: UserRole = profile?.role ?? "player";
     const verified = profile?.isVerified ?? false;
 
     return {
+      loading,
+      error,
       role,
       verified,
       userId: profile?.id ?? null,
       canUploadClip: canUploadClip(role),
       canVoteMvp: canVoteMvp(role),
       canFollow: canFollow(role),
-      canCoachReview: canCoachReview(role, verified),
+      canScoutReview: canScoutReview(role, verified),
       canUseWatchlist: canUseWatchlist(role, verified),
       canDm: (targetRole: UserRole, isFollowing: boolean, isSameTeam: boolean) =>
         canDm(role, verified, targetRole, isFollowing, isSameTeam),
     };
-  }, [profile?.id, profile?.role, profile?.isVerified]);
+  }, [error, loading, profile?.id, profile?.isVerified, profile?.role]);
 }
