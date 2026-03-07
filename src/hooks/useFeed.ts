@@ -22,7 +22,7 @@ export interface FeedItemEnriched {
   myReaction: string | null;
 }
 
-const FEED_MEMORY_LIMIT = 40;
+const FEED_MEMORY_LIMIT = 25;
 
 export function useFeed(
   initialItems: FeedItemEnriched[] = [],

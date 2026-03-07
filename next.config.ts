@@ -6,6 +6,9 @@ const turbopackRoot = process.env.INIT_CWD ?? process.cwd();
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
+  experimental: {
+    optimizePackageImports: ["@supabase/supabase-js", "zustand"],
+  },
   turbopack: { root: turbopackRoot },
   serverExternalPackages: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
   images: {

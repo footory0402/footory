@@ -11,10 +11,12 @@ export default function PushPermissionPrompt({ onClose }: { onClose: () => void 
   const handleAccept = async () => {
     setRequesting(true);
     try {
-      const { requestPushPermission, savePushToken } = await import("@/lib/fcm");
-      const token = await requestPushPermission();
-      if (token) {
-        await savePushToken(token);
+      if ("Notification" in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          // Token registration handled by usePushNotification hook in settings
+          console.log("[Push] Permission granted");
+        }
       }
     } catch (err) {
       console.error("[Push] Error:", err);

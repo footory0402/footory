@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import PlayerRanking from "@/components/explore/PlayerRanking";
-import RisingPlayers from "@/components/explore/RisingPlayers";
-import TeamRanking from "@/components/explore/TeamRanking";
-import TagGrid from "@/components/explore/TagGrid";
 
-const SearchOverlay = dynamic(() => import("@/components/explore/SearchOverlay"), {
-  ssr: false,
-});
+const PlayerRanking = dynamic(() => import("@/components/explore/PlayerRanking"), { ssr: false });
+const RisingPlayers = dynamic(() => import("@/components/explore/RisingPlayers"), { ssr: false });
+const TeamRanking = dynamic(() => import("@/components/explore/TeamRanking"), { ssr: false });
+const TagGrid = dynamic(() => import("@/components/explore/TagGrid"), { ssr: false });
+const SearchOverlay = dynamic(() => import("@/components/explore/SearchOverlay"), { ssr: false });
 
 type FilterTab = "all" | "player" | "team" | "tag";
 

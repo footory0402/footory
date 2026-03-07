@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState, useCallback, useTransition } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { SectionCard } from "@/components/ui/Card";
 import VoteCard, {
   VoteCardCompact,
   type VoteCardCandidate,
 } from "@/components/mvp/VoteCard";
 import MvpRanking from "@/components/mvp/MvpRanking";
-import MvpArchive, { type ArchiveWeek } from "@/components/mvp/MvpArchive";
-import MvpHallOfFame, {
-  type HallOfFameEntry,
-} from "@/components/mvp/MvpHallOfFame";
+import dynamic from "next/dynamic";
+import type { ArchiveWeek } from "@/components/mvp/MvpArchive";
+import type { HallOfFameEntry } from "@/components/mvp/MvpHallOfFame";
+
+const MvpArchive = dynamic(() => import("@/components/mvp/MvpArchive"), { ssr: false });
+const MvpHallOfFame = dynamic(() => import("@/components/mvp/MvpHallOfFame"), { ssr: false });
 import {
   isVotingOpen,
   getVotingTimeRemaining,
@@ -34,13 +36,6 @@ export default function MvpPage() {
     newPlayers: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [timeRemaining, setTimeRemaining] = useState<{
-    hours: number;
-    minutes: number;
-    seconds: number;
-  } | null>(null);
-
-  const [, startTimerTransition] = useTransition();
 
   // Sub-tabs
   const [activeTab, setActiveTab] = useState<MvpTab>("ranking");
@@ -117,18 +112,10 @@ export default function MvpPage() {
     }
   }, [activeTab, archiveWeeks.length, hallOfFame.length, fetchArchive, fetchHallOfFame]);
 
-  // Voting timer
+  // Check voting open status (not every second — just on mount and candidates fetch)
   useEffect(() => {
-    const update = () => {
-      startTimerTransition(() => {
-        setVotingOpen(isVotingOpen());
-        setTimeRemaining(getVotingTimeRemaining());
-      });
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    setVotingOpen(isVotingOpen());
+  }, [candidates]);
 
   // Handle vote (optimistic update)
   const handleVote = async (clipId: string) => {
@@ -248,40 +235,7 @@ export default function MvpPage() {
         </div>
 
         {/* Voting status */}
-        <div className="text-right">
-          {votingOpen ? (
-            <div>
-              <span
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
-                style={{
-                  background: "rgba(74,222,128,0.12)",
-                  color: "var(--color-green)",
-                  border: "1px solid rgba(74,222,128,0.3)",
-                }}
-              >
-                🟢 투표 진행중
-              </span>
-              {timeRemaining && (
-                <p className="mt-0.5 font-stat text-[11px] text-text-3">
-                  {String(timeRemaining.hours).padStart(2, "0")}:
-                  {String(timeRemaining.minutes).padStart(2, "0")}:
-                  {String(timeRemaining.seconds).padStart(2, "0")} 남음
-                </p>
-              )}
-            </div>
-          ) : (
-            <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
-              style={{
-                background: "rgba(113,113,122,0.12)",
-                color: "var(--color-text-3)",
-                border: "1px solid rgba(113,113,122,0.3)",
-              }}
-            >
-              ⏸ 집계중
-            </span>
-          )}
-        </div>
+        <VotingStatusBadge votingOpen={votingOpen} />
       </div>
 
       {/* My vote status */}
@@ -473,6 +427,63 @@ export default function MvpPage() {
 }
 
 // ── Stat Box ─────────────────────────────────────────────
+
+// Isolated timer component — only this re-renders every second
+function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
+  const [timeRemaining, setTimeRemaining] = useState<{
+    hours: number;
+    minutes: number;
+    seconds: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!votingOpen) {
+      setTimeRemaining(null);
+      return;
+    }
+    const update = () => setTimeRemaining(getVotingTimeRemaining());
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [votingOpen]);
+
+  return (
+    <div className="text-right">
+      {votingOpen ? (
+        <div>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+            style={{
+              background: "rgba(74,222,128,0.12)",
+              color: "var(--color-green)",
+              border: "1px solid rgba(74,222,128,0.3)",
+            }}
+          >
+            투표 진행중
+          </span>
+          {timeRemaining && (
+            <p className="mt-0.5 font-stat text-[11px] text-text-3">
+              {String(timeRemaining.hours).padStart(2, "0")}:
+              {String(timeRemaining.minutes).padStart(2, "0")}:
+              {String(timeRemaining.seconds).padStart(2, "0")} 남음
+            </p>
+          )}
+        </div>
+      ) : (
+        <span
+          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+          style={{
+            background: "rgba(113,113,122,0.12)",
+            color: "var(--color-text-3)",
+            border: "1px solid rgba(113,113,122,0.3)",
+          }}
+        >
+          집계중
+        </span>
+      )}
+    </div>
+  );
+}
 
 function StatBox({
   label,

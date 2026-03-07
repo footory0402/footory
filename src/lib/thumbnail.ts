@@ -22,8 +22,8 @@ export function captureVideoThumbnail(
 
     video.onseeked = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = 640;
-      canvas.height = 360;
+      canvas.width = 320;
+      canvas.height = 180;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         URL.revokeObjectURL(url);
@@ -31,14 +31,21 @@ export function captureVideoThumbnail(
         return;
       }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(
-        (blob) => {
-          URL.revokeObjectURL(url);
-          resolve(blob);
-        },
-        "image/jpeg",
-        0.8
-      );
+      const finalize = () => {
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(url);
+            resolve(blob);
+          },
+          "image/jpeg",
+          0.7
+        );
+      };
+      if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(finalize);
+      } else {
+        finalize();
+      }
     };
 
     video.onerror = () => {

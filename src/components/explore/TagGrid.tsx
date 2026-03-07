@@ -53,6 +53,7 @@ export default function TagGrid() {
                   src={clip.thumbnail_url}
                   alt={`${clip.owner_name} clip`}
                   fill
+                  loading="lazy"
                   sizes="(max-width: 430px) 33vw, 140px"
                   className="h-full w-full object-cover transition-transform group-active:scale-105"
                 />

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import Image from "next/image";
 import { LEVELS } from "@/lib/constants";
 
@@ -22,7 +23,7 @@ const pixelSizes: Record<string, number> = {
   lg: 56,
 };
 
-export default function Avatar({ name, size = "md", level = 1, imageUrl }: AvatarProps) {
+export default memo(function Avatar({ name, size = "md", level = 1, imageUrl }: AvatarProps) {
   const lvl = LEVELS[Math.min(level, 5) - 1];
   const borderColor = lvl.color;
   const hasGlow = level >= 3;
@@ -47,4 +48,4 @@ export default function Avatar({ name, size = "md", level = 1, imageUrl }: Avata
       </div>
     </div>
   );
-}
+});
