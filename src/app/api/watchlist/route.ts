@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { canUseWatchlist } from "@/lib/permissions";
 
 export async function GET() {
   const supabase = await createClient();
@@ -7,6 +8,19 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, is_verified")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile || !canUseWatchlist(profile.role, profile.is_verified)) {
+    return NextResponse.json(
+      { error: "인증된 코치/스카우터만 워치리스트를 사용할 수 있습니다" },
+      { status: 403 }
+    );
+  }
 
   // 워치리스트 기본 조회
   const { data: watchlist, error } = await supabase
@@ -63,7 +77,7 @@ export async function POST(req: NextRequest) {
     .eq("id", user.id)
     .single();
 
-  if (!profile || !profile.is_verified || !["coach", "scout"].includes(profile.role)) {
+  if (!profile || !canUseWatchlist(profile.role, profile.is_verified)) {
     return NextResponse.json(
       { error: "인증된 코치/스카우터만 워치리스트를 사용할 수 있습니다" },
       { status: 403 }

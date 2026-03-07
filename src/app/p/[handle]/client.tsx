@@ -25,6 +25,7 @@ import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
 import { APP_URL, POSITION_LABELS } from "@/lib/constants";
 import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
+import type { DmActionState, UserRole } from "@/lib/permissions";
 
 interface FeaturedClip {
   id: string;
@@ -66,6 +67,22 @@ interface PublicProfileData {
   timelineEvents: Record<string, unknown>[];
   isFollowing?: boolean;
   isOwnProfile?: boolean;
+  viewerAccess?: {
+    role: UserRole | null;
+    verified: boolean;
+    canFollow: boolean;
+    watchlist: {
+      visible: boolean;
+      enabled: boolean;
+      label: string;
+      message: string;
+    };
+    dm: {
+      state: DmActionState;
+      label: string;
+      message?: string;
+    };
+  };
 }
 
 // Map DB row to Profile type for ProfileCard
@@ -182,6 +199,15 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const shareUrl = typeof window !== "undefined"
     ? window.location.href
     : `${APP_URL}/p/${profile.handle}`;
+  const viewerAccess = data.viewerAccess;
+  const showWatchlistAction =
+    !!viewerAccess?.watchlist.visible && profile.role === "player";
+  const helperTexts = [
+    viewerAccess?.dm.state === "blocked" ? viewerAccess.dm.message : "",
+    showWatchlistAction && !viewerAccess?.watchlist.enabled
+      ? viewerAccess?.watchlist.message
+      : "",
+  ].filter(Boolean);
 
   const handleBack = useCallback(() => {
     if (window.history.length > 1) router.back();
@@ -207,37 +233,66 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {!data.isOwnProfile && (
           <>
-            <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
-            <AddToWatchlistButton playerId={profile.id} />
-            <button
-              onClick={async () => {
-                const supabase = createClient();
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+            {viewerAccess?.canFollow && (
+              <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
+            )}
+            {showWatchlistAction && viewerAccess?.watchlist.enabled && (
+              <AddToWatchlistButton playerId={profile.id} />
+            )}
+            {showWatchlistAction && !viewerAccess?.watchlist.enabled && (
+              <button
+                type="button"
+                disabled
+                className="flex items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold text-text-3 opacity-70"
+              >
+                <span>☆</span>
+                <span>{viewerAccess?.watchlist.label}</span>
+              </button>
+            )}
+            {viewerAccess?.dm.state !== "hidden" && (
+              <button
+                onClick={async () => {
+                  const supabase = createClient();
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) return;
 
-                const perm = await canSendDm(user.id, profile.id);
-                if (perm === "blocked") {
-                  alert("이 사용자에게 메시지를 보낼 수 없습니다.");
-                  return;
-                }
-                if (perm === "request") {
-                  const msg = prompt("대화 요청 메시지를 입력하세요:");
-                  if (msg === null) return;
-                  await sendDmRequest(profile.id, msg);
-                  alert("대화 요청을 보냈습니다.");
-                  return;
-                }
+                  if (viewerAccess?.dm.state === "blocked") {
+                    alert(viewerAccess.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
+                    return;
+                  }
+                  if (viewerAccess?.dm.state === "request") {
+                    const msg = prompt("대화 요청 메시지를 입력하세요:");
+                    if (msg === null) return;
+                    await sendDmRequest(profile.id, msg);
+                    alert("대화 요청을 보냈습니다.");
+                    return;
+                  }
 
-                const convId = await getOrCreateConversation(user.id, profile.id);
-                router.push(`/dm/${convId}`);
-              }}
-              className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-[13px] font-semibold text-text-2 transition-colors hover:border-accent hover:text-accent"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-              </svg>
-              메시지
-            </button>
+                  const perm = await canSendDm(user.id, profile.id);
+                  if (perm === "blocked") {
+                    alert(viewerAccess?.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
+                    return;
+                  }
+                  if (perm === "request") {
+                    const msg = prompt("대화 요청 메시지를 입력하세요:");
+                    if (msg === null) return;
+                    await sendDmRequest(profile.id, msg);
+                    alert("대화 요청을 보냈습니다.");
+                    return;
+                  }
+
+                  const convId = await getOrCreateConversation(user.id, profile.id);
+                  router.push(`/dm/${convId}`);
+                }}
+                disabled={viewerAccess?.dm.state === "blocked"}
+                className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-[13px] font-semibold text-text-2 transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+                {viewerAccess?.dm.label ?? "메시지"}
+              </button>
+            )}
           </>
         )}
         <button
@@ -250,6 +305,13 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           공유
         </button>
       </div>
+      {helperTexts.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1 text-[12px] text-text-3">
+          {helperTexts.map((text) => (
+            <p key={text}>{text}</p>
+          ))}
+        </div>
+      )}
 
       {/* Contact info */}
       {data.contact && (

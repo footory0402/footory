@@ -46,6 +46,7 @@ export default function ChildDashboard() {
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [showLink, setShowLink] = useState(false);
   const [uploadTarget, setUploadTarget] = useState<LinkedChild | null>(null);
 
@@ -59,14 +60,20 @@ export default function ChildDashboard() {
   // Fetch dashboard data
   const fetchDashboard = useCallback(async (childId: string) => {
     setLoading(true);
+    setDashboardError(null);
     try {
       const res = await fetch(`/api/parent/dashboard?childId=${childId}`);
       if (res.ok) {
         const data = await res.json();
         setDashboard(data);
+        return;
       }
+      const body = await res.json().catch(() => ({}));
+      setDashboard(null);
+      setDashboardError(body.error ?? "대시보드를 불러오지 못했어요.");
     } catch {
-      // Silently fail
+      setDashboard(null);
+      setDashboardError("대시보드를 불러오지 못했어요.");
     } finally {
       setLoading(false);
     }
@@ -156,6 +163,21 @@ export default function ChildDashboard() {
               )}
               <StatRow emoji="📈" label="레벨" value={`Lv.${dashboard.weeklyStats.level}`} />
             </div>
+          </div>
+        ) : dashboardError ? (
+          <div className="rounded-[14px] border border-border bg-card p-4">
+            <p className="text-[13px] font-medium text-text-1">
+              이번 주 활동을 아직 불러오지 못했어요
+            </p>
+            <p className="mt-1 text-[12px] text-text-3">
+              잠시 후 다시 시도해주세요.
+            </p>
+            <button
+              onClick={() => selectedChildId && fetchDashboard(selectedChildId)}
+              className="mt-3 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-2"
+            >
+              다시 불러오기
+            </button>
           </div>
         ) : null}
       </div>

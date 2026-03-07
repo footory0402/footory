@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createNotification } from "@/lib/notifications";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { canFollow } from "@/lib/permissions";
 
 /** Count rows and update profile field */
 async function syncFollowCounts(
@@ -34,20 +35,21 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 선수만 팔로우 가능
-  const { data: senderProfile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (senderProfile?.role !== "player") {
-    return NextResponse.json({ error: "Only players can follow" }, { status: 403 });
-  }
-
   const { targetId } = await req.json();
   if (!targetId || targetId === user.id) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+  }
+
+  const [{ data: senderProfile }, { data: targetProfile }] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("role").eq("id", targetId).maybeSingle(),
+  ]);
+
+  if (!senderProfile || !canFollow(senderProfile.role) || targetProfile?.role !== "player") {
+    return NextResponse.json(
+      { error: "선수 계정만 다른 선수 프로필을 팔로우할 수 있습니다" },
+      { status: 403 }
+    );
   }
 
   // Check if already following

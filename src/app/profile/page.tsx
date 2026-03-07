@@ -126,6 +126,21 @@ export default function ProfilePage() {
               관심 선수
             </Link>
           )}
+          {!displayProfile.isVerified && ["coach", "scout"].includes(displayProfile.role) && (
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                disabled
+                className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 opacity-70"
+              >
+                <span>🔒</span>
+                인증 후 관심 선수 저장
+              </button>
+              <p className="text-[11px] text-text-3">
+                인증된 코치·스카우터만 워치리스트를 사용할 수 있어요.
+              </p>
+            </div>
+          )}
         </div>
         <button
           onClick={() => setPdfExportOpen(true)}

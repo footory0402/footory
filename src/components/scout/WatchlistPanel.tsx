@@ -41,14 +41,30 @@ interface Props {
 export default function WatchlistPanel({ onClose }: Props) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNote, setEditNote] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/watchlist")
-      .then((r) => r.json())
-      .then((d) => setItems(d.watchlist ?? []))
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          throw new Error(
+            body.error ?? "인증된 코치·스카우터만 워치리스트를 사용할 수 있어요."
+          );
+        }
+        return body;
+      })
+      .then((d) => {
+        setItems(d.watchlist ?? []);
+        setErrorMessage(null);
+      })
+      .catch((error: Error) => {
+        setItems([]);
+        setErrorMessage(error.message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -111,7 +127,17 @@ export default function WatchlistPanel({ onClose }: Props) {
           </div>
         )}
 
-        {!loading && items.length === 0 && (
+        {!loading && errorMessage && (
+          <div className="px-4 py-12 text-center">
+            <p className="text-[32px]">🔒</p>
+            <p className="mt-2 text-[14px] font-semibold text-text-1">
+              워치리스트를 아직 사용할 수 없어요
+            </p>
+            <p className="mt-1 text-[12px] text-text-3">{errorMessage}</p>
+          </div>
+        )}
+
+        {!loading && !errorMessage && items.length === 0 && (
           <div className="py-12 text-center">
             <p className="text-[32px]">⭐</p>
             <p className="mt-2 text-[14px] text-text-3">

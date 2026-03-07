@@ -1,4 +1,21 @@
 export type UserRole = "player" | "parent" | "other" | "coach" | "scout";
+export type DmActionState = "allowed" | "request" | "blocked" | "hidden";
+
+interface DmActionOptions {
+  senderRole: UserRole | null;
+  senderVerified: boolean;
+  targetRole: UserRole;
+  isFollowing: boolean;
+  isSameTeam: boolean;
+  isBlocked: boolean;
+  targetIsMinor: boolean;
+}
+
+export interface DmAction {
+  state: DmActionState;
+  label: string;
+  message?: string;
+}
 
 /** 선수만 클립 업로드 가능 */
 export function canUploadClip(role: UserRole): boolean {
@@ -32,6 +49,129 @@ export function canDm(
   // 팔로우 관계면 DM 가능
   if (isFollowing) return true;
   return false;
+}
+
+export function getDmAction({
+  senderRole,
+  senderVerified,
+  targetRole,
+  isFollowing,
+  isSameTeam,
+  isBlocked,
+  targetIsMinor,
+}: DmActionOptions): DmAction {
+  if (!senderRole) {
+    return {
+      state: "hidden",
+      label: "메시지",
+    };
+  }
+
+  if (isBlocked) {
+    return {
+      state: "blocked",
+      label: "메시지 불가",
+      message: "차단된 사용자와는 대화할 수 없어요.",
+    };
+  }
+
+  if (senderRole === "parent") {
+    if (targetRole === "coach" || targetRole === "scout" || targetRole === "other") {
+      return {
+        state: "request",
+        label: "대화 요청",
+        message: "상대가 수락하면 대화를 시작할 수 있어요.",
+      };
+    }
+
+    return {
+      state: "blocked",
+      label: "메시지 제한",
+      message: "보호자 계정은 코치·스카우터에게만 메시지를 보낼 수 있어요.",
+    };
+  }
+
+  if (senderRole === "coach") {
+    if (!senderVerified && (targetRole === "player" || targetRole === "parent" || targetIsMinor)) {
+      return {
+        state: "blocked",
+        label: "인증 필요",
+        message: "인증된 코치만 미성년 선수나 보호자에게 먼저 메시지를 보낼 수 있어요.",
+      };
+    }
+
+    return {
+      state: "allowed",
+      label: "메시지",
+    };
+  }
+
+  if (senderRole === "scout") {
+    if (!senderVerified) {
+      return {
+        state: "blocked",
+        label: "인증 필요",
+        message: "인증된 스카우터만 선수나 보호자에게 메시지를 보낼 수 있어요.",
+      };
+    }
+
+    if (targetRole === "player" || targetRole === "parent") {
+      return {
+        state: "allowed",
+        label: "메시지",
+      };
+    }
+
+    return {
+      state: "blocked",
+      label: "메시지 제한",
+      message: "스카우터 계정은 선수·보호자에게만 메시지를 보낼 수 있어요.",
+    };
+  }
+
+  if (senderRole === "player") {
+    if (targetRole === "player" && (isSameTeam || isFollowing)) {
+      return {
+        state: "allowed",
+        label: "메시지",
+      };
+    }
+
+    if (targetRole === "player") {
+      return {
+        state: "request",
+        label: "대화 요청",
+        message: "팔로우하거나 같은 팀이면 바로 대화할 수 있어요.",
+      };
+    }
+
+    return {
+      state: "request",
+      label: "대화 요청",
+      message: "상대가 수락하면 대화를 시작할 수 있어요.",
+    };
+  }
+
+  if (senderRole === "other") {
+    if (senderVerified) {
+      return {
+        state: "allowed",
+        label: "메시지",
+      };
+    }
+
+    return {
+      state: "request",
+      label: "대화 요청",
+      message: "상대가 수락하면 대화를 시작할 수 있어요.",
+    };
+  }
+
+  return {
+    state: "request",
+    label: "대화 요청",
+    message: "상대가 수락하면 대화를 시작할 수 있어요.",
+  };
 }
 
 /** 코치 리뷰 작성 권한 (인증된 코치/스카우터만) */

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { isBlocked } from "@/lib/blocks";
+import { getDmAction, type UserRole } from "@/lib/permissions";
 
 export type DmPermission = "allowed" | "request" | "blocked";
 
@@ -49,11 +50,6 @@ export async function canSendDm(
     .eq("id", senderId)
     .single();
 
-  if (senderProfile?.role === "other" && senderProfile.is_verified) {
-    return "allowed";
-  }
-
-  // Check if target is minor (under 18) and sender is unverified coach
   const { data: targetProfile } = await supabase
     .from("profiles")
     .select("birth_year, role")
@@ -61,14 +57,23 @@ export async function canSendDm(
     .single();
 
   const currentYear = new Date().getFullYear();
-  const isMinor =
-    targetProfile?.birth_year && currentYear - targetProfile.birth_year < 18;
+  const isMinor = Boolean(
+    targetProfile?.birth_year && currentYear - targetProfile.birth_year < 18
+  );
 
-  if (isMinor && senderProfile?.role === "other" && !senderProfile.is_verified) {
-    return "blocked";
-  }
+  const action = getDmAction({
+    senderRole: (senderProfile?.role ?? null) as UserRole | null,
+    senderVerified: !!senderProfile?.is_verified,
+    targetRole: (targetProfile?.role ?? "player") as UserRole,
+    isFollowing: !!followData,
+    isSameTeam,
+    isBlocked: false,
+    targetIsMinor: isMinor,
+  });
 
-  return "request";
+  if (action.state === "allowed") return "allowed";
+  if (action.state === "request") return "request";
+  return "blocked";
 }
 
 export async function sendDmRequest(

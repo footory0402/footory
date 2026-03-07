@@ -2,10 +2,30 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
+import {
+  canFollow,
+  canUseWatchlist,
+  getDmAction,
+  type DmAction,
+  type UserRole,
+} from "@/lib/permissions";
 import PublicProfileClient from "./client";
 
 interface Props {
   params: Promise<{ handle: string }>;
+}
+
+interface ViewerAccess {
+  role: UserRole | null;
+  verified: boolean;
+  canFollow: boolean;
+  watchlist: {
+    visible: boolean;
+    enabled: boolean;
+    label: string;
+    message: string;
+  };
+  dm: DmAction;
 }
 
 const getProfile = cache(async (handle: string) => {
@@ -88,15 +108,97 @@ const getProfile = cache(async (handle: string) => {
 
   // Check if current user follows this profile
   let isFollowing = false;
+  let viewerAccess: ViewerAccess = {
+    role: null as UserRole | null,
+    verified: false,
+    canFollow: false,
+    watchlist: {
+      visible: false,
+      enabled: false,
+      label: "관심 선수 추가",
+      message: "",
+    },
+    dm: {
+      state: "hidden",
+      label: "메시지",
+      message: "",
+    },
+  };
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   if (currentUser && currentUser.id !== profile.id) {
-    const { data: followRow } = await supabase
-      .from("follows")
-      .select("id")
-      .eq("follower_id", currentUser.id)
-      .eq("following_id", profile.id)
-      .maybeSingle();
-    isFollowing = !!followRow;
+    const [
+      followRow,
+      viewerProfile,
+      viewerTeams,
+      targetTeams,
+      blockRow,
+    ] = await Promise.all([
+      supabase
+        .from("follows")
+        .select("id")
+        .eq("follower_id", currentUser.id)
+        .eq("following_id", profile.id)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("role, is_verified")
+        .eq("id", currentUser.id)
+        .maybeSingle(),
+      supabase
+        .from("team_members")
+        .select("team_id")
+        .eq("profile_id", currentUser.id)
+        .neq("role", "alumni"),
+      supabase
+        .from("team_members")
+        .select("team_id")
+        .eq("profile_id", profile.id)
+        .neq("role", "alumni"),
+      supabase
+        .from("blocks")
+        .select("id")
+        .or(
+          `and(blocker_id.eq.${currentUser.id},blocked_id.eq.${profile.id}),and(blocker_id.eq.${profile.id},blocked_id.eq.${currentUser.id})`
+        )
+        .maybeSingle(),
+    ]);
+
+    isFollowing = !!followRow.data;
+
+    const viewerRole = (viewerProfile.data?.role ?? null) as UserRole | null;
+    const viewerVerified = !!viewerProfile.data?.is_verified;
+    const targetRole = (profile.role ?? "player") as UserRole;
+    const viewerTeamIds = new Set((viewerTeams.data ?? []).map((item) => item.team_id));
+    const isSameTeam = (targetTeams.data ?? []).some((item) => viewerTeamIds.has(item.team_id));
+    const targetIsMinor = Boolean(
+      profile.birth_year && new Date().getFullYear() - profile.birth_year < 18
+    );
+
+    viewerAccess = {
+      role: viewerRole,
+      verified: viewerVerified,
+      canFollow: viewerRole === "player" && targetRole === "player" && canFollow(viewerRole),
+      watchlist: {
+        visible: (viewerRole === "coach" || viewerRole === "scout") && targetRole === "player",
+        enabled: viewerRole !== null && canUseWatchlist(viewerRole, viewerVerified),
+        label: viewerVerified ? "관심 선수 추가" : "인증 후 관심 선수 저장",
+        message:
+          viewerRole === "coach" || viewerRole === "scout"
+            ? viewerVerified
+              ? ""
+              : "관심 선수 저장은 인증된 코치·스카우터만 사용할 수 있어요."
+            : "",
+      },
+      dm: getDmAction({
+        senderRole: viewerRole,
+        senderVerified: viewerVerified,
+        targetRole,
+        isFollowing,
+        isSameTeam,
+        isBlocked: !!blockRow.data,
+        targetIsMinor,
+      }),
+    };
   }
 
   // Increment view count (fire and forget)
@@ -119,6 +221,7 @@ const getProfile = cache(async (handle: string) => {
     timelineEvents: timelineEvents.data ?? [],
     isFollowing,
     isOwnProfile: currentUser?.id === profile.id,
+    viewerAccess,
   };
 });
 
