@@ -13,8 +13,11 @@
 # testing
 /coverage
 /playwright-report
+/qa-report
 /test-results
 /.auth
+/.tmp
+/.playwright-mcp
 
 # next.js
 /.next/
@@ -41,6 +44,7 @@ yarn-error.log*
 
 # local tooling
 .mcp.json
+.claude/settings.local.json
 supabase/.temp/*
 !supabase/.temp/cli-latest
 
