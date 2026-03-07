@@ -1,11 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_KR, Oswald, Rajdhani, Geist } from "next/font/google";
+import { Noto_Sans_KR, Oswald, Rajdhani } from "next/font/google";
 import AppShell from "@/components/layout/AppShell";
-import ToastContainer from "@/components/ui/Toast";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
@@ -55,12 +52,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={cn(notoSansKr.variable, oswald.variable, rajdhani.variable, "font-sans", geist.variable)}>
+    <html lang="ko" className={`dark ${notoSansKr.variable} ${oswald.variable} ${rajdhani.variable}`}>
       <body>
         <div className="mx-auto min-h-dvh max-w-[430px]">
           <AppShell>{children}</AppShell>
         </div>
-        <ToastContainer />
+        <Toaster
+          position="bottom-center"
+          toastOptions={{
+            className: "!bg-card !text-text-1 !border-border !rounded-xl !text-[13px] !font-medium !shadow-lg",
+          }}
+        />
       </body>
     </html>
   );
