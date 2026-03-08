@@ -12,6 +12,7 @@ import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
 import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const AddToWatchlistButton = dynamic(
   () => import("@/components/scout/AddToWatchlistButton"),
@@ -257,27 +258,27 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                   if (!user) return;
 
                   if (viewerAccess?.dm.state === "blocked") {
-                    alert(viewerAccess.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
+                    toast.error(viewerAccess.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
                     return;
                   }
                   if (viewerAccess?.dm.state === "request") {
                     const msg = prompt("대화 요청 메시지를 입력하세요:");
                     if (msg === null) return;
                     await sendDmRequest(profile.id, msg);
-                    alert("대화 요청을 보냈습니다.");
+                    toast.success("대화 요청을 보냈습니다.");
                     return;
                   }
 
                   const perm = await canSendDm(user.id, profile.id);
                   if (perm === "blocked") {
-                    alert(viewerAccess?.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
+                    toast.error(viewerAccess?.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
                     return;
                   }
                   if (perm === "request") {
                     const msg = prompt("대화 요청 메시지를 입력하세요:");
                     if (msg === null) return;
                     await sendDmRequest(profile.id, msg);
-                    alert("대화 요청을 보냈습니다.");
+                    toast.success("대화 요청을 보냈습니다.");
                     return;
                   }
 

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { POSITIONS, HANDLE_REGEX } from "@/lib/constants";
+import { toast } from "sonner";
 
 const FOOT_OPTIONS = [
   { value: "right", label: "오른발" },
@@ -32,6 +34,11 @@ export default function PlayerOnboarding({ onBack }: Props) {
   const [heightCm, setHeightCm] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [preferredFoot, setPreferredFoot] = useState("");
+
+  // Step 3 — avatar
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle check debounce
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -65,9 +72,46 @@ export default function PlayerOnboarding({ onBack }: Props) {
   const canProceedStep1 =
     name.trim().length >= 1 && handleStatus === "available" && position;
 
+  const handleAvatarChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("이미지 파일만 선택할 수 있어요");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("5MB 이하의 이미지만 업로드할 수 있어요");
+      return;
+    }
+
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
+
+    let avatarUrl: string | null = null;
+
+    // Upload avatar if selected
+    if (avatarFile) {
+      try {
+        const formData = new FormData();
+        formData.append("file", avatarFile);
+        const uploadRes = await fetch("/api/profile/avatar", {
+          method: "POST",
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          avatarUrl = uploadData.url || null;
+        }
+      } catch {
+        // If avatar upload fails, proceed without it
+      }
+    }
 
     try {
       const res = await fetch("/api/onboarding", {
@@ -82,7 +126,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
           height_cm: heightCm ? parseInt(heightCm) : null,
           weight_kg: weightKg ? parseInt(weightKg) : null,
           preferred_foot: preferredFoot || null,
-          avatar_url: null,
+          avatar_url: avatarUrl,
         }),
       });
 
@@ -90,14 +134,14 @@ export default function PlayerOnboarding({ onBack }: Props) {
         router.push("/profile");
       } else {
         const data = await res.json();
-        alert(data.error || "프로필 생성에 실패했어요");
+        toast.error(data.error || "프로필 생성에 실패했어요");
         setSubmitting(false);
       }
     } catch {
-      alert("네트워크 오류가 발생했어요");
+      toast.error("네트워크 오류가 발생했어요");
       setSubmitting(false);
     }
-  }, [submitting, name, handle, position, birthYear, heightCm, weightKg, preferredFoot, router]);
+  }, [submitting, name, handle, position, birthYear, heightCm, weightKg, preferredFoot, avatarFile, router]);
 
   return (
     <div className="flex-1">
@@ -282,11 +326,38 @@ export default function PlayerOnboarding({ onBack }: Props) {
       {/* Step 3: 프로필 사진 */}
       {step === 3 && (
         <div className="animate-fade-up flex flex-1 flex-col items-center justify-center text-center">
-          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-border">
-            <svg className="h-10 w-10 text-text-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="group relative mb-6 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-border transition-colors hover:border-accent/50"
+          >
+            {avatarPreview ? (
+              <Image
+                src={avatarPreview}
+                alt="프로필 미리보기"
+                fill
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <svg className="h-10 w-10 text-text-3 transition-colors group-hover:text-accent/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            )}
+            {/* Camera badge */}
+            <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-accent text-bg">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </span>
+          </button>
 
           <h1 className="text-2xl font-bold text-text-1">프로필 사진</h1>
           <p className="mt-2 text-sm text-text-2">나중에 설정할 수도 있어요</p>

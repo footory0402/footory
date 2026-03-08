@@ -28,6 +28,10 @@ interface DashboardData {
     mvpRank: number | null;
     level: number;
   };
+  prevWeeklyStats?: {
+    newClips: number;
+    kudosReceived: number;
+  };
   recentActivity: {
     id: string;
     type: string;
@@ -136,6 +140,23 @@ export default function ChildDashboard() {
       {/* Weekly Recap (Monday only) */}
       <WeeklyRecap childId={selectedChild.childId} childName={selectedChild.name} />
 
+      {/* MVP Rank Card */}
+      {dashboard && dashboard.weeklyStats.mvpRank != null && dashboard.weeklyStats.mvpRank > 0 && (
+        <div className="mb-4 rounded-[14px] bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/30 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 text-[20px]">
+              🏆
+            </div>
+            <div>
+              <p className="text-[15px] font-bold text-accent">
+                이번 주 MVP <span className="font-oswald text-[20px]">{dashboard.weeklyStats.mvpRank}</span>위
+              </p>
+              <p className="text-[12px] text-text-3">주간 MVP 랭킹</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* This week stats */}
       <div className="mb-4">
         <h3 className="mb-2 text-[13px] font-semibold text-text-3">
@@ -163,6 +184,24 @@ export default function ChildDashboard() {
               )}
               <StatRow emoji="📈" label="레벨" value={`Lv.${dashboard.weeklyStats.level}`} />
             </div>
+            {/* Weekly Comparison */}
+            {dashboard.prevWeeklyStats && (
+              <div className="mt-4 pt-3 border-t border-border">
+                <p className="text-[11px] text-text-3 mb-2">지난 주 대비</p>
+                <div className="space-y-2">
+                  <ComparisonBar
+                    label="영상"
+                    current={dashboard.weeklyStats.newClips}
+                    previous={dashboard.prevWeeklyStats.newClips}
+                  />
+                  <ComparisonBar
+                    label="응원"
+                    current={dashboard.weeklyStats.kudosReceived}
+                    previous={dashboard.prevWeeklyStats.kudosReceived}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         ) : dashboardError ? (
           <div className="rounded-[14px] border border-border bg-card p-4">
@@ -210,7 +249,9 @@ export default function ChildDashboard() {
                   idx < dashboard.recentActivity.length - 1 ? "border-b border-border" : ""
                 }`}
               >
-                <span className="mt-0.5 text-[14px]">{getActivityIcon(item.type)}</span>
+                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[14px] ${getActivityIconBg(item.type)}`}>
+                  {getActivityIcon(item.type)}
+                </div>
                 <div className="flex-1">
                   <p className="text-[13px] text-text-1">{getActivityLabel(item.type, item.metadata)}</p>
                   <p className="mt-0.5 text-[11px] text-text-3">{formatTimeAgo(item.createdAt)}</p>
@@ -271,6 +312,18 @@ function StatRow({ emoji, label, value }: { emoji: string; label: string; value:
   );
 }
 
+function getActivityIconBg(type: string): string {
+  const map: Record<string, string> = {
+    highlight: "bg-accent/20",
+    featured_change: "bg-accent/20",
+    top_clip: "bg-accent/20",
+    medal: "bg-yellow-500/20",
+    stat: "bg-blue-500/20",
+    level_up: "bg-blue-500/20",
+  };
+  return map[type] ?? "bg-card-alt";
+}
+
 function getActivityIcon(type: string): string {
   const map: Record<string, string> = {
     highlight: "📹",
@@ -328,4 +381,40 @@ function formatTimeAgo(dateStr: string): string {
   if (days < 7) return `${days}일 전`;
 
   return new Date(dateStr).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+}
+
+function ComparisonBar({ label, current, previous }: { label: string; current: number; previous: number }) {
+  const max = Math.max(current, previous, 1);
+  const currentPct = (current / max) * 100;
+  const prevPct = (previous / max) * 100;
+  const diff = current - previous;
+  const diffLabel = diff > 0 ? `+${diff}` : diff === 0 ? "\u00B10" : `${diff}`;
+  const diffColor = diff > 0 ? "text-green" : diff < 0 ? "text-red-400" : "text-text-3";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[12px] text-text-2">{label}</span>
+        <span className={`text-[12px] font-medium ${diffColor}`}>{diffLabel}</span>
+      </div>
+      <div className="flex gap-1 h-2">
+        <div className="flex-1 rounded-full bg-card-alt overflow-hidden">
+          <div
+            className="h-full rounded-full bg-accent transition-all duration-500"
+            style={{ width: `${currentPct}%` }}
+          />
+        </div>
+        <div className="flex-1 rounded-full bg-card-alt overflow-hidden">
+          <div
+            className="h-full rounded-full bg-text-3/40 transition-all duration-500"
+            style={{ width: `${prevPct}%` }}
+          />
+        </div>
+      </div>
+      <div className="flex justify-between mt-0.5">
+        <span className="text-[10px] text-accent">이번 주 {current}</span>
+        <span className="text-[10px] text-text-3">지난 주 {previous}</span>
+      </div>
+    </div>
+  );
 }

@@ -3,18 +3,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { HANDLE_REGEX } from "@/lib/constants";
+import { toast } from "sonner";
 
 interface Props {
   onBack: () => void;
 }
 
+const SUB_ROLES = ["감독", "코치", "스카우터", "트레이너"] as const;
+
 export default function ScoutOnboarding({ onBack }: Props) {
   const router = useRouter();
+  const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
   const [organization, setOrganization] = useState("");
+  const [subRole, setSubRole] = useState("");
   const [handleStatus, setHandleStatus] = useState<
     "idle" | "checking" | "available" | "taken" | "invalid"
   >("idle");
@@ -54,6 +59,7 @@ export default function ScoutOnboarding({ onBack }: Props) {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const canSubmit = name.trim().length >= 1 && handleStatus === "available";
+  const canNext = canSubmit;
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
@@ -70,30 +76,96 @@ export default function ScoutOnboarding({ onBack }: Props) {
           position: null,
           birth_year: null,
           avatar_url: null,
-          bio: organization ? `스카우터 · ${organization}` : "스카우터",
+          bio: organization ? `${subRole || "스카우터"} · ${organization}` : (subRole || "스카우터"),
         }),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "프로필 생성에 실패했어요");
+        toast.error(data.error || "프로필 생성에 실패했어요");
         setSubmitting(false);
         return;
       }
 
       router.push("/");
     } catch {
-      alert("네트워크 오류가 발생했어요");
+      toast.error("네트워크 오류가 발생했어요");
       setSubmitting(false);
     }
   }, [submitting, name, handle, organization, router]);
 
+  if (step === 2) {
+    return (
+      <div className="animate-fade-up flex-1">
+        <h1 className="text-2xl font-bold text-text-1">인증 (선택)</h1>
+        <p className="mt-2 text-sm text-text-2">인증을 통해 신뢰도를 높여보세요</p>
+
+        <div className="mt-8 flex flex-col gap-3">
+          <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+            <span className="text-2xl">🏷️</span>
+            <div className="flex-1">
+              <p className="font-semibold text-text-1">팀 코드 입력</p>
+              <p className="text-xs text-text-3">소속 팀의 코드로 즉시 인증</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
+            <span className="text-2xl">📋</span>
+            <div className="flex-1">
+              <p className="font-semibold text-text-1">증빙 제출</p>
+              <p className="text-xs text-text-3">자격증 또는 소속 증명 서류 제출</p>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-4 text-xs text-text-3">
+          인증은 나중에 프로필 설정에서도 할 수 있어요.
+        </p>
+
+        <div className="mt-8 flex gap-3">
+          <button
+            onClick={() => setStep(1)}
+            className="rounded-full border border-border px-6 py-3 text-sm font-medium text-text-2"
+          >
+            이전
+          </button>
+          <button
+            disabled={submitting}
+            onClick={handleSubmit}
+            className="flex-1 rounded-full bg-accent py-3 text-sm font-bold text-bg transition-opacity disabled:opacity-40"
+          >
+            {submitting ? "생성 중..." : "시작하기"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-up flex-1">
-      <h1 className="text-2xl font-bold text-text-1">스카우터 정보</h1>
-      <p className="mt-2 text-sm text-text-2">유망한 선수를 발굴하시나요?</p>
+      <h1 className="text-2xl font-bold text-text-1">코치/스카우터 정보</h1>
+      <p className="mt-2 text-sm text-text-2">코치하거나 유망한 선수를 발굴하시나요?</p>
 
       <div className="mt-8 flex flex-col gap-5">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-text-2">역할</label>
+          <div className="flex flex-wrap gap-2">
+            {SUB_ROLES.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setSubRole(r)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                  subRole === r
+                    ? "bg-accent text-bg"
+                    : "border border-border bg-card text-text-2"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <label className="mb-1.5 block text-xs font-medium text-text-2">이름</label>
           <input
@@ -138,10 +210,6 @@ export default function ScoutOnboarding({ onBack }: Props) {
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-text-3">
-        스카우터 인증은 추후 프로필 설정에서 진행할 수 있어요.
-      </p>
-
       <div className="mt-8 flex gap-3">
         <button
           onClick={onBack}
@@ -150,11 +218,11 @@ export default function ScoutOnboarding({ onBack }: Props) {
           이전
         </button>
         <button
-          disabled={!canSubmit || submitting}
-          onClick={handleSubmit}
+          disabled={!canNext}
+          onClick={() => setStep(2)}
           className="flex-1 rounded-full bg-accent py-3 text-sm font-bold text-bg transition-opacity disabled:opacity-40"
         >
-          {submitting ? "생성 중..." : "시작하기"}
+          다음
         </button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import MvpTeaser from "@/components/mvp/MvpTeaser";
 import ChallengeBanner from "@/components/challenge/ChallengeBanner";
 
 const ChildDashboard = dynamic(() => import("@/components/parent/ChildDashboard"));
+const ScoutHome = dynamic(() => import("@/components/scout/ScoutHome"));
 
 const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
   loading: () => (
@@ -32,11 +33,18 @@ export default async function HomePage() {
   if (!user) redirect("/login");
 
   const profileRes = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  const isParent = profileRes.data?.role === "parent";
+  const role = profileRes.data?.role;
+  const isParent = role === "parent";
 
   // Parent gets a dedicated dashboard — no feed/MVP
   if (isParent) {
     return <ChildDashboard />;
+  }
+
+  // Scout gets an optimized discovery-focused home
+  const isScout = role === "scout";
+  if (isScout) {
+    return <ScoutHome />;
   }
 
   // Player/coach: normal feed home

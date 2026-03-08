@@ -78,7 +78,18 @@ export function rankCandidates(
 
   // Sort descending by totalScore
   scored.sort((a, b) => b.totalScore - a.totalScore);
-  return scored;
+
+  // Deduplicate by owner: keep only the highest-scoring clip per player
+  const seen = new Set<string>();
+  const deduped: CandidateScore[] = [];
+  for (const s of scored) {
+    if (!seen.has(s.ownerId)) {
+      seen.add(s.ownerId);
+      deduped.push(s);
+    }
+  }
+
+  return deduped;
 }
 
 // ── MVP Tier ──────────────────────────────────────────────

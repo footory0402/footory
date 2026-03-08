@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { POSITIONS, POSITION_COLORS, type Position } from "@/lib/constants";
 
 const PlayerRanking = dynamic(() => import("@/components/explore/PlayerRanking"), { ssr: false });
 const RisingPlayers = dynamic(() => import("@/components/explore/RisingPlayers"), { ssr: false });
@@ -18,9 +19,46 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "tag", label: "태그" },
 ];
 
+const STORAGE_KEY = "footory:discover-filters";
+
+const POSITION_LABELS_SHORT: Record<Position, string> = {
+  FW: "공격수",
+  MF: "미드필더",
+  DF: "수비수",
+  GK: "골키퍼",
+};
+
 export default function DiscoverPage() {
   const [tab, setTab] = useState<FilterTab>("all");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [positionFilter, setPositionFilter] = useState<Position | null>(null);
+  const [regionFilter, setRegionFilter] = useState("");
+
+  // Restore filters from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.positionFilter) setPositionFilter(parsed.positionFilter);
+        if (parsed.regionFilter) setRegionFilter(parsed.regionFilter);
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
+  // Persist filters to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ positionFilter, regionFilter })
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [positionFilter, regionFilter]);
 
   return (
     <div className="px-4 pt-4 pb-24">
@@ -53,6 +91,42 @@ export default function DiscoverPage() {
         ))}
       </div>
 
+      {/* Position / Region filters (visible on player or all tab) */}
+      {(tab === "all" || tab === "player") && (
+        <div className="mt-3 space-y-2">
+          {/* Position chips */}
+          <div className="flex gap-1.5">
+            {POSITIONS.map((pos) => {
+              const active = positionFilter === pos;
+              const color = POSITION_COLORS[pos];
+              return (
+                <button
+                  key={pos}
+                  onClick={() => setPositionFilter(active ? null : pos)}
+                  className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors border"
+                  style={
+                    active
+                      ? { backgroundColor: `${color}20`, borderColor: color, color }
+                      : { backgroundColor: "transparent", borderColor: "#27272A", color: "#A1A1AA" }
+                  }
+                >
+                  {POSITION_LABELS_SHORT[pos]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Region text filter */}
+          <input
+            type="text"
+            value={regionFilter}
+            onChange={(e) => setRegionFilter(e.target.value)}
+            placeholder="지역으로 필터 (예: 서울, 경기)"
+            className="h-8 w-full rounded-lg bg-card px-3 text-[12px] text-text-1 placeholder:text-text-3 outline-none border border-card-alt focus:border-accent/40"
+          />
+        </div>
+      )}
+
       {/* Content sections */}
       <div className="mt-6 space-y-6">
         {/* "전체" tab: shows all sections in overview */}
@@ -63,7 +137,7 @@ export default function DiscoverPage() {
             </Section>
 
             <Section title="인기 선수 랭킹" emoji="🏆">
-              <PlayerRanking compact />
+              <PlayerRanking compact positionFilter={positionFilter ?? undefined} />
             </Section>
 
             <Section title="팀 랭킹" emoji="🏟">
@@ -79,7 +153,7 @@ export default function DiscoverPage() {
         {/* "선수" tab: full player ranking */}
         {tab === "player" && (
           <Section title="선수 랭킹" emoji="🏆">
-            <PlayerRanking />
+            <PlayerRanking positionFilter={positionFilter ?? undefined} />
           </Section>
         )}
 

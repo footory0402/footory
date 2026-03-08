@@ -6,15 +6,15 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 const playerTabs = [
   { href: "/", label: "홈", icon: HomeIcon },
+  { href: "/discover", label: "탐색", icon: DiscoverIcon },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
-  { href: "/dm", label: "DM", icon: DmIcon },
   { href: "/profile", label: "프로필", icon: UserIcon },
   { href: "/team", label: "팀", icon: TeamIcon },
 ] as const;
 
 const parentTabs = [
   { href: "/", label: "홈", icon: HomeIcon },
-  { href: "/dm", label: "DM", icon: DmIcon },
+  { href: "/discover", label: "탐색", icon: DiscoverIcon },
   { href: "/profile/settings", label: "설정", icon: SettingsIcon },
 ] as const;
 
@@ -72,6 +72,15 @@ function HomeIcon({ active }: { active: boolean }) {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
       <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
       <path d="M9 21V12h6v9" />
+    </svg>
+  );
+}
+
+function DiscoverIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   );
 }

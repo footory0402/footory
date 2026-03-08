@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { HANDLE_REGEX } from "@/lib/constants";
+import { toast } from "sonner";
 
 interface Props {
   onBack: () => void;
@@ -100,7 +101,7 @@ export default function ParentOnboarding({ onBack }: Props) {
 
         if (!res.ok) {
           const data = await res.json();
-          alert(data.error || "프로필 생성에 실패했어요");
+          toast.error(data.error || "프로필 생성에 실패했어요");
           setSubmitting(false);
           return;
         }
@@ -116,7 +117,7 @@ export default function ParentOnboarding({ onBack }: Props) {
 
         router.push("/");
       } catch {
-        alert("네트워크 오류가 발생했어요");
+        toast.error("네트워크 오류가 발생했어요");
         setSubmitting(false);
       }
     },

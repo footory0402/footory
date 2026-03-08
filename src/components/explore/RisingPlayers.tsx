@@ -14,7 +14,7 @@ export default function RisingPlayers() {
     return (
       <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-[140px] w-[120px] shrink-0 animate-pulse rounded-[12px] bg-card" />
+          <div key={i} className="h-[160px] w-[120px] shrink-0 animate-pulse rounded-[12px] bg-card" />
         ))}
       </div>
     );
@@ -35,30 +35,28 @@ export default function RisingPlayers() {
         return (
           <div
             key={p.profile_id}
-            className="flex w-[120px] shrink-0 flex-col items-center gap-2 rounded-[12px] bg-card p-3"
+            className="flex w-[120px] h-[160px] shrink-0 flex-col items-center justify-between rounded-[12px] bg-card p-3"
           >
             <Link href={`/p/${p.handle}`} className="flex flex-col items-center gap-1.5">
               <Avatar
                 name={p.name}
-                size="sm"
+                size="md"
                 level={p.level}
                 imageUrl={p.avatar_url ?? undefined}
               />
               <span className="text-[12px] font-semibold text-text-1 text-center truncate w-full">
                 {p.name}
               </span>
-              <div className="flex items-center gap-1">
-                {p.position && (
-                  <span className="text-[10px]" style={{ color: posColor }}>
-                    {p.position}
-                  </span>
-                )}
-                {p.weekly_change > 0 && (
-                  <span className="text-[10px] text-green">
-                    +{p.weekly_change}
-                  </span>
-                )}
-              </div>
+              {p.position && (
+                <span className="text-[10px]" style={{ color: posColor }}>
+                  {p.position}
+                </span>
+              )}
+              {p.weekly_change > 0 && (
+                <span className="text-[10px] font-medium text-green">
+                  인기 +{p.weekly_change}
+                </span>
+              )}
             </Link>
             <FollowButton targetId={p.profile_id} size="sm" />
           </div>

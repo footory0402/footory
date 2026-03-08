@@ -59,11 +59,20 @@ export async function fetchFeedPage(
   const merged = mergeFeeds(followItems, recommendItems);
 
   // 4. Deduplicate by id + G3: 차단 사용자 콘텐츠 제외
+  //    featured_change는 같은 선수에 대해 24시간 내 1개만 노출
   const blockedSet = new Set(ctx.blockedIds ?? []);
   const seen = new Set<string>();
+  const featuredChangeSeen = new Set<string>(); // profile_id 기준
+  const now = Date.now();
   const unique = merged.filter((item) => {
     if (seen.has(item.id)) return false;
     if (blockedSet.has(item.profile_id)) return false;
+    if (item.type === "featured_change") {
+      const itemAge = now - new Date(item.created_at).getTime();
+      if (itemAge > 24 * 60 * 60 * 1000) return false; // 24시간 이상 된 항목 제외
+      if (featuredChangeSeen.has(item.profile_id)) return false;
+      featuredChangeSeen.add(item.profile_id);
+    }
     seen.add(item.id);
     return true;
   });
@@ -136,6 +145,9 @@ async function fetchFollowFeed(
 ): Promise<FeedItemEnriched[]> {
   if (followingIds.length === 0) return [];
 
+  // top_clip, season은 피드에서 제거 — 시스템 이벤트 노이즈
+  const EXCLUDED_FEED_TYPES = ["top_clip", "season"];
+
   let query = supabase
     .from("feed_items")
     .select(
@@ -145,6 +157,7 @@ async function fetchFollowFeed(
        comments(count)`
     )
     .in("profile_id", followingIds)
+    .not("type", "in", `(${EXCLUDED_FEED_TYPES.join(",")})`)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -191,6 +204,9 @@ async function fetchRecommendedFeed(
 
   const excludeIds = [userId, ...ctx.followingIds];
 
+  // top_clip, season은 피드에서 제거 — 시스템 이벤트 노이즈
+  const EXCLUDED_FEED_TYPES = ["top_clip", "season"];
+
   let query = supabase
     .from("feed_items")
     .select(
@@ -200,6 +216,7 @@ async function fetchRecommendedFeed(
        comments(count)`
     )
     .not("profile_id", "in", `(${excludeIds.join(",")})`)
+    .not("type", "in", `(${EXCLUDED_FEED_TYPES.join(",")})`)
     .order("created_at", { ascending: false })
     .limit(fetchLimit);
 

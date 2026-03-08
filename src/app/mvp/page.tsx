@@ -20,6 +20,7 @@ import {
 } from "@/lib/mvp-scoring";
 import { MAX_WEEKLY_VOTES } from "@/lib/constants";
 import { usePermissions } from "@/hooks/usePermissions";
+import { toast } from "sonner";
 
 type MvpTab = "ranking" | "archive" | "hallOfFame";
 
@@ -139,7 +140,7 @@ export default function MvpPage() {
         });
         setVotesRemaining((prev) => prev + 1);
         const err = await res.json();
-        alert(err.error ?? "투표에 실패했습니다");
+        toast.error(err.error ?? "투표에 실패했습니다");
         return;
       }
 
@@ -158,7 +159,7 @@ export default function MvpPage() {
         return next;
       });
       setVotesRemaining((prev) => prev + 1);
-      alert("네트워크 오류가 발생했습니다");
+      toast.error("네트워크 오류가 발생했습니다");
     }
   };
 
@@ -184,7 +185,7 @@ export default function MvpPage() {
         setMyVotedClipIds((prev) => new Set([...prev, clipId]));
         setVotesRemaining((prev) => prev - 1);
         const err = await res.json();
-        alert(err.error ?? "투표 취소에 실패했습니다");
+        toast.error(err.error ?? "투표 취소에 실패했습니다");
         return;
       }
 
@@ -199,7 +200,7 @@ export default function MvpPage() {
       // Revert
       setMyVotedClipIds((prev) => new Set([...prev, clipId]));
       setVotesRemaining((prev) => prev - 1);
-      alert("네트워크 오류가 발생했습니다");
+      toast.error("네트워크 오류가 발생했습니다");
     }
   };
 
@@ -273,6 +274,23 @@ export default function MvpPage() {
             <span className="text-[12px] text-text-2">
               {MAX_WEEKLY_VOTES - votesRemaining}/{MAX_WEEKLY_VOTES} 사용
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Votes exhausted banner */}
+      {votingOpen && canVoteMvp && votesRemaining === 0 && (
+        <div
+          className="flex items-center gap-2 rounded-[10px] px-4 py-3"
+          style={{
+            background: "rgba(212,168,83,0.08)",
+            border: "1px solid rgba(212,168,83,0.25)",
+          }}
+        >
+          <span className="text-[16px]">🎉</span>
+          <div>
+            <p className="text-[13px] font-bold text-accent">이번 주 투표를 모두 사용했어요!</p>
+            <p className="text-[11px] text-text-3">투표한 클립에 다시 투표하면 취소할 수 있어요</p>
           </div>
         </div>
       )}

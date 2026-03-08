@@ -52,7 +52,6 @@ const CATEGORY_LABELS: { key: keyof Preferences; label: string }[] = [
 
 export default function NotificationSettings({ onBack }: { onBack: () => void }) {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
-  const [loading, setLoading] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
@@ -61,7 +60,7 @@ export default function NotificationSettings({ onBack }: { onBack: () => void })
       .then((data) => {
         setPrefs({ ...DEFAULT_PREFS, ...data });
       })
-      .finally(() => setLoading(false));
+      .catch(() => {/* keep defaults on error */});
   }, []);
 
   const save = useCallback(async (updates: Partial<Preferences>) => {
@@ -73,14 +72,6 @@ export default function NotificationSettings({ onBack }: { onBack: () => void })
       body: JSON.stringify(updates),
     });
   }, [prefs]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-bg pb-20">
@@ -98,74 +89,74 @@ export default function NotificationSettings({ onBack }: { onBack: () => void })
       </div>
 
       <div className="space-y-6 px-4 py-4">
-        {/* 마스터 토글 */}
-        <div className="flex items-center justify-between rounded-[10px] bg-card p-4">
-          <div>
-            <p className="text-[15px] font-semibold text-text-1">알림</p>
-            <p className="text-xs text-text-3">모든 알림을 켜거나 끕니다</p>
-          </div>
-          <Toggle
-            checked={prefs.push_enabled}
-            onChange={(v) => save({ push_enabled: v })}
-          />
-        </div>
-
-        {/* 조용한 시간 */}
-        <div className="rounded-[10px] bg-card p-4">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🌙</span>
-            <p className="text-[15px] font-semibold text-text-1">조용한 시간</p>
-          </div>
-          <p className="mt-1 text-xs text-text-3">이 시간에는 푸시 알림을 보내지 않습니다</p>
-          <div className="mt-3 flex items-center gap-3">
-            <TimeInput
-              value={prefs.quiet_start}
-              onChange={(v) => save({ quiet_start: v })}
-              label="시작"
-            />
-            <span className="text-text-3">~</span>
-            <TimeInput
-              value={prefs.quiet_end}
-              onChange={(v) => save({ quiet_end: v })}
-              label="종료"
+          {/* 마스터 토글 */}
+          <div className="flex items-center justify-between rounded-[10px] bg-card p-4">
+            <div>
+              <p className="text-[15px] font-semibold text-text-1">알림</p>
+              <p className="text-xs text-text-3">모든 알림을 켜거나 끕니다</p>
+            </div>
+            <Toggle
+              checked={prefs.push_enabled}
+              onChange={(v) => save({ push_enabled: v })}
             />
           </div>
-        </div>
 
-        {/* 고급 설정 */}
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex w-full items-center justify-between rounded-[10px] bg-card p-4"
-        >
-          <p className="text-[15px] font-semibold text-text-1">카테고리별 설정</p>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className={`text-text-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+          {/* 조용한 시간 */}
+          <div className="rounded-[10px] bg-card p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🌙</span>
+              <p className="text-[15px] font-semibold text-text-1">조용한 시간</p>
+            </div>
+            <p className="mt-1 text-xs text-text-3">이 시간에는 푸시 알림을 보내지 않습니다</p>
+            <div className="mt-3 flex items-center gap-3">
+              <TimeInput
+                value={prefs.quiet_start}
+                onChange={(v) => save({ quiet_start: v })}
+                label="시작"
+              />
+              <span className="text-text-3">~</span>
+              <TimeInput
+                value={prefs.quiet_end}
+                onChange={(v) => save({ quiet_end: v })}
+                label="종료"
+              />
+            </div>
+          </div>
+
+          {/* 고급 설정 */}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex w-full items-center justify-between rounded-[10px] bg-card p-4"
           >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
+            <p className="text-[15px] font-semibold text-text-1">카테고리별 설정</p>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className={`text-text-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
 
-        {showAdvanced && (
-          <div className="space-y-1 rounded-[10px] bg-card p-4">
-            {CATEGORY_LABELS.map(({ key, label }) => (
-              <div key={key} className="flex items-center justify-between py-2">
-                <span className="text-sm text-text-2">{label}</span>
-                <Toggle
-                  checked={prefs[key] as boolean}
-                  onChange={(v) => save({ [key]: v })}
-                  disabled={!prefs.push_enabled}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+          {showAdvanced && (
+            <div className="space-y-1 rounded-[10px] bg-card p-4">
+              {CATEGORY_LABELS.map(({ key, label }) => (
+                <div key={key} className="flex items-center justify-between py-2">
+                  <span className="text-sm text-text-2">{label}</span>
+                  <Toggle
+                    checked={prefs[key] as boolean}
+                    onChange={(v) => save({ [key]: v })}
+                    disabled={!prefs.push_enabled}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
     </div>
   );
 }

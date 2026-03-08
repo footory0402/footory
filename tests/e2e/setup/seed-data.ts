@@ -384,14 +384,19 @@ async function upsertComments(
   admin: SupabaseClient<Database>,
   accounts: ResolvedTestAccounts
 ): Promise<void> {
+  // Upsert a comment for every E2E feed item so whichever appears first has a comment
+  const rows = E2E_FEED_IDS.map((feedId, i) => ({
+    id: i === 0
+      ? E2E_COMMENT_ID
+      : `99999999-9999-4999-8999-99999999999${i}`,
+    feed_item_id: feedId,
+    user_id: accounts.coach.id,
+    content: "E2E coach comment",
+    parent_id: null,
+  }));
+
   const { error } = await admin.from("comments").upsert(
-    {
-      id: E2E_COMMENT_ID,
-      feed_item_id: E2E_FEED_IDS[0],
-      user_id: accounts.coach.id,
-      content: "E2E coach comment",
-      parent_id: null,
-    } as never,
+    rows as never,
     { onConflict: "id" }
   );
 

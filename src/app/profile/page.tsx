@@ -18,6 +18,7 @@ const MedalCelebration = dynamic(() => import("@/components/stats/MedalCelebrati
 const AchievementList = dynamic(() => import("@/components/portfolio/AchievementList"), { ssr: false });
 const GrowthTimeline = dynamic(() => import("@/components/portfolio/GrowthTimeline"), { ssr: false });
 import { useProfile } from "@/hooks/useProfile";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useStats } from "@/hooks/useStats";
 import { useTagClips } from "@/hooks/useClips";
@@ -37,6 +38,8 @@ export default function ProfilePage() {
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
   const [pdfExportOpen, setPdfExportOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [questOpen, setQuestOpen] = useState(false);
   const [celebrationMedals, setCelebrationMedals] = useState<AwardedMedal[]>([]);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
   const { stats, medals, addStat } = useStats();
@@ -93,7 +96,7 @@ export default function ProfilePage() {
         return;
       }
       await navigator.clipboard.writeText(url);
-      alert("프로필 링크가 복사되었습니다.");
+      toast.success("프로필 링크가 복사되었습니다.");
     } catch {
       // User cancelled share sheet or clipboard denied.
     }
@@ -114,7 +117,7 @@ export default function ProfilePage() {
     <div className="px-4 pb-24 pt-4">
       <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
-      {/* PDF Export button */}
+      {/* Action row: scout links + more menu */}
       <div className="mt-3 flex items-center justify-between">
         <div>
           {displayProfile.isVerified && displayProfile.role === "scout" && (
@@ -142,38 +145,54 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-        <button
-          onClick={() => setPdfExportOpen(true)}
-          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
+
+        {/* ⋯ More menu */}
+        <div className="relative">
+          <button
+            onClick={() => setMoreMenuOpen((v) => !v)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-3 transition-colors hover:border-accent hover:text-accent"
+            aria-label="더 보기"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+            </svg>
+          </button>
+          {moreMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMoreMenuOpen(false)} />
+              <div className="absolute right-0 top-9 z-50 min-w-[160px] overflow-hidden rounded-[10px] border border-border bg-card shadow-lg">
+                <button
+                  onClick={() => { setMoreMenuOpen(false); setPdfExportOpen(true); }}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-[13px] text-text-2 transition-colors hover:bg-card-alt hover:text-text-1"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  PDF 내보내기
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* I13: 이번 주 조회 수 — 1 이상일 때만 표시 */}
+      {(displayProfile.views ?? 0) > 0 && (
+        <div className="mt-2 flex items-center gap-1.5 text-[12px] text-text-3">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
-          PDF 내보내기
-        </button>
-      </div>
-
-      {/* I13: 이번 주 조회 수 (본인 제외) */}
-      <div className="mt-2 flex items-center gap-1.5 text-[12px] text-text-3">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-        이번 주 조회 {displayProfile.views ?? 0}회
-      </div>
-
-      {/* Quest Checklist — 레벨 아래, 탭 위 */}
-      <div className="mt-3 relative">
-        <QuestChecklist profileId={displayProfile.id} />
-      </div>
+          이번 주 조회 {displayProfile.views}회
+        </div>
+      )}
 
       <div className="mt-3">
         <ProfileTabs active={activeTab} onChange={setActiveTab} />
       </div>
 
       <div className="mt-5">
+
         {activeTab === "summary" && (
           <SummaryTab
             level={displayProfile.level}
@@ -210,6 +229,33 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Quest Checklist — collapsible bottom banner */}
+      {displayProfile.role === "player" && (
+        <div className="mt-4">
+          <button
+            onClick={() => setQuestOpen((v) => !v)}
+            className="flex w-full items-center justify-between rounded-[10px] border border-border bg-card px-4 py-3 transition-colors hover:border-accent/40"
+          >
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-text-2">
+              <span>🎯</span>
+              퀘스트
+            </div>
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round"
+              className={`text-text-3 transition-transform ${questOpen ? "rotate-180" : ""}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {questOpen && (
+            <div className="mt-1 overflow-hidden rounded-[10px] border border-border bg-card">
+              <QuestChecklist profileId={displayProfile.id} />
+            </div>
+          )}
+        </div>
+      )}
 
       <ProfileEditSheet
         profile={displayProfile}

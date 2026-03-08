@@ -52,6 +52,14 @@ export async function GET(req: NextRequest) {
     weekStart.setHours(0, 0, 0, 0);
     const weekStartISO = weekStart.toISOString();
 
+    // Previous week boundaries
+    const prevWeekStart = new Date(weekStart);
+    prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+    const prevWeekStartISO = prevWeekStart.toISOString();
+    const prevWeekEnd = new Date(weekStart);
+    prevWeekEnd.setMilliseconds(-1);
+    const prevWeekEndISO = prevWeekEnd.toISOString();
+
     const [
       childProfileResult,
       weeklyClipsResult,
@@ -60,6 +68,8 @@ export async function GET(req: NextRequest) {
       mvpResultResult,
       recentActivityResult,
       teamNewsResult,
+      prevWeeklyClipsResult,
+      prevWeeklyKudosResult,
     ] = await Promise.allSettled([
       supabase
         .from("profiles")
@@ -93,6 +103,16 @@ export async function GET(req: NextRequest) {
         .order("created_at", { ascending: false })
         .limit(5),
       getTeamNews(supabase, childId),
+      // Previous week clips
+      supabase
+        .from("clips")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", childId)
+        .gte("created_at", prevWeekStartISO)
+        .lt("created_at", weekStartISO),
+      // Previous week kudos
+      (supabase as unknown as { rpc: (fn: string, args: Record<string, string>) => Promise<{ data: number | null }> })
+        .rpc("count_weekly_kudos", { p_profile_id: childId, p_week_start: prevWeekStartISO }),
     ]);
 
     const childProfile = getSettledQueryData<{
@@ -115,6 +135,8 @@ export async function GET(req: NextRequest) {
         recentActivityResult
       ) ?? [];
     const teamNews = teamNewsResult.status === "fulfilled" ? teamNewsResult.value : [];
+    const prevWeeklyClipsCount = getSettledCount(prevWeeklyClipsResult);
+    const prevWeeklyKudos = getSettledQueryData<number>(prevWeeklyKudosResult) ?? 0;
 
     return NextResponse.json({
       parentName: profile.name,
@@ -125,6 +147,10 @@ export async function GET(req: NextRequest) {
         profileViews: weeklyViews?.views_count ?? 0,
         mvpRank: mvpResult?.rank ?? null,
         level: childProfile?.level ?? 1,
+      },
+      prevWeeklyStats: {
+        newClips: prevWeeklyClipsCount,
+        kudosReceived: typeof prevWeeklyKudos === "number" ? prevWeeklyKudos : 0,
       },
       recentActivity: recentActivity.map((item) => ({
         id: item.id,

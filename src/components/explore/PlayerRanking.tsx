@@ -17,9 +17,11 @@ const SORT_OPTIONS: { key: PlayerSortKey; label: string }[] = [
 interface PlayerRankingProps {
   /** When true, shows as compact carousel (for overview tab) */
   compact?: boolean;
+  /** Filter by position (FW, MF, DF, GK) */
+  positionFilter?: string;
 }
 
-export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
+export default function PlayerRanking({ compact = false, positionFilter }: PlayerRankingProps) {
   const [sort, setSort] = useState<PlayerSortKey>("popularity");
   const { items, loading } = usePlayerRanking(sort);
 
@@ -41,7 +43,10 @@ export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
     );
   }
 
-  const displayed = compact ? items.slice(0, 5) : items;
+  const filtered = positionFilter
+    ? items.filter((i) => i.position === positionFilter)
+    : items;
+  const displayed = compact ? filtered.slice(0, 5) : filtered;
 
   return (
     <div>
