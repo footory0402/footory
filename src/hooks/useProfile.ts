@@ -1,131 +1,36 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useProfileContext } from "@/providers/ProfileProvider";
 import type { Profile } from "@/lib/types";
-import type { Position } from "@/lib/constants";
-
-interface ProfileApiResponse {
-  id: string;
-  handle: string;
-  name: string;
-  position: Position | null;
-  birth_year: number | null;
-  city: string | null;
-  bio: string | null;
-  avatar_url: string | null;
-  level: number;
-  role: "player" | "parent" | "scout";
-  followers_count: number;
-  following_count: number;
-  views_count: number;
-  public_email: string | null;
-  public_phone: string | null;
-  show_email: boolean;
-  show_phone: boolean;
-  created_at: string;
-  teamName: string | null;
-  teamId: string | null;
-  mvp_count: number;
-  mvp_tier: "rookie" | "ace" | "allstar" | "legend" | null;
-  is_verified: boolean;
-  height_cm: number | null;
-  weight_kg: number | null;
-  preferred_foot: string | null;
-  xp?: number;
-  counts?: {
-    featuredCount: number;
-    statsCount: number;
-    topClipsCount: number;
-    medalsCount: number;
-    seasonsCount: number;
-  };
-}
-
-function toProfile(data: ProfileApiResponse): Profile {
-  return {
-    id: data.id,
-    handle: data.handle,
-    name: data.name,
-    position: data.position,
-    birthYear: data.birth_year,
-    city: data.city,
-    teamName: data.teamName ?? undefined,
-    teamId: data.teamId ?? undefined,
-    avatarUrl: data.avatar_url ?? undefined,
-    level: data.level,
-    xp: data.xp ?? 0,
-    bio: data.bio ?? undefined,
-    followers: data.followers_count,
-    following: data.following_count,
-    views: data.views_count,
-    contact: {
-      email: data.public_email ?? undefined,
-      phone: data.public_phone ?? undefined,
-    },
-    contactPublic: data.show_email || data.show_phone,
-    role: data.role,
-    isVerified: data.is_verified ?? false,
-    heightCm: data.height_cm,
-    weightKg: data.weight_kg,
-    preferredFoot: data.preferred_foot,
-    mvpCount: data.mvp_count ?? 0,
-    mvpTier: data.mvp_tier ?? null,
-    createdAt: data.created_at,
-  };
-}
 
 interface UseProfileOptions {
   enabled?: boolean;
 }
 
+/**
+ * Uses shared ProfileProvider context to avoid duplicate fetches.
+ * updateProfile/uploadAvatar/checkHandle are additional utilities.
+ */
 export function useProfile({ enabled = true }: UseProfileOptions = {}) {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
+  const ctx = useProfileContext();
+  const [localProfile, setLocalProfile] = useState<Profile | null>(null);
 
-  const fetchProfile = useCallback(async () => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const res = await fetch("/api/profile");
-      if (!res.ok) {
-        if (res.status === 401) {
-          setError("not_authenticated");
-          return;
-        }
-        throw new Error("Failed to fetch profile");
-      }
-      const data: ProfileApiResponse = await res.json();
-      setProfile(toProfile(data));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [enabled]);
-
+  // Sync local state with context
   useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      setError(null);
-      return;
-    }
+    if (ctx.profile) setLocalProfile(ctx.profile);
+  }, [ctx.profile]);
 
-    fetchProfile();
-  }, [enabled, fetchProfile]);
+  const profile = enabled ? (localProfile ?? ctx.profile) : null;
+  const loading = enabled ? ctx.loading : false;
+  const error = enabled ? ctx.error : null;
 
   const updateProfile = useCallback(
     async (updates: Record<string, unknown>) => {
       if (!profile) return;
 
-      // Optimistic update
       const prev = profile;
-      setProfile({ ...profile, ...updates } as Profile);
+      setLocalProfile({ ...profile, ...updates } as Profile);
 
       try {
         const res = await fetch("/api/profile", {
@@ -137,34 +42,30 @@ export function useProfile({ enabled = true }: UseProfileOptions = {}) {
           const { error } = await res.json();
           throw new Error(error || "Update failed");
         }
-        // Refetch to get accurate server state
-        await fetchProfile();
+        await ctx.refetch();
       } catch (e) {
-        setProfile(prev); // rollback
+        setLocalProfile(prev);
         throw e;
       }
     },
-    [profile, fetchProfile]
+    [profile, ctx]
   );
 
-  const uploadAvatar = useCallback(
-    async (file: File) => {
-      const formData = new FormData();
-      formData.append("avatar", file);
+  const uploadAvatar = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.append("avatar", file);
 
-      const res = await fetch("/api/profile/avatar", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || "Upload failed");
-      }
-      const { avatarUrl } = await res.json();
-      setProfile((p) => (p ? { ...p, avatarUrl } : p));
-    },
-    []
-  );
+    const res = await fetch("/api/profile/avatar", {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const { error } = await res.json();
+      throw new Error(error || "Upload failed");
+    }
+    const { avatarUrl } = await res.json();
+    setLocalProfile((p) => (p ? { ...p, avatarUrl } : p));
+  }, []);
 
   const checkHandle = useCallback(async (handle: string): Promise<boolean> => {
     const res = await fetch(`/api/profile/handle-check?handle=${encodeURIComponent(handle)}`);
@@ -172,5 +73,5 @@ export function useProfile({ enabled = true }: UseProfileOptions = {}) {
     return available;
   }, []);
 
-  return { profile, loading, error, updateProfile, uploadAvatar, checkHandle, refetch: fetchProfile };
+  return { profile, loading, error, updateProfile, uploadAvatar, checkHandle, refetch: ctx.refetch };
 }

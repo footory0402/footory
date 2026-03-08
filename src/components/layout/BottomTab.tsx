@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { usePermissions } from "@/hooks/usePermissions";
+import { useProfileContext } from "@/providers/ProfileProvider";
 
 const playerTabs = [
   { href: "/", label: "홈", icon: HomeIcon },
@@ -21,11 +21,11 @@ const parentTabs = [
 export default function BottomTab() {
   const pathname = usePathname();
   const router = useRouter();
-  const { role, userId, loading, error } = usePermissions();
+  const { profile, loading, error } = useProfileContext();
 
-  // role 로딩 전에는 탭을 숨겨서 5→3탭 깜빡임 방지
+  const role = profile?.role ?? "player";
   const isGuest = error === "not_authenticated";
-  const isLoading = loading || (!isGuest && !userId);
+  const isLoading = loading || (!isGuest && !profile?.id);
   const tabs = role === "parent" ? parentTabs : playerTabs;
 
   return (
@@ -85,13 +85,6 @@ function DiscoverIcon({ active }: { active: boolean }) {
   );
 }
 
-function DmIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
-      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-    </svg>
-  );
-}
 
 function UserIcon({ active }: { active: boolean }) {
   return (

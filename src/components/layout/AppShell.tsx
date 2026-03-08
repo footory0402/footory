@@ -1,31 +1,28 @@
 "use client";
 
-import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { ProfileProvider } from "@/providers/ProfileProvider";
 import AppHeader from "./AppHeader";
 import BottomTab from "./BottomTab";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import SearchOverlay from "@/components/explore/SearchOverlay";
 
 const BARE_ROUTES = ["/login", "/onboarding"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isBare = BARE_ROUTES.some((r) => pathname.startsWith(r));
-  const [searchOpen, setSearchOpen] = useState(false);
 
   if (isBare) {
     return <>{children}</>;
   }
 
   return (
-    <>
-      <AppHeader onSearchOpen={() => setSearchOpen(true)} />
+    <ProfileProvider>
+      <AppHeader />
       <main className="pb-[calc(54px+env(safe-area-inset-bottom))]">
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
       <BottomTab />
-      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-    </>
+    </ProfileProvider>
   );
 }
