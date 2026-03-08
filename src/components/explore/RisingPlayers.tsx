@@ -35,7 +35,7 @@ export default function RisingPlayers() {
         return (
           <div
             key={p.profile_id}
-            className="flex w-[120px] h-[160px] shrink-0 flex-col items-center justify-between rounded-[12px] bg-card p-3"
+            className="card-elevated flex w-[120px] h-[160px] shrink-0 flex-col items-center justify-between p-3"
           >
             <Link href={`/p/${p.handle}`} className="flex flex-col items-center gap-1.5">
               <Avatar

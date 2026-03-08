@@ -23,7 +23,7 @@ interface FeedListProps {
 
 function FeedSkeleton() {
   return (
-    <div className="flex flex-col gap-3 pb-4">
+    <div className="flex flex-col gap-4 pb-4">
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="rounded-[12px] bg-card p-4 animate-pulse">
           <div className="flex items-center gap-3 mb-3">
@@ -136,7 +136,7 @@ export default function FeedList({
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col gap-3 pb-4">
+      <div className="flex flex-col gap-4 pb-4">
         {/* Video-only filter toggle */}
         <div className="flex items-center">
           <button
@@ -144,7 +144,7 @@ export default function FeedList({
             className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
               videoOnly
                 ? "bg-accent text-bg"
-                : "bg-card text-text-2 border border-border"
+                : "bg-card text-text-2"
             }`}
           >
             {videoOnly ? "전체" : "영상만"}

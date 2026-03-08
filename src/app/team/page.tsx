@@ -23,7 +23,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="px-4 pb-24 pt-4">
+    <div className="px-4 pb-4 pt-4">
       {teams.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center pt-12">
@@ -57,7 +57,7 @@ export default function TeamPage() {
             <div className="mb-3 flex items-center gap-2">
               <h2 className="text-[13px] font-semibold text-text-2">추천 팀</h2>
             </div>
-            <div className="flex flex-col items-center rounded-[10px] border border-border/50 bg-card/50 px-4 py-8">
+            <div className="card-elevated flex flex-col items-center px-4 py-8 opacity-60">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3/60">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
@@ -74,7 +74,7 @@ export default function TeamPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowJoin(true)}
-                className="rounded-full border border-border px-3 py-1.5 text-[12px] text-text-2 hover:border-accent"
+                className="rounded-full bg-card px-3 py-1.5 text-[12px] text-text-2 hover:bg-card-alt transition-colors"
               >
                 가입
               </button>
@@ -135,8 +135,8 @@ function TeamCard({
   return (
     <Link
       href={`/team/${team.id}`}
-      className={`flex items-center gap-3 rounded-[10px] border bg-card p-4 transition-colors hover:border-accent/30 ${
-        isAlumni ? "border-border/50 opacity-75" : "border-border"
+      className={`card-elevated flex items-center gap-3 p-4 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.5)] ${
+        isAlumni ? "opacity-70" : ""
       }`}
     >
       <Avatar

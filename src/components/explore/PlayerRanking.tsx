@@ -29,7 +29,7 @@ export default function PlayerRanking({ compact = false, positionFilter }: Playe
     return (
       <div className="space-y-0">
         {Array.from({ length: compact ? 3 : 5 }).map((_, i) => (
-          <div key={i} className="h-[60px] animate-pulse border-b border-card-alt bg-card first:rounded-t-[12px] last:rounded-b-[12px] last:border-b-0" />
+          <div key={i} className="h-[60px] animate-pulse border-b border-white/5 bg-card first:rounded-t-[12px] last:rounded-b-[12px] last:border-b-0" />
         ))}
       </div>
     );
@@ -69,7 +69,7 @@ export default function PlayerRanking({ compact = false, positionFilter }: Playe
         </div>
       )}
 
-      <div className="rounded-[12px] bg-card overflow-hidden">
+      <div className="card-elevated overflow-hidden">
         {displayed.map((item, idx) => (
           <PlayerRankingRow key={item.profile_id} item={item} rank={idx + 1} />
         ))}
@@ -89,7 +89,7 @@ function PlayerRankingRow({
   const mvpTier = MVP_TIERS.find((t) => t.tier === item.mvp_tier);
 
   return (
-    <div className="flex items-center gap-3 border-b border-card-alt px-4 py-3 last:border-b-0">
+    <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 last:border-b-0">
       {/* Rank number */}
       <span
         className="w-6 text-center text-[16px] font-bold tabular-nums shrink-0"

@@ -61,11 +61,11 @@ export default function DiscoverPage() {
   }, [positionFilter, regionFilter]);
 
   return (
-    <div className="px-4 pt-4 pb-24">
+    <div className="px-4 pt-4 pb-4">
       {/* Search bar (tap to open overlay) */}
       <button
         onClick={() => setSearchOpen(true)}
-        className="flex h-10 w-full items-center rounded-full bg-card-alt px-4 text-left"
+        className="flex h-10 w-full items-center rounded-full bg-card px-4 text-left shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="7" />
@@ -103,11 +103,11 @@ export default function DiscoverPage() {
                 <button
                   key={pos}
                   onClick={() => setPositionFilter(active ? null : pos)}
-                  className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors border"
+                  className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors"
                   style={
                     active
-                      ? { backgroundColor: `${color}20`, borderColor: color, color }
-                      : { backgroundColor: "transparent", borderColor: "#27272A", color: "#A1A1AA" }
+                      ? { backgroundColor: `${color}20`, color }
+                      : { backgroundColor: "var(--color-card)", color: "#A1A1AA" }
                   }
                 >
                   {POSITION_LABELS_SHORT[pos]}
@@ -122,13 +122,13 @@ export default function DiscoverPage() {
             value={regionFilter}
             onChange={(e) => setRegionFilter(e.target.value)}
             placeholder="지역으로 필터 (예: 서울, 경기)"
-            className="h-8 w-full rounded-lg bg-card px-3 text-[12px] text-text-1 placeholder:text-text-3 outline-none border border-card-alt focus:border-accent/40"
+            className="h-8 w-full rounded-lg bg-card px-3 text-[12px] text-text-1 placeholder:text-text-3 outline-none focus:ring-1 focus:ring-accent/30"
           />
         </div>
       )}
 
       {/* Content sections */}
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 space-y-8">
         {/* "전체" tab: shows all sections in overview */}
         {tab === "all" && (
           <>
@@ -182,8 +182,8 @@ function Section({ title, emoji, children }: { title: string; emoji: string; chi
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[15px] font-semibold text-text-1">
-          {emoji} {title}
+        <h2 className="text-[16px] font-bold text-text-1">
+          <span className="mr-1.5">{emoji}</span>{title}
         </h2>
       </div>
       {children}

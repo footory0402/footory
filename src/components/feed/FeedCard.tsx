@@ -185,7 +185,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
     : null;
 
   return (
-    <div className="rounded-[12px] bg-card p-4">
+    <div className="card-elevated p-4">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <Link href={`/p/${item.playerHandle}`} aria-label={`${item.playerName} 프로필`}>
@@ -223,7 +223,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
       <FeedBody item={item} eagerImage={eagerImage} />
 
       {/* Footer */}
-      <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 relative">
+      <div className="mt-3 flex items-center gap-3 border-t border-white/5 pt-3 relative">
         {/* Kudos / Reaction button — tap=clap, long-press=picker */}
         <div ref={pickerRef} className="relative">
           <button

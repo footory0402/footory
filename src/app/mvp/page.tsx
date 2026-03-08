@@ -221,7 +221,7 @@ export default function MvpPage() {
   }
 
   return (
-    <div className="space-y-4 px-4 py-4 pb-24">
+    <div className="space-y-5 px-4 py-4">
       {/* Week header */}
       <div className="flex items-center justify-between">
         <div>
@@ -360,14 +360,14 @@ export default function MvpPage() {
           {candidates.length > 3 && (
             <button
               onClick={() => setShowFullRanking(!showFullRanking)}
-              className="w-full rounded-[10px] border border-border bg-card px-4 py-2.5 text-center text-[13px] font-bold text-text-2 transition-colors hover:text-accent"
+              className="w-full card-elevated px-4 py-2.5 text-center text-[13px] font-bold text-text-2 transition-colors hover:text-accent"
             >
               {showFullRanking ? "접기" : `전체 순위 보기 (${candidates.length}명)`}
             </button>
           )}
 
           {showFullRanking && (
-            <div className="overflow-hidden rounded-[10px] border border-border bg-card">
+            <div className="card-elevated overflow-hidden">
               <MvpRanking
                 candidates={candidates}
                 votedClipIds={myVotedClipIds}
@@ -389,7 +389,7 @@ export default function MvpPage() {
       </div>
 
       {/* Sub-tabs: Archive / Hall of Fame */}
-      <div className="flex gap-1 rounded-[10px] bg-card p-1">
+      <div className="flex gap-1 card-elevated p-1">
         {(
           [
             { key: "ranking", label: "📊 이번 주" },
@@ -419,7 +419,7 @@ export default function MvpPage() {
 
       {/* Tab content */}
       {activeTab === "ranking" && candidates.length > 0 && (
-        <div className="overflow-hidden rounded-[10px] border border-border bg-card">
+        <div className="card-elevated overflow-hidden">
           <MvpRanking
             candidates={candidates}
             votedClipIds={myVotedClipIds}
@@ -436,7 +436,7 @@ export default function MvpPage() {
       )}
 
       {activeTab === "hallOfFame" && (
-        <div className="overflow-hidden rounded-[10px] border border-border bg-card">
+        <div className="card-elevated overflow-hidden">
           <MvpHallOfFame entries={hallOfFame} loading={hofLoading} />
         </div>
       )}
@@ -513,7 +513,7 @@ function StatBox({
   icon: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-[10px] border border-border bg-card px-3 py-3">
+    <div className="card-elevated flex flex-col items-center gap-1 px-3 py-3">
       <span className="text-[14px]">{icon}</span>
       <span className="font-stat text-[18px] font-bold text-text-1">
         {value}

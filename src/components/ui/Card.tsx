@@ -5,7 +5,7 @@ interface CardProps {
 
 export default function Card({ children, className = "" }: CardProps) {
   return (
-    <div className={`rounded-[10px] border border-border bg-card ${className}`}>
+    <div className={`card-elevated ${className}`}>
       {children}
     </div>
   );
@@ -21,9 +21,9 @@ interface SectionCardProps {
 
 export function SectionCard({ title, icon, onEdit, children, className = "" }: SectionCardProps) {
   return (
-    <div className={`rounded-[10px] border border-border bg-card ${className}`}>
+    <div className={`card-elevated ${className}`}>
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-text-3">
+        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-2">
           {icon && <span className="mr-1">{icon}</span>}
           {title}
         </span>

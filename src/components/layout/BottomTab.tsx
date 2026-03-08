@@ -29,7 +29,7 @@ export default function BottomTab() {
   const tabs = role === "parent" ? parentTabs : playerTabs;
 
   return (
-    <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-border bg-bg/95">
+    <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-white/5 glass-nav">
       <div
         className={`flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)] transition-opacity duration-150 ${
           isLoading || isGuest ? "opacity-0" : "opacity-100"

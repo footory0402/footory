@@ -114,7 +114,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="px-4 pb-24 pt-4">
+    <div className="px-4 pb-4 pt-4">
       <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
       {/* Action row: scout links + more menu */}
@@ -160,7 +160,7 @@ export default function ProfilePage() {
           {moreMenuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMoreMenuOpen(false)} />
-              <div className="absolute right-0 top-9 z-50 min-w-[160px] overflow-hidden rounded-[10px] border border-border bg-card shadow-lg">
+              <div className="absolute right-0 top-9 z-50 min-w-[160px] overflow-hidden rounded-[12px] bg-elevated shadow-[0_8px_24px_rgba(0,0,0,0.6)]">
                 <button
                   onClick={() => { setMoreMenuOpen(false); setPdfExportOpen(true); }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-[13px] text-text-2 transition-colors hover:bg-card-alt hover:text-text-1"
@@ -235,7 +235,7 @@ export default function ProfilePage() {
         <div className="mt-4">
           <button
             onClick={() => setQuestOpen((v) => !v)}
-            className="flex w-full items-center justify-between rounded-[10px] border border-border bg-card px-4 py-3 transition-colors hover:border-accent/40"
+            className="card-elevated flex w-full items-center justify-between px-4 py-3 transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.5)]"
           >
             <div className="flex items-center gap-2 text-[13px] font-semibold text-text-2">
               <span>🎯</span>
@@ -250,7 +250,7 @@ export default function ProfilePage() {
             </svg>
           </button>
           {questOpen && (
-            <div className="mt-1 overflow-hidden rounded-[10px] border border-border bg-card">
+            <div className="mt-1 card-elevated overflow-hidden">
               <QuestChecklist profileId={displayProfile.id} />
             </div>
           )}
