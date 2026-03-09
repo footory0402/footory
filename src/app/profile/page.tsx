@@ -190,27 +190,38 @@ export default function ProfilePage() {
       {/* Scout: simplified profile — no player-specific tabs */}
       {displayProfile.role === "scout" ? (
         <div className="mt-5 flex flex-col gap-4">
-          <div className="card-elevated p-4">
-            <p className="text-xs font-semibold text-text-3 mb-3">스카우터 정보</p>
-            <div className="space-y-2.5">
-              {displayProfile.bio && (
-                <p className="text-sm text-text-2">{displayProfile.bio}</p>
-              )}
-              {displayProfile.city && (
-                <div className="flex items-center gap-2 text-sm text-text-2">
-                  <span>📍</span><span>{displayProfile.city}</span>
-                </div>
-              )}
-              {displayProfile.teamName && (
-                <div className="flex items-center gap-2 text-sm text-text-2">
-                  <span>🏟</span><span>{displayProfile.teamName}</span>
-                </div>
-              )}
-              {!displayProfile.bio && !displayProfile.city && !displayProfile.teamName && (
-                <p className="text-sm text-text-3">소속 및 소개를 프로필에 추가해보세요</p>
-              )}
+          {(!displayProfile.bio && !displayProfile.city && !displayProfile.teamName) ? (
+            <div className="card-elevated flex flex-col items-center gap-3 py-8 text-center">
+              <span className="text-4xl">👤</span>
+              <p className="text-sm font-semibold text-text-1">스카우터 프로필 준비 중</p>
+              <p className="text-xs text-text-3">관심 선수를 추가하고 메모를 남겨보세요</p>
+              <Link
+                href="/profile/watchlist"
+                className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
+              >
+                관심 선수 보기
+              </Link>
             </div>
-          </div>
+          ) : (
+            <div className="card-elevated p-4">
+              <p className="text-xs font-semibold text-text-3 mb-3">스카우터 정보</p>
+              <div className="space-y-2.5">
+                {displayProfile.bio && (
+                  <p className="text-sm text-text-2">{displayProfile.bio}</p>
+                )}
+                {displayProfile.city && (
+                  <div className="flex items-center gap-2 text-sm text-text-2">
+                    <span>📍</span><span>{displayProfile.city}</span>
+                  </div>
+                )}
+                {displayProfile.teamName && (
+                  <div className="flex items-center gap-2 text-sm text-text-2">
+                    <span>🏟</span><span>{displayProfile.teamName}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <Link
             href="/profile/watchlist"

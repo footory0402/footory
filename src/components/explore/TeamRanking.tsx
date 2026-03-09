@@ -33,8 +33,9 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-[12px] bg-card py-6">
-        <p className="text-[13px] text-text-3">등록된 팀이 없어요</p>
+      <div className="flex flex-col items-center justify-center rounded-[12px] bg-card py-8 text-center">
+        <span className="text-2xl mb-2">🏟</span>
+        <p className="text-sm text-text-3">팀을 검색해보세요</p>
       </div>
     );
   }

@@ -15,28 +15,22 @@ export default function TeamPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
 
-  // Scout sees watchlist-focused team view (only after role is confirmed)
+  // Scout sees discover-focused team view (only after role is confirmed)
   if (!roleLoading && role === "scout") {
     return (
       <div className="px-4 pb-24 pt-4">
         <div className="flex flex-col items-center pt-16 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl mb-4">🔭</div>
-          <p className="text-lg font-bold text-text-1">관심 팀 목록</p>
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl mb-4">🏟</div>
+          <p className="text-lg font-bold text-text-1">팀 기능 준비 중</p>
           <p className="mt-2 text-sm text-text-3 leading-relaxed">
-            스카우터에게는 팀 소속 기능 대신<br />관심 선수·팀 탐색이 제공됩니다
+            탐색에서 팀 랭킹을 확인해보세요
           </p>
           <div className="mt-6 flex flex-col gap-3 w-full max-w-[280px]">
             <Link
-              href="/discover?tab=team"
+              href="/discover"
               className="rounded-full bg-accent py-3 text-sm font-semibold text-bg text-center"
             >
-              팀 탐색하기
-            </Link>
-            <Link
-              href="/profile/watchlist"
-              className="rounded-full border border-accent/30 py-3 text-sm font-medium text-accent text-center"
-            >
-              관심 선수 보기
+              팀 랭킹 보기
             </Link>
           </div>
         </div>

@@ -37,8 +37,9 @@ export default function TagGrid() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex items-center justify-center rounded-[12px] bg-card py-10 mt-3">
-          <p className="text-[13px] text-text-3">이 태그의 클립이 없어요</p>
+        <div className="flex flex-col items-center justify-center rounded-[12px] bg-card py-10 mt-3 text-center">
+          <span className="text-2xl mb-2">🎬</span>
+          <p className="text-sm text-text-3">아직 등록된 클립이 없어요</p>
         </div>
       ) : (
         <div className="mt-3 grid grid-cols-3 gap-1">

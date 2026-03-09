@@ -25,7 +25,7 @@ import { toast } from "sonner";
 type MvpTab = "ranking" | "archive" | "hallOfFame";
 
 export default function MvpPage() {
-  const { canVoteMvp } = usePermissions();
+  const { canVoteMvp, role } = usePermissions();
   const [candidates, setCandidates] = useState<VoteCardCandidate[]>([]);
   const [myVotedClipIds, setMyVotedClipIds] = useState<Set<string>>(new Set());
   const [votesRemaining, setVotesRemaining] = useState(MAX_WEEKLY_VOTES);
@@ -298,21 +298,37 @@ export default function MvpPage() {
       {/* Top candidates or empty state */}
       {candidates.length === 0 ? (
         <SectionCard title="이번 주 MVP" icon="🏆">
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <span className="text-4xl">🏆</span>
-            <p className="text-xs text-text-2">
-              아직 이번 주 후보가 없어요
-            </p>
-            <p className="text-[10px] text-text-3">
-              클립을 업로드하면 자동으로 MVP 후보에 올라갑니다
-            </p>
-            <a
-              href="/upload"
-              className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
-            >
-              첫 번째 클립을 올려보세요!
-            </a>
-          </div>
+          {role === "scout" ? (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <span className="text-4xl">🏆</span>
+              <p className="text-sm font-semibold text-text-1">MVP 투표 준비 중</p>
+              <p className="text-xs text-text-3">
+                선수 탐색에서 유망주를 먼저 확인해보세요
+              </p>
+              <a
+                href="/discover"
+                className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
+              >
+                선수 탐색하기
+              </a>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <span className="text-4xl">🏆</span>
+              <p className="text-xs text-text-2">
+                아직 이번 주 후보가 없어요
+              </p>
+              <p className="text-[10px] text-text-3">
+                클립을 업로드하면 자동으로 MVP 후보에 올라갑니다
+              </p>
+              <a
+                href="/upload"
+                className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
+              >
+                첫 번째 클립을 올려보세요!
+              </a>
+            </div>
+          )}
         </SectionCard>
       ) : (
         <>

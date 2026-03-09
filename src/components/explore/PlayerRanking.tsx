@@ -37,8 +37,9 @@ export default function PlayerRanking({ compact = false, positionFilter }: Playe
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl bg-card py-8">
-        <p className="text-[13px] text-text-3">아직 랭킹 데이터가 없어요</p>
+      <div className="flex flex-col items-center justify-center rounded-xl bg-card py-8 text-center">
+        <span className="text-2xl mb-2">📊</span>
+        <p className="text-sm text-text-3">아직 데이터를 모으고 있어요</p>
       </div>
     );
   }

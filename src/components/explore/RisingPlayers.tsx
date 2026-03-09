@@ -22,9 +22,10 @@ export default function RisingPlayers() {
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-card py-8 text-center px-4">
-        <p className="text-sm font-medium text-text-2">아직 떠오르는 선수가 없어요</p>
-        <p className="text-xs text-text-3">팀 동료나 관심 선수를 검색해보세요</p>
+      <div className="flex flex-col items-center justify-center rounded-xl bg-card py-8 text-center px-4">
+        <span className="text-2xl mb-2">🔍</span>
+        <p className="text-sm text-text-2">아이의 팀 동료를 찾아보세요</p>
+        <p className="text-xs text-text-3 mt-1">검색창에서 선수나 팀을 검색해보세요</p>
       </div>
     );
   }
