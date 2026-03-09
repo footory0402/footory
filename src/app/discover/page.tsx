@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
-import { POSITIONS, POSITION_COLORS, type Position } from "@/lib/constants";
 
 const PlayerRanking = dynamic(() => import("@/components/explore/PlayerRanking"), { ssr: false });
 const RisingPlayers = dynamic(() => import("@/components/explore/RisingPlayers"), { ssr: false });
@@ -19,41 +18,9 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "tag", label: "태그" },
 ];
 
-const STORAGE_KEY = "footory:discover-filters";
-
-const POSITION_LABELS_SHORT: Record<Position, string> = {
-  FW: "공격수",
-  MF: "미드필더",
-  DF: "수비수",
-  GK: "골키퍼",
-};
-
 export default function DiscoverPage() {
   const [tab, setTab] = useState<FilterTab>("all");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [positionFilter, setPositionFilter] = useState<Position | null>(null);
-
-  // Restore filters from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.positionFilter) setPositionFilter(parsed.positionFilter);
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }, []);
-
-  // Persist filters to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ positionFilter }));
-    } catch {
-      // ignore storage errors
-    }
-  }, [positionFilter]);
 
   return (
     <div className="px-4 pt-4 pb-24">
@@ -69,65 +36,42 @@ export default function DiscoverPage() {
         <span className="ml-2 text-xs text-text-3">선수, 팀, 태그 검색</span>
       </button>
 
-      {/* Filter bar: type tabs + position chips in one scrollable row */}
-      <div className="flex gap-2 mt-4 overflow-x-auto scrollbar-hide pb-0.5">
+      {/* Underline tab bar */}
+      <div className="flex border-b border-white/[0.06] mt-3">
         {FILTER_TABS.map((ft) => (
           <button
             key={ft.key}
             onClick={() => setTab(ft.key)}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-              tab === ft.key
-                ? "bg-accent text-bg"
-                : "bg-card text-text-2 active:bg-card-alt"
+            className={`flex-1 pb-2.5 text-sm font-medium relative ${
+              tab === ft.key ? "text-accent" : "text-text-3"
             }`}
           >
             {ft.label}
+            {tab === ft.key && (
+              <span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] bg-accent rounded-full" />
+            )}
           </button>
         ))}
-
-        {(tab === "all" || tab === "player") && (
-          <>
-            <div className="shrink-0 w-px bg-white/10 my-1" />
-            {POSITIONS.map((pos) => {
-              const active = positionFilter === pos;
-              const color = POSITION_COLORS[pos];
-              return (
-                <button
-                  key={pos}
-                  onClick={() => setPositionFilter(active ? null : pos)}
-                  className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-                  style={
-                    active
-                      ? { backgroundColor: `${color}22`, color, border: `1px solid ${color}50` }
-                      : { backgroundColor: "var(--color-card)", color: "#71717A" }
-                  }
-                >
-                  {POSITION_LABELS_SHORT[pos]}
-                </button>
-              );
-            })}
-          </>
-        )}
       </div>
 
       {/* Content sections */}
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 space-y-8">
         {/* "전체" tab: shows all sections in overview */}
         {tab === "all" && (
           <>
-            <Section title="떠오르는 선수" emoji="🚀" seeMoreHref="/discover?tab=player">
+            <Section title="떠오르는 선수" seeMoreHref="/discover?tab=player">
               <RisingPlayers />
             </Section>
 
-            <Section title="인기 선수 랭킹" emoji="🏆" seeMoreHref="/discover?tab=player">
-              <PlayerRanking compact positionFilter={positionFilter ?? undefined} />
+            <Section title="인기 선수 랭킹" seeMoreHref="/discover?tab=player">
+              <PlayerRanking compact />
             </Section>
 
-            <Section title="팀 랭킹" emoji="🏟" seeMoreHref="/discover?tab=team">
+            <Section title="팀 랭킹" seeMoreHref="/discover?tab=team">
               <TeamRanking compact />
             </Section>
 
-            <Section title="태그별 인기 클립" emoji="🎬" seeMoreHref="/discover?tab=tag">
+            <Section title="태그별 인기 클립" seeMoreHref="/discover?tab=tag">
               <TagGrid />
             </Section>
           </>
@@ -135,21 +79,21 @@ export default function DiscoverPage() {
 
         {/* "선수" tab: full player ranking */}
         {tab === "player" && (
-          <Section title="선수 랭킹" emoji="🏆">
-            <PlayerRanking positionFilter={positionFilter ?? undefined} />
+          <Section title="선수 랭킹">
+            <PlayerRanking />
           </Section>
         )}
 
         {/* "팀" tab: full team ranking */}
         {tab === "team" && (
-          <Section title="팀 랭킹" emoji="🏟">
+          <Section title="팀 랭킹">
             <TeamRanking />
           </Section>
         )}
 
         {/* "태그" tab: full tag grid */}
         {tab === "tag" && (
-          <Section title="태그별 인기 클립" emoji="🎬">
+          <Section title="태그별 인기 클립">
             <TagGrid />
           </Section>
         )}
@@ -161,15 +105,15 @@ export default function DiscoverPage() {
   );
 }
 
-function Section({ title, emoji, children, seeMoreHref }: { title: string; emoji: string; children: React.ReactNode; seeMoreHref?: string }) {
+function Section({ title, children, seeMoreHref }: { title: string; children: React.ReactNode; seeMoreHref?: string }) {
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-text-1">
-          <span className="mr-1.5">{emoji}</span>{title}
+        <h2 className="text-[15px] font-bold tracking-tight text-text-1">
+          {title}
         </h2>
         {seeMoreHref && (
-          <a href={seeMoreHref} className="text-xs text-accent">더보기</a>
+          <a href={seeMoreHref} className="text-xs text-text-3">더보기 →</a>
         )}
       </div>
       {children}

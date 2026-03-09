@@ -221,6 +221,25 @@ body {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
+/* Field input */
+.field-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--color-card-alt);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-text-1);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field-input:focus {
+  border-color: rgba(212, 168, 83, 0.45);
+}
+.field-input::placeholder {
+  color: var(--color-text-3);
+}
+
 /* Section divider — soft full-width line */
 .section-divider {
   height: 1px;

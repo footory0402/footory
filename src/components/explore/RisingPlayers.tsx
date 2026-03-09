@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
-import FollowButton from "@/components/social/FollowButton";
 import { POSITION_COLORS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
 import { useRisingPlayers } from "@/hooks/useDiscover";
@@ -14,7 +13,7 @@ export default function RisingPlayers() {
     return (
       <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-[148px] w-[112px] shrink-0 animate-pulse rounded-xl bg-card" />
+          <div key={i} className="h-[120px] w-[120px] shrink-0 animate-pulse rounded-xl bg-card" />
         ))}
       </div>
     );
@@ -38,40 +37,33 @@ export default function RisingPlayers() {
       {visibleItems.map((p) => {
         const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
         return (
-          <div
+          <Link
             key={p.profile_id}
-            className="card-elevated flex w-[112px] shrink-0 flex-col items-center gap-2 p-3"
+            href={`/p/${p.handle}`}
+            className="card-elevated flex w-[120px] shrink-0 flex-col items-center gap-1.5 p-3"
           >
-            <Link href={`/p/${p.handle}`} className="flex flex-col items-center gap-1.5 w-full">
-              <Avatar
-                name={p.name}
-                size="md"
-                level={p.level}
-                imageUrl={p.avatar_url ?? undefined}
-              />
-              <span className="text-sm font-semibold text-text-1 text-center truncate w-full">
-                {p.name}
+            <Avatar
+              name={p.name}
+              size="md"
+              level={p.level}
+              imageUrl={p.avatar_url ?? undefined}
+            />
+            <span className="text-sm font-semibold text-text-1 text-center truncate w-full">
+              {p.name}
+            </span>
+            {p.position && (
+              <span
+                className="rounded-md px-1.5 py-0.5 text-[10px] font-stat font-medium"
+                style={{ color: posColor, backgroundColor: `${posColor}15` }}
+              >
+                {p.position}
               </span>
-              {p.position && (
-                <span
-                  className="rounded-md px-1.5 py-0.5 text-[10px] font-stat font-medium"
-                  style={{ color: posColor, backgroundColor: `${posColor}15` }}
-                >
-                  {p.position}
-                </span>
-              )}
-              {p.weekly_change > 0 && (
-                <span className="text-[10px] font-medium text-green">
-                  인기 +{p.weekly_change}
-                </span>
-              )}
-            </Link>
-            <FollowButton targetId={p.profile_id} size="sm" />
-          </div>
+            )}
+          </Link>
         );
       })}
       {hasMore && (
-        <div className="card-elevated flex w-[80px] h-[152px] shrink-0 flex-col items-center justify-center gap-1.5 text-text-3">
+        <div className="card-elevated flex w-[80px] shrink-0 flex-col items-center justify-center gap-1.5 text-text-3">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 8 16 12 12 16" />

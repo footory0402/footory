@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import FollowButton from "@/components/social/FollowButton";
-import { POSITION_COLORS, MVP_TIERS } from "@/lib/constants";
+import { POSITIONS, POSITION_COLORS, MVP_TIERS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
 import { usePlayerRanking, type PlayerSortKey } from "@/hooks/useDiscover";
 
@@ -14,15 +14,21 @@ const SORT_OPTIONS: { key: PlayerSortKey; label: string }[] = [
   { key: "mvp", label: "MVP횟수순" },
 ];
 
+const POSITION_LABELS_SHORT: Record<Position, string> = {
+  FW: "공격수",
+  MF: "미드필더",
+  DF: "수비수",
+  GK: "골키퍼",
+};
+
 interface PlayerRankingProps {
   /** When true, shows as compact carousel (for overview tab) */
   compact?: boolean;
-  /** Filter by position (FW, MF, DF, GK) */
-  positionFilter?: string;
 }
 
-export default function PlayerRanking({ compact = false, positionFilter }: PlayerRankingProps) {
+export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
   const [sort, setSort] = useState<PlayerSortKey>("popularity");
+  const [posFilter, setPosFilter] = useState<Position | null>(null);
   const { items, loading } = usePlayerRanking(sort);
 
   if (loading) {
@@ -44,14 +50,14 @@ export default function PlayerRanking({ compact = false, positionFilter }: Playe
     );
   }
 
-  const filtered = positionFilter
-    ? items.filter((i) => i.position === positionFilter)
+  const filtered = posFilter
+    ? items.filter((i) => i.position === posFilter)
     : items;
   const displayed = compact ? filtered.slice(0, 5) : filtered;
 
   return (
     <div>
-      {/* Sort tabs (full mode only) */}
+      {/* Sort tabs + position filter */}
       {!compact && (
         <div className="flex gap-2 mb-3">
           {SORT_OPTIONS.map((opt) => (
@@ -69,6 +75,38 @@ export default function PlayerRanking({ compact = false, positionFilter }: Playe
           ))}
         </div>
       )}
+
+      {/* Position chips */}
+      <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide">
+        <button
+          onClick={() => setPosFilter(null)}
+          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            posFilter === null
+              ? "bg-accent text-bg"
+              : "bg-card-alt text-text-2 active:bg-elevated"
+          }`}
+        >
+          전체
+        </button>
+        {POSITIONS.map((pos) => {
+          const active = posFilter === pos;
+          const color = POSITION_COLORS[pos];
+          return (
+            <button
+              key={pos}
+              onClick={() => setPosFilter(active ? null : pos)}
+              className="shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors"
+              style={
+                active
+                  ? { backgroundColor: `${color}22`, color, border: `1px solid ${color}50` }
+                  : { backgroundColor: "var(--color-card-alt)", color: "#71717A" }
+              }
+            >
+              {POSITION_LABELS_SHORT[pos]}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="card-elevated overflow-hidden">
         {displayed.map((item, idx) => (

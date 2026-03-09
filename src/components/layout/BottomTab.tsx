@@ -44,7 +44,6 @@ export default function BottomTab() {
             <Link
               key={tab.href}
               href={tab.href}
-              prefetch={false}
               aria-current={active ? "page" : undefined}
               onMouseEnter={() => router.prefetch(tab.href)}
               onFocus={() => router.prefetch(tab.href)}
