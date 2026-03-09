@@ -8,9 +8,6 @@ import UploadNudge from "./UploadNudge";
 import dynamic from "next/dynamic";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import ShareSheet from "@/components/social/ShareSheet";
-import { usePermissions } from "@/hooks/usePermissions";
-
-const CoachReviewBadge = dynamic(() => import("@/components/coach/CoachReviewBadge"), { ssr: false });
 
 const CommentSheet = dynamic(() => import("@/components/social/CommentSheet"), { ssr: false });
 
@@ -49,7 +46,6 @@ export default function FeedList({
     initialItems,
     initialNextCursor
   );
-  const { canScoutReview, userId } = usePermissions();
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<FeedItemEnriched | null>(null);
   const [videoOnly, setVideoOnly] = useState(false);
@@ -200,16 +196,6 @@ export default function FeedList({
                 onShare={setShareTarget}
                 eagerImage={eagerImage}
               />
-              {/* K3/K5: 코치 리뷰 — highlight 타입 클립에만 표시 */}
-              {item.type === "highlight" && item.reference_id && (
-                <div className="px-4 pb-3 -mt-1">
-                  <CoachReviewBadge
-                    clipId={item.reference_id}
-                    isOwner={item.profile_id === userId}
-                    canReview={canScoutReview}
-                  />
-                </div>
-              )}
             </div>
           </div>
             );
