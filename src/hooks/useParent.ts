@@ -1,23 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import type { LinkedChild } from "@/lib/home-types";
 
-export interface LinkedChild {
-  linkId: string;
-  childId: string;
-  handle: string;
-  name: string;
-  avatarUrl: string | null;
-  position: string | null;
-  level: number;
-  medalCount: number;
-  clipCount: number;
-  linkedAt: string;
+interface UseLinkedChildrenOptions {
+  initialChildren?: LinkedChild[];
+  hasInitialData?: boolean;
 }
 
-export function useLinkedChildren() {
-  const [children, setChildren] = useState<LinkedChild[]>([]);
-  const [loading, setLoading] = useState(true);
+export type { LinkedChild } from "@/lib/home-types";
+
+export function useLinkedChildren({
+  initialChildren = [],
+  hasInitialData = false,
+}: UseLinkedChildrenOptions = {}) {
+  const [children, setChildren] = useState<LinkedChild[]>(() => initialChildren);
+  const [loading, setLoading] = useState(!hasInitialData);
   const [error, setError] = useState<string | null>(null);
 
   const fetchChildren = useCallback(async () => {
@@ -38,7 +36,11 @@ export function useLinkedChildren() {
     }
   }, []);
 
-  useEffect(() => { fetchChildren(); }, [fetchChildren]);
+  useEffect(() => {
+    if (!hasInitialData) {
+      void fetchChildren();
+    }
+  }, [fetchChildren, hasInitialData]);
 
   const linkChild = useCallback(async (handle: string) => {
     const res = await fetch("/api/parent/link", {

@@ -3,6 +3,9 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } from "@/lib/server/feed";
 import { isPocAdminUser } from "@/lib/poc-admin";
+import { canUseWatchlist } from "@/lib/permissions";
+import { fetchLinkedChildren, fetchParentDashboard } from "@/lib/server/parent-home";
+import { fetchScoutHomeData } from "@/lib/server/scout-home";
 import MvpTeaser from "@/components/mvp/MvpTeaser";
 import ChallengeBanner from "@/components/challenge/ChallengeBanner";
 
@@ -30,23 +33,53 @@ const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) redirect("/login");
   if (isPocAdminUser(user)) redirect("/admin/video-lab");
 
-  const profileRes = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  const role = profileRes.data?.role;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, name, is_verified")
+    .eq("id", user.id)
+    .maybeSingle();
+  const role = profile?.role;
   const isParent = role === "parent";
 
   // Parent gets a dedicated dashboard — no feed/MVP
   if (isParent) {
-    return <ChildDashboard />;
+    const initialChildren = await fetchLinkedChildren(supabase, user.id);
+    const initialSelectedChildId = initialChildren[0]?.childId ?? null;
+    const initialDashboard = initialSelectedChildId
+      ? await fetchParentDashboard(
+          supabase,
+          initialSelectedChildId,
+          profile?.name ?? "보호자"
+        )
+      : null;
+
+    return (
+      <ChildDashboard
+        initialChildren={initialChildren}
+        hasInitialChildrenData
+        initialSelectedChildId={initialSelectedChildId}
+        initialDashboard={initialDashboard}
+      />
+    );
   }
 
   // Scout gets an optimized discovery-focused home
   const isScout = role === "scout";
   if (isScout) {
-    return <ScoutHome />;
+    const initialData = await fetchScoutHomeData(
+      supabase,
+      user.id,
+      canUseWatchlist(role, profile?.is_verified ?? false)
+    );
+
+    return <ScoutHome initialData={initialData} />;
   }
 
   // Player/coach: normal feed home

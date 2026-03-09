@@ -1,73 +1,51 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
-import FollowButton from "@/components/social/FollowButton";
 import { POSITION_COLORS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
+import type {
+  ScoutHomeData,
+  ScoutRecentHighlight,
+  ScoutRisingPlayer,
+  ScoutWatchlistPreview,
+} from "@/lib/home-types";
 
-interface WatchlistPreview {
-  id: string;
-  name: string;
-  handle: string;
-  avatar_url?: string;
-  position?: string;
-  last_clip_at: string | null;
+interface ScoutHomeProps {
+  initialData?: ScoutHomeData;
 }
 
-interface RisingPlayer {
-  profile_id: string;
-  name: string;
-  handle: string;
-  avatar_url: string | null;
-  position: string | null;
-  level: number;
-  weekly_change: number;
-}
-
-interface RecentHighlight {
-  id: string;
-  thumbnail_url: string | null;
-  tags: string[];
-  owner_name: string;
-  owner_handle: string;
-  owner_avatar: string | null;
-  created_at: string;
-}
-
-export default function ScoutHome() {
-  const [watchlist, setWatchlist] = useState<WatchlistPreview[]>([]);
-  const [rising, setRising] = useState<RisingPlayer[]>([]);
-  const [highlights, setHighlights] = useState<RecentHighlight[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ScoutHome({ initialData }: ScoutHomeProps) {
+  const [watchlist, setWatchlist] = useState<ScoutWatchlistPreview[]>(
+    () => initialData?.watchlist ?? []
+  );
+  const [rising, setRising] = useState<ScoutRisingPlayer[]>(
+    () => initialData?.rising ?? []
+  );
+  const [highlights, setHighlights] = useState<ScoutRecentHighlight[]>(
+    () => initialData?.highlights ?? []
+  );
+  const [loading, setLoading] = useState(!initialData);
 
   useEffect(() => {
+    if (initialData) {
+      return;
+    }
+
     Promise.allSettled([
-      fetch("/api/watchlist").then(r => r.json()).then(d => setWatchlist(
-        (d.watchlist ?? []).slice(0, 5).map((w: any) => ({
-          id: w.player_id,
-          name: w.player?.name ?? "",
-          handle: w.player?.handle ?? "",
-          avatar_url: w.player?.avatar_url,
-          position: w.player?.position,
-          last_clip_at: w.last_clip_at,
-        }))
-      )),
-      fetch("/api/discover/rising?limit=6").then(r => r.json()).then(d => setRising(d.items ?? [])),
-      fetch("/api/discover/highlights?limit=6").then(r => r.json()).then(d => setHighlights(
-        (d.items ?? []).map((h: any) => ({
-          id: h.id,
-          thumbnail_url: h.metadata?.thumbnail_url ?? null,
-          tags: h.metadata?.tags ?? [],
-          owner_name: h.profiles?.name ?? "",
-          owner_handle: h.profiles?.handle ?? "",
-          owner_avatar: h.profiles?.avatar_url ?? null,
-          created_at: h.created_at ?? "",
-        }))
-      )),
+      fetch("/api/watchlist")
+        .then((response) => response.json())
+        .then((data) => setWatchlist(parseWatchlistItems(data.watchlist))),
+      fetch("/api/discover/rising?limit=6")
+        .then((response) => response.json())
+        .then((data) => setRising(parseRisingItems(data.items))),
+      fetch("/api/discover/highlights?limit=6")
+        .then((response) => response.json())
+        .then((data) => setHighlights(parseHighlightItems(data.items))),
     ]).finally(() => setLoading(false));
-  }, []);
+  }, [initialData]);
 
   if (loading) {
     return (
@@ -213,7 +191,13 @@ export default function ScoutHome() {
               <Link key={h.id} href={`/p/${h.owner_handle}`} className="rounded-xl bg-card overflow-hidden border border-white/[0.05]">
                 <div className="aspect-video bg-[#08080a] relative flex items-center justify-center border-b border-white/[0.03]">
                   {h.thumbnail_url ? (
-                    <img src={h.thumbnail_url} alt="" className="h-full w-full object-cover" />
+                    <Image
+                      src={h.thumbnail_url}
+                      alt=""
+                      fill
+                      sizes="(max-width: 430px) 50vw, 215px"
+                      className="object-cover"
+                    />
                   ) : (
                     <span className="text-text-3 text-[20px]">🎬</span>
                   )}
@@ -238,4 +222,114 @@ export default function ScoutHome() {
       )}
     </div>
   );
+}
+
+function parseWatchlistItems(value: unknown): ScoutWatchlistPreview[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.slice(0, 5).reduce<ScoutWatchlistPreview[]>((items, item) => {
+      const watchlistItem = toRecord(item);
+      const player = toRecord(watchlistItem.player);
+      const playerId = asString(watchlistItem.player_id);
+
+      if (!playerId) {
+        return items;
+      }
+
+      items.push({
+        id: playerId,
+        name: asString(player.name),
+        handle: asString(player.handle),
+        avatar_url: asOptionalString(player.avatar_url),
+        position: asOptionalString(player.position),
+        last_clip_at: asNullableString(watchlistItem.last_clip_at),
+      });
+      return items;
+    }, []);
+}
+
+function parseRisingItems(value: unknown): ScoutRisingPlayer[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const row = toRecord(item);
+      const profileId = asString(row.profile_id);
+
+      if (!profileId) {
+        return null;
+      }
+
+      return {
+        profile_id: profileId,
+        name: asString(row.name),
+        handle: asString(row.handle),
+        avatar_url: asNullableString(row.avatar_url),
+        position: asNullableString(row.position),
+        level: asNumber(row.level, 1),
+        weekly_change: asNumber(row.weekly_change, 0),
+      };
+    })
+    .filter((item): item is ScoutRisingPlayer => item !== null);
+}
+
+function parseHighlightItems(value: unknown): ScoutRecentHighlight[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const row = toRecord(item);
+      const metadata = toRecord(row.metadata);
+      const profile = toRecord(row.profiles);
+      const id = asString(row.id);
+
+      if (!id) {
+        return null;
+      }
+
+      return {
+        id,
+        thumbnail_url: asNullableString(metadata.thumbnail_url),
+        tags: asStringArray(metadata.tags),
+        owner_name: asString(profile.name),
+        owner_handle: asString(profile.handle),
+        owner_avatar: asNullableString(profile.avatar_url),
+        created_at: asString(row.created_at),
+      };
+    })
+    .filter((item): item is ScoutRecentHighlight => item !== null);
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function asNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" ? value : fallback;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }

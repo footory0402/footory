@@ -41,11 +41,12 @@ export async function proxy(request: NextRequest) {
   );
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: claimsData,
+    error: claimsError,
+  } = await supabase.auth.getClaims();
 
   // Not logged in → redirect to login
-  if (!user) {
+  if (claimsError || !claimsData?.claims?.sub) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

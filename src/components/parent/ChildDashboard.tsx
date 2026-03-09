@@ -1,58 +1,42 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useLinkedChildren, type LinkedChild } from "@/hooks/useParent";
+import type { ParentDashboardData } from "@/lib/home-types";
 import ChildSelector from "./ChildSelector";
 import WeeklyRecap from "./WeeklyRecap";
 import LinkChildSheet from "./LinkChildSheet";
 import ParentQuickUpload from "./ParentQuickUpload";
 
-interface DashboardData {
-  parentName: string;
-  child: {
-    id: string;
-    name: string;
-    handle: string;
-    avatar_url: string | null;
-    position: string | null;
-    level: number;
-    xp: number;
-    followers_count: number;
-    views_count: number;
-  };
-  weeklyStats: {
-    newClips: number;
-    kudosReceived: number;
-    profileViews: number;
-    mvpRank: number | null;
-    level: number;
-  };
-  prevWeeklyStats?: {
-    newClips: number;
-    kudosReceived: number;
-  };
-  recentActivity: {
-    id: string;
-    type: string;
-    metadata: Record<string, unknown>;
-    createdAt: string;
-  }[];
-  teamNews: {
-    teamId: string;
-    teamName: string;
-    newClips: number;
-  }[];
+interface ChildDashboardProps {
+  initialChildren?: LinkedChild[];
+  hasInitialChildrenData?: boolean;
+  initialSelectedChildId?: string | null;
+  initialDashboard?: ParentDashboardData | null;
 }
 
-export default function ChildDashboard() {
-  const { children, loading: childrenLoading, linkChild, refetch } = useLinkedChildren();
-  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+export default function ChildDashboard({
+  initialChildren = [],
+  hasInitialChildrenData = false,
+  initialSelectedChildId = null,
+  initialDashboard = null,
+}: ChildDashboardProps) {
+  const { children, loading: childrenLoading, linkChild, refetch } = useLinkedChildren({
+    initialChildren,
+    hasInitialData: hasInitialChildrenData,
+  });
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(
+    initialSelectedChildId ?? initialChildren[0]?.childId ?? null
+  );
+  const [dashboard, setDashboard] = useState<ParentDashboardData | null>(initialDashboard);
   const [loading, setLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [showLink, setShowLink] = useState(false);
   const [uploadTarget, setUploadTarget] = useState<LinkedChild | null>(null);
+  const shouldSkipInitialFetch = useRef(
+    Boolean(initialDashboard && initialSelectedChildId)
+  );
 
   // Auto-select first child
   useEffect(() => {
@@ -84,8 +68,13 @@ export default function ChildDashboard() {
   }, []);
 
   useEffect(() => {
-    if (selectedChildId) fetchDashboard(selectedChildId);
-  }, [selectedChildId, fetchDashboard]);
+    if (!selectedChildId) return;
+    if (shouldSkipInitialFetch.current && selectedChildId === initialSelectedChildId) {
+      shouldSkipInitialFetch.current = false;
+      return;
+    }
+    void fetchDashboard(selectedChildId);
+  }, [selectedChildId, fetchDashboard, initialSelectedChildId]);
 
   if (childrenLoading) {
     return (

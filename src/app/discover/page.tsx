@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const PlayerRanking = dynamic(() => import("@/components/explore/PlayerRanking"), { ssr: false });
 const RisingPlayers = dynamic(() => import("@/components/explore/RisingPlayers"), { ssr: false });
@@ -19,8 +21,33 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
 ];
 
 export default function DiscoverPage() {
-  const [tab, setTab] = useState<FilterTab>("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = getFilterTab(searchParams.get("tab"));
+  const [tab, setTab] = useState<FilterTab>(currentTab);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setTab(currentTab);
+  }, [currentTab]);
+
+  const handleTabChange = (nextTab: FilterTab) => {
+    startTransition(() => {
+      setTab(nextTab);
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextTab === "all") {
+        params.delete("tab");
+      } else {
+        params.set("tab", nextTab);
+      }
+
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    });
+  };
 
   return (
     <div className="px-4 pt-4 pb-24">
@@ -41,7 +68,7 @@ export default function DiscoverPage() {
         {FILTER_TABS.map((ft) => (
           <button
             key={ft.key}
-            onClick={() => setTab(ft.key)}
+            onClick={() => handleTabChange(ft.key)}
             className={`flex-1 pb-2.5 text-sm font-medium relative ${
               tab === ft.key ? "text-accent" : "text-text-3"
             }`}
@@ -63,17 +90,17 @@ export default function DiscoverPage() {
               <RisingPlayers />
             </Section>
 
-            <Section title="인기 선수 랭킹" seeMoreHref="/discover?tab=player">
+            <DeferredSection title="인기 선수 랭킹" seeMoreHref="/discover?tab=player">
               <PlayerRanking compact />
-            </Section>
+            </DeferredSection>
 
-            <Section title="팀 랭킹" seeMoreHref="/discover?tab=team">
+            <DeferredSection title="팀 랭킹" seeMoreHref="/discover?tab=team">
               <TeamRanking compact />
-            </Section>
+            </DeferredSection>
 
-            <Section title="태그별 인기 클립" seeMoreHref="/discover?tab=tag">
+            <DeferredSection title="태그별 인기 클립" seeMoreHref="/discover?tab=tag">
               <TagGrid />
-            </Section>
+            </DeferredSection>
           </>
         )}
 
@@ -113,10 +140,74 @@ function Section({ title, children, seeMoreHref }: { title: string; children: Re
           {title}
         </h2>
         {seeMoreHref && (
-          <a href={seeMoreHref} className="text-xs text-text-3">더보기 →</a>
+          <Link href={seeMoreHref} className="text-xs text-text-3">더보기 →</Link>
         )}
       </div>
       {children}
     </section>
   );
+}
+
+function DeferredSection({
+  title,
+  children,
+  seeMoreHref,
+}: {
+  title: string;
+  children: React.ReactNode;
+  seeMoreHref?: string;
+}) {
+  const containerRef = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (visible || !containerRef.current) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "240px 0px" }
+    );
+
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, [visible]);
+
+  return (
+    <section
+      ref={containerRef}
+      style={{ contentVisibility: "auto", containIntrinsicSize: "360px" }}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-[15px] font-bold tracking-tight text-text-1">
+          {title}
+        </h2>
+        {seeMoreHref && (
+          <Link href={seeMoreHref} className="text-xs text-text-3">
+            더보기 →
+          </Link>
+        )}
+      </div>
+      {visible ? (
+        children
+      ) : (
+        <div className="space-y-3 rounded-2xl border border-white/[0.04] bg-card p-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-16 animate-pulse rounded-xl bg-card-alt" />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function getFilterTab(value: string | null): FilterTab {
+  return value === "player" || value === "team" || value === "tag" ? value : "all";
 }

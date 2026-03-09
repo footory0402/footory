@@ -8,9 +8,22 @@ export default function AppHeader() {
   const { count, fetchCount } = useUnreadCount();
 
   useEffect(() => {
-    fetchCount();
-    const interval = setInterval(fetchCount, 60_000);
-    return () => clearInterval(interval);
+    const fetchWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void fetchCount();
+      }
+    };
+
+    const timeout = window.setTimeout(fetchWhenVisible, 250);
+    const interval = window.setInterval(fetchWhenVisible, 60_000);
+
+    document.addEventListener("visibilitychange", fetchWhenVisible);
+
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", fetchWhenVisible);
+    };
   }, [fetchCount]);
 
   return (

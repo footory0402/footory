@@ -14,12 +14,10 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
-    prefetch: _prefetch,
     ...props
   }: {
     children: React.ReactNode;
     href: string;
-    prefetch?: boolean;
     [key: string]: unknown;
   }) => (
     <a href={href} {...props}>
@@ -28,16 +26,11 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("@/hooks/usePermissions", () => ({
-  usePermissions: () => ({
-    role: "player",
-    verified: false,
-    canUploadClip: true,
-    canVoteMvp: true,
-    canFollow: true,
-    canScoutReview: false,
-    canUseWatchlist: false,
-    canDm: () => true,
+vi.mock("@/providers/ProfileProvider", () => ({
+  useProfileContext: () => ({
+    profile: { id: "player-1", role: "player" },
+    loading: false,
+    error: null,
   }),
 }));
 
@@ -51,8 +44,8 @@ describe("BottomTab", () => {
     render(<BottomTab />);
 
     expect(screen.getByText("홈")).toBeInTheDocument();
+    expect(screen.getByText("탐색")).toBeInTheDocument();
     expect(screen.getByText("MVP")).toBeInTheDocument();
-    expect(screen.getByText("DM")).toBeInTheDocument();
     expect(screen.getByText("프로필")).toBeInTheDocument();
     expect(screen.getByText("팀")).toBeInTheDocument();
   });
@@ -76,12 +69,12 @@ describe("BottomTab", () => {
     expect(homeLabel.className).toContain("text-text-3");
   });
 
-  it("highlights dm tab when pathname starts with /dm", () => {
-    mockUsePathname.mockReturnValue("/dm");
+  it("highlights discover tab when pathname starts with /discover", () => {
+    mockUsePathname.mockReturnValue("/discover");
     render(<BottomTab />);
 
-    const dmLabel = screen.getByText("DM");
-    expect(dmLabel.className).toContain("text-accent");
+    const discoverLabel = screen.getByText("탐색");
+    expect(discoverLabel.className).toContain("text-accent");
   });
 
   it("highlights team tab when pathname starts with /team", () => {
