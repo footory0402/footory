@@ -32,7 +32,6 @@ export default function DiscoverPage() {
   const [tab, setTab] = useState<FilterTab>("all");
   const [searchOpen, setSearchOpen] = useState(false);
   const [positionFilter, setPositionFilter] = useState<Position | null>(null);
-  const [regionFilter, setRegionFilter] = useState("");
 
   // Restore filters from localStorage on mount
   useEffect(() => {
@@ -41,7 +40,6 @@ export default function DiscoverPage() {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.positionFilter) setPositionFilter(parsed.positionFilter);
-        if (parsed.regionFilter) setRegionFilter(parsed.regionFilter);
       }
     } catch {
       // ignore parse errors
@@ -51,14 +49,11 @@ export default function DiscoverPage() {
   // Persist filters to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ positionFilter, regionFilter })
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ positionFilter }));
     } catch {
       // ignore storage errors
     }
-  }, [positionFilter, regionFilter]);
+  }, [positionFilter]);
 
   return (
     <div className="px-4 pt-4 pb-24">
@@ -74,13 +69,13 @@ export default function DiscoverPage() {
         <span className="ml-2 text-xs text-text-3">선수, 팀, 태그 검색</span>
       </button>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mt-4">
+      {/* Filter bar: type tabs + position chips in one scrollable row */}
+      <div className="flex gap-2 mt-4 overflow-x-auto scrollbar-hide pb-0.5">
         {FILTER_TABS.map((ft) => (
           <button
             key={ft.key}
             onClick={() => setTab(ft.key)}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
               tab === ft.key
                 ? "bg-accent text-bg"
                 : "bg-card text-text-2 active:bg-card-alt"
@@ -89,13 +84,10 @@ export default function DiscoverPage() {
             {ft.label}
           </button>
         ))}
-      </div>
 
-      {/* Position / Region filters (visible on player or all tab) */}
-      {(tab === "all" || tab === "player") && (
-        <div className="mt-3 space-y-2">
-          {/* Position chips */}
-          <div className="flex gap-1.5">
+        {(tab === "all" || tab === "player") && (
+          <>
+            <div className="shrink-0 w-px bg-white/10 my-1" />
             {POSITIONS.map((pos) => {
               const active = positionFilter === pos;
               const color = POSITION_COLORS[pos];
@@ -103,29 +95,20 @@ export default function DiscoverPage() {
                 <button
                   key={pos}
                   onClick={() => setPositionFilter(active ? null : pos)}
-                  className="min-h-[32px] rounded-full px-3 text-xs font-medium transition-colors"
+                  className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
                   style={
                     active
-                      ? { backgroundColor: `${color}20`, color }
-                      : { backgroundColor: "var(--color-card)", color: "#A1A1AA" }
+                      ? { backgroundColor: `${color}22`, color, border: `1px solid ${color}50` }
+                      : { backgroundColor: "var(--color-card)", color: "#71717A" }
                   }
                 >
                   {POSITION_LABELS_SHORT[pos]}
                 </button>
               );
             })}
-          </div>
-
-          {/* Region text filter */}
-          <input
-            type="text"
-            value={regionFilter}
-            onChange={(e) => setRegionFilter(e.target.value)}
-            placeholder="지역으로 필터 (예: 서울, 경기)"
-            className="h-8 w-full rounded-lg bg-card px-3 text-[12px] text-text-1 placeholder:text-text-3 outline-none focus:ring-1 focus:ring-accent/30"
-          />
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
       {/* Content sections */}
       <div className="mt-6 space-y-6">

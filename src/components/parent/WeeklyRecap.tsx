@@ -62,7 +62,7 @@ export default function WeeklyRecap({ childId, childName }: WeeklyRecapProps) {
   };
 
   return (
-    <div className="mb-4 rounded-[14px] border border-accent/20 bg-gradient-to-br from-card to-accent/5 p-4">
+    <div className="mb-4 rounded-xl border border-accent/20 bg-gradient-to-br from-card to-accent/5 p-4">
       <div className="flex items-center justify-between">
         <h3 className="text-[14px] font-bold text-text-1">
           {childName}의 지난주 리캡
@@ -91,7 +91,7 @@ export default function WeeklyRecap({ childId, childName }: WeeklyRecapProps) {
       <div className="mt-3 flex gap-2">
         <button
           onClick={dismiss}
-          className="flex-1 rounded-[10px] bg-accent/10 py-2 text-[13px] font-medium text-accent"
+          className="flex-1 rounded-xl bg-accent/10 py-2 text-[13px] font-medium text-accent"
         >
           자세히 보기
         </button>
@@ -104,7 +104,7 @@ export default function WeeklyRecap({ childId, childName }: WeeklyRecapProps) {
               });
             }
           }}
-          className="flex-1 rounded-[10px] border border-border py-2 text-[13px] font-medium text-text-2"
+          className="flex-1 rounded-xl border border-border py-2 text-[13px] font-medium text-text-2"
         >
           공유하기
         </button>

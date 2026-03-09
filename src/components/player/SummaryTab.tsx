@@ -143,12 +143,14 @@ export default function SummaryTab({
       </button>
 
       {/* Clip Picker */}
-      <ClipPickerSheet
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={handleSelect}
-        excludeClipIds={excludeClipIds}
-      />
+      {pickerOpen && (
+        <ClipPickerSheet
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onSelect={handleSelect}
+          excludeClipIds={excludeClipIds}
+        />
+      )}
     </div>
     </ErrorBoundary>
   );

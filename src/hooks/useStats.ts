@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Stat, Medal } from "@/lib/types";
 import type { AwardedMedal } from "@/lib/medals";
 
@@ -67,12 +67,18 @@ function toMedal(m: StatsApiMedal): Medal {
   };
 }
 
-export function useStats() {
+interface UseStatsOptions {
+  enabled?: boolean;
+}
+
+export function useStats({ enabled = true }: UseStatsOptions = {}) {
   const [stats, setStats] = useState<Stat[]>([]);
   const [medals, setMedals] = useState<Medal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
+  const hasFetchedRef = useRef(false);
 
   const fetchStats = useCallback(async () => {
+    hasFetchedRef.current = true;
     try {
       setLoading(true);
       const res = await fetch("/api/stats");
@@ -99,8 +105,14 @@ export function useStats() {
   }, []);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    void fetchStats();
+  }, [enabled, fetchStats]);
 
   const addStat = useCallback(
     async (

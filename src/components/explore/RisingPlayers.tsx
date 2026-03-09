@@ -14,7 +14,7 @@ export default function RisingPlayers() {
     return (
       <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-[160px] w-[120px] shrink-0 animate-pulse rounded-xl bg-card" />
+          <div key={i} className="h-[148px] w-[112px] shrink-0 animate-pulse rounded-xl bg-card" />
         ))}
       </div>
     );
@@ -40,9 +40,9 @@ export default function RisingPlayers() {
         return (
           <div
             key={p.profile_id}
-            className="card-elevated flex w-[112px] h-[152px] shrink-0 flex-col items-center justify-between p-3"
+            className="card-elevated flex w-[112px] shrink-0 flex-col items-center gap-2 p-3"
           >
-            <Link href={`/p/${p.handle}`} className="flex flex-col items-center gap-1.5">
+            <Link href={`/p/${p.handle}`} className="flex flex-col items-center gap-1.5 w-full">
               <Avatar
                 name={p.name}
                 size="md"

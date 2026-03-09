@@ -8,6 +8,7 @@ import type { Profile, Stat, Medal, Season, Achievement } from "@/lib/types";
 interface ProfilePdfExportProps {
   open: boolean;
   onClose: () => void;
+  loading?: boolean;
   profile: Profile;
   stats: Stat[];
   medals: Medal[];
@@ -28,6 +29,7 @@ const OPTION_LABELS: { key: keyof PdfOptions; label: string }[] = [
 export default function ProfilePdfExport({
   open,
   onClose,
+  loading = false,
   profile,
   stats,
   medals,
@@ -120,10 +122,12 @@ export default function ProfilePdfExport({
             </button>
             <button
               onClick={handleGenerate}
-              disabled={generating}
+              disabled={generating || loading}
               className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-bg disabled:opacity-50"
             >
-              {generating ? (
+              {loading ? (
+                "데이터 불러오는 중..."
+              ) : generating ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-bg border-t-transparent" />
                   생성 중...

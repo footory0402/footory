@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Achievement } from "@/lib/types";
 
 interface AchievementRow {
@@ -25,11 +25,17 @@ function toAchievement(row: AchievementRow): Achievement {
   };
 }
 
-export function useAchievements() {
+interface UseAchievementsOptions {
+  enabled?: boolean;
+}
+
+export function useAchievements({ enabled = true }: UseAchievementsOptions = {}) {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
+  const hasFetchedRef = useRef(false);
 
   const fetchAchievements = useCallback(async () => {
+    hasFetchedRef.current = true;
     try {
       setLoading(true);
       const res = await fetch("/api/achievements");
@@ -42,8 +48,14 @@ export function useAchievements() {
   }, []);
 
   useEffect(() => {
-    fetchAchievements();
-  }, [fetchAchievements]);
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    void fetchAchievements();
+  }, [enabled, fetchAchievements]);
 
   const addAchievement = useCallback(
     async (input: { title: string; competition?: string; year?: number; evidenceUrl?: string }) => {

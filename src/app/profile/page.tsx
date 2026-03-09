@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
@@ -42,17 +42,25 @@ export default function ProfilePage() {
   const [questOpen, setQuestOpen] = useState(false);
   const [celebrationMedals, setCelebrationMedals] = useState<AwardedMedal[]>([]);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
-  const { stats, medals, addStat } = useStats();
-  const { tagClips, loading: tagClipsLoading, fetchTagClips } = useTagClips();
-  const { seasons, addSeason } = useSeasons();
-  const { achievements, addAchievement, removeAchievement } = useAchievements();
-  const { events: timelineEvents, loading: timelineLoading } = useTimeline();
+  const isScoutProfile = profile?.role === "scout";
+  const shouldLoadStats = !!profile && !isScoutProfile && (
+    activeTab === "summary" || activeTab === "records" || statInputOpen || pdfExportOpen
+  );
+  const shouldLoadSkillClips = !!profile && !isScoutProfile && activeTab === "skills";
+  const shouldLoadRecordsData = !!profile && !isScoutProfile && (
+    activeTab === "records" || seasonAddOpen || pdfExportOpen
+  );
+  const { stats, medals, addStat, loading: statsLoading } = useStats({ enabled: shouldLoadStats });
+  const { tagClips, loading: tagClipsLoading } = useTagClips({ enabled: shouldLoadSkillClips });
+  const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadRecordsData });
+  const { achievements, addAchievement, removeAchievement, loading: achievementsLoading } = useAchievements({
+    enabled: shouldLoadRecordsData,
+  });
+  const { events: timelineEvents, loading: timelineLoading } = useTimeline(undefined, {
+    enabled: shouldLoadRecordsData,
+  });
 
   const displayProfile = profile;
-
-  useEffect(() => {
-    fetchTagClips();
-  }, [fetchTagClips]);
 
   if (loading && !displayProfile) {
     return <ProfileSkeleton />;
@@ -338,41 +346,52 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <ProfileEditSheet
-        profile={displayProfile}
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        onSave={updateProfile}
-        onAvatarUpload={uploadAvatar}
-        onCheckHandle={checkHandle}
-      />
+      {editOpen && (
+        <ProfileEditSheet
+          profile={displayProfile}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          onSave={updateProfile}
+          onAvatarUpload={uploadAvatar}
+          onCheckHandle={checkHandle}
+        />
+      )}
 
-      <StatInputSheet
-        open={statInputOpen}
-        onClose={() => setStatInputOpen(false)}
-        onSave={handleAddStat}
-      />
+      {statInputOpen && (
+        <StatInputSheet
+          open={statInputOpen}
+          onClose={() => setStatInputOpen(false)}
+          onSave={handleAddStat}
+        />
+      )}
 
-      <SeasonAddSheet
-        open={seasonAddOpen}
-        onClose={() => setSeasonAddOpen(false)}
-        onSave={addSeason}
-      />
+      {seasonAddOpen && (
+        <SeasonAddSheet
+          open={seasonAddOpen}
+          onClose={() => setSeasonAddOpen(false)}
+          onSave={addSeason}
+        />
+      )}
 
-      <MedalCelebration
-        medals={celebrationMedals}
-        onClose={() => setCelebrationMedals([])}
-      />
+      {celebrationMedals.length > 0 && (
+        <MedalCelebration
+          medals={celebrationMedals}
+          onClose={() => setCelebrationMedals([])}
+        />
+      )}
 
-      <ProfilePdfExport
-        open={pdfExportOpen}
-        onClose={() => setPdfExportOpen(false)}
-        profile={displayProfile}
-        stats={stats}
-        medals={medals}
-        seasons={seasons}
-        achievements={achievements}
-      />
+      {pdfExportOpen && (
+        <ProfilePdfExport
+          open={pdfExportOpen}
+          onClose={() => setPdfExportOpen(false)}
+          loading={statsLoading || seasonsLoading || achievementsLoading}
+          profile={displayProfile}
+          stats={stats}
+          medals={medals}
+          seasons={seasons}
+          achievements={achievements}
+        />
+      )}
     </div>
   );
 }

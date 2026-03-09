@@ -21,7 +21,7 @@ export default function TeamAlbum({ albums }: TeamAlbumProps) {
       {albums.map((item) => (
         <div
           key={item.id}
-          className="relative aspect-square overflow-hidden rounded-[4px] bg-card"
+          className="relative aspect-square overflow-hidden rounded-[6px] bg-card"
         >
           {item.mediaType === "video" ? (
             <>

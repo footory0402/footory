@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface ClipWithTags {
@@ -120,11 +120,17 @@ export function useFeaturedClips() {
   return { featured, loading, fetchFeatured, addFeatured, removeFeatured };
 }
 
-export function useTagClips() {
+interface UseTagClipsOptions {
+  enabled?: boolean;
+}
+
+export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
   const [tagClips, setTagClips] = useState<Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(enabled);
+  const hasFetchedRef = useRef(false);
 
   const fetchTagClips = useCallback(async () => {
+    hasFetchedRef.current = true;
     setLoading(true);
     try {
       const supabase = createClient();
@@ -160,6 +166,16 @@ export function useTagClips() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    void fetchTagClips();
+  }, [enabled, fetchTagClips]);
 
   return { tagClips, loading, fetchTagClips };
 }

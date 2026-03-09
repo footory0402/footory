@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { TimelineEvent, TimelineEventType } from "@/lib/types";
 
 interface TimelineEventRow {
@@ -23,11 +23,17 @@ function toTimelineEvent(row: TimelineEventRow): TimelineEvent {
   };
 }
 
-export function useTimeline(profileId?: string) {
+interface UseTimelineOptions {
+  enabled?: boolean;
+}
+
+export function useTimeline(profileId?: string, { enabled = true }: UseTimelineOptions = {}) {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
+  const hasFetchedRef = useRef(false);
 
   const fetchTimeline = useCallback(async () => {
+    hasFetchedRef.current = true;
     try {
       setLoading(true);
       const url = profileId
@@ -43,8 +49,14 @@ export function useTimeline(profileId?: string) {
   }, [profileId]);
 
   useEffect(() => {
-    fetchTimeline();
-  }, [fetchTimeline]);
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    void fetchTimeline();
+  }, [enabled, fetchTimeline]);
 
   return { events, loading, refetch: fetchTimeline };
 }

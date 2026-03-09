@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Season } from "@/lib/types";
 import type { Position } from "@/lib/constants";
 
@@ -29,11 +29,17 @@ function toSeason(row: SeasonApiRow): Season {
   };
 }
 
-export function useSeasons() {
+interface UseSeasonsOptions {
+  enabled?: boolean;
+}
+
+export function useSeasons({ enabled = true }: UseSeasonsOptions = {}) {
   const [seasons, setSeasons] = useState<Season[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
+  const hasFetchedRef = useRef(false);
 
   const fetchSeasons = useCallback(async () => {
+    hasFetchedRef.current = true;
     try {
       setLoading(true);
       const res = await fetch("/api/seasons");
@@ -46,8 +52,14 @@ export function useSeasons() {
   }, []);
 
   useEffect(() => {
-    fetchSeasons();
-  }, [fetchSeasons]);
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
+    if (hasFetchedRef.current) return;
+    void fetchSeasons();
+  }, [enabled, fetchSeasons]);
 
   const addSeason = useCallback(
     async (params: { year: number; teamName: string; teamId?: string; league?: string; isNewTeam: boolean }) => {

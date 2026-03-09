@@ -18,66 +18,119 @@ interface FeedCardProps {
   eagerImage?: boolean;
 }
 
-function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerImage?: boolean }) {
+interface FeedBodyExtras {
+  kudosCount: number;
+  commentCount: number;
+  hasKudos: boolean;
+  myReactionEmoji: string | null;
+  onKudosTap: () => void;
+  onKudosLongStart: () => void;
+  onKudosLongEnd: () => void;
+  onComment?: () => void;
+}
+
+function FeedBody({
+  item,
+  eagerImage = false,
+  extras,
+}: {
+  item: FeedItemEnriched;
+  eagerImage?: boolean;
+  extras: FeedBodyExtras;
+}) {
   const meta = item.metadata as Record<string, unknown>;
 
   switch (item.type) {
     case "highlight": {
       const tags = (meta.tags as string[]) ?? [];
       const description = (meta.description as string) ?? (meta.memo as string) ?? null;
-      const tagLine = tags.length > 0 ? tags.join(" | ") : null;
-      const displayText = [tagLine, description].filter(Boolean).join(" - ");
       const thumbnailUrl = typeof meta.thumbnail_url === "string" ? meta.thumbnail_url : null;
       const duration = typeof meta.duration === "number" ? meta.duration : null;
 
       return (
         <div>
-          {displayText ? (
-            <p className="mb-2 text-[14px] text-text-1">
-              <span className="font-semibold text-accent">{tagLine}</span>
-              {description && <span className="text-text-2"> {description}</span>}
-            </p>
-          ) : (
-            <p className="text-[14px] text-text-1 mb-2">새 하이라이트를 등록했어요</p>
+          {description && (
+            <p className="mb-2 text-[14px] text-text-2">{description}</p>
           )}
-          {thumbnailUrl && (
-            <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03]">
-              <Image
-                src={thumbnailUrl}
-                alt="Highlight thumbnail"
-                fill
-                quality={60}
-                loading={eagerImage ? "eager" : "lazy"}
-                fetchPriority={eagerImage ? "high" : "auto"}
-                sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
-                className="h-full w-full object-cover"
-              />
-              {duration !== null && (
-                <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                  {Math.floor(duration)}초
-                </span>
-              )}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
+          {thumbnailUrl ? (
+            <>
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03]">
+                <Image
+                  src={thumbnailUrl}
+                  alt="Highlight thumbnail"
+                  fill
+                  quality={60}
+                  loading={eagerImage ? "eager" : "lazy"}
+                  fetchPriority={eagerImage ? "high" : "auto"}
+                  sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
+                  className="h-full w-full object-cover"
+                />
+                {/* Play button */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  </div>
+                </div>
+                {/* Duration */}
+                {duration !== null && (
+                  <span className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                    {Math.floor(duration)}초
+                  </span>
+                )}
+              </div>
+              {/* Tags + Kudos/Comment — below thumbnail */}
+              <div className="mt-2.5 flex items-center justify-between">
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <span key={tag} className="text-xs font-semibold text-accent">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex shrink-0 gap-3 ml-3">
+                  <button
+                    onClick={extras.onKudosTap}
+                    onMouseDown={extras.onKudosLongStart}
+                    onMouseUp={extras.onKudosLongEnd}
+                    onMouseLeave={extras.onKudosLongEnd}
+                    onTouchStart={extras.onKudosLongStart}
+                    onTouchEnd={extras.onKudosLongEnd}
+                    className={`flex items-center gap-1 text-[13px] select-none transition-colors ${
+                      extras.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
+                    }`}
+                  >
+                    <span>{extras.myReactionEmoji ?? "👏"}</span>
+                    <span>{extras.kudosCount > 0 ? extras.kudosCount : "응원"}</span>
+                  </button>
+                  <button
+                    onClick={extras.onComment}
+                    className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
+                  >
+                    <span>💬</span>
+                    <span>{extras.commentCount > 0 ? extras.commentCount : "댓글"}</span>
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
-          {tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-md px-2 py-0.5 text-[10px] font-medium"
-                  style={{ background: "var(--accent-bg)", color: "var(--color-accent)" }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+            </>
+          ) : (
+            /* No thumbnail: show tags below text */
+            <>
+              {tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-md px-2 py-0.5 text-[10px] font-medium"
+                      style={{ background: "var(--accent-bg)", color: "var(--color-accent)" }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       );
@@ -158,7 +211,6 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const handleKudosTap = useCallback(() => {
-    // Default tap = clap reaction
     onKudos(item.id, "clap");
   }, [item.id, onKudos]);
 
@@ -183,6 +235,21 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
   const myReactionEmoji = item.myReaction
     ? REACTIONS.find((r) => r.key === item.myReaction)?.emoji ?? "👏"
     : null;
+
+  const meta = item.metadata as Record<string, unknown>;
+  const isHighlightWithVideo =
+    item.type === "highlight" && typeof meta.thumbnail_url === "string";
+
+  const extras: FeedBodyExtras = {
+    kudosCount: item.kudosCount,
+    commentCount: item.commentCount,
+    hasKudos: item.hasKudos,
+    myReactionEmoji,
+    onKudosTap: handleKudosTap,
+    onKudosLongStart: handleLongPressStart,
+    onKudosLongEnd: handleLongPressEnd,
+    onComment: onComment ? () => onComment(item.id) : undefined,
+  };
 
   return (
     <div className="card-elevated p-4">
@@ -220,45 +287,48 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
       </div>
 
       {/* Body */}
-      <FeedBody item={item} eagerImage={eagerImage} />
-
-      {/* Footer */}
-      <div className="mt-3 flex items-center gap-3 border-t border-white/5 pt-3 relative">
-        {/* Kudos / Reaction button — tap=clap, long-press=picker */}
-        <div ref={pickerRef} className="relative">
-          <button
-            onClick={handleKudosTap}
-            onMouseDown={handleLongPressStart}
-            onMouseUp={handleLongPressEnd}
-            onMouseLeave={handleLongPressEnd}
-            onTouchStart={handleLongPressStart}
-            onTouchEnd={handleLongPressEnd}
-            className={`flex items-center gap-1 text-[13px] transition-colors select-none ${
-              item.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
-            }`}
-          >
-            <span>{myReactionEmoji ?? "👏"}</span>
-            <span>{item.kudosCount > 0 ? item.kudosCount : "응원"}</span>
-          </button>
-
-          {showPicker && (
-            <div className="absolute bottom-full mb-2 left-0 z-50">
-              <ReactionPicker
-                onSelect={handleReactionSelect}
-                onClose={() => setShowPicker(false)}
-              />
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={() => onComment?.(item.id)}
-          className="ml-auto flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
-        >
-          <span>💬</span>
-          <span>{item.commentCount > 0 ? item.commentCount : "댓글"}</span>
-        </button>
+      <div className="relative">
+        <FeedBody item={item} eagerImage={eagerImage} extras={extras} />
+        {/* Reaction picker — shown above thumbnail for highlight cards */}
+        {showPicker && (
+          <div ref={pickerRef} className="absolute bottom-full mb-2 left-0 z-50">
+            <ReactionPicker
+              onSelect={handleReactionSelect}
+              onClose={() => setShowPicker(false)}
+            />
+          </div>
+        )}
       </div>
+
+      {/* Footer — only for non-highlight types (or highlight without video) */}
+      {!isHighlightWithVideo && (
+        <div className="mt-3 flex items-center gap-3 border-t border-white/5 pt-3 relative">
+          <div className="relative">
+            <button
+              onClick={handleKudosTap}
+              onMouseDown={handleLongPressStart}
+              onMouseUp={handleLongPressEnd}
+              onMouseLeave={handleLongPressEnd}
+              onTouchStart={handleLongPressStart}
+              onTouchEnd={handleLongPressEnd}
+              className={`flex items-center gap-1 text-[13px] transition-colors select-none ${
+                item.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
+              }`}
+            >
+              <span>{myReactionEmoji ?? "👏"}</span>
+              <span>{item.kudosCount > 0 ? item.kudosCount : "응원"}</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => onComment?.(item.id)}
+            className="ml-auto flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
+          >
+            <span>💬</span>
+            <span>{item.commentCount > 0 ? item.commentCount : "댓글"}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 });

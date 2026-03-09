@@ -97,17 +97,17 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold text-text-1">설정</h2>
       </div>
 
-      {/* 계정 정보 */}
-      <SettingsSection title="계정 정보">
+      {/* 그룹 1: 계정 */}
+      <SettingsGroup title="계정">
         <SettingsRow
           icon={<MailIcon />}
           label="카카오 연동 이메일"
           value={settings.email ?? "미등록"}
         />
-      </SettingsSection>
+      </SettingsGroup>
 
-      {/* 연락처 공개 설정 */}
-      <SettingsSection title="연락처 공개 설정">
+      {/* 그룹 2: 공개 설정 */}
+      <SettingsGroup title="공개 설정">
         <ToggleRow
           icon={<MailIcon />}
           label="이메일 공개"
@@ -116,7 +116,7 @@ export default function SettingsPage() {
           onChange={() => toggleSetting("show_email")}
           disabled={saving}
         />
-        <div className="mx-4 border-t border-border" />
+        <div className="mx-4 border-t border-white/[0.06]" />
         <ToggleRow
           icon={<PhoneIcon />}
           label="전화번호 공개"
@@ -125,10 +125,10 @@ export default function SettingsPage() {
           onChange={() => toggleSetting("show_phone")}
           disabled={saving}
         />
-      </SettingsSection>
+      </SettingsGroup>
 
-      {/* 부모/자녀 연동 */}
-      <SettingsSection title="부모/자녀 연동">
+      {/* 그룹 3: 연동 */}
+      <SettingsGroup title="연동">
         <button
           onClick={() => router.push("/profile/children")}
           className="flex w-full items-center justify-between px-4 py-3"
@@ -144,10 +144,10 @@ export default function SettingsPage() {
             <path d="M9 18l6-6-6-6" />
           </svg>
         </button>
-      </SettingsSection>
+      </SettingsGroup>
 
-      {/* 알림 설정 */}
-      <SettingsSection title="알림 설정">
+      {/* 그룹 4: 알림 */}
+      <SettingsGroup title="알림">
         {pushPermission === "granted" ? (
           <SettingsRow
             icon={<BellIcon />}
@@ -182,54 +182,49 @@ export default function SettingsPage() {
             </button>
           </div>
         )}
-      </SettingsSection>
+      </SettingsGroup>
 
-      {/* 차단/신고 */}
-      <SettingsSection title="차단/신고">
+      {/* 그룹 5: 기타 */}
+      <SettingsGroup title="기타">
         <SettingsRow
           icon={<ShieldIcon />}
           label="차단 목록"
           value="없음"
           dimValue
         />
-      </SettingsSection>
-
-      {/* 약관 */}
-      <SettingsSection title="약관">
+        <div className="mx-4 border-t border-white/[0.06]" />
         <SettingsLinkRow label="이용약관" />
-        <div className="mx-4 border-t border-border" />
+        <div className="mx-4 border-t border-white/[0.06]" />
         <SettingsLinkRow label="개인정보처리방침" />
-      </SettingsSection>
-
-      {/* 고객지원 */}
-      <SettingsSection title="고객지원">
+        <div className="mx-4 border-t border-white/[0.06]" />
         <a href="mailto:support@footory.app" className="block px-4 py-3">
-          <span className="text-sm text-accent">support@footory.app</span>
+          <span className="text-sm text-accent">고객지원</span>
         </a>
-      </SettingsSection>
+        <div className="mx-4 border-t border-white/[0.06]" />
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center px-4 py-3"
+        >
+          <span className="text-sm font-medium text-red-400">로그아웃</span>
+        </button>
+      </SettingsGroup>
 
-      {/* 로그아웃 */}
-      <button
-        onClick={handleLogout}
-        className="mt-6 w-full rounded-xl bg-card py-3.5 text-center text-sm font-medium text-red transition-colors active:bg-elevated"
-      >
-        로그아웃
-      </button>
-
-      <p className="mt-4 text-center text-xs text-text-3">FOOTORY v1.2.0</p>
+      <p className="mt-2 text-center text-xs text-text-3">FOOTORY v1.2.0</p>
     </div>
   );
 }
 
 /* --- Sub-components --- */
 
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-4">
+    <div className="mb-3.5">
       <h3 className="mb-2 px-1 text-xs font-medium uppercase tracking-wider text-text-3">
         {title}
       </h3>
-      <div className="overflow-hidden rounded-xl bg-card">{children}</div>
+      <div className="overflow-hidden rounded-xl bg-card border border-white/[0.07]">
+        {children}
+      </div>
     </div>
   );
 }

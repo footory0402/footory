@@ -142,7 +142,7 @@ export default function ChildDashboard() {
 
       {/* MVP Rank Card */}
       {dashboard && dashboard.weeklyStats.mvpRank != null && dashboard.weeklyStats.mvpRank > 0 && (
-        <div className="mb-4 rounded-[14px] bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/30 p-4">
+        <div className="mb-4 rounded-xl bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/30 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 text-[20px]">
               🏆
@@ -163,7 +163,7 @@ export default function ChildDashboard() {
           {selectedChild.name}의 이번 주
         </h3>
         {loading ? (
-          <div className="rounded-[14px] bg-card p-4 animate-pulse">
+          <div className="rounded-xl bg-card p-4 animate-pulse">
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="flex justify-between">
@@ -174,7 +174,7 @@ export default function ChildDashboard() {
             </div>
           </div>
         ) : dashboard ? (
-          <div className="rounded-[14px] border border-border bg-card p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="space-y-2.5">
               <StatRow emoji="📹" label="새 영상" value={`${dashboard.weeklyStats.newClips}개`} isZero={dashboard.weeklyStats.newClips === 0} />
               <StatRow emoji="👏" label="받은 응원" value={`${dashboard.weeklyStats.kudosReceived}개`} isZero={dashboard.weeklyStats.kudosReceived === 0} />
@@ -187,7 +187,7 @@ export default function ChildDashboard() {
             {/* Weekly Comparison */}
             {dashboard.prevWeeklyStats && (
               <div className="mt-4 pt-3 border-t border-border">
-                <p className="text-[11px] text-text-3 mb-2">지난 주 대비</p>
+                <p className="text-xs text-text-3 mb-2">지난 주 대비</p>
                 <div className="space-y-2">
                   <ComparisonBar
                     label="영상"
@@ -204,7 +204,7 @@ export default function ChildDashboard() {
             )}
           </div>
         ) : dashboardError ? (
-          <div className="rounded-[14px] border border-border bg-card p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <p className="text-[13px] font-medium text-text-1">
               이번 주 활동을 아직 불러오지 못했어요
             </p>
@@ -225,13 +225,13 @@ export default function ChildDashboard() {
       <div className="mb-4 flex gap-2">
         <Link
           href={`/p/${selectedChild.handle}`}
-          className="flex-1 rounded-[10px] border border-border bg-card py-3 text-center text-[13px] font-medium text-text-2 active:bg-surface"
+          className="flex-1 rounded-xl border border-border bg-card py-3 text-center text-[13px] font-medium text-text-2 active:bg-surface"
         >
           {selectedChild.name} 프로필 보기
         </Link>
         <button
           onClick={() => setUploadTarget(selectedChild)}
-          className="flex-1 rounded-[10px] bg-gradient-to-r from-accent to-accent-dim py-3 text-[13px] font-semibold text-bg"
+          className="flex-1 rounded-xl bg-gradient-to-r from-accent to-accent-dim py-3 text-[13px] font-semibold text-bg"
         >
           영상 올려주기
         </button>
@@ -241,7 +241,7 @@ export default function ChildDashboard() {
       {dashboard && dashboard.recentActivity.length > 0 && (
         <div className="mb-4">
           <h3 className="mb-2 text-[13px] font-semibold text-text-3">최근 활동</h3>
-          <div className="rounded-[14px] border border-border bg-card">
+          <div className="rounded-xl border border-border bg-card">
             {dashboard.recentActivity.map((item, idx) => (
               <div
                 key={item.id}
@@ -254,7 +254,7 @@ export default function ChildDashboard() {
                 </div>
                 <div className="flex-1">
                   <p className="text-[13px] text-text-1">{getActivityLabel(item.type, item.metadata)}</p>
-                  <p className="mt-0.5 text-[11px] text-text-3">{formatTimeAgo(item.createdAt)}</p>
+                  <p className="mt-0.5 text-[10px] text-text-3">{formatTimeAgo(item.createdAt)}</p>
                 </div>
               </div>
             ))}
@@ -266,7 +266,7 @@ export default function ChildDashboard() {
       {dashboard && dashboard.teamNews.length > 0 && (
         <div className="mb-4">
           <h3 className="mb-2 text-[13px] font-semibold text-text-3">🏟 팀 소식</h3>
-          <div className="rounded-[14px] border border-border bg-card overflow-hidden">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             {dashboard.teamNews.map((news, idx) => (
               <div
                 key={news.teamId}
@@ -291,7 +291,7 @@ export default function ChildDashboard() {
       {/* Add another child */}
       <button
         onClick={() => setShowLink(true)}
-        className="w-full rounded-[10px] border border-dashed border-border py-2.5 text-[13px] text-text-3 hover:border-accent hover:text-accent"
+        className="w-full rounded-xl border border-dashed border-border py-2.5 text-[13px] text-text-3 hover:border-accent hover:text-accent"
       >
         + 다른 자녀 연동
       </button>
