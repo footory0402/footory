@@ -54,7 +54,7 @@ export default function ConversationList({
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between">
-              <span className="text-[15px] font-semibold text-text-1 truncate">
+              <span className="text-[15px] font-bold text-text-1 truncate">
                 {conv.otherUser?.name ?? "알 수 없음"}
               </span>
               <span className="flex-shrink-0 text-xs text-text-3">

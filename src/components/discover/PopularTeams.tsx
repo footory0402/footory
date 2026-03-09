@@ -50,11 +50,11 @@ export default function PopularTeams({ teams, loading }: PopularTeamsProps) {
               "⚽"
             )}
           </div>
-          <span className="text-[13px] font-semibold text-text-1 text-center truncate w-full">
+          <span className="text-[13px] font-bold text-text-1 text-center truncate w-full">
             {t.name}
           </span>
           <span className="text-[11px] text-text-3">
-            {t.city && `${t.city} · `}{t.member_count ?? 0}명
+            {t.city && <><span className="text-text-3">{t.city}</span><span className="text-text-3/40"> · </span></>}<span className="text-text-1 font-medium">{t.member_count ?? 0}</span>명
           </span>
         </Link>
       ))}

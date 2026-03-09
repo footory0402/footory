@@ -42,7 +42,7 @@ export default function RecommendedPlayers({ players, loading }: RecommendedPlay
             className="flex w-24 shrink-0 flex-col items-center gap-1.5 rounded-[12px] bg-card p-3"
           >
             <Avatar name={p.name} size="sm" level={p.level} imageUrl={p.avatar_url ?? undefined} />
-            <span className="text-[12px] font-semibold text-text-1 text-center truncate w-full">
+            <span className="text-[12px] font-bold text-text-1 text-center truncate w-full">
               {p.name}
             </span>
             <div className="flex items-center gap-1">

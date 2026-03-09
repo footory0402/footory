@@ -47,7 +47,7 @@ export default function MemberList({ members, isAdmin, currentUserId, onRemove }
             />
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-[14px] font-semibold text-text-1">
+                <span className="text-[15px] font-bold text-text-1">
                   {member.profile?.name ?? "알 수 없음"}
                 </span>
                 {member.role === "admin" && (

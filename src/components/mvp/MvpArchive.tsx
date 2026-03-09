@@ -86,9 +86,14 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
                   {formatWeekRange(week.weekStart)} 주차
                 </p>
                 {winner && (
-                  <p className="text-[11px] text-text-2">
-                    MVP: {winner.playerName}
-                    {winner.teamName ? ` · ${winner.teamName}` : ""}
+                  <p className="text-[11px]">
+                    <span className="text-text-2">MVP: {winner.playerName}</span>
+                    {winner.teamName && (
+                      <>
+                        <span className="text-text-3/40"> · </span>
+                        <span className="text-text-2">{winner.teamName}</span>
+                      </>
+                    )}
                   </p>
                 )}
               </div>
@@ -117,13 +122,9 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
                     >
                       {/* Rank */}
                       <span
-                        className="w-5 shrink-0 text-center font-stat text-[14px] font-bold"
-                        style={{
-                          color:
-                            result.rank === 1
-                              ? "var(--color-accent)"
-                              : "var(--color-text-3)",
-                        }}
+                        className={`w-5 shrink-0 text-center font-stat text-[14px] font-bold ${
+                          result.rank === 1 ? "text-accent" : result.rank <= 3 ? "text-text-1" : "text-text-3"
+                        }`}
                       >
                         {result.rank}
                       </span>
@@ -149,7 +150,7 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
                       {/* Info */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="truncate text-[12px] font-bold text-text-1">
+                          <span className="truncate text-[15px] font-bold text-text-1">
                             {result.playerName}
                           </span>
                           {result.playerPosition && (

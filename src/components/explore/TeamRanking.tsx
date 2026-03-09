@@ -52,7 +52,9 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
           >
             <div className="flex items-center gap-2">
               <span
-                className="text-[14px] font-bold text-text-3"
+                className={`text-[14px] font-bold ${
+                  idx === 0 ? "text-accent" : idx < 3 ? "text-text-1" : "text-text-3"
+                }`}
                 style={{ fontFamily: "var(--font-stat)" }}
               >
                 {idx + 1}
@@ -71,11 +73,11 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
                 )}
               </div>
             </div>
-            <span className="text-[13px] font-semibold text-text-1 text-center truncate w-full">
+            <span className="text-[13px] font-bold text-text-1 text-center truncate w-full">
               {t.name}
             </span>
             <span className="text-xs text-text-3">
-              {t.city && `${t.city} · `}{t.member_count}명
+              {t.city && <><span className="text-text-3">{t.city}</span><span className="text-text-3/40"> · </span></>}{t.member_count}명
             </span>
           </Link>
         ))}
@@ -94,7 +96,9 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
         >
           {/* Rank */}
           <span
-            className="w-6 text-center text-[16px] font-bold tabular-nums shrink-0"
+            className={`w-6 text-center text-[16px] font-bold tabular-nums shrink-0 ${
+              idx === 0 ? "text-accent" : idx < 3 ? "text-text-1" : "text-text-3"
+            }`}
             style={{ fontFamily: "var(--font-stat)" }}
           >
             {idx + 1}
@@ -117,14 +121,14 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
 
           {/* Info */}
           <div className="min-w-0 flex-1">
-            <span className="text-[14px] font-semibold text-text-1 truncate block">
+            <span className="text-[15px] font-bold text-text-1 truncate block">
               {t.name}
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               {t.city && (
                 <span className="text-xs text-text-3">{t.city}</span>
               )}
-              <span className="text-xs text-text-3">{t.member_count}명</span>
+              <span className="text-xs text-text-3"><span className="text-text-1 font-medium">{t.member_count}</span>명</span>
             </div>
           </div>
 

@@ -39,7 +39,7 @@ function CommentRow({
       </Link>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <Link href={`/p/${comment.profile.handle}`} className="text-[13px] font-semibold text-text-1 hover:text-accent transition-colors">
+          <Link href={`/p/${comment.profile.handle}`} className="text-[13px] font-bold text-text-1 hover:text-accent transition-colors">
             {comment.profile.name}
           </Link>
           <span className="text-[11px] text-text-3">{timeAgo(comment.createdAt)}</span>

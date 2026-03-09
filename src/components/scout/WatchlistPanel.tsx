@@ -180,12 +180,12 @@ export default function WatchlistPanel({ onClose }: Props) {
                   <div className="flex items-center gap-1.5">
                     <Link
                       href={`/p/${p.handle}`}
-                      className="text-[14px] font-semibold text-text-1"
+                      className="text-[15px] font-bold text-text-1"
                     >
                       {p.name}
                     </Link>
                     {p.position && (
-                      <span className="rounded bg-card px-1.5 py-0.5 text-[10px] text-text-3">
+                      <span className="rounded-md bg-card px-2 py-0.5 text-[10px] font-bold text-text-3 border border-accent/20">
                         {p.position}
                       </span>
                     )}

@@ -178,7 +178,7 @@ export default function ChallengeRanking({ challenge, open, onClose, onParticipa
                     {item.rank === 1 ? (
                       <span className="text-[18px]">🎯</span>
                     ) : (
-                      <span className="font-stat text-[14px] font-bold text-text-3">
+                      <span className={`font-stat text-[14px] font-bold ${item.rank <= 3 ? "text-text-1" : "text-text-3"}`}>
                         {item.rank}
                       </span>
                     )}
@@ -203,7 +203,7 @@ export default function ChallengeRanking({ challenge, open, onClose, onParticipa
 
                   {/* Player Info */}
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-semibold text-text-1">
+                    <div className="truncate text-[15px] font-bold text-text-1">
                       {item.playerName}
                     </div>
                     <div className="text-[11px] text-text-3">@{item.playerHandle}</div>

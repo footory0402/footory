@@ -130,7 +130,11 @@ function PlayerRankingRow({
   return (
     <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 last:border-b-0">
       {/* Rank number */}
-      <span className="w-6 text-center font-stat text-base font-bold tabular-nums shrink-0">
+      <span
+        className={`w-6 text-center font-stat text-base font-bold tabular-nums shrink-0 ${
+          rank === 1 ? "text-accent" : rank <= 3 ? "text-text-1" : "text-text-3"
+        }`}
+      >
         {rank}
       </span>
 
@@ -147,12 +151,12 @@ function PlayerRankingRow({
       {/* Info */}
       <Link href={`/p/${item.handle}`} className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-semibold text-text-1 truncate">
+          <span className="text-[15px] font-bold text-text-1 truncate">
             {item.name}
           </span>
           {item.position && (
             <span
-              className="rounded-md text-[10px] font-stat px-1.5 py-0.5 font-medium"
+              className="rounded-md text-[10px] font-stat px-2 py-0.5 font-bold border border-accent/20"
               style={{ color: posColor, backgroundColor: `${posColor}15` }}
             >
               {item.position}
@@ -166,11 +170,13 @@ function PlayerRankingRow({
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {item.team_name && (
-            <span className="text-xs text-text-3 truncate">{item.team_name}</span>
+            <span className="text-xs text-text-2 truncate">{item.team_name}</span>
           )}
-          <span className="text-xs text-text-3">
-            {item.followers_count > 0 && `팔로워 ${item.followers_count}`}
-          </span>
+          {item.followers_count > 0 && (
+            <span className="text-xs text-text-3">
+              팔로워 <span className="text-text-1 font-medium">{item.followers_count}</span>
+            </span>
+          )}
         </div>
       </Link>
 

@@ -26,7 +26,7 @@ function UserRow({ user, currentUserId }: { user: FollowUser; currentUserId?: st
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-[14px] font-semibold text-text-1 truncate">{user.name}</span>
+          <span className="text-[15px] font-bold text-text-1 truncate">{user.name}</span>
           <span className="text-[10px]" style={{ color: posColor }}>{user.position}</span>
         </div>
         <span className="text-[12px] text-text-3">@{user.handle}</span>

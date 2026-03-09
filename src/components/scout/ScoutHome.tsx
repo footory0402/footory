@@ -111,10 +111,10 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
               return (
                 <Link key={p.id} href={`/p/${p.handle}`} className="flex w-[80px] shrink-0 flex-col items-center gap-1.5">
                   <Avatar name={p.name} size="md" imageUrl={p.avatar_url} />
-                  <span className="text-xs font-medium text-text-1 truncate w-full text-center">{p.name}</span>
+                  <span className="text-xs font-bold text-text-1 truncate w-full text-center">{p.name}</span>
                   {p.position && (
                     <span
-                      className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                      className="rounded-md px-2 py-0.5 text-[10px] font-bold border border-accent/20"
                       style={{ color: posColor, backgroundColor: `${posColor}15` }}
                     >
                       {p.position}
@@ -141,7 +141,9 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
               const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
               return (
                 <div key={p.profile_id} className="card-elevated flex items-center gap-3 px-4 py-3">
-                  <span className="w-5 shrink-0 text-center font-stat text-base font-bold text-text-3">
+                  <span className={`w-5 shrink-0 text-center font-stat text-base font-bold ${
+                    idx === 0 ? "text-accent" : idx < 3 ? "text-text-1" : "text-text-3"
+                  }`}>
                     {idx + 1}
                   </span>
                   <Link href={`/p/${p.handle}`} className="shrink-0">
@@ -149,10 +151,10 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
                   </Link>
                   <Link href={`/p/${p.handle}`} className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-text-1 truncate">{p.name}</span>
+                      <span className="text-[15px] font-bold text-text-1 truncate">{p.name}</span>
                       {p.position && (
                         <span
-                          className="rounded-md px-1.5 py-0.5 text-[10px] font-stat font-medium"
+                          className="rounded-md px-2 py-0.5 text-[10px] font-stat font-bold border border-accent/20"
                           style={{ color: posColor, backgroundColor: `${posColor}15` }}
                         >
                           {p.position}
@@ -210,7 +212,7 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
                   </div>
                 </div>
                 <div className="p-2.5">
-                  <p className="text-xs font-semibold text-text-1 truncate">{h.owner_name}</p>
+                  <p className="text-xs font-bold text-text-1 truncate">{h.owner_name}</p>
                   {h.tags.length > 0 && (
                     <p className="text-[10px] text-text-3 truncate mt-0.5">{h.tags.join(" · ")}</p>
                   )}

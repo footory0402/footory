@@ -168,7 +168,7 @@ export default function VoteCard({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-semibold text-text-1">
+            <span className="truncate text-[15px] font-bold text-text-1">
               {candidate.playerName}
             </span>
             {candidate.playerPosition && (
@@ -176,9 +176,9 @@ export default function VoteCard({
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-text-3">
-            {candidate.teamName && <span className="truncate">{candidate.teamName}</span>}
-            <span>⚡<span className="font-stat font-bold text-text-2">{candidate.totalScore}</span></span>
-            <span>🗳 {candidate.voteCount}</span>
+            {candidate.teamName && <span className="truncate text-text-2">{candidate.teamName}</span>}
+            <span>⚡<span className="font-stat font-bold text-text-1">{candidate.totalScore}</span></span>
+            <span>🗳 <span className="text-text-1 font-medium">{candidate.voteCount}</span></span>
           </div>
         </div>
 
@@ -293,7 +293,7 @@ export function VoteCardCompact({
       {/* Info + Vote */}
       <div className="flex flex-col gap-2 p-3">
         <div className="min-w-0 w-full">
-          <span className="block truncate text-sm font-semibold text-text-1 max-w-full">
+          <span className="block truncate text-[15px] font-bold text-text-1 max-w-full">
             {candidate.playerName}
           </span>
           {candidate.teamName && (
@@ -306,7 +306,7 @@ export function VoteCardCompact({
               ⚡ {candidate.totalScore}
             </span>
             <span className="text-[10px] text-text-3">
-              🗳 {candidate.voteCount}
+              🗳 <span className="text-text-1 font-medium">{candidate.voteCount}</span>
             </span>
           </div>
         </div>

@@ -44,7 +44,7 @@ export default function DmRequestCard({ request }: { request: DmRequest }) {
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
-            <p className="text-[14px] font-semibold text-text-1">
+            <p className="text-[15px] font-bold text-text-1">
               {request.sender?.name ?? "알 수 없음"}
             </p>
             <span className="text-[11px] text-text-3">
@@ -52,11 +52,14 @@ export default function DmRequestCard({ request }: { request: DmRequest }) {
             </span>
           </div>
           {request.sender?.position && (
-            <p className="text-[12px] text-text-3">
-              {request.sender.position}
-              {request.sender.teamName
-                ? ` · ${request.sender.teamName}`
-                : ""}
+            <p className="text-[12px]">
+              <span className="text-text-3">{request.sender.position}</span>
+              {request.sender.teamName && (
+                <>
+                  <span className="text-text-3/40"> · </span>
+                  <span className="text-text-2">{request.sender.teamName}</span>
+                </>
+              )}
             </p>
           )}
           {request.previewMessage && (

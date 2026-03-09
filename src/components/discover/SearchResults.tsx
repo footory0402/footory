@@ -50,9 +50,12 @@ export default function SearchResults({ players, teams, loading, query }: Search
                 <Avatar name={p.name} size="sm" level={p.level} imageUrl={p.avatar_url ?? undefined} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[14px] font-semibold text-text-1 truncate">{p.name}</span>
+                    <span className="text-[15px] font-bold text-text-1 truncate">{p.name}</span>
                     {p.position && (
-                      <span className="text-[10px]" style={{ color: POSITION_COLORS[p.position as Position] }}>
+                      <span
+                        className="rounded-md px-2 py-0.5 text-[10px] font-bold border border-accent/20"
+                        style={{ color: POSITION_COLORS[p.position as Position], background: `${POSITION_COLORS[p.position as Position]}18` }}
+                      >
                         {p.position}
                       </span>
                     )}
@@ -90,9 +93,9 @@ export default function SearchResults({ players, teams, loading, query }: Search
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[14px] font-semibold text-text-1 truncate block">{t.name}</span>
+                  <span className="text-[15px] font-bold text-text-1 truncate block">{t.name}</span>
                   <span className="text-[12px] text-text-3">
-                    {t.city && `${t.city} · `}{t.member_count ?? 0}명
+                    {t.city && <><span className="text-text-2">{t.city}</span><span className="text-text-3/40"> · </span></>}<span className="text-text-1 font-medium">{t.member_count ?? 0}</span>명
                   </span>
                 </div>
               </Link>

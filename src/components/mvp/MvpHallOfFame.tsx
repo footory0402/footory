@@ -65,13 +65,9 @@ export default function MvpHallOfFame({
           >
             {/* Rank */}
             <span
-              className="w-6 shrink-0 text-center font-stat text-[16px] font-bold"
-              style={{
-                color:
-                  rank <= 3
-                    ? "var(--color-accent)"
-                    : "var(--color-text-3)",
-              }}
+              className={`w-6 shrink-0 text-center font-stat text-[16px] font-bold ${
+                rank === 1 ? "text-accent" : rank <= 3 ? "text-text-1" : "text-text-3"
+              }`}
             >
               {rank}
             </span>
@@ -87,7 +83,7 @@ export default function MvpHallOfFame({
             {/* Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="truncate text-[13px] font-bold text-text-1">
+                <span className="truncate text-[15px] font-bold text-text-1">
                   {entry.playerName}
                 </span>
                 {entry.playerPosition && (
@@ -95,7 +91,7 @@ export default function MvpHallOfFame({
                 )}
               </div>
               <div className="mt-0.5 flex items-center gap-2 text-[11px] text-text-3">
-                {entry.teamName && <span>{entry.teamName}</span>}
+                {entry.teamName && <span className="text-text-2">{entry.teamName}</span>}
                 {tierInfo && (
                   <span
                     className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"

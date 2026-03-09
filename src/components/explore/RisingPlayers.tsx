@@ -48,12 +48,12 @@ export default function RisingPlayers() {
               level={p.level}
               imageUrl={p.avatar_url ?? undefined}
             />
-            <span className="text-sm font-semibold text-text-1 text-center truncate w-full">
+            <span className="text-sm font-bold text-text-1 text-center truncate w-full">
               {p.name}
             </span>
             {p.position && (
               <span
-                className="rounded-md px-1.5 py-0.5 text-[10px] font-stat font-medium"
+                className="rounded-md px-2 py-0.5 text-[10px] font-stat font-bold border border-accent/20"
                 style={{ color: posColor, backgroundColor: `${posColor}15` }}
               >
                 {p.position}

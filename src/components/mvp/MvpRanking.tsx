@@ -88,13 +88,9 @@ function RankingRow({
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Rank */}
         <span
-          className="w-6 shrink-0 text-center font-stat text-base font-bold"
-          style={{
-            color:
-              c.rank <= 3
-                ? "var(--color-accent)"
-                : "var(--color-text-3)",
-          }}
+          className={`w-6 shrink-0 text-center font-stat text-base font-bold ${
+            c.rank === 1 ? "text-accent" : c.rank <= 3 ? "text-text-1" : "text-text-3"
+          }`}
         >
           {c.rank}
         </span>
@@ -144,7 +140,7 @@ function RankingRow({
         {/* Info */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-semibold text-text-1">
+            <span className="truncate text-[15px] font-bold text-text-1">
               {c.playerName}
             </span>
             {c.playerPosition && (
@@ -152,9 +148,9 @@ function RankingRow({
             )}
           </div>
           <div className="mt-0.5 flex items-center gap-2 text-xs text-text-3">
-            {c.teamName && <span>{c.teamName}</span>}
-            <span>⚡ {c.totalScore}</span>
-            <span>🗳 {c.voteCount}</span>
+            {c.teamName && <span className="text-text-2">{c.teamName}</span>}
+            <span>⚡ <span className="text-text-1 font-medium">{c.totalScore}</span></span>
+            <span>🗳 <span className="text-text-1 font-medium">{c.voteCount}</span></span>
           </div>
         </div>
 

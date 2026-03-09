@@ -102,14 +102,14 @@ function FeedBody({
                     }`}
                   >
                     <span>{extras.myReactionEmoji ?? "👏"}</span>
-                    <span>{extras.kudosCount > 0 ? extras.kudosCount : "응원"}</span>
+                    <span>{extras.kudosCount > 0 ? <span className="text-text-1 font-medium">{extras.kudosCount}</span> : "응원"}</span>
                   </button>
                   <button
                     onClick={extras.onComment}
                     className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
                   >
                     <span>💬</span>
-                    <span>{extras.commentCount > 0 ? extras.commentCount : "댓글"}</span>
+                    <span>{extras.commentCount > 0 ? <span className="text-text-1 font-medium">{extras.commentCount}</span> : "댓글"}</span>
                   </button>
                 </div>
               </div>
@@ -260,16 +260,21 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <Link href={`/p/${item.playerHandle}`} className="text-[14px] font-semibold text-text-1 truncate hover:text-accent transition-colors">
+            <Link href={`/p/${item.playerHandle}`} className="text-[15px] font-bold text-text-1 truncate hover:text-accent transition-colors">
               {item.playerName}
             </Link>
             <span className="shrink-0 text-[10px] text-text-3">›</span>
             <span className="shrink-0 text-[10px]" style={{ color: posColor }}>{item.playerPosition}</span>
             <span className="shrink-0 text-[10px]" style={{ color: lvl.color }}>{lvl.icon}</span>
           </div>
-          <div className="flex items-center gap-1 text-xs text-text-3">
-            {item.teamName && <span>{item.teamName} · </span>}
-            <span>{timeAgo(item.created_at)}</span>
+          <div className="flex items-center gap-1 text-xs">
+            {item.teamName && (
+              <>
+                <span className="text-text-2">{item.teamName}</span>
+                <span className="text-text-3/40">·</span>
+              </>
+            )}
+            <span className="text-text-3">{timeAgo(item.created_at)}</span>
           </div>
         </div>
         {/* Share button */}
@@ -316,7 +321,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
               }`}
             >
               <span>{myReactionEmoji ?? "👏"}</span>
-              <span>{item.kudosCount > 0 ? item.kudosCount : "응원"}</span>
+              <span>{item.kudosCount > 0 ? <span className="text-text-1 font-medium">{item.kudosCount}</span> : "응원"}</span>
             </button>
           </div>
 
@@ -325,7 +330,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
             className="ml-auto flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
           >
             <span>💬</span>
-            <span>{item.commentCount > 0 ? item.commentCount : "댓글"}</span>
+            <span>{item.commentCount > 0 ? <span className="text-text-1 font-medium">{item.commentCount}</span> : "댓글"}</span>
           </button>
         </div>
       )}

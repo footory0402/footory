@@ -33,11 +33,11 @@ interface PositionBadgeProps {
 export function PositionBadge({ position, size = "sm" }: PositionBadgeProps) {
   const color = POSITION_COLORS[position];
   const textSize = size === "sm" ? "text-[10px]" : "text-xs";
-  const px = size === "sm" ? "px-1.5 py-0.5" : "px-2 py-1";
+  const px = size === "sm" ? "px-2 py-0.5" : "px-2 py-1";
 
   return (
     <span
-      className={`inline-flex items-center rounded-md ${px} ${textSize} font-stat font-bold tracking-wide`}
+      className={`inline-flex items-center rounded-md ${px} ${textSize} font-stat font-bold tracking-wide border border-accent/20`}
       style={{
         background: `${color}18`,
         color,
