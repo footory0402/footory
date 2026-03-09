@@ -6,7 +6,7 @@ import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
 import RecordsTab from "@/components/player/RecordsTab";
 import FeaturedSlot from "@/components/player/FeaturedSlot";
-import StatCard from "@/components/player/StatCard";
+import StatRow from "@/components/player/StatRow";
 import MedalBadge from "@/components/player/MedalBadge";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
@@ -24,7 +24,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import { APP_URL, POSITION_LABELS } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS, MEASUREMENTS } from "@/lib/constants";
 import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
@@ -415,15 +415,26 @@ function PublicSummaryTab({
         </SectionCard>
       )}
 
-      {/* Key Stats */}
+      {/* Key Stats — FM-style bar chart */}
       {stats.length > 0 && (
         <SectionCard title="핵심 스탯" icon="📊">
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {stats.map((stat, i) => (
-              <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                <StatCard stat={stat} />
-              </div>
-            ))}
+          <div>
+            {stats.map((stat) => {
+              const m = MEASUREMENTS.find((m) => m.id === stat.type);
+              return (
+                <StatRow
+                  key={stat.id}
+                  icon={m?.icon ?? "📊"}
+                  label={m?.label ?? stat.type}
+                  value={stat.value}
+                  unit={stat.unit}
+                  type={stat.type}
+                  previousValue={stat.previousValue}
+                  verified={stat.verified}
+                  lowerIsBetter={m?.lowerIsBetter}
+                />
+              );
+            })}
           </div>
         </SectionCard>
       )}

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SectionCard } from "@/components/ui/Card";
 import FeaturedSlot from "./FeaturedSlot";
-import StatCard from "./StatCard";
+import StatRow from "./StatRow";
 import MedalBadge from "./MedalBadge";
 import dynamic from "next/dynamic";
 
@@ -11,7 +11,7 @@ const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false 
 import { useFeaturedClips } from "@/hooks/useClips";
 import EmptyCTA from "@/components/ui/EmptyCTA";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { MAX_FEATURED_SLOTS } from "@/lib/constants";
+import { MAX_FEATURED_SLOTS, MEASUREMENTS } from "@/lib/constants";
 import type { Stat, Medal } from "@/lib/types";
 
 interface SummaryTabProps {
@@ -101,15 +101,26 @@ export default function SummaryTab({
         )}
       </SectionCard>
 
-      {/* Key Stats */}
+      {/* Key Stats — FM-style bar chart */}
       <SectionCard title="핵심 스탯" icon="📊">
         {stats.length > 0 ? (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {stats.map((stat, i) => (
-              <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                <StatCard stat={stat} />
-              </div>
-            ))}
+          <div>
+            {stats.map((stat) => {
+              const m = MEASUREMENTS.find((m) => m.id === stat.type);
+              return (
+                <StatRow
+                  key={stat.id}
+                  icon={m?.icon ?? "📊"}
+                  label={m?.label ?? stat.type}
+                  value={stat.value}
+                  unit={stat.unit}
+                  type={stat.type}
+                  previousValue={stat.previousValue}
+                  verified={stat.verified}
+                  lowerIsBetter={m?.lowerIsBetter}
+                />
+              );
+            })}
           </div>
         ) : (
           <EmptyCTA text="첫 측정 기록을 추가하세요" onAction={onAddStat} />

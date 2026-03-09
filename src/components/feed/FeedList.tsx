@@ -224,6 +224,12 @@ export default function FeedList({
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           </div>
         )}
+        {!loading && !hasMore && items.length > 0 && (
+          <div className="flex flex-col items-center gap-1.5 py-6 text-center">
+            <span className="text-[20px]">🎉</span>
+            <p className="text-xs text-text-3">모든 영상을 확인했어요</p>
+          </div>
+        )}
         {/* Inline error banner for pagination failures */}
         {error && items.length > 0 && (
           <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3">

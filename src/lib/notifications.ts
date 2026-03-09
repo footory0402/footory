@@ -115,7 +115,6 @@ export async function notifyLinkedParents(
   supabase: SupabaseClient,
   {
     childId,
-    childName,
     type,
     title,
     body,
@@ -123,7 +122,6 @@ export async function notifyLinkedParents(
     actionUrl,
   }: {
     childId: string;
-    childName: string;
     type: NotificationType;
     title: string;
     body?: string;

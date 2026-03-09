@@ -160,7 +160,6 @@ export async function POST(req: NextRequest) {
   if (uploader) {
     notifyLinkedParents(supabase, {
       childId: user.id,
-      childName: uploader.name,
       type: "child_clip",
       title: `${uploader.name}님이 새 영상을 올렸어요`,
       body: validTags.length > 0 ? validTags.join(", ") : undefined,

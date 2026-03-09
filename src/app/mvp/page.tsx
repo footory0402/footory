@@ -479,17 +479,32 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
     hours: number;
     minutes: number;
     seconds: number;
-  } | null>(null);
+  } | null>(() => (votingOpen ? getVotingTimeRemaining() : null));
 
   useEffect(() => {
     if (!votingOpen) {
-      setTimeRemaining(null);
       return;
     }
-    const update = () => setTimeRemaining(getVotingTimeRemaining());
-    update();
+
+    const update = () => {
+      if (document.visibilityState === "visible") {
+        setTimeRemaining(getVotingTimeRemaining());
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        setTimeRemaining(getVotingTimeRemaining());
+      }
+    };
+
     const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [votingOpen]);
 
   return (
@@ -506,12 +521,15 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
           >
             투표 진행중
           </span>
-          {timeRemaining && (
-            <p className="mt-0.5 font-stat text-xl font-bold text-accent">
-              {String(timeRemaining.hours).padStart(2, "0")}:
-              {String(timeRemaining.minutes).padStart(2, "0")}:
-              {String(timeRemaining.seconds).padStart(2, "0")}
-            </p>
+          {votingOpen && timeRemaining && (
+            <div className="mt-0.5 flex items-baseline gap-1">
+              <p className="font-stat text-2xl font-bold text-accent">
+                {String(timeRemaining.hours).padStart(2, "0")}:
+                {String(timeRemaining.minutes).padStart(2, "0")}:
+                {String(timeRemaining.seconds).padStart(2, "0")}
+              </p>
+              <span className="text-[10px] text-text-3">남음</span>
+            </div>
           )}
         </div>
       ) : (
@@ -540,9 +558,9 @@ function StatBox({
   icon: string;
 }) {
   return (
-    <div className="card-elevated flex flex-col items-center gap-1 px-4 py-4">
+    <div className="card-elevated flex flex-col items-center gap-0.5 px-4 py-4">
       <span className="text-[14px]">{icon}</span>
-      <span className="font-stat text-[18px] font-bold text-text-1">
+      <span className="font-stat text-2xl font-bold text-accent">
         {value}
       </span>
       <span className="text-[10px] text-text-3">{label}</span>

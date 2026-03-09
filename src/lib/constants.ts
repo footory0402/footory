@@ -40,11 +40,17 @@ export type SkillTagDbName = (typeof SKILL_TAGS)[number]["dbName"];
 
 // Measurement Types
 export const MEASUREMENTS = [
-  { id: "sprint_50m", label: "50m 스프린트", unit: "초", icon: "\u23F1\uFE0F", lowerIsBetter: true },
-  { id: "shuttle_run", label: "셔틀런", unit: "회", icon: "\uD83D\uDD04", lowerIsBetter: false },
-  { id: "kick_power", label: "킥 파워", unit: "km/h", icon: "\uD83E\uDD45", lowerIsBetter: false },
-  { id: "vertical_jump", label: "수직 점프", unit: "cm", icon: "\u2B06\uFE0F", lowerIsBetter: false },
-  { id: "agility", label: "민첩성", unit: "초", icon: "\u26A1", lowerIsBetter: true },
+  { id: "sprint_50m", label: "50m 스프린트", unit: "초", icon: "⏱️", lowerIsBetter: true },
+  { id: "shuttle_run", label: "셔틀런", unit: "회", icon: "🔄", lowerIsBetter: false },
+  { id: "kick_power", label: "킥 파워", unit: "km/h", icon: "🥅", lowerIsBetter: false },
+  { id: "vertical_jump", label: "수직 점프", unit: "cm", icon: "⬆️", lowerIsBetter: false },
+  { id: "agility", label: "민첩성", unit: "초", icon: "⚡", lowerIsBetter: true },
+  { id: "sprint_30m", label: "30m 스프린트", unit: "초", icon: "🏃", lowerIsBetter: true },
+  { id: "30m_sprint", label: "30m 스프린트", unit: "초", icon: "🏃", lowerIsBetter: true },
+  { id: "run_1000m", label: "1000m 달리기", unit: "초", icon: "🏃‍♂️", lowerIsBetter: true },
+  { id: "1000m_run", label: "1000m 달리기", unit: "초", icon: "🏃‍♂️", lowerIsBetter: true },
+  { id: "shooting_accuracy", label: "슈팅 정확도", unit: "%", icon: "⚽", lowerIsBetter: false },
+  { id: "juggling", label: "리프팅", unit: "회", icon: "🎯", lowerIsBetter: false },
 ] as const;
 
 // MVP Tiers

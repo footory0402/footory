@@ -56,10 +56,6 @@ export async function GET(req: NextRequest) {
     const prevWeekStart = new Date(weekStart);
     prevWeekStart.setDate(prevWeekStart.getDate() - 7);
     const prevWeekStartISO = prevWeekStart.toISOString();
-    const prevWeekEnd = new Date(weekStart);
-    prevWeekEnd.setMilliseconds(-1);
-    const prevWeekEndISO = prevWeekEnd.toISOString();
-
     const [
       childProfileResult,
       weeklyClipsResult,

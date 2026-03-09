@@ -92,7 +92,7 @@ export default function ScoutOnboarding({ onBack }: Props) {
       toast.error("네트워크 오류가 발생했어요");
       setSubmitting(false);
     }
-  }, [submitting, name, handle, organization, router]);
+  }, [submitting, name, handle, organization, subRole, router]);
 
   if (step === 2) {
     return (

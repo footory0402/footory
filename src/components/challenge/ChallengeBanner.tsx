@@ -126,7 +126,7 @@ export default function ChallengeBanner() {
                 {challenge.title}
               </div>
               <div className="mt-0.5 text-xs text-text-3">
-                참여 <span className="font-stat font-bold text-text-2">{participantCount}</span>명
+                참여 <span className="font-stat font-bold text-accent">{participantCount}</span>명
                 {daysLeft > 0 ? (
                   <> · <span className="font-stat font-bold text-text-2">{daysLeft}</span>일 남음</>
                 ) : (

@@ -69,7 +69,7 @@ export default function DiscoverPage() {
           <button
             key={ft.key}
             onClick={() => handleTabChange(ft.key)}
-            className={`flex-1 pb-2.5 text-sm font-medium relative ${
+            className={`flex-1 min-h-[36px] pt-1 pb-2.5 text-sm font-medium relative ${
               tab === ft.key ? "text-accent" : "text-text-3"
             }`}
           >
@@ -86,11 +86,11 @@ export default function DiscoverPage() {
         {/* "전체" tab: shows all sections in overview */}
         {tab === "all" && (
           <>
-            <Section title="떠오르는 선수" seeMoreHref="/discover?tab=player">
+            <Section title="떠오르는 선수" subtitle="이번 주 인기 상승" seeMoreHref="/discover?tab=player">
               <RisingPlayers />
             </Section>
 
-            <DeferredSection title="인기 선수 랭킹" seeMoreHref="/discover?tab=player">
+            <DeferredSection title="인기 선수 랭킹" subtitle="전체 팔로워 기준" seeMoreHref="/discover?tab=player">
               <PlayerRanking compact />
             </DeferredSection>
 
@@ -132,15 +132,20 @@ export default function DiscoverPage() {
   );
 }
 
-function Section({ title, children, seeMoreHref }: { title: string; children: React.ReactNode; seeMoreHref?: string }) {
+function Section({ title, subtitle, children, seeMoreHref }: { title: string; subtitle?: string; children: React.ReactNode; seeMoreHref?: string }) {
   return (
     <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[15px] font-bold tracking-tight text-text-1">
-          {title}
-        </h2>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <h2 className="text-[15px] font-bold tracking-tight text-text-1">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-xs text-text-3 mt-0.5">{subtitle}</p>
+          )}
+        </div>
         {seeMoreHref && (
-          <Link href={seeMoreHref} className="text-xs text-text-3">더보기 →</Link>
+          <Link href={seeMoreHref} className="text-xs text-text-3 shrink-0">더보기 →</Link>
         )}
       </div>
       {children}
@@ -150,10 +155,12 @@ function Section({ title, children, seeMoreHref }: { title: string; children: Re
 
 function DeferredSection({
   title,
+  subtitle,
   children,
   seeMoreHref,
 }: {
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
   seeMoreHref?: string;
 }) {
@@ -185,12 +192,17 @@ function DeferredSection({
       ref={containerRef}
       style={{ contentVisibility: "auto", containIntrinsicSize: "360px" }}
     >
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[15px] font-bold tracking-tight text-text-1">
-          {title}
-        </h2>
+      <div className="mb-3 flex items-start justify-between">
+        <div>
+          <h2 className="text-[15px] font-bold tracking-tight text-text-1">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-xs text-text-3 mt-0.5">{subtitle}</p>
+          )}
+        </div>
         {seeMoreHref && (
-          <Link href={seeMoreHref} className="text-xs text-text-3">
+          <Link href={seeMoreHref} className="text-xs text-text-3 shrink-0">
             더보기 →
           </Link>
         )}

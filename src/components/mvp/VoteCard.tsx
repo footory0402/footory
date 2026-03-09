@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
+import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
 import type { Position } from "@/lib/constants";
 
 export interface VoteCardCandidate {
@@ -61,19 +62,21 @@ export default function VoteCard({
   const handlePlay = () => {
     if (!candidate.videoUrl) return;
     setPlaying(true);
-    // Auto play after render
-    setTimeout(() => videoRef.current?.play(), 50);
+    requestVideoPlay(videoRef);
   };
 
   return (
     <div
-      className="animate-fade-up overflow-hidden"
+      className="animate-fade-up overflow-hidden transition-transform duration-100 active:scale-[0.99]"
       style={{
         background: "#161618",
         border: isFirst
           ? "2px solid var(--color-accent)"
           : "1px solid var(--border-accent)",
         borderRadius: 12,
+        boxShadow: isFirst
+          ? "0 0 24px rgba(212,168,83,0.18), 0 4px 16px rgba(0,0,0,0.5)"
+          : undefined,
       }}
     >
       {/* Gold gradient top bar for 1st place */}
@@ -87,11 +90,10 @@ export default function VoteCard({
       {/* Video / Thumbnail — 5:2 ratio */}
       <div className="relative aspect-[5/2] w-full overflow-hidden bg-black/30">
         {playing && candidate.videoUrl ? (
-          <video
-            ref={videoRef}
+          <LazyVideo
+            videoRef={videoRef}
             src={candidate.videoUrl}
-            controls
-            playsInline
+            poster={candidate.thumbnailUrl}
             className="h-full w-full object-cover"
             onEnded={() => setPlaying(false)}
           />
@@ -159,7 +161,7 @@ export default function VoteCard({
       </div>
 
       {/* Info section — compact single row */}
-      <div className="flex items-center gap-2.5 px-4 py-3">
+      <div className={`flex items-center gap-2.5 px-4 ${isFirst ? "py-4" : "py-3"}`}>
         <Avatar
           name={candidate.playerName}
           size="sm"
@@ -186,11 +188,12 @@ export default function VoteCard({
         <button
           onClick={hasVoted ? handleUnvote : handleVote}
           disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
-          className="shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+          className="shrink-0 rounded-lg px-4 text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
           style={{
-            background: hasVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
-            color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
-            border: hasVoted ? "1px solid rgba(113,113,122,0.3)" : "none",
+            height: 36,
+            background: hasVoted ? "rgba(212,168,83,0.1)" : "var(--accent-gradient)",
+            color: hasVoted ? "var(--color-accent)" : "#0C0C0E",
+            border: hasVoted ? "1px solid rgba(212,168,83,0.2)" : "none",
           }}
         >
           {hasVoted ? "✓ 취소" : "투표"}
@@ -225,7 +228,7 @@ export function VoteCardCompact({
   const handlePlay = () => {
     if (!candidate.videoUrl) return;
     setPlaying(true);
-    setTimeout(() => videoRef.current?.play(), 50);
+    requestVideoPlay(videoRef);
   };
 
   return (
@@ -240,11 +243,10 @@ export function VoteCardCompact({
       {/* Thumbnail / Video */}
       <div className="relative aspect-video w-full overflow-hidden bg-black/30">
         {playing && candidate.videoUrl ? (
-          <video
-            ref={videoRef}
+          <LazyVideo
+            videoRef={videoRef}
             src={candidate.videoUrl}
-            controls
-            playsInline
+            poster={candidate.thumbnailUrl}
             className="h-full w-full object-cover"
             onEnded={() => setPlaying(false)}
           />
@@ -314,11 +316,11 @@ export function VoteCardCompact({
         <button
           onClick={hasVoted ? handleUnvote : handleVote}
           disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
-          className="w-full rounded-lg py-1.5 text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+          className="w-full rounded-lg py-2 text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
           style={{
-            background: hasVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
-            color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",
-            border: hasVoted ? "1px solid rgba(113,113,122,0.3)" : "none",
+            background: hasVoted ? "rgba(212,168,83,0.1)" : "var(--accent-gradient)",
+            color: hasVoted ? "var(--color-accent)" : "#0C0C0E",
+            border: hasVoted ? "1px solid rgba(212,168,83,0.2)" : "none",
           }}
         >
           {hasVoted ? "✓ 취소" : "투표"}

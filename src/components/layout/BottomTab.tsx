@@ -4,19 +4,43 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useProfileContext } from "@/providers/ProfileProvider";
 
-const playerTabs = [
+/* ── Tab definitions per role ── */
+
+interface Tab {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ active: boolean }>;
+  isCenter?: boolean;
+}
+
+const playerTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
   { href: "/discover", label: "탐색", icon: DiscoverIcon },
+  { href: "/upload", label: "업로드", icon: PlusIcon, isCenter: true },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
   { href: "/profile", label: "프로필", icon: UserIcon },
-  { href: "/team", label: "팀", icon: TeamIcon },
-] as const;
+];
 
-const parentTabs = [
+const parentTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
   { href: "/discover", label: "탐색", icon: DiscoverIcon },
+  { href: "/upload", label: "영상 올려주기", icon: PlusIcon, isCenter: true },
   { href: "/profile/settings", label: "설정", icon: SettingsIcon },
-] as const;
+];
+
+const scoutTabs: Tab[] = [
+  { href: "/", label: "홈", icon: HomeIcon },
+  { href: "/discover", label: "탐색", icon: DiscoverIcon },
+  { href: "/scout/watchlist", label: "관심", icon: StarIcon, isCenter: true },
+  { href: "/mvp", label: "MVP", icon: MvpIcon },
+  { href: "/profile", label: "프로필", icon: UserIcon },
+];
+
+function getTabsForRole(role: string): Tab[] {
+  if (role === "parent") return parentTabs;
+  if (role === "scout") return scoutTabs;
+  return playerTabs;
+}
 
 export default function BottomTab() {
   const pathname = usePathname();
@@ -26,7 +50,7 @@ export default function BottomTab() {
   const role = profile?.role ?? "player";
   const isGuest = error === "not_authenticated";
   const isLoading = loading || (!isGuest && !profile?.id);
-  const tabs = role === "parent" ? parentTabs : playerTabs;
+  const tabs = getTabsForRole(role);
 
   return (
     <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-white/5 glass-nav">
@@ -40,6 +64,25 @@ export default function BottomTab() {
             tab.href === "/"
               ? pathname === "/"
               : pathname.startsWith(tab.href);
+
+          /* ── Center action button (upload / watchlist) ── */
+          if (tab.isCenter) {
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                onMouseEnter={() => router.prefetch(tab.href)}
+                onFocus={() => router.prefetch(tab.href)}
+                className="relative flex flex-col items-center"
+              >
+                <div className="relative -top-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent shadow-[0_0_12px_rgba(212,168,83,0.35)] transition-transform active:scale-95">
+                  <tab.icon active={false} />
+                </div>
+              </Link>
+            );
+          }
+
+          /* ── Normal tab ── */
           return (
             <Link
               key={tab.href}
@@ -66,6 +109,8 @@ export default function BottomTab() {
   );
 }
 
+/* ── Icons ── */
+
 function HomeIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
@@ -84,6 +129,22 @@ function DiscoverIcon({ active }: { active: boolean }) {
   );
 }
 
+function PlusIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-bg">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function StarIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-bg">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
 
 function UserIcon({ active }: { active: boolean }) {
   return (
@@ -103,17 +164,6 @@ function MvpIcon({ active }: { active: boolean }) {
       <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22" />
       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22" />
       <path d="M18 2H6v7a6 6 0 0012 0V2z" />
-    </svg>
-  );
-}
-
-function TeamIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 00-3-3.87" />
-      <path d="M16 3.13a4 4 0 010 7.75" />
     </svg>
   );
 }

@@ -59,8 +59,9 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
   const lvl = LEVELS[Math.max(1, Math.min(profile.level, 5)) - 1];
   const nextLvl = profile.level < 5 ? LEVELS[profile.level] : null;
   const xpProgress = nextLvl
-    ? ((profile.xp - lvl.minXp) / (nextLvl.minXp - lvl.minXp)) * 100
+    ? Math.min(100, ((profile.xp - lvl.minXp) / (nextLvl.minXp - lvl.minXp)) * 100)
     : 100;
+  const canLevelUp = nextLvl != null && profile.xp >= nextLvl.minXp;
 
   const levelMissions: Record<number, string> = {
     1: "프로필 사진을 등록하세요",
@@ -171,13 +172,11 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
               )}
             </div>
             {(profile.heightCm || profile.weightKg || profile.preferredFoot) && (
-              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-text-3">
-                {profile.heightCm && <span>{profile.heightCm}cm</span>}
-                {profile.weightKg && (
-                  <>{profile.heightCm && <span>·</span>}<span>{profile.weightKg}kg</span></>
-                )}
+              <div className="mt-0.5 flex items-center gap-2 text-xs text-text-3">
+                {profile.heightCm && <span>📏 {profile.heightCm}cm</span>}
+                {profile.weightKg && <span>⚖️ {profile.weightKg}kg</span>}
                 {profile.preferredFoot && (
-                  <>{(profile.heightCm || profile.weightKg) && <span>·</span>}<span>{profile.preferredFoot}</span></>
+                  <span>🦶 {profile.preferredFoot === "right" ? "오른발" : profile.preferredFoot === "left" ? "왼발" : profile.preferredFoot === "both" ? "양발" : profile.preferredFoot}</span>
                 )}
               </div>
             )}
@@ -215,14 +214,19 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
             <span className="text-text-3">
               {lvl.icon} Lv.{profile.level} {lvl.name}
             </span>
-            {nextLvl && (
+            {nextLvl && !canLevelUp && (
               <span className="text-text-3">
                 {profile.xp}/{nextLvl.minXp} XP
               </span>
             )}
+            {canLevelUp && (
+              <span className="font-bold text-accent animate-pulse">
+                🎉 레벨업 가능!
+              </span>
+            )}
           </div>
           <ProgressBar value={xpProgress} />
-          {nextLvl && levelMissions[profile.level] && (
+          {nextLvl && !canLevelUp && levelMissions[profile.level] && (
             <p className="mt-1.5 text-xs text-text-3">
               다음 레벨: <span className="font-semibold text-accent">{levelMissions[profile.level]}</span>
             </p>

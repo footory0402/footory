@@ -252,7 +252,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
   };
 
   return (
-    <div className="card-elevated p-4">
+    <div className="card-elevated p-4 transition-transform duration-100 active:scale-[0.99]">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <Link href={`/p/${item.playerHandle}`} aria-label={`${item.playerName} 프로필`}>

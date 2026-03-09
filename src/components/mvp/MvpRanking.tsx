@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
+import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
 import type { VoteCardCandidate } from "./VoteCard";
 
 interface MvpRankingProps {
@@ -77,7 +78,7 @@ function RankingRow({
   const handlePlay = () => {
     if (!c.videoUrl) return;
     setPlaying(true);
-    setTimeout(() => videoRef.current?.play(), 50);
+    requestVideoPlay(videoRef);
   };
 
   return (
@@ -159,11 +160,11 @@ function RankingRow({
           <button
             onClick={() => isVoted ? onUnvote?.(c.clipId) : (votesRemaining > 0 && onVote?.(c.clipId))}
             disabled={(!isVoted && votesRemaining <= 0)}
-            className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+            className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-40"
             style={{
-              background: isVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
-              color: isVoted ? "var(--color-text-2)" : "#0C0C0E",
-              border: isVoted ? "1px solid rgba(113,113,122,0.3)" : "none",
+              background: isVoted ? "rgba(212,168,83,0.1)" : "var(--accent-gradient)",
+              color: isVoted ? "var(--color-accent)" : "#0C0C0E",
+              border: isVoted ? "1px solid rgba(212,168,83,0.2)" : "none",
             }}
           >
             {isVoted ? "✓ 취소" : "투표"}
@@ -174,11 +175,10 @@ function RankingRow({
       {/* Inline video player — expands below the row */}
       {playing && c.videoUrl && (
         <div className="relative mx-4 mb-3 overflow-hidden rounded-lg bg-black">
-          <video
-            ref={videoRef}
+          <LazyVideo
+            videoRef={videoRef}
             src={c.videoUrl}
-            controls
-            playsInline
+            poster={c.thumbnailUrl}
             className="w-full"
             style={{ maxHeight: 220 }}
             onEnded={() => setPlaying(false)}

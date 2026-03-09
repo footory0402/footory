@@ -20,7 +20,7 @@ export default function RecordsTab({ stats, medals, seasons, onAddStat, onAddSea
       {/* Measurement Records */}
       <SectionCard title="측정 기록" icon="📊" onEdit={onAddStat}>
         {stats.length > 0 ? (
-          <div className="divide-y divide-[var(--divider)]">
+          <div>
             {stats.map((stat) => {
               const m = MEASUREMENTS.find((m) => m.id === stat.type);
               return (
@@ -30,8 +30,10 @@ export default function RecordsTab({ stats, medals, seasons, onAddStat, onAddSea
                   label={m?.label ?? stat.type}
                   value={stat.value}
                   unit={stat.unit}
+                  type={stat.type}
                   previousValue={stat.previousValue}
                   verified={stat.verified}
+                  lowerIsBetter={m?.lowerIsBetter}
                 />
               );
             })}

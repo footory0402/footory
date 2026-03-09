@@ -146,10 +146,13 @@ export default function TeamPage() {
           )}
 
           {/* Placeholder sections */}
-          <div className="space-y-4 mt-2">
-            <PlaceholderSection title="팀 활동" icon="📢" />
-            <PlaceholderSection title="최근 경기" icon="⚽" />
-            <PlaceholderSection title="팀 통계" icon="📊" />
+          <div className="mt-2 card-elevated px-4 py-5 opacity-60">
+            <p className="text-xs font-semibold text-text-2 mb-2">곧 추가될 기능</p>
+            <div className="space-y-1.5 text-xs text-text-3">
+              <p>📢 경기가 끝나면 팀 활동이 여기에 표시돼요</p>
+              <p>⚽ 시즌이 시작되면 최근 경기를 볼 수 있어요</p>
+              <p>📊 팀 통계 기능이 곧 추가됩니다</p>
+            </div>
           </div>
         </>
       )}
@@ -194,7 +197,7 @@ function TeamCard({
         <div className="mt-0.5 flex items-center gap-2 text-xs text-text-3">
           <span>@{team.handle}</span>
           <span>·</span>
-          <span className="font-stat font-bold text-text-2">{team.memberCount}</span>
+          <span className="font-stat font-bold text-accent">{team.memberCount}</span>
           <span>명</span>
           {team.city && (
             <>
@@ -214,15 +217,3 @@ function TeamCard({
   );
 }
 
-function PlaceholderSection({ title, icon }: { title: string; icon: string }) {
-  return (
-    <div>
-      <h2 className="mb-2 text-sm font-semibold text-text-2">
-        <span className="mr-1.5">{icon}</span>{title}
-      </h2>
-      <div className="card-elevated flex flex-col items-center px-4 py-6 opacity-50">
-        <p className="text-xs text-text-3">준비 중이에요</p>
-      </div>
-    </div>
-  );
-}

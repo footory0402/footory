@@ -179,7 +179,6 @@ export async function POST(request: NextRequest) {
       const medalLabels = newMedals.map((m) => m.label).join(", ");
       notifyLinkedParents(supabase, {
         childId: user.id,
-        childName: player.name,
         type: "child_medal",
         title: `${player.name}님이 메달을 획득했어요!`,
         body: medalLabels,
