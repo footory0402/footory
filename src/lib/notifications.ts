@@ -18,7 +18,10 @@ export type NotificationType =
   | "coach_review"
   | "challenge_win"
   | "mention"
-  | "dm_request";
+  | "dm_request"
+  | "child_clip"
+  | "child_medal"
+  | "child_level_up";
 
 // NotificationType → notification_preferences 컬럼 매핑
 const TYPE_TO_PREF: Partial<Record<NotificationType, string>> = {
@@ -103,4 +106,49 @@ export async function createNotification(
   if (error) {
     console.error("[notifications] Failed to create:", error.message);
   }
+}
+
+/**
+ * 자녀 활동 발생 시 연동된 모든 부모에게 알림을 보냅니다.
+ */
+export async function notifyLinkedParents(
+  supabase: SupabaseClient,
+  {
+    childId,
+    childName,
+    type,
+    title,
+    body,
+    referenceId,
+    actionUrl,
+  }: {
+    childId: string;
+    childName: string;
+    type: NotificationType;
+    title: string;
+    body?: string;
+    referenceId?: string;
+    actionUrl?: string;
+  }
+) {
+  const { data: links } = await supabase
+    .from("parent_links")
+    .select("parent_id")
+    .eq("child_id", childId);
+
+  if (!links || links.length === 0) return;
+
+  await Promise.allSettled(
+    links.map((link) =>
+      createNotification(supabase, {
+        userId: link.parent_id,
+        type,
+        title,
+        body,
+        referenceId,
+        actionUrl,
+        groupKey: `child_${childId}`,
+      })
+    )
+  );
 }

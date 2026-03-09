@@ -111,7 +111,7 @@ export default function ParentOnboarding({ onBack }: Props) {
           await fetch("/api/parent/link", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ child_handle: linkedChild.handle }),
+            body: JSON.stringify({ handle: linkedChild.handle }),
           });
         }
 

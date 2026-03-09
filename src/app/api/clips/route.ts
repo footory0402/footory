@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { SKILL_TAGS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { createNotification } from "@/lib/notifications";
+import { createNotification, notifyLinkedParents } from "@/lib/notifications";
 
 const VALID_TAGS = SKILL_TAGS.map((t) => t.dbName);
 
@@ -154,6 +154,19 @@ export async function POST(req: NextRequest) {
         })
       )
     );
+  }
+
+  // 연동된 부모에게 자녀 클립 업로드 알림
+  if (uploader) {
+    notifyLinkedParents(supabase, {
+      childId: user.id,
+      childName: uploader.name,
+      type: "child_clip",
+      title: `${uploader.name}님이 새 영상을 올렸어요`,
+      body: validTags.length > 0 ? validTags.join(", ") : undefined,
+      referenceId: clip.id,
+      actionUrl: `/p/${uploader.handle}`,
+    }).catch(() => {}); // fire and forget
   }
 
   return NextResponse.json({ clip }, { status: 201 });

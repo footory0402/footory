@@ -84,9 +84,16 @@ export default function ClipPickerSheet({
 
                   {/* Info */}
                   <div className="flex-1 overflow-hidden">
-                    <p className="truncate text-sm font-medium text-[var(--color-text)]">
-                      {clip.memo || "제목 없음"}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-medium text-[var(--color-text)]">
+                        {clip.memo || "제목 없음"}
+                      </p>
+                      {clip.uploaded_by_parent && (
+                        <span className="shrink-0 rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-medium text-accent">
+                          보호자
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-[var(--color-text-3)]">
                       {clip.duration_seconds ? `${clip.duration_seconds}초` : ""}{" "}
                       {clip.tags.length > 0 && `· ${clip.tags.join(", ")}`}

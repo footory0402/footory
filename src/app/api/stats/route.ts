@@ -4,6 +4,7 @@ import { checkAndAwardMedals } from "@/lib/medals";
 import { MEASUREMENTS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { calculateLevel, estimateXp } from "@/lib/level";
+import { notifyLinkedParents } from "@/lib/notifications";
 
 export async function GET() {
   const supabase = await createClient();
@@ -164,6 +165,27 @@ export async function POST(request: NextRequest) {
     }
   } catch {
     // Level recalc is non-critical — don't fail the request
+  }
+
+  // 연동된 부모에게 메달 획득 알림
+  if (newMedals && newMedals.length > 0) {
+    const { data: player } = await supabase
+      .from("profiles")
+      .select("name, handle")
+      .eq("id", user.id)
+      .single();
+
+    if (player) {
+      const medalLabels = newMedals.map((m) => m.label).join(", ");
+      notifyLinkedParents(supabase, {
+        childId: user.id,
+        childName: player.name,
+        type: "child_medal",
+        title: `${player.name}님이 메달을 획득했어요!`,
+        body: medalLabels,
+        actionUrl: `/p/${player.handle}`,
+      }).catch(() => {});
+    }
   }
 
   return NextResponse.json({ stat, newMedals, levelUpdated });

@@ -62,8 +62,7 @@ Deno.serve(async (req) => {
       const { data: links } = await supabase
         .from("parent_links")
         .select("child_id")
-        .eq("parent_id", parent.id)
-        .eq("consent_given", true);
+        .eq("parent_id", parent.id);
 
       if (!links || links.length === 0) continue;
 

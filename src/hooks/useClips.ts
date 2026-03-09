@@ -13,6 +13,7 @@ interface ClipWithTags {
   highlight_status: string;
   created_at: string;
   tags: string[];
+  uploaded_by_parent: boolean;
 }
 
 export function useClips() {
@@ -47,6 +48,8 @@ export function useClips() {
             highlight_status: c.highlight_status,
             created_at: c.created_at,
             tags,
+            uploaded_by_parent: !!(c as unknown as { uploaded_by: string | null }).uploaded_by &&
+              (c as unknown as { uploaded_by: string | null }).uploaded_by !== user.id,
           };
         })
       );

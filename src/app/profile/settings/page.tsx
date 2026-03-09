@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +22,8 @@ export default function SettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [linkedParents, setLinkedParents] = useState<{ linkId: string; parentId: string; name: string; handle: string; avatarUrl: string | null; linkedAt: string }[]>([]);
   const { permission: pushPermission, loading: pushLoading, requestPermission } = usePushNotification();
 
   useEffect(() => {
@@ -32,15 +34,25 @@ export default function SettingsPage() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("public_email, show_email, show_phone")
+        .select("role, public_email, show_email, show_phone")
         .eq("id", user.id)
         .single();
 
+      setRole(data?.role ?? null);
       setSettings({
         email: user.email ?? data?.public_email ?? null,
         show_email: data?.show_email ?? false,
         show_phone: data?.show_phone ?? false,
       });
+
+      // 선수 역할이면 연동된 부모 목록 로드
+      if (data?.role === "player") {
+        const parentsRes = await fetch("/api/profile/linked-parents");
+        if (parentsRes.ok) {
+          setLinkedParents(await parentsRes.json());
+        }
+      }
+
       setLoading(false);
     }
     load();
@@ -73,6 +85,17 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     await signOut();
   };
+
+  const unlinkParent = useCallback(async (linkId: string, parentName: string) => {
+    if (!confirm(`${parentName} 보호자의 연동을 해제하시겠습니까?`)) return;
+    const res = await fetch(`/api/profile/linked-parents?linkId=${linkId}`, { method: "DELETE" });
+    if (res.ok) {
+      setLinkedParents((prev) => prev.filter((p) => p.linkId !== linkId));
+      toast("보호자 연동이 해제되었습니다", "success");
+    } else {
+      toast("연동 해제에 실패했습니다", "error");
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -127,24 +150,60 @@ export default function SettingsPage() {
         />
       </SettingsGroup>
 
-      {/* 그룹 3: 연동 */}
-      <SettingsGroup title="연동">
-        <button
-          onClick={() => router.push("/profile/children")}
-          className="flex w-full items-center justify-between px-4 py-3"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-accent"><LinkIcon /></span>
-            <div className="text-left">
-              <p className="text-sm text-text-1">자녀 연동 관리</p>
-              <p className="text-xs text-text-3">연결된 자녀 확인 및 추가/해제</p>
+      {/* 그룹 3: 연동 (부모 역할) */}
+      {role === "parent" && (
+        <SettingsGroup title="연동">
+          <button
+            onClick={() => router.push("/profile/children")}
+            className="flex w-full items-center justify-between px-4 py-3"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-accent"><LinkIcon /></span>
+              <div className="text-left">
+                <p className="text-sm text-text-1">자녀 연동 관리</p>
+                <p className="text-xs text-text-3">연결된 자녀 확인 및 추가/해제</p>
+              </div>
             </div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      </SettingsGroup>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        </SettingsGroup>
+      )}
+
+      {/* 그룹 3b: 연동된 보호자 (선수 역할) */}
+      {role === "player" && (
+        <SettingsGroup title="연동된 보호자">
+          {linkedParents.length === 0 ? (
+            <div className="px-4 py-3">
+              <p className="text-sm text-text-3">연동된 보호자가 없습니다</p>
+            </div>
+          ) : (
+            linkedParents.map((parent, idx) => (
+              <div key={parent.linkId}>
+                {idx > 0 && <div className="mx-4 border-t border-white/[0.06]" />}
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent">
+                      {parent.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-text-1">{parent.name}</p>
+                      <p className="text-xs text-text-3">@{parent.handle}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => unlinkParent(parent.linkId, parent.name)}
+                    className="text-xs text-text-3 hover:text-red-400"
+                  >
+                    해제
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </SettingsGroup>
+      )}
 
       {/* 그룹 4: 알림 */}
       <SettingsGroup title="알림">

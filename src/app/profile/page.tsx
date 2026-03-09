@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
@@ -33,6 +34,7 @@ const ProfilePdfExport = dynamic(
 );
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProfileTab>("summary");
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
@@ -43,6 +45,13 @@ export default function ProfilePage() {
   const [celebrationMedals, setCelebrationMedals] = useState<AwardedMedal[]>([]);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
   const isScoutProfile = profile?.role === "scout";
+
+  // 부모 역할은 /profile 대신 홈 대시보드 사용
+  useEffect(() => {
+    if (profile?.role === "parent") {
+      router.replace("/");
+    }
+  }, [profile?.role, router]);
   const shouldLoadStats = !!profile && !isScoutProfile && (
     activeTab === "summary" || activeTab === "records" || statInputOpen || pdfExportOpen
   );
