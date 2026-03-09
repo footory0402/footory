@@ -39,7 +39,7 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
-  const [featured, stats, medals, seasons, team, achievements, timelineEvents] = await Promise.all([
+  const [featured, stats, medals, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
     supabase
       .from("featured_clips")
       .select("id, clip_id, sort_order")
@@ -78,6 +78,10 @@ const getProfile = cache(async (handle: string) => {
       .eq("profile_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("clips")
+      .select("id, duration_seconds, clip_tags(tag_name, is_top)")
+      .eq("owner_id", profile.id),
   ]);
 
   // Filter contact
@@ -202,6 +206,21 @@ const getProfile = cache(async (handle: string) => {
     };
   }
 
+  // Build tagClips map from SSR data
+  const tagClipsMap: Record<string, { id: string; duration: number; tag: string; isTop: boolean }[]> = {};
+  (tagClipsData.data ?? []).forEach((clip: Record<string, unknown>) => {
+    const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
+    clipTags.forEach((t) => {
+      if (!tagClipsMap[t.tag_name]) tagClipsMap[t.tag_name] = [];
+      tagClipsMap[t.tag_name].push({
+        id: clip.id as string,
+        duration: (clip.duration_seconds as number) ?? 0,
+        tag: t.tag_name,
+        isTop: t.is_top,
+      });
+    });
+  });
+
   // Increment view count (fire and forget)
   supabase
     .from("profiles")
@@ -220,6 +239,7 @@ const getProfile = cache(async (handle: string) => {
     seasons: seasons.data ?? [],
     achievements: achievements.data ?? [],
     timelineEvents: timelineEvents.data ?? [],
+    tagClips: tagClipsMap,
     isFollowing,
     isOwnProfile: currentUser?.id === profile.id,
     viewerAccess,

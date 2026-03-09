@@ -1,39 +1,47 @@
 import { create } from "zustand";
 
-export type UploadStep = 1 | 2 | 3;
 export type UploadStatus = "idle" | "uploading" | "thumbnail" | "saving" | "done" | "error";
+export type UploadContext = "general" | "challenge" | "parent";
 
 interface UploadState {
   file: File | null;
-  step: UploadStep;
   tags: string[];
   memo: string;
   clipId: string | null;
   progress: number;
   status: UploadStatus;
   error: string | null;
+  context: UploadContext;
+  challengeTag: string | null;
+  childId: string | null;
+  highlightStart: number;
 
-  setFile: (file: File) => void;
+  setFile: (file: File | null) => void;
   setTags: (tags: string[]) => void;
   setMemo: (memo: string) => void;
   setClipId: (id: string) => void;
   setProgress: (p: number) => void;
   setStatus: (s: UploadStatus) => void;
   setError: (e: string | null) => void;
-  nextStep: () => void;
-  prevStep: () => void;
+  setContext: (c: UploadContext) => void;
+  setChallengeTag: (tag: string | null) => void;
+  setChildId: (id: string | null) => void;
+  setHighlightStart: (t: number) => void;
   reset: () => void;
 }
 
 const initial = {
-  file: null,
-  step: 1 as UploadStep,
+  file: null as File | null,
   tags: [] as string[],
   memo: "",
-  clipId: null,
+  clipId: null as string | null,
   progress: 0,
   status: "idle" as UploadStatus,
-  error: null,
+  error: null as string | null,
+  context: "general" as UploadContext,
+  challengeTag: null as string | null,
+  childId: null as string | null,
+  highlightStart: 0,
 };
 
 export const useUploadStore = create<UploadState>((set) => ({
@@ -45,7 +53,9 @@ export const useUploadStore = create<UploadState>((set) => ({
   setProgress: (progress) => set({ progress }),
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error }),
-  nextStep: () => set((s) => ({ step: Math.min(s.step + 1, 3) as UploadStep })),
-  prevStep: () => set((s) => ({ step: Math.max(s.step - 1, 1) as UploadStep })),
+  setContext: (context) => set({ context }),
+  setChallengeTag: (tag) => set({ challengeTag: tag }),
+  setChildId: (id) => set({ childId: id }),
+  setHighlightStart: (t) => set({ highlightStart: t }),
   reset: () => set(initial),
 }));

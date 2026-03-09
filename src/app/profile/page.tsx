@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
-import SummaryTab from "@/components/player/SummaryTab";
+import HighlightsTab from "@/components/player/HighlightsTab";
 import ProfileSkeleton from "@/components/player/ProfileSkeleton";
 import { SectionCard } from "@/components/ui/Card";
 import QuestChecklist from "@/components/quest/QuestChecklist";
 
-const SkillsTab = dynamic(() => import("@/components/player/SkillsTab"), { ssr: false });
+const StatsTab = dynamic(() => import("@/components/player/StatsTab"), { ssr: false });
 const RecordsTab = dynamic(() => import("@/components/player/RecordsTab"), { ssr: false });
 const ProfileEditSheet = dynamic(() => import("@/components/player/ProfileEditSheet"), { ssr: false });
 const StatInputSheet = dynamic(() => import("@/components/stats/StatInputSheet"), { ssr: false });
@@ -35,7 +35,7 @@ const ProfilePdfExport = dynamic(
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("summary");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("highlights");
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
@@ -53,9 +53,9 @@ export default function ProfilePage() {
     }
   }, [profile?.role, router]);
   const shouldLoadStats = !!profile && !isScoutProfile && (
-    activeTab === "summary" || activeTab === "records" || statInputOpen || pdfExportOpen
+    activeTab === "stats" || statInputOpen || pdfExportOpen
   );
-  const shouldLoadSkillClips = !!profile && !isScoutProfile && activeTab === "skills";
+  const shouldLoadSkillClips = !!profile && !isScoutProfile && activeTab === "highlights";
   const shouldLoadRecordsData = !!profile && !isScoutProfile && (
     activeTab === "records" || seasonAddOpen || pdfExportOpen
   );
@@ -179,6 +179,15 @@ export default function ProfilePage() {
               <div className="fixed inset-0 z-40" onClick={() => setMoreMenuOpen(false)} />
               <div className="absolute right-0 top-9 z-50 min-w-[160px] overflow-hidden rounded-[12px] bg-elevated shadow-[0_8px_24px_rgba(0,0,0,0.6)]">
                 <button
+                  onClick={() => { setMoreMenuOpen(false); handleShareProfile(); }}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-[13px] text-text-2 transition-colors hover:bg-card-alt hover:text-text-1"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 17l9.2-9.2M17 17V7H7" />
+                  </svg>
+                  프로필 공유
+                </button>
+                <button
                   onClick={() => { setMoreMenuOpen(false); setPdfExportOpen(true); }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-[13px] text-text-2 transition-colors hover:bg-card-alt hover:text-text-1"
                 >
@@ -289,25 +298,29 @@ export default function ProfilePage() {
           </div>
 
           <div className="mt-5">
-            {activeTab === "summary" && (
-              <SummaryTab
+            {activeTab === "highlights" && (
+              <HighlightsTab
                 level={displayProfile.level}
-                stats={stats}
-                medals={medals}
-                onAddStat={handleOpenStatInput}
-                onShareProfile={handleShareProfile}
+                tagClips={mappedTagClips}
+                tagClipsLoading={tagClipsLoading}
               />
             )}
-            {activeTab === "skills" && (
-              <SkillsTab tagClips={mappedTagClips} loading={tagClipsLoading} />
+            {activeTab === "stats" && (
+              <StatsTab
+                stats={stats}
+                medals={medals}
+                physicalInfo={{
+                  heightCm: displayProfile.heightCm,
+                  weightKg: displayProfile.weightKg,
+                  preferredFoot: displayProfile.preferredFoot,
+                }}
+                onAddStat={handleOpenStatInput}
+              />
             )}
             {activeTab === "records" && (
               <div className="flex flex-col gap-5">
                 <RecordsTab
-                  stats={stats}
-                  medals={medals}
                   seasons={seasons}
-                  onAddStat={() => setStatInputOpen(true)}
                   onAddSeason={() => setSeasonAddOpen(true)}
                 />
 

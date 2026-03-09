@@ -4,10 +4,11 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
-import RecordsTab from "@/components/player/RecordsTab";
+import SeasonTimeline from "@/components/player/SeasonTimeline";
 import FeaturedSlot from "@/components/player/FeaturedSlot";
 import StatRow from "@/components/player/StatRow";
 import MedalBadge from "@/components/player/MedalBadge";
+import TagAccordion from "@/components/player/TagAccordion";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
 import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
@@ -24,7 +25,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import { APP_URL, POSITION_LABELS, MEASUREMENTS } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS, MEASUREMENTS, SKILL_TAGS } from "@/lib/constants";
 import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
@@ -37,6 +38,13 @@ interface FeaturedClip {
     thumbnail_url: string | null;
     duration_seconds: number | null;
   } | null;
+}
+
+interface TagClip {
+  id: string;
+  duration: number;
+  tag: string;
+  isTop: boolean;
 }
 
 interface PublicProfileData {
@@ -66,6 +74,7 @@ interface PublicProfileData {
   seasons: Record<string, unknown>[];
   achievements: Record<string, unknown>[];
   timelineEvents: Record<string, unknown>[];
+  tagClips: Record<string, TagClip[]>;
   isFollowing?: boolean;
   isOwnProfile?: boolean;
   viewerAccess?: {
@@ -184,10 +193,33 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
   }));
 }
 
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${
+        active
+          ? "bg-accent text-bg"
+          : "bg-card text-text-3 active:bg-card-alt"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function footLabel(foot: string): string {
+  if (foot === "right") return "오른발";
+  if (foot === "left") return "왼발";
+  if (foot === "both") return "양발";
+  return foot;
+}
+
 export default function PublicProfileClient({ profile: data }: { profile: PublicProfileData }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("summary");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("highlights");
   const [shareOpen, setShareOpen] = useState(false);
+  const [filter, setFilter] = useState<string | null>(null);
 
   const profile = toProfile(data);
   const stats = mapStats(data.stats);
@@ -196,6 +228,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const achievements = mapAchievements(data.achievements ?? []);
   const timelineEvents = mapTimelineEvents(data.timelineEvents ?? []);
   const featured = data.featured;
+  const tagClips = data.tagClips ?? {};
 
   const shareUrl = typeof window !== "undefined"
     ? window.location.href
@@ -214,6 +247,13 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     if (window.history.length > 1) router.back();
     else router.push("/");
   }, [router]);
+
+  const tagsWithClips = SKILL_TAGS.filter((t) => (tagClips[t.id]?.length ?? 0) > 0);
+  const tagsToShow = filter
+    ? SKILL_TAGS.filter((t) => t.id === filter)
+    : SKILL_TAGS;
+
+  const hasPhysical = profile.heightCm || profile.weightKg || profile.preferredFoot;
 
   return (
     <ErrorBoundary>
@@ -337,17 +377,150 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
       {/* Tab content */}
       <div className="mt-5">
-        {activeTab === "summary" && (
-          <PublicSummaryTab featured={featured} stats={stats} medals={medals} />
-        )}
-        {activeTab === "skills" && (
-          <div className="py-8 text-center text-[13px] text-text-3">
-            스킬 태그 영상은 비공개입니다
+        {activeTab === "highlights" && (
+          <div className="flex flex-col gap-5">
+            {/* Featured Highlights (read-only) */}
+            {featured.length > 0 && (
+              <SectionCard title="대표 하이라이트" icon="⭐">
+                <div className="grid grid-cols-2 gap-2">
+                  {featured.map((feat, i) => (
+                    <div key={feat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                      <FeaturedSlot
+                        clipId={feat.clip_id}
+                        thumbnailUrl={feat.clips?.thumbnail_url}
+                        durationSeconds={feat.clips?.duration_seconds ?? undefined}
+                        sortOrder={i + 1}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+
+            {/* Filter bar */}
+            {tagsWithClips.length > 0 && (
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+                <FilterChip label="전체" active={filter === null} onClick={() => setFilter(null)} />
+                {tagsWithClips.map((tag) => (
+                  <FilterChip
+                    key={tag.id}
+                    label={`${tag.emoji} ${tag.label}`}
+                    active={filter === tag.id}
+                    onClick={() => setFilter(filter === tag.id ? null : tag.id)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Tag accordions */}
+            {tagsToShow.map((tag, i) => {
+              const clips = tagClips[tag.id];
+              if (!clips || clips.length === 0) return null;
+              return (
+                <div key={tag.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                  <TagAccordion
+                    emoji={tag.emoji}
+                    label={tag.label}
+                    clips={clips}
+                  />
+                </div>
+              );
+            })}
+
+            {/* Empty state */}
+            {featured.length === 0 && tagsWithClips.length === 0 && (
+              <div className="py-12 text-center text-[13px] text-text-3">
+                아직 등록된 영상이 없습니다
+              </div>
+            )}
           </div>
         )}
+
+        {activeTab === "stats" && (
+          <div className="flex flex-col gap-4">
+            {/* Physical Info — compact chips */}
+            {hasPhysical && (
+              <div className="flex items-center gap-2">
+                {profile.heightCm && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                    <span className="text-[10px] uppercase tracking-wide text-text-3">키</span>
+                    <span className="font-stat text-sm font-bold text-text-1">{profile.heightCm}</span>
+                    <span className="text-[10px] text-text-3">cm</span>
+                  </div>
+                )}
+                {profile.weightKg && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                    <span className="text-[10px] uppercase tracking-wide text-text-3">몸무게</span>
+                    <span className="font-stat text-sm font-bold text-text-1">{profile.weightKg}</span>
+                    <span className="text-[10px] text-text-3">kg</span>
+                  </div>
+                )}
+                {profile.preferredFoot && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                    <span className="text-[10px] uppercase tracking-wide text-text-3">주발</span>
+                    <span className="text-sm font-medium text-text-1">{footLabel(profile.preferredFoot)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Key Stats — FIFA-style 2-column grid */}
+            {stats.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-text-2 mb-3">핵심 스탯</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {stats.map((stat, i) => {
+                    const m = MEASUREMENTS.find((m) => m.id === stat.type);
+                    return (
+                      <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                        <StatRow
+                          icon={m?.icon ?? "📊"}
+                          label={m?.label ?? stat.type}
+                          value={stat.value}
+                          unit={stat.unit}
+                          type={stat.type}
+                          previousValue={stat.previousValue}
+                          verified={stat.verified}
+                          lowerIsBetter={m?.lowerIsBetter}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Achievements — clean card list */}
+            {medals.length > 0 && (
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-text-2 mb-3">달성 기록</h3>
+                <div className="flex flex-col gap-1.5">
+                  {medals.map((medal, i) => (
+                    <div key={medal.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                      <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} verified={medal.verified} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!hasPhysical && stats.length === 0 && medals.length === 0 && (
+              <div className="py-12 text-center text-[13px] text-text-3">
+                아직 등록된 스탯이 없습니다
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "records" && (
           <div className="flex flex-col gap-5">
-            <RecordsTab stats={stats} medals={medals} seasons={seasons} />
+            {/* Season records — public profile uses SeasonTimeline directly (no MyTeamSection) */}
+            {seasons.length > 0 && (
+              <SectionCard title="시즌 기록" icon="📅">
+                <SeasonTimeline seasons={seasons} />
+              </SectionCard>
+            )}
             {achievements.length > 0 && (
               <AchievementList achievements={achievements} />
             )}
@@ -355,6 +528,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
               <SectionCard title="성장 타임라인" icon="📈">
                 <GrowthTimeline events={timelineEvents} />
               </SectionCard>
+            )}
+            {seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && (
+              <div className="py-12 text-center text-[13px] text-text-3">
+                아직 등록된 기록이 없습니다
+              </div>
             )}
           </div>
         )}
@@ -383,81 +561,5 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       />
     </div>
     </ErrorBoundary>
-  );
-}
-
-function PublicSummaryTab({
-  featured,
-  stats,
-  medals,
-}: {
-  featured: FeaturedClip[];
-  stats: Stat[];
-  medals: Medal[];
-}) {
-  return (
-    <div className="flex flex-col gap-5">
-      {/* Featured Highlights (read-only) */}
-      {featured.length > 0 && (
-        <SectionCard title="대표 하이라이트" icon="⭐">
-          <div className="grid grid-cols-2 gap-2">
-            {featured.map((feat, i) => (
-              <div key={feat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                <FeaturedSlot
-                  clipId={feat.clip_id}
-                  thumbnailUrl={feat.clips?.thumbnail_url}
-                  durationSeconds={feat.clips?.duration_seconds ?? undefined}
-                  sortOrder={i + 1}
-                />
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      {/* Key Stats — FM-style bar chart */}
-      {stats.length > 0 && (
-        <SectionCard title="핵심 스탯" icon="📊">
-          <div>
-            {stats.map((stat) => {
-              const m = MEASUREMENTS.find((m) => m.id === stat.type);
-              return (
-                <StatRow
-                  key={stat.id}
-                  icon={m?.icon ?? "📊"}
-                  label={m?.label ?? stat.type}
-                  value={stat.value}
-                  unit={stat.unit}
-                  type={stat.type}
-                  previousValue={stat.previousValue}
-                  verified={stat.verified}
-                  lowerIsBetter={m?.lowerIsBetter}
-                />
-              );
-            })}
-          </div>
-        </SectionCard>
-      )}
-
-      {/* Medals */}
-      {medals.length > 0 && (
-        <SectionCard title="메달" icon="🏅">
-          <div className="flex flex-wrap gap-2">
-            {medals.map((medal, i) => (
-              <div key={medal.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} verified={medal.verified} />
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      {/* Empty state */}
-      {featured.length === 0 && stats.length === 0 && medals.length === 0 && (
-        <div className="py-12 text-center text-[13px] text-text-3">
-          아직 등록된 정보가 없습니다
-        </div>
-      )}
-    </div>
   );
 }

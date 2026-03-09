@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useProfileContext } from "@/providers/ProfileProvider";
+import UploadBottomSheet from "@/components/upload/UploadBottomSheet";
 
 /* ── Tab definitions per role ── */
 
@@ -42,70 +44,93 @@ function getTabsForRole(role: string): Tab[] {
   return playerTabs;
 }
 
+// TODO: Replace with real challenge API when available
+function useActiveChallenge(): { tag: string; title: string } | null {
+  return null;
+}
+
 export default function BottomTab() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, loading, error } = useProfileContext();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const activeChallenge = useActiveChallenge();
 
   const role = profile?.role ?? "player";
   const isGuest = error === "not_authenticated";
   const isLoading = loading || (!isGuest && !profile?.id);
   const tabs = getTabsForRole(role);
 
-  return (
-    <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-white/5 glass-nav">
-      <div
-        className={`flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)] transition-opacity duration-150 ${
-          isLoading || isGuest ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        {tabs.map((tab) => {
-          const active =
-            tab.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(tab.href);
+  const handleCenterTap = (tab: Tab) => {
+    if (tab.href === "/upload" && role === "player" && activeChallenge) {
+      setSheetOpen(true);
+      return;
+    }
+    router.push(tab.href);
+  };
 
-          /* ── Center action button (upload / watchlist) ── */
-          if (tab.isCenter) {
+  return (
+    <>
+      <UploadBottomSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        challengeTag={activeChallenge?.tag}
+        challengeTitle={activeChallenge?.title}
+      />
+
+      <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-white/5 glass-nav">
+        <div
+          className={`flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)] transition-opacity duration-150 ${
+            isLoading || isGuest ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          {tabs.map((tab) => {
+            const active =
+              tab.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(tab.href);
+
+            /* ── Center action button (upload / watchlist) ── */
+            if (tab.isCenter) {
+              return (
+                <button
+                  key={tab.href}
+                  type="button"
+                  onClick={() => handleCenterTap(tab)}
+                  className="relative flex flex-col items-center"
+                >
+                  <div className="relative -top-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent shadow-[0_0_12px_rgba(212,168,83,0.35)] transition-transform active:scale-95">
+                    <tab.icon active={false} />
+                  </div>
+                </button>
+              );
+            }
+
+            /* ── Normal tab ── */
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
+                aria-current={active ? "page" : undefined}
                 onMouseEnter={() => router.prefetch(tab.href)}
                 onFocus={() => router.prefetch(tab.href)}
-                className="relative flex flex-col items-center"
+                className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"
               >
-                <div className="relative -top-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent shadow-[0_0_12px_rgba(212,168,83,0.35)] transition-transform active:scale-95">
-                  <tab.icon active={false} />
-                </div>
+                {active && (
+                  <span className="absolute top-0 h-[2px] w-8 rounded-full bg-accent shadow-[0_0_8px_rgba(212,168,83,0.4)]" />
+                )}
+                <tab.icon active={active} />
+                <span
+                  className={`text-[10px] font-medium ${active ? "text-accent" : "text-text-3"}`}
+                >
+                  {tab.label}
+                </span>
               </Link>
             );
-          }
-
-          /* ── Normal tab ── */
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              aria-current={active ? "page" : undefined}
-              onMouseEnter={() => router.prefetch(tab.href)}
-              onFocus={() => router.prefetch(tab.href)}
-              className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"
-            >
-              {active && (
-                <span className="absolute top-0 h-[2px] w-8 rounded-full bg-accent shadow-[0_0_8px_rgba(212,168,83,0.4)]" />
-              )}
-              <tab.icon active={active} />
-              <span
-                className={`text-[10px] font-medium ${active ? "text-accent" : "text-text-3"}`}
-              >
-                {tab.label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
 

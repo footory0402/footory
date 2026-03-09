@@ -181,7 +181,13 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
               </div>
             )}
             {profile.teamName && (
-              <span className="mt-0.5 text-[12px] text-accent">{profile.teamName}</span>
+              profile.teamId ? (
+                <Link href={`/team/${profile.teamId}`} className="mt-0.5 text-[12px] text-accent hover:underline">
+                  {profile.teamName}
+                </Link>
+              ) : (
+                <span className="mt-0.5 text-[12px] text-accent">{profile.teamName}</span>
+              )
             )}
           </div>
         </div>

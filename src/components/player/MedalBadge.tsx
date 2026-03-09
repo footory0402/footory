@@ -8,28 +8,51 @@ interface MedalBadgeProps {
   size?: "sm" | "md";
 }
 
-function MedalBadge({ label, value, unit, verified, size = "sm" }: MedalBadgeProps) {
-  const isSmall = size === "sm";
+const TIER_STYLES = [
+  { min: 90, border: "#4ADE80", bg: "rgba(74,222,128,0.06)", icon: "💎" },
+  { min: 70, border: "#D4A853", bg: "rgba(212,168,83,0.06)", icon: "🥇" },
+  { min: 50, border: "#60A5FA", bg: "rgba(96,165,250,0.06)", icon: "🥈" },
+  { min: 0, border: "#71717A", bg: "rgba(113,113,122,0.06)", icon: "🥉" },
+];
+
+function getTier(value: number) {
+  return TIER_STYLES.find((t) => value >= t.min) ?? TIER_STYLES[TIER_STYLES.length - 1];
+}
+
+function MedalBadge({ label, value, unit, verified }: MedalBadgeProps) {
+  const tier = getTier(value);
 
   return (
     <div
-      className={`animate-pop-in inline-flex flex-col items-center gap-1 rounded-xl border border-[var(--border-accent)] bg-[var(--accent-bg)] ${
-        isSmall ? "px-3 py-2" : "px-4 py-3"
-      }`}
+      className="animate-fade-up flex items-center gap-2.5 rounded-lg p-2.5"
+      style={{
+        background: tier.bg,
+        border: `1px solid ${tier.border}22`,
+      }}
     >
-      <span className={`${isSmall ? "text-[20px]" : "text-[28px]"}`}>🏅</span>
-      <span className={`font-stat font-bold text-accent ${isSmall ? "text-[14px]" : "text-[18px]"}`}>
-        {value}{unit}
-      </span>
-      <span className={`text-text-2 ${isSmall ? "text-[10px]" : "text-[11px]"}`}>
-        {label}
-      </span>
+      {/* Icon */}
+      <span className="text-base shrink-0">{tier.icon}</span>
+
+      {/* Info */}
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] text-text-3 uppercase tracking-wide truncate">{label}</span>
+        <div className="flex items-baseline gap-0.5">
+          <span
+            className="font-stat text-base font-bold leading-tight"
+            style={{ color: tier.border }}
+          >
+            {value}
+          </span>
+          <span className="text-[10px] text-text-3">{unit}</span>
+        </div>
+      </div>
+
+      {/* Verified */}
       {verified && (
-        <span className="flex items-center gap-0.5 text-[9px] font-medium text-green">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+        <span className="ml-auto shrink-0">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#4ADE80">
             <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
           </svg>
-          인증됨
         </span>
       )}
     </div>

@@ -3,29 +3,28 @@
 import { useState, useEffect, useCallback } from "react";
 import { SectionCard } from "@/components/ui/Card";
 import FeaturedSlot from "./FeaturedSlot";
-import StatRow from "./StatRow";
-import MedalBadge from "./MedalBadge";
+import TagAccordion from "./TagAccordion";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 
 const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false });
 import { useFeaturedClips } from "@/hooks/useClips";
-import EmptyCTA from "@/components/ui/EmptyCTA";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { MAX_FEATURED_SLOTS, MEASUREMENTS } from "@/lib/constants";
-import type { Stat, Medal } from "@/lib/types";
+import { MAX_FEATURED_SLOTS, SKILL_TAGS } from "@/lib/constants";
 
-interface SummaryTabProps {
-  level: number;
-  stats: Stat[];
-  medals: Medal[];
-  onAddStat?: () => void;
-  onShareProfile?: () => void;
+interface TagClip {
+  id: string;
+  duration: number;
+  tag: string;
+  isTop: boolean;
 }
 
-/**
- * Progressive Disclosure: max featured slots by level.
- * Lv.1: 0 (empty profile), Lv.2: 1, Lv.3: 2, Lv.4+: 3
- */
+interface HighlightsTabProps {
+  level: number;
+  tagClips: Record<string, TagClip[]>;
+  tagClipsLoading?: boolean;
+}
+
 function maxSlotsByLevel(level: number): number {
   if (level <= 1) return 0;
   if (level === 2) return 1;
@@ -33,15 +32,29 @@ function maxSlotsByLevel(level: number): number {
   return MAX_FEATURED_SLOTS; // 3
 }
 
-export default function SummaryTab({
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${
+        active
+          ? "bg-accent text-bg"
+          : "bg-card text-text-3 active:bg-card-alt"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+export default function HighlightsTab({
   level,
-  stats,
-  medals,
-  onAddStat,
-  onShareProfile,
-}: SummaryTabProps) {
+  tagClips,
+  tagClipsLoading,
+}: HighlightsTabProps) {
   const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [filter, setFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFeatured();
@@ -55,11 +68,14 @@ export default function SummaryTab({
     await removeFeatured(clipId);
   }, [removeFeatured]);
 
-  // Progressive disclosure: max slots determined by level
   const maxSlots = maxSlotsByLevel(level);
-  // Within the level cap, show filled + 1 empty slot (for adding)
   const slotsToShow = maxSlots === 0 ? 0 : Math.min(featured.length + 1, maxSlots);
   const excludeClipIds = featured.map((f) => f.clip_id);
+
+  const tagsWithClips = SKILL_TAGS.filter((t) => (tagClips[t.id]?.length ?? 0) > 0);
+  const tagsToShow = filter
+    ? SKILL_TAGS.filter((t) => t.id === filter)
+    : SKILL_TAGS;
 
   return (
     <ErrorBoundary>
@@ -101,57 +117,43 @@ export default function SummaryTab({
         )}
       </SectionCard>
 
-      {/* Key Stats — FM-style bar chart */}
-      <SectionCard title="핵심 스탯" icon="📊">
-        {stats.length > 0 ? (
-          <div>
-            {stats.map((stat) => {
-              const m = MEASUREMENTS.find((m) => m.id === stat.type);
-              return (
-                <StatRow
-                  key={stat.id}
-                  icon={m?.icon ?? "📊"}
-                  label={m?.label ?? stat.type}
-                  value={stat.value}
-                  unit={stat.unit}
-                  type={stat.type}
-                  previousValue={stat.previousValue}
-                  verified={stat.verified}
-                  lowerIsBetter={m?.lowerIsBetter}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyCTA text="첫 측정 기록을 추가하세요" onAction={onAddStat} />
-        )}
-      </SectionCard>
-
-      {/* Medals */}
-      <SectionCard title="메달" icon="🏅">
-        {medals.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {medals.map((medal, i) => (
-              <div key={medal.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} verified={medal.verified} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyCTA text="측정 기록을 달성하면 메달이 자동 부여됩니다" />
-        )}
-      </SectionCard>
-
-      {/* Share CTA */}
-      <button
-        onClick={onShareProfile}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-[13px] font-semibold text-bg transition-opacity active:opacity-80"
+      {/* Upload CTA */}
+      <Link
+        href="/upload"
+        className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-accent)]/40 bg-[var(--color-card)] py-3 text-sm font-medium text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/10"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 17l9.2-9.2M17 17V7H7" />
-        </svg>
-        프로필 공유하기
-      </button>
+        <span>+</span> 영상 추가
+      </Link>
+
+      {/* Filter bar */}
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        <FilterChip label="전체" active={filter === null} onClick={() => setFilter(null)} />
+        {tagsWithClips.map((tag) => (
+          <FilterChip
+            key={tag.id}
+            label={`${tag.emoji} ${tag.label}`}
+            active={filter === tag.id}
+            onClick={() => setFilter(filter === tag.id ? null : tag.id)}
+          />
+        ))}
+      </div>
+
+      {/* Tag accordions */}
+      {tagClipsLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        </div>
+      ) : (
+        tagsToShow.map((tag, i) => (
+          <div key={tag.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
+            <TagAccordion
+              emoji={tag.emoji}
+              label={tag.label}
+              clips={tagClips[tag.id] ?? []}
+            />
+          </div>
+        ))
+      )}
 
       {/* Clip Picker */}
       {pickerOpen && (

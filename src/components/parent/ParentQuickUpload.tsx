@@ -16,8 +16,6 @@ interface ParentQuickUploadProps {
   onComplete: () => void;
 }
 
-const STEP_TITLES = ["영상 선택", "태그 선택", "완료"];
-
 async function uploadViaDirectApi(
   file: Blob,
   key: string,
@@ -41,9 +39,16 @@ async function uploadViaDirectApi(
 
 export default function ParentQuickUpload({ child, onClose, onComplete }: ParentQuickUploadProps) {
   const store = useUploadStore();
+  const [localStep, setLocalStep] = useState<1 | 2>(1);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Set parent context on mount
+  useState(() => {
+    store.setContext("parent");
+    store.setChildId(child.childId);
+  });
 
   const startUpload = useCallback(async () => {
     if (!store.file || uploading) return;
@@ -69,8 +74,7 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
           xhr.send(store.file);
         });
       } catch {
-        // Fallback for CORS/pre-signed PUT issues.
-        await uploadViaDirectApi(store.file, key, "video/mp4");
+        await uploadViaDirectApi(store.file!, key, "video/mp4");
       }
 
       // 3. Capture thumbnail
@@ -171,41 +175,35 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
         <div className="w-10" />
       </div>
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-2 px-4 pb-4">
-        {STEP_TITLES.map((title, i) => {
-          const stepNum = i + 1;
-          const active = store.step === stepNum;
-          const stepDone = store.step > stepNum;
-          return (
-            <div key={title} className="flex items-center gap-2">
-              {i > 0 && (
-                <div className={`h-px w-6 ${stepDone ? "bg-accent" : "bg-border"}`} />
-              )}
-              <div
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                  active ? "bg-accent text-bg"
-                  : stepDone ? "bg-accent/20 text-accent"
-                  : "bg-card text-text-3"
-                }`}
-              >
-                {stepDone ? "✓" : stepNum}
-              </div>
-              <span className={`text-xs font-medium ${active ? "text-text-1" : "text-text-3"}`}>
-                {title}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Content */}
       <div className="px-4 pb-24">
-        {store.step === 1 && <VideoSelector />}
-        {store.step === 2 && (
+        {localStep === 1 && (
+          <>
+            <VideoSelector />
+            {store.file && (
+              <div className="mt-4">
+                <Button
+                  variant="primary"
+                  size="full"
+                  onClick={() => setLocalStep(2)}
+                >
+                  다음
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+        {localStep === 2 && (
           <>
             <TagMemoForm />
-            <div className="mt-4">
+            <div className="mt-4 flex gap-3">
+              <Button
+                variant="ghost"
+                size="full"
+                onClick={() => setLocalStep(1)}
+              >
+                이전
+              </Button>
               <Button
                 variant="primary"
                 size="full"
@@ -214,8 +212,8 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
               >
                 {uploading ? "업로드 중..." : "업로드"}
               </Button>
-              {error && <p className="mt-2 text-center text-[12px] text-red">{error}</p>}
             </div>
+            {error && <p className="mt-2 text-center text-[12px] text-red">{error}</p>}
           </>
         )}
       </div>

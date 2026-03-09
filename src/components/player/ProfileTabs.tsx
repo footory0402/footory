@@ -1,9 +1,9 @@
 "use client";
 
 const TABS = [
-  { id: "summary", label: "요약", icon: "📋" },
-  { id: "skills", label: "스킬", icon: "🏷" },
-  { id: "records", label: "기록", icon: "📊" },
+  { id: "highlights", label: "하이라이트", icon: "⭐" },
+  { id: "stats", label: "스탯", icon: "📊" },
+  { id: "records", label: "기록", icon: "📅" },
 ] as const;
 
 export type ProfileTab = (typeof TABS)[number]["id"];
