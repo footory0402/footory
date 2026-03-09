@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { PositionBadge } from "@/components/ui/Badge";
 import { formatWeekRange, getMvpTierInfo } from "@/lib/mvp-scoring";
 import type { Position, MvpTierKey } from "@/lib/constants";
+import MvpThumbnail from "./MvpThumbnail";
 
 export interface ArchiveWeek {
   weekStart: string;
@@ -130,15 +130,13 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
                       </span>
 
                       {/* Thumbnail */}
-                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-card-alt">
+                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-card-alt">
                         {result.thumbnailUrl ? (
-                          <Image
+                          <MvpThumbnail
                             src={result.thumbnailUrl}
-                            alt=""
-                            width={40}
-                            height={40}
+                            alt={`${result.playerName} MVP 클립`}
                             sizes="40px"
-                            className="h-full w-full object-cover"
+                            fallbackClassName="text-[16px]"
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-[16px] opacity-30">

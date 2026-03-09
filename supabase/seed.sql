@@ -495,7 +495,7 @@ INSERT INTO feed_items (id, profile_id, type, reference_id, metadata, created_at
   ('f0000000-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001', 'highlight', 'c0000000-0000-0000-0000-000000000002', '{"memo":"왼발 중거리슛 하이라이트","thumbnail_url":"https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=640","tags":["슈팅"],"duration":45}', NOW() - INTERVAL '22 days'),
   ('f0000000-0000-0000-0000-000000000003', 'a0000006-0000-0000-0000-000000000006', 'highlight', 'c0000000-0000-0000-0000-000000000013', '{"memo":"금석배 결승 해트트릭","thumbnail_url":"https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=640","tags":["슈팅","퍼스트터치","1v1 돌파"],"duration":50}', NOW() - INTERVAL '35 days'),
   ('f0000000-0000-0000-0000-000000000004', 'a0000006-0000-0000-0000-000000000006', 'highlight', 'c0000000-0000-0000-0000-000000000014', '{"memo":"가속 드리블 + 오른발 슈팅","thumbnail_url":"https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=640","tags":["1v1 돌파","슈팅"],"duration":30}', NOW() - INTERVAL '20 days'),
-  ('f0000000-0000-0000-0000-000000000005', 'a0000011-0000-0000-0000-000000000011', 'highlight', 'c0000000-0000-0000-0000-000000000024', '{"memo":"화랑대기 프리킥 골 + 어시스트","thumbnail_url":"https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=640","tags":["슈팅","전진패스"],"duration":45}', NOW() - INTERVAL '32 days'),
+  ('f0000000-0000-0000-0000-000000000005', 'a0000011-0000-0000-0000-000000000011', 'highlight', 'c0000000-0000-0000-0000-000000000024', '{"memo":"화랑대기 프리킥 골 + 어시스트","thumbnail_url":"https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=640","tags":["슈팅","전진패스"],"duration":45}', NOW() - INTERVAL '32 days'),
   ('f0000000-0000-0000-0000-000000000006', 'a0000005-0000-0000-0000-000000000005', 'highlight', 'c0000000-0000-0000-0000-000000000010', '{"memo":"우측 윙 돌파 후 크로스 3연속","thumbnail_url":"https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=640","tags":["1v1 돌파"],"duration":42}', NOW() - INTERVAL '26 days'),
   ('f0000000-0000-0000-0000-000000000007', 'a0000012-0000-0000-0000-000000000012', 'highlight', 'c0000000-0000-0000-0000-000000000027', '{"memo":"공중볼 헤딩 득점 2연속","thumbnail_url":"https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=640","tags":["헤딩경합","슈팅"],"duration":38}', NOW() - INTERVAL '28 days'),
   ('f0000000-0000-0000-0000-000000000008', 'a0000002-0000-0000-0000-000000000002', 'highlight', 'c0000000-0000-0000-0000-000000000004', '{"memo":"킬패스 모음 — 화성원정 경기","thumbnail_url":"https://images.unsplash.com/photo-1551958219-acbc608c6377?w=640","tags":["전진패스"],"duration":38}', NOW() - INTERVAL '28 days'),
@@ -685,7 +685,7 @@ SET
     WHEN 0 THEN 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=960'
     WHEN 1 THEN 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=960'
     WHEN 2 THEN 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=960'
-    WHEN 3 THEN 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=960'
+    WHEN 3 THEN 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=960'
     WHEN 4 THEN 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=960'
     WHEN 5 THEN 'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=960'
     WHEN 6 THEN 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=960'
@@ -766,7 +766,7 @@ ON CONFLICT (team_id, profile_id) DO NOTHING;
 INSERT INTO team_albums (id, team_id, uploaded_by, media_type, media_url, thumbnail_url, created_at) VALUES
   ('eb000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'a0000001-0000-0000-0000-000000000001', 'photo', 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=960', NULL, NOW() - INTERVAL '11 days'),
   ('eb000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'a0000002-0000-0000-0000-000000000002', 'video', 'https://assets.mixkit.co/videos/43484/43484-1080.mp4', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=640', NOW() - INTERVAL '8 days'),
-  ('eb000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000002', 'a0000006-0000-0000-0000-000000000006', 'photo', 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=960', NULL, NOW() - INTERVAL '9 days'),
+  ('eb000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000002', 'a0000006-0000-0000-0000-000000000006', 'photo', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=960', NULL, NOW() - INTERVAL '9 days'),
   ('eb000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000002', 'a0000007-0000-0000-0000-000000000007', 'video', 'https://assets.mixkit.co/videos/43495/43495-1080.mp4', 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=640', NOW() - INTERVAL '6 days'),
   ('eb000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000003', 'a0000011-0000-0000-0000-000000000011', 'photo', 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=960', NULL, NOW() - INTERVAL '7 days'),
   ('eb000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000003', 'a0000012-0000-0000-0000-000000000012', 'video', 'https://assets.mixkit.co/videos/43499/43499-1080.mp4', 'https://images.unsplash.com/photo-1600679472829-3044539ce8ed?w=640', NOW() - INTERVAL '2 days');

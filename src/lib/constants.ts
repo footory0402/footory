@@ -1,10 +1,10 @@
 // Levels
 export const LEVELS = [
-  { level: 1, name: "루키", icon: "\uD83C\uDF31", color: "#71717A", minXp: 0 },
-  { level: 2, name: "스타터", icon: "\u26A1", color: "#A1A1AA", minXp: 100 },
-  { level: 3, name: "레귤러", icon: "\uD83D\uDD25", color: "#D4A853", minXp: 300 },
-  { level: 4, name: "에이스", icon: "\u2B50", color: "#F5C542", minXp: 600 },
-  { level: 5, name: "올스타", icon: "\uD83C\uDFC6", color: "#F5D78E", minXp: 1000 },
+  { level: 1, name: "시작", icon: "🌱", color: "#71717A", minXp: 0 },
+  { level: 2, name: "기본", icon: "📋", color: "#A1A1AA", minXp: 100 },
+  { level: 3, name: "성장", icon: "📈", color: "#D4A853", minXp: 300 },
+  { level: 4, name: "충실", icon: "⭐", color: "#F5C542", minXp: 600 },
+  { level: 5, name: "완성", icon: "🏅", color: "#F5D78E", minXp: 1000 },
 ] as const;
 
 // Positions
@@ -46,12 +46,22 @@ export const MEASUREMENTS = [
   { id: "vertical_jump", label: "수직 점프", unit: "cm", icon: "⬆️", lowerIsBetter: false },
   { id: "agility", label: "민첩성", unit: "초", icon: "⚡", lowerIsBetter: true },
   { id: "sprint_30m", label: "30m 스프린트", unit: "초", icon: "🏃", lowerIsBetter: true },
-  { id: "30m_sprint", label: "30m 스프린트", unit: "초", icon: "🏃", lowerIsBetter: true },
   { id: "run_1000m", label: "1000m 달리기", unit: "초", icon: "🏃‍♂️", lowerIsBetter: true },
-  { id: "1000m_run", label: "1000m 달리기", unit: "초", icon: "🏃‍♂️", lowerIsBetter: true },
   { id: "shooting_accuracy", label: "슈팅 정확도", unit: "%", icon: "⚽", lowerIsBetter: false },
   { id: "juggling", label: "리프팅", unit: "회", icon: "🎯", lowerIsBetter: false },
 ] as const;
+
+export const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
+  sprint_50m: { min: 5.5, max: 12 },
+  shuttle_run: { min: 10, max: 150 },
+  kick_power: { min: 20, max: 150 },
+  vertical_jump: { min: 10, max: 80 },
+  agility: { min: 5, max: 30 },
+  sprint_30m: { min: 3.5, max: 8 },
+  run_1000m: { min: 180, max: 600 },
+  shooting_accuracy: { min: 1, max: 30 },
+  juggling: { min: 1, max: 3000 },
+} as const;
 
 // MVP Tiers
 export const MVP_TIERS = [
@@ -64,9 +74,9 @@ export const MVP_TIERS = [
 export type MvpTierKey = (typeof MVP_TIERS)[number]["tier"];
 
 // Weekly MVP Voting
-export const MAX_WEEKLY_VOTES = 3;
-export const MVP_AUTO_WEIGHT = 0.7;
-export const MVP_VOTE_WEIGHT = 0.3;
+export const MAX_WEEKLY_VOTES = 5;
+export const MVP_AUTO_WEIGHT = 0.4;
+export const MVP_VOTE_WEIGHT = 0.6;
 
 // App constants
 export const MAX_HIGHLIGHT_SECONDS = 30;

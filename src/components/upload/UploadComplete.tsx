@@ -5,23 +5,44 @@ import Link from "next/link";
 import { useUploadStore } from "@/stores/upload-store";
 import PushPermissionPrompt, { shouldShowPushPrompt } from "@/components/notifications/PushPermissionPrompt";
 
+interface ConfettiParticle {
+  left: string;
+  animationDelay: string;
+  animationDuration: string;
+}
+
+function createConfettiParticles(): ConfettiParticle[] {
+  return Array.from({ length: 20 }, () => ({
+    left: `${Math.random() * 100}%`,
+    animationDelay: `${Math.random() * 0.8}s`,
+    animationDuration: `${1.5 + Math.random() * 1.5}s`,
+  }));
+}
+
 export default function UploadComplete() {
-  const { tags, context, reset } = useUploadStore();
+  const { tags, context, childName, reset } = useUploadStore();
   const isParent = context === "parent";
   const isChallenge = context === "challenge";
   const [showPush, setShowPush] = useState(false);
   const [confettiVisible, setConfettiVisible] = useState(false);
+  const [particles] = useState<ConfettiParticle[]>(createConfettiParticles);
 
   useEffect(() => {
-    // Trigger confetti
-    requestAnimationFrame(() => setConfettiVisible(true));
+    const frame = requestAnimationFrame(() => setConfettiVisible(true));
 
     // Push prompt after delay
     if (shouldShowPushPrompt()) {
       const timer = setTimeout(() => setShowPush(true), 800);
-      return () => clearTimeout(timer);
+      return () => {
+        cancelAnimationFrame(frame);
+        clearTimeout(timer);
+      };
     }
+
+    return () => cancelAnimationFrame(frame);
   }, []);
+
+  const tagLabels = tags.join(" · ");
 
   return (
     <>
@@ -31,15 +52,11 @@ export default function UploadComplete() {
         {/* Gold confetti particles */}
         {confettiVisible && (
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-            {Array.from({ length: 20 }).map((_, i) => (
+            {particles.map((particle, i) => (
               <div
                 key={i}
                 className="confetti-particle"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 0.8}s`,
-                  animationDuration: `${1.5 + Math.random() * 1.5}s`,
-                }}
+                style={particle}
               />
             ))}
           </div>
@@ -53,12 +70,7 @@ export default function UploadComplete() {
             </svg>
           </div>
 
-          <div className="text-center">
-            <h2 className="text-lg font-bold text-text-1">업로드 완료!</h2>
-            <p className="mt-1 text-sm text-text-2">
-              영상이 프로필에 추가되었습니다.
-            </p>
-          </div>
+          <h2 className="text-lg font-bold text-text-1">업로드 완료!</h2>
 
           {/* Tag summary */}
           {tags.length > 0 && (
@@ -74,24 +86,55 @@ export default function UploadComplete() {
             </div>
           )}
 
-          {/* MVP notice */}
-          <div className="w-full rounded-xl bg-accent/8 px-4 py-3 text-center">
-            <p className="text-[13px] text-accent">
-              MVP 투표 후보에 자동 등록됐어요!
+          {/* ── Exposure info card ── */}
+          <div className="w-full overflow-hidden rounded-xl border border-white/[0.06] bg-card">
+            <p className="px-4 pt-3 pb-2 text-[12px] font-medium text-text-3">
+              {isParent ? `${childName ?? "자녀"} 프로필에 반영돼요` : "이 영상이 보이는 곳"}
             </p>
+
+            <ExposureRow
+              icon="👤"
+              title={isParent ? "자녀 프로필 하이라이트" : "내 프로필 하이라이트"}
+              subtitle={tagLabels ? `${tagLabels} 태그에 추가` : "하이라이트에 추가"}
+            />
+            <div className="mx-4 border-t border-white/[0.04]" />
+            <ExposureRow
+              icon="📰"
+              title="홈 피드 게시"
+              subtitle="팔로워에게 자동 노출"
+            />
+            <div className="mx-4 border-t border-white/[0.04]" />
+            <ExposureRow
+              icon="🏆"
+              title="MVP 투표 후보 등록"
+              subtitle="이번 주 순위에 반영"
+            />
+            {isChallenge && (
+              <>
+                <div className="mx-4 border-t border-white/[0.04]" />
+                <ExposureRow
+                  icon="🎯"
+                  title="챌린지 순위 반영"
+                  subtitle="이번 주 챌린지 랭킹에 등록"
+                />
+              </>
+            )}
           </div>
+
+          {/* Parent note */}
+          {isParent && (
+            <p className="text-[12px] text-text-3">
+              대표 영상 설정은 선수가 직접 해요
+            </p>
+          )}
 
           {/* Action buttons */}
           <div className="flex w-full flex-col gap-2.5">
-            {isParent ? (
-              <p className="mb-1 text-center text-[12px] text-text-3">
-                대표 영상 설정은 선수가 직접 합니다
-              </p>
-            ) : (
+            {!isParent && (
               <Link
-                href="/profile"
+                href="/profile?tab=highlights&new=true"
                 onClick={() => reset()}
-                className="flex w-full items-center justify-center rounded-xl bg-accent py-3.5 text-sm font-bold text-bg transition-opacity active:opacity-80"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent py-3.5 text-sm font-bold text-bg transition-opacity active:opacity-80"
               >
                 대표 영상으로 설정
               </Link>
@@ -108,11 +151,11 @@ export default function UploadComplete() {
             )}
 
             <Link
-              href="/profile"
+              href={isParent ? `/p/${useUploadStore.getState().childHandle ?? ""}` : "/profile?tab=highlights&new=true"}
               onClick={() => reset()}
               className="flex w-full items-center justify-center rounded-xl border border-[var(--color-border)] py-3 text-sm font-medium text-text-2 transition-opacity active:opacity-80"
             >
-              내 프로필 보기
+              {isParent ? "자녀 프로필 보기" : "내 프로필에서 확인"}
             </Link>
 
             <button
@@ -126,5 +169,17 @@ export default function UploadComplete() {
         </div>
       </div>
     </>
+  );
+}
+
+function ExposureRow({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5">
+      <span className="text-sm">{icon}</span>
+      <div>
+        <p className="text-[13px] font-medium text-text-1">{title}</p>
+        <p className="text-[11px] text-text-3">{subtitle}</p>
+      </div>
+    </div>
   );
 }

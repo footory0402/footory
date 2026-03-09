@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { getVotingTimeRemaining, isVotingOpen } from "@/lib/mvp-scoring";
 import type { MvpLeaderData } from "@/lib/server/feed";
+import MvpThumbnail from "./MvpThumbnail";
 
 interface MvpTeaserProps {
   leader: MvpLeaderData | null;
@@ -45,12 +45,11 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
           {/* Thumbnail */}
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-card-alt">
             {leader.thumbnailUrl ? (
-              <Image
+              <MvpThumbnail
                 src={leader.thumbnailUrl}
                 alt={leader.playerName}
-                fill
                 sizes="48px"
-                className="object-cover"
+                fallbackClassName="text-[18px] opacity-25"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-[18px] opacity-25">

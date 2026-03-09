@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
 import { getWeekStart } from "@/lib/mvp-scoring";
+import { normalizeMediaUrl } from "@/lib/media-url";
 import {
   computeFeedSplit,
   computeRecommendationScore,
@@ -504,7 +505,7 @@ export async function fetchMvpLeader(supabase: SupabaseClient): Promise<MvpLeade
     playerHandle: profile?.handle ?? "",
     playerAvatarUrl: profile?.avatar_url ?? null,
     teamName: null,
-    thumbnailUrl: clipRes.data.thumbnail_url ?? null,
+    thumbnailUrl: normalizeMediaUrl(clipRes.data.thumbnail_url),
     voteCount: tally[topClipId],
     tags: (tagsRes.data ?? []).map((t) => t.tag_name),
   };

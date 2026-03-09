@@ -254,12 +254,13 @@ export default function ChildDashboard({
       {/* Team News */}
       {dashboard && dashboard.teamNews.length > 0 && (
         <div className="mb-4">
-          <h3 className="mb-2 text-[13px] font-semibold text-text-3">🏟 팀 소식</h3>
+          <h3 className="mb-2 text-[13px] font-semibold text-text-3">🏟 소속 팀</h3>
           <div className="rounded-xl border border-border bg-card overflow-hidden">
             {dashboard.teamNews.map((news, idx) => (
-              <div
+              <Link
                 key={news.teamId}
-                className={`flex items-center justify-between px-4 py-3.5 ${
+                href={`/team/${news.teamId}`}
+                className={`flex items-center justify-between px-4 py-3.5 transition-colors active:bg-surface ${
                   idx < dashboard.teamNews.length - 1 ? "border-b border-border" : ""
                 }`}
               >
@@ -268,10 +269,17 @@ export default function ChildDashboard({
                   <span className="text-sm font-medium text-text-1">{news.teamName}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-stat text-sm font-bold text-accent">{news.newClips}</span>
-                  <span className="text-xs text-text-3">새 영상</span>
+                  {news.newClips > 0 && (
+                    <>
+                      <span className="font-stat text-sm font-bold text-accent">{news.newClips}</span>
+                      <span className="text-xs text-text-3">새 영상</span>
+                    </>
+                  )}
+                  <svg className="ml-1 h-3.5 w-3.5 shrink-0 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

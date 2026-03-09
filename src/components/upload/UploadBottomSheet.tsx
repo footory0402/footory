@@ -70,7 +70,7 @@ export default function UploadBottomSheet({ open, onClose, challengeTag, challen
               </div>
               <div>
                 <p className="text-sm font-semibold text-text-1">영상 올리기</p>
-                <p className="text-[12px] text-text-3">내 하이라이트 영상 업로드</p>
+                <p className="text-[12px] text-text-3">프로필 · 피드 · MVP에 자동 반영</p>
               </div>
             </button>
 

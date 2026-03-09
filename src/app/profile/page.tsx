@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
@@ -35,7 +35,9 @@ const ProfilePdfExport = dynamic(
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("highlights");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get("tab") as ProfileTab) || "highlights";
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);

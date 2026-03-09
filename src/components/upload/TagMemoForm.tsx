@@ -47,6 +47,18 @@ export default function TagMemoForm() {
             );
           })}
         </div>
+        {tags.length > 0 ? (
+          <p className="mt-2 text-[11px] text-text-3">
+            {tags.map((t) => {
+              const tag = SKILL_TAGS.find((s) => s.dbName === t);
+              return tag?.label ?? t;
+            }).join(" · ")} 섹션에 추가됩니다
+          </p>
+        ) : (
+          <p className="mt-2 text-[11px] text-text-3">
+            태그를 선택하면 프로필 하이라이트가 태그별로 정리돼요
+          </p>
+        )}
       </div>
 
       {/* Memo */}

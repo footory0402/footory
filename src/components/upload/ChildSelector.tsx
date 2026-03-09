@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useUploadStore } from "@/stores/upload-store";
 
 interface LinkedChild {
@@ -13,7 +14,7 @@ interface LinkedChild {
 }
 
 export default function ChildSelector() {
-  const { childId, setChildId } = useUploadStore();
+  const { childId, setChildInfo } = useUploadStore();
   const [children, setChildren] = useState<LinkedChild[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +25,7 @@ export default function ChildSelector() {
         setChildren(data);
         // Auto-select if single child
         if (data.length === 1 && !childId) {
-          setChildId(data[0].childId);
+          setChildInfo({ id: data[0].childId, name: data[0].name, handle: data[0].handle });
         }
       })
       .catch(() => {})
@@ -63,7 +64,7 @@ export default function ChildSelector() {
             <button
               key={child.childId}
               type="button"
-              onClick={() => setChildId(child.childId)}
+              onClick={() => setChildInfo({ id: child.childId, name: child.name, handle: child.handle })}
               className={`flex flex-shrink-0 items-center gap-2.5 rounded-xl px-4 py-3 transition-all ${
                 selected
                   ? "bg-accent/15 ring-2 ring-accent"
@@ -73,9 +74,12 @@ export default function ChildSelector() {
               {/* Avatar */}
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-surface">
                 {child.avatarUrl ? (
-                  <img
+                  <Image
                     src={child.avatarUrl}
                     alt={child.name}
+                    width={40}
+                    height={40}
+                    sizes="40px"
                     className="h-full w-full object-cover"
                   />
                 ) : (

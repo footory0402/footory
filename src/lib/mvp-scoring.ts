@@ -8,7 +8,6 @@ export interface ClipWithStats {
   views_count: number;
   kudos_count: number;
   comments_count: number;
-  profile_visits: number;
 }
 
 export interface CandidateScore {
@@ -26,14 +25,13 @@ export interface CandidateScore {
 
 /**
  * Raw auto score for a clip:
- *   views * 1 + kudos * 3 + comments * 2 + profile_visits * 2
+ *   views * 1 + kudos * 3 + comments * 2
  */
 export function calcAutoRaw(clip: ClipWithStats): number {
   return (
     clip.views_count * 1 +
     clip.kudos_count * 3 +
-    clip.comments_count * 2 +
-    clip.profile_visits * 2
+    clip.comments_count * 2
   );
 }
 
@@ -43,7 +41,7 @@ export function calcAutoRaw(clip: ClipWithStats): number {
  * Normalize auto and vote scores across all candidates and
  * combine at 70:30 ratio.
  *
- * autoNorm out of 700, voteNorm out of 300 => total out of 1000
+ * autoNorm out of 400, voteNorm out of 600 => total out of 1000
  */
 export function rankCandidates(
   clips: ClipWithStats[],
@@ -136,9 +134,15 @@ export function getWeekStart(date: Date = new Date()): string {
 
 /**
  * Check if current time (KST) is within voting window.
- * 현재는 상시 투표 가능 (추후 시즌제 도입 시 제한 가능)
+ * 월요일 00:00~06:00 KST는 집계 시간으로 투표 불가.
  */
 export function isVotingOpen(): boolean {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const day = kst.getUTCDay(); // 0=Sun, 1=Mon
+  const hour = kst.getUTCHours();
+  // Monday 00:00~05:59 KST = aggregation window
+  if (day === 1 && hour < 6) return false;
   return true;
 }
 

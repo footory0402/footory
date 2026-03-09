@@ -20,7 +20,7 @@ export function LevelBadge({ level, size = "sm" }: LevelBadgeProps) {
       }}
     >
       <span>{lvl.icon}</span>
-      Lv.{level}
+      {lvl.name}
     </span>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeMediaUrl } from "@/lib/media-url";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
 
   const clipMap: Record<string, string | null> = {};
   (clips ?? []).forEach((c) => {
-    clipMap[c.id] = c.thumbnail_url;
+    clipMap[c.id] = normalizeMediaUrl(c.thumbnail_url);
   });
 
   // Fetch team names

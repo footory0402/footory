@@ -62,7 +62,7 @@ export default function BottomTab() {
   const tabs = getTabsForRole(role);
 
   const handleCenterTap = (tab: Tab) => {
-    if (tab.href === "/upload" && role === "player" && activeChallenge) {
+    if (tab.href === "/upload" && (role === "player" || role === "parent")) {
       setSheetOpen(true);
       return;
     }

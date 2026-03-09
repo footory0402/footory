@@ -31,6 +31,8 @@ interface StatsApiMedal {
     comparison: "lte" | "gte";
     icon: string;
     label: string;
+    difficulty_tier: number;
+    unit: string;
   } | null;
 }
 
@@ -61,7 +63,8 @@ function toMedal(m: StatsApiMedal): Medal {
     type: c?.stat_type ?? "",
     label: c?.label ?? m.medal_code,
     value: c?.threshold ?? 0,
-    unit: "",
+    unit: c?.unit ?? "",
+    difficultyTier: c?.difficulty_tier ?? 1,
     verified: false,
     awardedAt: m.achieved_at,
   };

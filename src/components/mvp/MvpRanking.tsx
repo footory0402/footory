@@ -2,11 +2,11 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
 import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
 import type { VoteCardCandidate } from "./VoteCard";
+import MvpThumbnail from "./MvpThumbnail";
 
 interface MvpRankingProps {
   candidates: VoteCardCandidate[];
@@ -103,12 +103,11 @@ function RankingRow({
           style={{ width: 56, height: 42 }}
         >
           {c.thumbnailUrl ? (
-            <Image
+            <MvpThumbnail
               src={c.thumbnailUrl}
               alt={c.playerName}
-              fill
               sizes="56px"
-              className="object-cover"
+              fallbackClassName="text-[14px]"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-[14px] opacity-30">

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
 import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
 import type { Position } from "@/lib/constants";
+import MvpThumbnail from "./MvpThumbnail";
 
 export interface VoteCardCandidate {
   clipId: string;
@@ -100,12 +100,11 @@ export default function VoteCard({
         ) : (
           <>
             {candidate.thumbnailUrl ? (
-              <Image
+              <MvpThumbnail
                 src={candidate.thumbnailUrl}
                 alt={`${candidate.playerName} 클립`}
-                fill
                 sizes="(max-width: 430px) 100vw, 430px"
-                className="object-cover"
+                priority={isFirst}
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
@@ -253,12 +252,11 @@ export function VoteCardCompact({
         ) : (
           <>
             {candidate.thumbnailUrl ? (
-              <Image
+              <MvpThumbnail
                 src={candidate.thumbnailUrl}
                 alt={candidate.playerName}
-                fill
                 sizes="(max-width: 430px) 50vw, 215px"
-                className="object-cover"
+                fallbackClassName="text-[20px]"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-[20px] opacity-30">

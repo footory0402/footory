@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkAndAwardMedals } from "@/lib/medals";
-import { MEASUREMENTS } from "@/lib/constants";
+import { MEASUREMENTS, STAT_BOUNDS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { calculateLevel, estimateXp } from "@/lib/level";
 import { notifyLinkedParents } from "@/lib/notifications";
@@ -64,14 +64,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid value" }, { status: 400 });
   }
 
-  // Stat bounds validation
-  const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
-    sprint_50m: { min: 4, max: 20 },
-    kick_power: { min: 1, max: 200 },
-    vertical_jump: { min: 1, max: 150 },
-    shuttle_run: { min: 1, max: 200 },
-    agility: { min: 1, max: 60 },
-  };
   const bounds = STAT_BOUNDS[statType];
   if (bounds && (value < bounds.min || value > bounds.max)) {
     return NextResponse.json({ error: `값은 ${bounds.min}~${bounds.max} 범위여야 합니다` }, { status: 400 });

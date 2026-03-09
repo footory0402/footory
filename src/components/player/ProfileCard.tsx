@@ -64,10 +64,10 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
   const canLevelUp = nextLvl != null && profile.xp >= nextLvl.minXp;
 
   const levelMissions: Record<number, string> = {
-    1: "프로필 사진을 등록하세요",
-    2: "첫 영상을 업로드하세요",
-    3: "측정 기록을 3개 추가하세요",
-    4: "메달을 5개 획득하세요",
+    1: "프로필 사진과 기본 정보를 채워보세요",
+    2: "첫 영상을 올려보세요",
+    3: "측정 기록을 추가해 데이터를 쌓으세요",
+    4: "시즌 기록을 등록해 커리어를 완성하세요",
   };
 
   return (
@@ -218,7 +218,7 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-[10px]">
             <span className="text-text-3">
-              {lvl.icon} Lv.{profile.level} {lvl.name}
+              {lvl.icon} 프로필 {lvl.name}
             </span>
             {nextLvl && !canLevelUp && (
               <span className="text-text-3">

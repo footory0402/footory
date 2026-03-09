@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
 import { startUpload } from "@/lib/upload-service";
@@ -90,6 +90,9 @@ export default function UploadPage() {
           </div>
         )}
 
+        {/* Usage guide banner */}
+        {!isParent && <UploadUsageGuide isChallenge={!!challengeTag} />}
+
         {/* Parent: child selector */}
         {isParent && <ChildSelector />}
 
@@ -136,5 +139,66 @@ export default function UploadPage() {
         </div>
       )}
     </>
+  );
+}
+
+/* ── Upload Usage Guide Banner ── */
+const GUIDE_DISMISSED_KEY = "footory_upload_guide_dismissed";
+
+function UploadUsageGuide({ isChallenge }: { isChallenge: boolean }) {
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(GUIDE_DISMISSED_KEY) === "true";
+  });
+
+  const toggle = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    if (next) {
+      localStorage.setItem(GUIDE_DISMISSED_KEY, "true");
+    } else {
+      localStorage.removeItem(GUIDE_DISMISSED_KEY);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-card">
+      <button
+        type="button"
+        onClick={toggle}
+        className="flex w-full items-center justify-between px-4 py-3"
+      >
+        <span className="text-[13px] font-semibold text-text-1">
+          영상을 올리면 이런 곳에 쓰여요
+        </span>
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          className={`text-text-3 transition-transform ${collapsed ? "" : "rotate-180"}`}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {!collapsed && (
+        <div className="flex flex-col gap-2.5 px-4 pb-4">
+          <GuideItem icon="👤" text="내 프로필 하이라이트에 추가" />
+          <GuideItem icon="📰" text="홈 피드에 자동 게시 (팔로워 노출)" />
+          <GuideItem icon="🏆" text="이번 주 MVP 투표 후보 등록" />
+          {isChallenge && (
+            <GuideItem icon="🎯" text="챌린지 순위에도 반영됩니다" />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GuideItem({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="text-sm">{icon}</span>
+      <span className="text-[12px] text-text-2">{text}</span>
+    </div>
   );
 }

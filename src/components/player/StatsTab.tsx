@@ -123,6 +123,7 @@ export default function StatsTab({ stats, medals, physicalInfo, onAddStat }: Sta
                   label={medal.label}
                   value={medal.value}
                   unit={medal.unit}
+                  difficultyTier={medal.difficultyTier}
                   verified={medal.verified}
                 />
               </div>

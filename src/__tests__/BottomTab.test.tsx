@@ -47,7 +47,7 @@ describe("BottomTab", () => {
     expect(screen.getByText("탐색")).toBeInTheDocument();
     expect(screen.getByText("MVP")).toBeInTheDocument();
     expect(screen.getByText("프로필")).toBeInTheDocument();
-    expect(screen.getByText("팀")).toBeInTheDocument();
+    expect(screen.getByRole("button")).toBeInTheDocument();
   });
 
   it("highlights home tab when pathname is /", () => {
@@ -77,11 +77,11 @@ describe("BottomTab", () => {
     expect(discoverLabel.className).toContain("text-accent");
   });
 
-  it("highlights team tab when pathname starts with /team", () => {
-    mockUsePathname.mockReturnValue("/team/abc");
+  it("highlights mvp tab when pathname starts with /mvp", () => {
+    mockUsePathname.mockReturnValue("/mvp");
     render(<BottomTab />);
 
-    const teamLabel = screen.getByText("팀");
-    expect(teamLabel.className).toContain("text-accent");
+    const mvpLabel = screen.getByText("MVP");
+    expect(mvpLabel.className).toContain("text-accent");
   });
 });

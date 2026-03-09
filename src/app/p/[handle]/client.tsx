@@ -168,14 +168,15 @@ function mapStats(rows: Record<string, unknown>[]): Stat[] {
 // Map DB medal rows (DB uses medal_code + medal_criteria JOIN, not medal_type/label/value)
 function mapMedals(rows: Record<string, unknown>[]): Medal[] {
   return rows.map((r) => {
-    const c = r.medal_criteria as { stat_type?: string; label?: string; threshold?: number; code?: string } | null;
+    const c = r.medal_criteria as { stat_type?: string; label?: string; threshold?: number; code?: string; difficulty_tier?: number; unit?: string } | null;
     return {
       id: r.id as string,
       playerId: r.profile_id as string,
       type: c?.stat_type ?? "",
       label: c?.label ?? (r.medal_code as string),
       value: c?.threshold ?? 0,
-      unit: "",
+      unit: c?.unit ?? "",
+      difficultyTier: c?.difficulty_tier ?? 1,
       verified: false,
       awardedAt: r.achieved_at as string,
     };
@@ -497,7 +498,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                 <div className="flex flex-col gap-1.5">
                   {medals.map((medal, i) => (
                     <div key={medal.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
-                      <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} verified={medal.verified} />
+                      <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} difficultyTier={medal.difficultyTier} verified={medal.verified} />
                     </div>
                   ))}
                 </div>

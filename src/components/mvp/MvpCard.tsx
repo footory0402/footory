@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge, LevelBadge } from "@/components/ui/Badge";
 import { getMvpTierInfo } from "@/lib/mvp-scoring";
 import type { Position, MvpTierKey } from "@/lib/constants";
+import MvpThumbnail from "./MvpThumbnail";
 
 export interface MvpCardData {
   rank: number;
@@ -62,13 +62,11 @@ export default function MvpCard({ data, className = "" }: MvpCardProps) {
           style={{ border: "2px solid var(--color-accent)" }}
         >
           {data.thumbnailUrl ? (
-            <Image
+            <MvpThumbnail
               src={data.thumbnailUrl}
               alt={`${data.playerName} MVP 클립`}
-              fill
-              quality={60}
               sizes="200px"
-              className="h-full w-full object-cover"
+              priority={data.rank === 1}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-card-alt">

@@ -80,6 +80,7 @@ export interface Medal {
   label: string;
   value: number;
   unit: string;
+  difficultyTier: number;
   evidenceClipId?: string;
   verified: boolean;
   awardedAt: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import Image from "next/image";
 import { useUploadStore } from "@/stores/upload-store";
 
 const MAX_SIZE = 100 * 1024 * 1024; // 100MB
@@ -15,13 +16,11 @@ export default function VideoSelector() {
   // Generate video thumbnail preview
   useEffect(() => {
     if (!file) {
-      setPreview(null);
-      setDuration(0);
       return;
     }
     const url = URL.createObjectURL(file);
     const video = document.createElement("video");
-    video.preload = "auto";
+    video.preload = "metadata";
     video.muted = true;
     video.src = url;
 
@@ -57,6 +56,8 @@ export default function VideoSelector() {
     if (!selected) return;
 
     setError(null);
+    setPreview(null);
+    setDuration(0);
 
     if (!selected.type.startsWith("video/")) {
       setError("영상 파일만 업로드할 수 있습니다.");
@@ -89,11 +90,14 @@ export default function VideoSelector() {
       {file && preview ? (
         /* ── Selected: thumbnail + info ── */
         <div className="relative overflow-hidden rounded-xl bg-card">
-          <div className="aspect-video w-full">
-            <img
+          <div className="relative aspect-video w-full">
+            <Image
               src={preview}
               alt="미리보기"
-              className="h-full w-full object-cover"
+              fill
+              unoptimized
+              sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
+              className="object-cover"
             />
             {/* Duration badge */}
             <div className="absolute bottom-2 right-2 rounded-md bg-black/70 px-2 py-0.5 text-xs font-stat text-text-1">
@@ -118,6 +122,7 @@ export default function VideoSelector() {
               onClick={() => {
                 setFile(null);
                 setPreview(null);
+                setDuration(0);
                 if (inputRef.current) inputRef.current.value = "";
               }}
               className="rounded-full p-1.5 text-text-3 transition-colors active:bg-surface"

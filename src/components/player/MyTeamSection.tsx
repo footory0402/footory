@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { SectionCard } from "@/components/ui/Card";
 import { useMyTeams } from "@/hooks/useTeam";
 
@@ -39,6 +40,17 @@ export default function MyTeamSection() {
   return (
     <SectionCard title="소속 팀" icon="⚽">
       <div className="flex flex-col gap-2">
+        {/* Team management link */}
+        <Link
+          href="/team"
+          className="mb-1 flex items-center justify-between rounded-lg px-2.5 py-1.5 text-[12px] text-text-3 transition-colors active:bg-card-alt"
+        >
+          <span>팀 관리</span>
+          <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
+
         {currentTeams.map((team) => (
           <Link
             key={team.id}
@@ -47,7 +59,14 @@ export default function MyTeamSection() {
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-lg">
               {team.logoUrl ? (
-                <img src={team.logoUrl} alt="" className="h-7 w-7 rounded object-cover" />
+                <Image
+                  src={team.logoUrl}
+                  alt=""
+                  width={28}
+                  height={28}
+                  sizes="28px"
+                  className="h-7 w-7 rounded object-cover"
+                />
               ) : (
                 "⚽"
               )}

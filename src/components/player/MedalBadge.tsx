@@ -4,23 +4,24 @@ interface MedalBadgeProps {
   label: string;
   value: number;
   unit: string;
+  difficultyTier?: number;
   verified?: boolean;
   size?: "sm" | "md";
 }
 
 const TIER_STYLES = [
-  { min: 90, border: "#4ADE80", bg: "rgba(74,222,128,0.06)", icon: "💎" },
-  { min: 70, border: "#D4A853", bg: "rgba(212,168,83,0.06)", icon: "🥇" },
-  { min: 50, border: "#60A5FA", bg: "rgba(96,165,250,0.06)", icon: "🥈" },
-  { min: 0, border: "#71717A", bg: "rgba(113,113,122,0.06)", icon: "🥉" },
+  { tier: 1, border: "#71717A", bg: "rgba(113,113,122,0.06)", icon: "🥉" },
+  { tier: 2, border: "#60A5FA", bg: "rgba(96,165,250,0.06)", icon: "🥈" },
+  { tier: 3, border: "#D4A853", bg: "rgba(212,168,83,0.06)", icon: "🥇" },
+  { tier: 4, border: "#4ADE80", bg: "rgba(74,222,128,0.06)", icon: "💎" },
 ];
 
-function getTier(value: number) {
-  return TIER_STYLES.find((t) => value >= t.min) ?? TIER_STYLES[TIER_STYLES.length - 1];
+function getTierStyle(difficultyTier: number) {
+  return TIER_STYLES.find((t) => t.tier === difficultyTier) ?? TIER_STYLES[0];
 }
 
-function MedalBadge({ label, value, unit, verified }: MedalBadgeProps) {
-  const tier = getTier(value);
+function MedalBadge({ label, value, unit, difficultyTier = 1, verified }: MedalBadgeProps) {
+  const tier = getTierStyle(difficultyTier);
 
   return (
     <div

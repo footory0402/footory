@@ -56,9 +56,9 @@ export const MOCK_STATS: Stat[] = [
 ];
 
 export const MOCK_MEDALS: Medal[] = [
-  { id: "m1", playerId: "1", type: "sprint_50m", label: "50m 스프린트", value: 7.2, unit: "초", verified: true, awardedAt: "2026-02-15" },
-  { id: "m2", playerId: "1", type: "vertical_jump", label: "수직 점프", value: 48, unit: "cm", verified: false, awardedAt: "2026-02-10" },
-  { id: "m3", playerId: "1", type: "shuttle_run", label: "셔틀런", value: 42, unit: "회", verified: true, awardedAt: "2026-01-20" },
+  { id: "m1", playerId: "1", type: "sprint_50m", label: "50m 스프린트", value: 7.2, unit: "초", difficultyTier: 3, verified: true, awardedAt: "2026-02-15" },
+  { id: "m2", playerId: "1", type: "vertical_jump", label: "수직 점프", value: 48, unit: "cm", difficultyTier: 2, verified: false, awardedAt: "2026-02-10" },
+  { id: "m3", playerId: "1", type: "shuttle_run", label: "셔틀런", value: 42, unit: "회", difficultyTier: 1, verified: true, awardedAt: "2026-01-20" },
 ];
 
 export const MOCK_SEASONS: Season[] = [

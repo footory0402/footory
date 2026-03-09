@@ -14,6 +14,8 @@ interface UploadState {
   context: UploadContext;
   challengeTag: string | null;
   childId: string | null;
+  childName: string | null;
+  childHandle: string | null;
   highlightStart: number;
 
   setFile: (file: File | null) => void;
@@ -26,6 +28,7 @@ interface UploadState {
   setContext: (c: UploadContext) => void;
   setChallengeTag: (tag: string | null) => void;
   setChildId: (id: string | null) => void;
+  setChildInfo: (info: { id: string; name: string; handle: string } | null) => void;
   setHighlightStart: (t: number) => void;
   reset: () => void;
 }
@@ -41,6 +44,8 @@ const initial = {
   context: "general" as UploadContext,
   challengeTag: null as string | null,
   childId: null as string | null,
+  childName: null as string | null,
+  childHandle: null as string | null,
   highlightStart: 0,
 };
 
@@ -56,6 +61,7 @@ export const useUploadStore = create<UploadState>((set) => ({
   setContext: (context) => set({ context }),
   setChallengeTag: (tag) => set({ challengeTag: tag }),
   setChildId: (id) => set({ childId: id }),
+  setChildInfo: (info) => set(info ? { childId: info.id, childName: info.name, childHandle: info.handle } : { childId: null, childName: null, childHandle: null }),
   setHighlightStart: (t) => set({ highlightStart: t }),
   reset: () => set(initial),
 }));

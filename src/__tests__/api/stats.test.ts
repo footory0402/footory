@@ -1,19 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { MEASUREMENTS } from "@/lib/constants";
+import { MEASUREMENTS, STAT_BOUNDS } from "@/lib/constants";
 
 /**
  * Stats API integration tests.
  * Tests STAT_BOUNDS validation logic extracted from the stats API route.
  * The bounds are defined in src/app/api/stats/route.ts.
  */
-
-const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
-  sprint_50m: { min: 4, max: 20 },
-  kick_power: { min: 1, max: 200 },
-  vertical_jump: { min: 1, max: 150 },
-  shuttle_run: { min: 1, max: 200 },
-  agility: { min: 1, max: 60 },
-};
 
 function validateStatValue(statType: string, value: number): { valid: boolean; error?: string } {
   const measurement = MEASUREMENTS.find((m) => m.id === statType);

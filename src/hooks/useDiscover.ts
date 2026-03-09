@@ -290,7 +290,7 @@ export type PlayerSortKey = "popularity" | "followers" | "mvp";
 
 export function usePlayerRanking(sort: PlayerSortKey = "popularity") {
   const cacheKey = `discover:player-ranking:${sort}`;
-  const endpoint = `/api/discover/ranking?sort=${sort}&limit=20`;
+  const endpoint = `/api/discover/ranking?sort=${sort}&limit=100`;
   const cached = getCachedValue<{ items?: PlayerRankingItem[] }>(cacheKey);
   const [items, setItems] = useState<PlayerRankingItem[]>(cached?.items ?? []);
   const [loading, setLoading] = useState(!cached);
@@ -326,7 +326,7 @@ export function usePlayerRanking(sort: PlayerSortKey = "popularity") {
 // --- Team Ranking ---
 export function useTeamRanking() {
   const cacheKey = "discover:team-ranking";
-  const endpoint = "/api/discover/teams/ranking?limit=20";
+  const endpoint = "/api/discover/teams/ranking?limit=100";
   const cached = getCachedValue<{ items?: TeamRankingItem[] }>(cacheKey);
   const [items, setItems] = useState<TeamRankingItem[]>(cached?.items ?? []);
   const [loading, setLoading] = useState(!cached);
@@ -362,7 +362,7 @@ export function useTeamRanking() {
 // --- Rising Players ---
 export function useRisingPlayers() {
   const cacheKey = "discover:rising";
-  const endpoint = "/api/discover/rising?limit=10";
+  const endpoint = "/api/discover/rising?limit=20";
   const cached = getCachedValue<{ items?: RisingPlayerItem[] }>(cacheKey);
   const [items, setItems] = useState<RisingPlayerItem[]>(cached?.items ?? []);
   const [loading, setLoading] = useState(!cached);
