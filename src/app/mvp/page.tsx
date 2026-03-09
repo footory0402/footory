@@ -316,11 +316,16 @@ export default function MvpPage() {
         </SectionCard>
       ) : (
         <>
-          {/* B8: 선수만 투표 가능 — role != 'player'이면 투표 버튼 비활성 */}
+          {/* B8: 선수만 투표 가능 */}
           {!canVoteMvp && votingOpen && (
-            <p className="rounded-xl bg-card-alt px-4 py-2 text-center text-[12px] text-text-3">
-              MVP 투표는 선수 계정만 참여할 수 있어요
-            </p>
+            <div className="rounded-xl bg-card-alt px-4 py-3 text-center">
+              <p className="text-xs text-text-3">
+                MVP 투표는 선수 계정만 참여할 수 있어요
+              </p>
+              <p className="mt-0.5 text-[10px] text-text-3 opacity-70">
+                스카우터·학부모는 순위 확인만 가능합니다
+              </p>
+            </div>
           )}
 
           {/* 1st place — large card */}
@@ -486,7 +491,7 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
             투표 진행중
           </span>
           {timeRemaining && (
-            <p className="mt-0.5 font-stat text-base font-bold text-accent">
+            <p className="mt-0.5 font-stat text-xl font-bold text-accent">
               {String(timeRemaining.hours).padStart(2, "0")}:
               {String(timeRemaining.minutes).padStart(2, "0")}:
               {String(timeRemaining.seconds).padStart(2, "0")}

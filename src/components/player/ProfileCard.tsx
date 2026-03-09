@@ -193,11 +193,11 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
         {/* Bottom: Stats + Level bar */}
         <div className="flex items-center gap-4 text-[12px]">
           <Link href="/profile/follows?tab=followers" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
-            <span className="font-stat font-semibold text-text-1">{profile.followers}</span>
+            <span className="font-brand text-lg font-bold text-text-1">{profile.followers}</span>
             <span className="text-text-3">팔로워</span>
           </Link>
           <Link href="/profile/follows?tab=following" className="flex items-center gap-1 hover:opacity-80 transition-opacity">
-            <span className="font-stat font-semibold text-text-1">{profile.following}</span>
+            <span className="font-brand text-lg font-bold text-text-1">{profile.following}</span>
             <span className="text-text-3">팔로잉</span>
           </Link>
           <div className="ml-auto flex items-center gap-1">

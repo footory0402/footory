@@ -37,10 +37,9 @@ function FeaturedSlot({
     return (
       <button
         onClick={onAdd}
-        className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border-accent)] bg-[var(--accent-bg)]"
-        style={{ aspectRatio: "16/10" }}
+        className="flex h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--border-accent)] bg-[var(--accent-bg)]"
       >
-        <span className="text-base">✨</span>
+        <span className="text-sm">✨</span>
         <span className="text-xs font-medium text-accent">
           영상 {sortOrder} 추가
         </span>

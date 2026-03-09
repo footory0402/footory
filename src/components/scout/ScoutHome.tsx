@@ -86,18 +86,45 @@ export default function ScoutHome() {
 
   return (
     <div className="space-y-6 px-4 pt-4 pb-24">
+      {/* Quick Links — TOP: scout needs fast access to discovery */}
+      <section>
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href="/discover"
+            className="flex items-center gap-2.5 rounded-xl bg-accent/10 border border-accent/20 px-4 py-3.5"
+          >
+            <span className="text-[18px]">🔍</span>
+            <span className="text-[13px] font-semibold text-accent">선수 탐색</span>
+          </Link>
+          <Link
+            href="/mvp"
+            className="flex items-center gap-2.5 rounded-xl bg-card border border-border px-4 py-3.5"
+          >
+            <span className="text-[18px]">🏆</span>
+            <span className="text-[13px] font-semibold text-text-2">MVP 순위</span>
+          </Link>
+        </div>
+      </section>
+
       {/* Watchlist Quick Access */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[15px] font-semibold text-text-1">⭐ 관심 선수</h2>
-          <Link href="/profile/watchlist" className="text-[12px] text-accent">
+          <h2 className="text-base font-semibold text-text-1">⭐ 관심 선수</h2>
+          <Link href="/profile/watchlist" className="text-xs text-accent">
             전체 보기
           </Link>
         </div>
         {watchlist.length === 0 ? (
-          <div className="rounded-[12px] border border-dashed border-border bg-card p-4 text-center">
-            <p className="text-[13px] text-text-3">관심 선수를 추가해보세요</p>
-            <p className="mt-1 text-[11px] text-text-3">선수 프로필에서 ⭐을 탭하면 추가돼요</p>
+          <div className="rounded-xl border border-dashed border-border bg-card px-4 py-8 text-center">
+            <div className="text-4xl mb-3">⭐</div>
+            <p className="text-sm font-medium text-text-2 mb-1">아직 관심 선수가 없어요</p>
+            <p className="text-xs text-text-3 mb-4">선수 프로필에서 ⭐을 탭하면 추가돼요</p>
+            <Link
+              href="/discover"
+              className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-bg"
+            >
+              선수 탐색하기
+            </Link>
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
@@ -106,9 +133,14 @@ export default function ScoutHome() {
               return (
                 <Link key={p.id} href={`/p/${p.handle}`} className="flex w-[80px] shrink-0 flex-col items-center gap-1.5">
                   <Avatar name={p.name} size="md" imageUrl={p.avatar_url} />
-                  <span className="text-[11px] font-medium text-text-1 truncate w-full text-center">{p.name}</span>
+                  <span className="text-xs font-medium text-text-1 truncate w-full text-center">{p.name}</span>
                   {p.position && (
-                    <span className="text-[10px]" style={{ color: posColor }}>{p.position}</span>
+                    <span
+                      className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                      style={{ color: posColor, backgroundColor: `${posColor}15` }}
+                    >
+                      {p.position}
+                    </span>
                   )}
                 </Link>
               );
@@ -121,17 +153,17 @@ export default function ScoutHome() {
       {rising.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[15px] font-semibold text-text-1">🚀 떠오르는 선수</h2>
-            <Link href="/discover" className="text-[12px] text-accent">
+            <h2 className="text-base font-semibold text-text-1">🚀 떠오르는 선수</h2>
+            <Link href="/discover" className="text-xs text-accent">
               더보기
             </Link>
           </div>
           <div className="space-y-2">
-            {rising.slice(0, 4).map((p, idx) => {
+            {rising.slice(0, 5).map((p, idx) => {
               const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
               return (
-                <div key={p.profile_id} className="flex items-center gap-3 rounded-[10px] border border-border bg-card px-4 py-3">
-                  <span className="w-5 text-center text-[14px] font-bold text-text-3" style={{ fontFamily: "var(--font-stat)" }}>
+                <div key={p.profile_id} className="card-elevated flex items-center gap-3 px-4 py-3">
+                  <span className="w-5 shrink-0 text-center font-stat text-base font-bold text-text-3">
                     {idx + 1}
                   </span>
                   <Link href={`/p/${p.handle}`} className="shrink-0">
@@ -139,18 +171,27 @@ export default function ScoutHome() {
                   </Link>
                   <Link href={`/p/${p.handle}`} className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[13px] font-semibold text-text-1 truncate">{p.name}</span>
+                      <span className="text-sm font-semibold text-text-1 truncate">{p.name}</span>
                       {p.position && (
-                        <span className="text-[10px] rounded-full px-1.5 py-px font-medium" style={{ color: posColor, backgroundColor: `${posColor}15` }}>
+                        <span
+                          className="rounded-md px-1.5 py-0.5 text-[10px] font-stat font-medium"
+                          style={{ color: posColor, backgroundColor: `${posColor}15` }}
+                        >
                           {p.position}
                         </span>
                       )}
                     </div>
                     {p.weekly_change > 0 && (
-                      <span className="text-[11px] text-green">인기 +{p.weekly_change}</span>
+                      <span className="text-xs text-green">인기 +{p.weekly_change}</span>
                     )}
                   </Link>
-                  <FollowButton targetId={p.profile_id} size="sm" />
+                  {/* Scout uses "⭐ 관심" instead of follow */}
+                  <Link
+                    href="/profile/watchlist"
+                    className="shrink-0 rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent"
+                  >
+                    ⭐ 관심
+                  </Link>
                 </div>
               );
             })}
@@ -162,25 +203,32 @@ export default function ScoutHome() {
       {highlights.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[15px] font-semibold text-text-1">🎬 최신 하이라이트</h2>
-            <Link href="/discover" className="text-[12px] text-accent">
+            <h2 className="text-base font-semibold text-text-1">🎬 최신 하이라이트</h2>
+            <Link href="/discover" className="text-xs text-accent">
               탐색
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {highlights.slice(0, 4).map(h => (
-              <Link key={h.id} href={`/p/${h.owner_handle}`} className="rounded-[10px] bg-card overflow-hidden border border-border">
-                <div className="aspect-video bg-card-alt relative flex items-center justify-center">
+              <Link key={h.id} href={`/p/${h.owner_handle}`} className="rounded-xl bg-card overflow-hidden border border-white/[0.05]">
+                <div className="aspect-video bg-[#08080a] relative flex items-center justify-center border-b border-white/[0.03]">
                   {h.thumbnail_url ? (
                     <img src={h.thumbnail_url} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <span className="text-text-3 text-[20px]">🎬</span>
                   )}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-2">
-                  <p className="text-[12px] font-medium text-text-1 truncate">{h.owner_name}</p>
+                <div className="p-2.5">
+                  <p className="text-xs font-semibold text-text-1 truncate">{h.owner_name}</p>
                   {h.tags.length > 0 && (
-                    <p className="text-[10px] text-text-3 truncate">{h.tags.join(" · ")}</p>
+                    <p className="text-[10px] text-text-3 truncate mt-0.5">{h.tags.join(" · ")}</p>
                   )}
                 </div>
               </Link>
@@ -188,20 +236,6 @@ export default function ScoutHome() {
           </div>
         </section>
       )}
-
-      {/* Quick Links */}
-      <section>
-        <div className="grid grid-cols-2 gap-2">
-          <Link href="/discover" className="flex items-center gap-2 rounded-[10px] border border-border bg-card px-4 py-3">
-            <span className="text-[16px]">🔍</span>
-            <span className="text-[13px] font-medium text-text-2">선수 탐색</span>
-          </Link>
-          <Link href="/mvp" className="flex items-center gap-2 rounded-[10px] border border-border bg-card px-4 py-3">
-            <span className="text-[16px]">🏆</span>
-            <span className="text-[13px] font-medium text-text-2">MVP 투표</span>
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

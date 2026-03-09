@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMyTeams } from "@/hooks/useTeam";
+import { usePermissions } from "@/hooks/usePermissions";
 import Avatar from "@/components/ui/Avatar";
 import AlumniLabel from "@/components/team/AlumniLabel";
 import CreateTeamSheet from "@/components/team/CreateTeamSheet";
@@ -10,8 +11,38 @@ import JoinTeamSheet from "@/components/team/JoinTeamSheet";
 
 export default function TeamPage() {
   const { teams, loading, refetch } = useMyTeams();
+  const { role, loading: roleLoading } = usePermissions();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+
+  // Scout sees watchlist-focused team view (only after role is confirmed)
+  if (!roleLoading && role === "scout") {
+    return (
+      <div className="px-4 pb-24 pt-4">
+        <div className="flex flex-col items-center pt-16 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl mb-4">🔭</div>
+          <p className="text-lg font-bold text-text-1">관심 팀 목록</p>
+          <p className="mt-2 text-sm text-text-3 leading-relaxed">
+            스카우터에게는 팀 소속 기능 대신<br />관심 선수·팀 탐색이 제공됩니다
+          </p>
+          <div className="mt-6 flex flex-col gap-3 w-full max-w-[280px]">
+            <Link
+              href="/discover?tab=team"
+              className="rounded-full bg-accent py-3 text-sm font-semibold text-bg text-center"
+            >
+              팀 탐색하기
+            </Link>
+            <Link
+              href="/profile/watchlist"
+              className="rounded-full border border-accent/30 py-3 text-sm font-medium text-accent text-center"
+            >
+              관심 선수 보기
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -79,7 +110,7 @@ export default function TeamPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowJoin(true)}
-                className="rounded-full border border-border px-3 py-1.5 text-xs text-text-2 transition-colors hover:border-accent hover:text-accent"
+                className="rounded-full border border-accent/30 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:border-accent hover:bg-accent/10"
               >
                 가입
               </button>
@@ -156,20 +187,21 @@ function TeamCard({
         imageUrl={team.logoUrl}
         size="md"
       />
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-text-1">{team.name}</span>
+          <span className="text-sm font-semibold text-text-1 truncate">{team.name}</span>
           {team.myRole === "admin" && (
-            <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+            <span className="shrink-0 rounded-md bg-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
               관리자
             </span>
           )}
           {isAlumni && <AlumniLabel size="sm" />}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[12px] text-text-3">
+        <div className="mt-0.5 flex items-center gap-2 text-xs text-text-3">
           <span>@{team.handle}</span>
           <span>·</span>
-          <span>{team.memberCount}명</span>
+          <span className="font-stat font-bold text-text-2">{team.memberCount}</span>
+          <span>명</span>
           {team.city && (
             <>
               <span>·</span>

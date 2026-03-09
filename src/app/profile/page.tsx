@@ -187,48 +187,118 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="mt-3">
-        <ProfileTabs active={activeTab} onChange={setActiveTab} />
-      </div>
-
-      <div className="mt-5">
-
-        {activeTab === "summary" && (
-          <SummaryTab
-            level={displayProfile.level}
-            stats={stats}
-            medals={medals}
-            onAddStat={handleOpenStatInput}
-            onShareProfile={handleShareProfile}
-          />
-        )}
-        {activeTab === "skills" && (
-          <SkillsTab tagClips={mappedTagClips} loading={tagClipsLoading} />
-        )}
-        {activeTab === "records" && (
-          <div className="flex flex-col gap-5">
-            <RecordsTab
-              stats={stats}
-              medals={medals}
-              seasons={seasons}
-              onAddStat={() => setStatInputOpen(true)}
-              onAddSeason={() => setSeasonAddOpen(true)}
-            />
-
-            {/* Achievements */}
-            <AchievementList
-              achievements={achievements}
-              onAdd={addAchievement}
-              onRemove={removeAchievement}
-            />
-
-            {/* Growth Timeline */}
-            <SectionCard title="성장 타임라인" icon="📈">
-              <GrowthTimeline events={timelineEvents} loading={timelineLoading} />
-            </SectionCard>
+      {/* Scout: simplified profile — no player-specific tabs */}
+      {displayProfile.role === "scout" ? (
+        <div className="mt-5 flex flex-col gap-4">
+          <div className="card-elevated p-4">
+            <p className="text-xs font-semibold text-text-3 mb-3">스카우터 정보</p>
+            <div className="space-y-2.5">
+              {displayProfile.bio && (
+                <p className="text-sm text-text-2">{displayProfile.bio}</p>
+              )}
+              {displayProfile.city && (
+                <div className="flex items-center gap-2 text-sm text-text-2">
+                  <span>📍</span><span>{displayProfile.city}</span>
+                </div>
+              )}
+              {displayProfile.teamName && (
+                <div className="flex items-center gap-2 text-sm text-text-2">
+                  <span>🏟</span><span>{displayProfile.teamName}</span>
+                </div>
+              )}
+              {!displayProfile.bio && !displayProfile.city && !displayProfile.teamName && (
+                <p className="text-sm text-text-3">소속 및 소개를 프로필에 추가해보세요</p>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+
+          <Link
+            href="/profile/watchlist"
+            className="card-elevated flex items-center justify-between p-4 transition-all hover:shadow-lg"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-xl">⭐</div>
+              <div>
+                <p className="text-sm font-semibold text-text-1">관심 선수</p>
+                <p className="text-xs text-text-3">워치리스트 관리</p>
+              </div>
+            </div>
+            <svg className="h-4 w-4 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
+
+          <Link
+            href="/discover"
+            className="card-elevated flex items-center justify-between p-4 transition-all hover:shadow-lg"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue/10 text-xl">🔍</div>
+              <div>
+                <p className="text-sm font-semibold text-text-1">선수 탐색</p>
+                <p className="text-xs text-text-3">랭킹 · 검색 · 태그</p>
+              </div>
+            </div>
+            <svg className="h-4 w-4 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
+
+          <button
+            onClick={handleShareProfile}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-medium text-text-2 transition-colors hover:border-accent hover:text-accent"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 17l9.2-9.2M17 17V7H7" />
+            </svg>
+            프로필 공유
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="mt-3">
+            <ProfileTabs active={activeTab} onChange={setActiveTab} />
+          </div>
+
+          <div className="mt-5">
+            {activeTab === "summary" && (
+              <SummaryTab
+                level={displayProfile.level}
+                stats={stats}
+                medals={medals}
+                onAddStat={handleOpenStatInput}
+                onShareProfile={handleShareProfile}
+              />
+            )}
+            {activeTab === "skills" && (
+              <SkillsTab tagClips={mappedTagClips} loading={tagClipsLoading} />
+            )}
+            {activeTab === "records" && (
+              <div className="flex flex-col gap-5">
+                <RecordsTab
+                  stats={stats}
+                  medals={medals}
+                  seasons={seasons}
+                  onAddStat={() => setStatInputOpen(true)}
+                  onAddSeason={() => setSeasonAddOpen(true)}
+                />
+
+                {/* Achievements */}
+                <AchievementList
+                  achievements={achievements}
+                  onAdd={addAchievement}
+                  onRemove={removeAchievement}
+                />
+
+                {/* Growth Timeline */}
+                <SectionCard title="성장 타임라인" icon="📈">
+                  <GrowthTimeline events={timelineEvents} loading={timelineLoading} />
+                </SectionCard>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Quest Checklist — collapsible bottom banner */}
       {displayProfile.role === "player" && (

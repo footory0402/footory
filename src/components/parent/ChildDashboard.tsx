@@ -176,9 +176,9 @@ export default function ChildDashboard() {
         ) : dashboard ? (
           <div className="rounded-[14px] border border-border bg-card p-4">
             <div className="space-y-2.5">
-              <StatRow emoji="📹" label="새 영상" value={`${dashboard.weeklyStats.newClips}개`} />
-              <StatRow emoji="👏" label="받은 응원" value={`${dashboard.weeklyStats.kudosReceived}개`} />
-              <StatRow emoji="👁" label="프로필 조회" value={`${dashboard.weeklyStats.profileViews}회`} />
+              <StatRow emoji="📹" label="새 영상" value={`${dashboard.weeklyStats.newClips}개`} isZero={dashboard.weeklyStats.newClips === 0} />
+              <StatRow emoji="👏" label="받은 응원" value={`${dashboard.weeklyStats.kudosReceived}개`} isZero={dashboard.weeklyStats.kudosReceived === 0} />
+              <StatRow emoji="👁" label="프로필 조회" value={`${dashboard.weeklyStats.profileViews}회`} isZero={dashboard.weeklyStats.profileViews === 0} />
               {dashboard.weeklyStats.mvpRank && (
                 <StatRow emoji="🏆" label="MVP 순위" value={`${dashboard.weeklyStats.mvpRank}위`} />
               )}
@@ -265,12 +265,23 @@ export default function ChildDashboard() {
       {/* Team News */}
       {dashboard && dashboard.teamNews.length > 0 && (
         <div className="mb-4">
-          <h3 className="mb-2 text-[13px] font-semibold text-text-3">팀 소식</h3>
-          <div className="rounded-[14px] border border-border bg-card">
-            {dashboard.teamNews.map((news) => (
-              <div key={news.teamId} className="flex items-center justify-between px-4 py-3">
-                <span className="text-[13px] text-text-1">{news.teamName}</span>
-                <span className="text-[12px] text-text-3">새 영상 {news.newClips}개</span>
+          <h3 className="mb-2 text-[13px] font-semibold text-text-3">🏟 팀 소식</h3>
+          <div className="rounded-[14px] border border-border bg-card overflow-hidden">
+            {dashboard.teamNews.map((news, idx) => (
+              <div
+                key={news.teamId}
+                className={`flex items-center justify-between px-4 py-3.5 ${
+                  idx < dashboard.teamNews.length - 1 ? "border-b border-border" : ""
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-[14px]">⚽</div>
+                  <span className="text-sm font-medium text-text-1">{news.teamName}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-stat text-sm font-bold text-accent">{news.newClips}</span>
+                  <span className="text-xs text-text-3">새 영상</span>
+                </div>
               </div>
             ))}
           </div>
@@ -301,13 +312,16 @@ export default function ChildDashboard() {
   );
 }
 
-function StatRow({ emoji, label, value }: { emoji: string; label: string; value: string }) {
+function StatRow({ emoji, label, value, isZero }: { emoji: string; label: string; value: string; isZero?: boolean }) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-[13px] text-text-2">
         {emoji} {label}
       </span>
-      <span className="font-oswald text-[14px] font-semibold text-text-1">{value}</span>
+      <span className={`font-stat text-[14px] font-semibold ${isZero ? "text-text-3" : "text-text-1"}`}>
+        {value}
+        {isZero && <span className="ml-1 text-[10px] text-text-3">·</span>}
+      </span>
     </div>
   );
 }
@@ -369,18 +383,20 @@ function formatTimeAgo(dateStr: string): string {
   const now = Date.now();
   const date = new Date(dateStr).getTime();
   const diff = now - date;
+  const d = new Date(dateStr);
+  const absDate = `(${d.getMonth() + 1}/${d.getDate()})`;
 
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return "방금 전";
-  if (minutes < 60) return `${minutes}분 전`;
+  if (minutes < 60) return `${minutes}분 전 ${absDate}`;
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
+  if (hours < 24) return `${hours}시간 전 ${absDate}`;
 
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}일 전`;
+  if (days < 7) return `${days}일 전 ${absDate}`;
 
-  return new Date(dateStr).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+  return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
 }
 
 function ComparisonBar({ label, current, previous }: { label: string; current: number; previous: number }) {

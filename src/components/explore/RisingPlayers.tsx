@@ -22,8 +22,9 @@ export default function RisingPlayers() {
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl bg-card py-6">
-        <p className="text-[13px] text-text-3">떠오르는 선수가 없어요</p>
+      <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-card py-8 text-center px-4">
+        <p className="text-sm font-medium text-text-2">아직 떠오르는 선수가 없어요</p>
+        <p className="text-xs text-text-3">팀 동료나 관심 선수를 검색해보세요</p>
       </div>
     );
   }
@@ -51,7 +52,10 @@ export default function RisingPlayers() {
                 {p.name}
               </span>
               {p.position && (
-                <span className="text-[10px]" style={{ color: posColor }}>
+                <span
+                  className="rounded-md px-1.5 py-0.5 text-[10px] font-stat font-medium"
+                  style={{ color: posColor, backgroundColor: `${posColor}15` }}
+                >
                   {p.position}
                 </span>
               )}

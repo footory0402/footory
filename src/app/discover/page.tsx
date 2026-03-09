@@ -132,19 +132,19 @@ export default function DiscoverPage() {
         {/* "전체" tab: shows all sections in overview */}
         {tab === "all" && (
           <>
-            <Section title="떠오르는 선수" emoji="🚀">
+            <Section title="떠오르는 선수" emoji="🚀" seeMoreHref="/discover?tab=player">
               <RisingPlayers />
             </Section>
 
-            <Section title="인기 선수 랭킹" emoji="🏆">
+            <Section title="인기 선수 랭킹" emoji="🏆" seeMoreHref="/discover?tab=player">
               <PlayerRanking compact positionFilter={positionFilter ?? undefined} />
             </Section>
 
-            <Section title="팀 랭킹" emoji="🏟">
+            <Section title="팀 랭킹" emoji="🏟" seeMoreHref="/discover?tab=team">
               <TeamRanking compact />
             </Section>
 
-            <Section title="태그별 인기 클립" emoji="🎬">
+            <Section title="태그별 인기 클립" emoji="🎬" seeMoreHref="/discover?tab=tag">
               <TagGrid />
             </Section>
           </>
@@ -178,13 +178,16 @@ export default function DiscoverPage() {
   );
 }
 
-function Section({ title, emoji, children }: { title: string; emoji: string; children: React.ReactNode }) {
+function Section({ title, emoji, children, seeMoreHref }: { title: string; emoji: string; children: React.ReactNode; seeMoreHref?: string }) {
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold text-text-1">
           <span className="mr-1.5">{emoji}</span>{title}
         </h2>
+        {seeMoreHref && (
+          <a href={seeMoreHref} className="text-xs text-accent">더보기</a>
+        )}
       </div>
       {children}
     </section>
