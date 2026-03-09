@@ -114,7 +114,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="px-4 pb-4 pt-4">
+    <div className="px-4 pb-6 pt-4">
       <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
       {/* Action row: scout links + more menu */}
@@ -139,7 +139,7 @@ export default function ProfilePage() {
                 <span>🔒</span>
                 인증 후 관심 선수 저장
               </button>
-              <p className="text-[11px] text-text-3">
+              <p className="text-xs text-text-3">
                 인증된 코치·스카우터만 워치리스트를 사용할 수 있어요.
               </p>
             </div>

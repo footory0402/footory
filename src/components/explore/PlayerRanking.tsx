@@ -37,7 +37,7 @@ export default function PlayerRanking({ compact = false, positionFilter }: Playe
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-[12px] bg-card py-8">
+      <div className="flex items-center justify-center rounded-xl bg-card py-8">
         <p className="text-[13px] text-text-3">아직 랭킹 데이터가 없어요</p>
       </div>
     );
@@ -57,7 +57,7 @@ export default function PlayerRanking({ compact = false, positionFilter }: Playe
             <button
               key={opt.key}
               onClick={() => setSort(opt.key)}
-              className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 sort === opt.key
                   ? "bg-accent text-bg"
                   : "bg-card-alt text-text-2 active:bg-elevated"
@@ -91,10 +91,7 @@ function PlayerRankingRow({
   return (
     <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 last:border-b-0">
       {/* Rank number */}
-      <span
-        className="w-6 text-center text-[16px] font-bold tabular-nums shrink-0"
-        style={{ fontFamily: "var(--font-stat)" }}
-      >
+      <span className="w-6 text-center font-stat text-base font-bold tabular-nums shrink-0">
         {rank}
       </span>
 
@@ -111,28 +108,28 @@ function PlayerRankingRow({
       {/* Info */}
       <Link href={`/p/${item.handle}`} className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[14px] font-semibold text-text-1 truncate">
+          <span className="text-sm font-semibold text-text-1 truncate">
             {item.name}
           </span>
           {item.position && (
             <span
-              className="rounded-full px-1.5 py-px text-[10px] font-medium"
+              className="rounded-md text-[10px] font-stat px-1.5 py-0.5 font-medium"
               style={{ color: posColor, backgroundColor: `${posColor}15` }}
             >
               {item.position}
             </span>
           )}
           {item.mvp_count > 0 && mvpTier && (
-            <span className="text-[11px]" title={`MVP ${item.mvp_count}회`}>
+            <span className="text-xs" title={`MVP ${item.mvp_count}회`}>
               {mvpTier.icon}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {item.team_name && (
-            <span className="text-[11px] text-text-3 truncate">{item.team_name}</span>
+            <span className="text-xs text-text-3 truncate">{item.team_name}</span>
           )}
-          <span className="text-[11px] text-text-3">
+          <span className="text-xs text-text-3">
             {item.followers_count > 0 && `팔로워 ${item.followers_count}`}
           </span>
         </div>

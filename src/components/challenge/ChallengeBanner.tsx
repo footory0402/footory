@@ -105,7 +105,7 @@ export default function ChallengeBanner() {
           {/* Gold accent line */}
           <div className="h-[2px]" style={{ background: "var(--accent-gradient)" }} />
 
-          <div className="flex items-center gap-3 px-3 py-3">
+          <div className="flex items-center gap-3 px-4 py-3.5">
             {/* Icon */}
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-[22px]"
@@ -125,7 +125,7 @@ export default function ChallengeBanner() {
               <div className="truncate text-[14px] font-bold text-text-1">
                 {challenge.title}
               </div>
-              <div className="mt-0.5 text-[11px] text-text-3">
+              <div className="mt-0.5 text-xs text-text-3">
                 참여 <span className="font-stat font-bold text-text-2">{participantCount}</span>명
                 {daysLeft > 0 ? (
                   <> · <span className="font-stat font-bold text-text-2">{daysLeft}</span>일 남음</>

@@ -61,17 +61,17 @@ export default function DiscoverPage() {
   }, [positionFilter, regionFilter]);
 
   return (
-    <div className="px-4 pt-4 pb-4">
+    <div className="px-4 pt-4 pb-6">
       {/* Search bar (tap to open overlay) */}
       <button
         onClick={() => setSearchOpen(true)}
-        className="flex h-10 w-full items-center rounded-full bg-card px-4 text-left shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]"
+        className="flex h-10 w-full items-center rounded-full bg-card px-4 text-left shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-white/[0.06]"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="7" />
           <path d="M21 21l-4.35-4.35" />
         </svg>
-        <span className="ml-2 text-[13px] text-text-3">선수, 팀, 태그 검색</span>
+        <span className="ml-2 text-xs text-text-3">선수, 팀, 태그 검색</span>
       </button>
 
       {/* Filter tabs */}
@@ -80,7 +80,7 @@ export default function DiscoverPage() {
           <button
             key={ft.key}
             onClick={() => setTab(ft.key)}
-            className={`rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
               tab === ft.key
                 ? "bg-accent text-bg"
                 : "bg-card text-text-2 active:bg-card-alt"
@@ -182,7 +182,7 @@ function Section({ title, emoji, children }: { title: string; emoji: string; chi
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[16px] font-bold text-text-1">
+        <h2 className="text-base font-semibold text-text-1">
           <span className="mr-1.5">{emoji}</span>{title}
         </h2>
       </div>

@@ -88,7 +88,7 @@ function RankingRow({
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Rank */}
         <span
-          className="w-6 shrink-0 text-center font-stat text-[16px] font-bold"
+          className="w-6 shrink-0 text-center font-stat text-base font-bold"
           style={{
             color:
               c.rank <= 3
@@ -102,7 +102,7 @@ function RankingRow({
         {/* Thumbnail — small, clickable */}
         <button
           onClick={handlePlay}
-          className="relative shrink-0 overflow-hidden rounded-md bg-card-alt"
+          className="relative shrink-0 overflow-hidden rounded-xl bg-black/30"
           style={{ width: 56, height: 42 }}
         >
           {c.thumbnailUrl ? (
@@ -144,14 +144,14 @@ function RankingRow({
         {/* Info */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-bold text-text-1">
+            <span className="truncate text-sm font-semibold text-text-1">
               {c.playerName}
             </span>
             {c.playerPosition && (
               <PositionBadge position={c.playerPosition} size="sm" />
             )}
           </div>
-          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-text-3">
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-text-3">
             {c.teamName && <span>{c.teamName}</span>}
             <span>⚡ {c.totalScore}</span>
             <span>🗳 {c.voteCount}</span>

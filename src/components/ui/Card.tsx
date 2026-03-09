@@ -22,8 +22,8 @@ interface SectionCardProps {
 export function SectionCard({ title, icon, onEdit, children, className = "" }: SectionCardProps) {
   return (
     <div className={`card-elevated ${className}`}>
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-2">
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <span className="text-xs font-bold uppercase tracking-[0.12em] text-text-2">
           {icon && <span className="mr-1">{icon}</span>}
           {title}
         </span>

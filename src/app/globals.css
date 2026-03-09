@@ -6,11 +6,11 @@
 
 @theme inline {
   /* Background — increased contrast between layers */
-  --color-bg: #0A0A0C;
-  --color-card: #1A1A1E;
-  --color-card-alt: #222226;
-  --color-elevated: #2A2A2E;
-  --color-surface: #2A2A2E;
+  --color-bg: #080808;
+  --color-card: #1C1C22;
+  --color-card-alt: #242428;
+  --color-elevated: #2C2C30;
+  --color-surface: #2C2C30;
 
   /* Accent */
   --color-accent: #D4A853;
@@ -43,11 +43,11 @@
   --font-brand: var(--rajdhani), 'Rajdhani', 'Noto Sans KR', sans-serif;
   --font-display: var(--rajdhani), 'Rajdhani', 'Noto Sans KR', sans-serif;
 
-  /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  /* Radius — 3-tier system: md(6px), xl(12px), full(999px) */
+  --radius-sm: 6px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+  --radius-xl: 12px;
   --radius-full: 999px;
 
   /* Easing */
@@ -99,23 +99,23 @@
   --accent-shine: linear-gradient(135deg, #D4A853 0%, #F5D78E 40%, #D4A853 60%, #8B6914 100%);
   --border-accent: rgba(212, 168, 83, 0.2);
   --divider: rgba(255, 255, 255, 0.06);
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --card-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --card-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* Footory dark theme — Pitch Black Gold */
 .dark {
-  --background: #0A0A0C;
+  --background: #080808;
   --foreground: #FAFAFA;
-  --card: #1A1A1E;
+  --card: #1C1C22;
   --card-foreground: #FAFAFA;
-  --popover: #1A1A1E;
+  --popover: #1C1C22;
   --popover-foreground: #FAFAFA;
   --primary: #D4A853;
   --primary-foreground: #0C0C0E;
-  --secondary: #222226;
+  --secondary: #242428;
   --secondary-foreground: #FAFAFA;
-  --muted: #222226;
+  --muted: #242428;
   --muted-foreground: #A1A1AA;
   --accent: #D4A853;
   --accent-foreground: #0C0C0E;
@@ -128,11 +128,11 @@
   --chart-3: #60A5FA;
   --chart-4: #F87171;
   --chart-5: #FBBF24;
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 }
 
 body {
-  background: var(--color-bg);
+  background: #080808;
   color: var(--color-text-1);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -204,17 +204,19 @@ body {
   background: var(--color-card);
   box-shadow: var(--card-shadow);
   border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .card-elevated-lg {
   background: var(--color-card);
   box-shadow: var(--card-shadow-lg);
   border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Glass nav */
 .glass-nav {
-  background: rgba(10, 10, 12, 0.85);
+  background: rgba(8, 8, 8, 0.85);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }

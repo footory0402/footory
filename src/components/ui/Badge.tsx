@@ -32,15 +32,14 @@ interface PositionBadgeProps {
 
 export function PositionBadge({ position, size = "sm" }: PositionBadgeProps) {
   const color = POSITION_COLORS[position];
-  const textSize = size === "sm" ? "text-[9px]" : "text-[11px]";
+  const textSize = size === "sm" ? "text-[10px]" : "text-xs";
   const px = size === "sm" ? "px-1.5 py-0.5" : "px-2 py-1";
 
   return (
     <span
-      className={`inline-flex items-center rounded ${px} ${textSize} font-bold tracking-wide`}
+      className={`inline-flex items-center rounded-md ${px} ${textSize} font-stat font-bold tracking-wide`}
       style={{
         background: `${color}18`,
-        border: `1px solid ${color}33`,
         color,
       }}
     >

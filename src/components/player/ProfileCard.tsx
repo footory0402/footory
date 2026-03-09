@@ -70,7 +70,7 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
   };
 
   return (
-    <div className="animate-fade-up relative overflow-hidden rounded-[10px] bg-card">
+    <div className="animate-fade-up relative overflow-hidden rounded-xl bg-card border border-white/[0.06]">
       {/* Gold top line */}
       <div className="h-[3px]" style={{ background: "var(--accent-gradient)" }} />
 
@@ -126,12 +126,24 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate text-[19px] font-bold text-text-1">{profile.name}</span>
+            {/* 이름 행 — 375px 대응: 이름은 min-w-0 truncate, 편집 버튼 우측 고정 */}
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="min-w-0 truncate text-xl font-bold text-text-1">{profile.name}</span>
               {/* A15: 인증 완료 시 ✅ 표시 */}
               {profile.isVerified && (
-                <span title="인증된 코치/스카우터" className="text-[16px] leading-none">✅</span>
+                <span title="인증된 코치/스카우터" className="shrink-0 text-[16px] leading-none">✅</span>
               )}
+              {onEdit && (
+                <button onClick={onEdit} className="ml-auto shrink-0 rounded-md p-1 text-text-3 transition-colors hover:bg-border hover:text-text-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {/* 뱃지 행 — 별도 줄로 분리해서 overflow 방지 */}
+            <div className="flex flex-wrap items-center gap-1">
               <LevelBadge level={profile.level} />
               {profile.mvpCount > 0 && <MvpBadge count={profile.mvpCount} tier={profile.mvpTier} />}
               {/* J6: 챌린지 1위 뱃지 */}
@@ -143,14 +155,6 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
                 >
                   🎯<span className="font-stat">{profile.challengeWins}</span>
                 </span>
-              )}
-              {onEdit && (
-                <button onClick={onEdit} className="ml-auto shrink-0 rounded-md p-1 text-text-3 transition-colors hover:bg-border hover:text-text-1">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
               )}
             </div>
             <span className="text-[12px] text-text-3">@{profile.handle}</span>
@@ -167,7 +171,7 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
               )}
             </div>
             {(profile.heightCm || profile.weightKg || profile.preferredFoot) && (
-              <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-text-3">
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-text-3">
                 {profile.heightCm && <span>{profile.heightCm}cm</span>}
                 {profile.weightKg && (
                   <>{profile.heightCm && <span>·</span>}<span>{profile.weightKg}kg</span></>
@@ -219,7 +223,7 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
           </div>
           <ProgressBar value={xpProgress} />
           {nextLvl && levelMissions[profile.level] && (
-            <p className="mt-1.5 text-[11px] text-text-3">
+            <p className="mt-1.5 text-xs text-text-3">
               다음 레벨: <span className="font-semibold text-accent">{levelMissions[profile.level]}</span>
             </p>
           )}

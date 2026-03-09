@@ -41,7 +41,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
             <p className="text-[14px] text-text-1 mb-2">새 하이라이트를 등록했어요</p>
           )}
           {thumbnailUrl && (
-            <div className="relative aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
+            <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black/30">
               <Image
                 src={thumbnailUrl}
                 alt="Highlight thumbnail"
@@ -53,13 +53,13 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
                 className="h-full w-full object-cover"
               />
               {duration !== null && (
-                <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">
+                <span className="absolute bottom-2 right-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
                   {Math.floor(duration)}초
                 </span>
               )}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/60">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
                 </div>
@@ -71,7 +71,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  className="rounded-md px-2 py-0.5 text-[10px] font-medium"
                   style={{ background: "var(--accent-bg)", color: "var(--color-accent)" }}
                 >
                   {tag}
@@ -89,7 +89,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
         <div>
           <p className="text-[14px] text-text-1">대표 클립을 변경했어요</p>
           {thumbnailUrl && (
-            <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-[10px] bg-card-alt">
+            <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-xl bg-black/30">
               <Image
                 src={thumbnailUrl}
                 alt="Featured clip"
@@ -108,7 +108,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
 
     case "medal":
       return (
-        <div className="flex items-center gap-3 rounded-[10px] bg-card-alt p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-card-alt p-3">
           <span className="text-[28px]">{(meta.icon as string) ?? "🏅"}</span>
           <div>
             <p className="text-[14px] font-semibold text-accent">{(meta.label as string) ?? "메달 획득!"}</p>
@@ -119,7 +119,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
 
     case "stat":
       return (
-        <div className="rounded-[10px] bg-card-alt p-3">
+        <div className="rounded-xl bg-card-alt p-3">
           <p className="text-[14px] text-text-1 mb-1">새 기록을 등록했어요</p>
           <div className="flex items-baseline gap-2">
             <span className="font-stat text-[24px] font-bold text-accent">{meta.value as number}</span>
@@ -138,7 +138,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
 
     case "season":
       return (
-        <div className="rounded-[10px] bg-card-alt p-3">
+        <div className="rounded-xl bg-card-alt p-3">
           <p className="text-[14px] text-text-1">새 시즌을 추가했어요</p>
           <p className="text-[13px] text-text-2 mt-1">{meta.year as number} · {meta.team_name as string}</p>
         </div>
@@ -200,7 +200,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
             <span className="shrink-0 text-[10px]" style={{ color: posColor }}>{item.playerPosition}</span>
             <span className="shrink-0 text-[10px]" style={{ color: lvl.color }}>{lvl.icon}</span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-text-3">
+          <div className="flex items-center gap-1 text-xs text-text-3">
             {item.teamName && <span>{item.teamName} · </span>}
             <span>{timeAgo(item.created_at)}</span>
           </div>

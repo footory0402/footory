@@ -41,7 +41,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
         {/* Gold accent line */}
         <div className="h-[2px]" style={{ background: "var(--accent-gradient)" }} />
 
-        <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <div className="flex items-center gap-3 px-4 py-3">
           {/* Thumbnail */}
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[8px] bg-card-alt">
             {leader.thumbnailUrl ? (

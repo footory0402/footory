@@ -95,7 +95,7 @@ export default function SummaryTab({
           </div>
         )}
         {maxSlots > 0 && maxSlots < MAX_FEATURED_SLOTS && (
-          <p className="mt-2 text-center text-[11px] text-text-3">
+          <p className="mt-2 text-center text-xs text-text-3">
             다음 레벨에서 <span className="font-semibold text-accent">{maxSlots + 1}슬롯</span>이 열립니다
           </p>
         )}
@@ -134,7 +134,7 @@ export default function SummaryTab({
       {/* Share CTA */}
       <button
         onClick={onShareProfile}
-        className="flex w-full items-center justify-center gap-2 rounded-[10px] py-3 text-[13px] font-semibold text-accent transition-colors active:bg-card"
+        className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold text-accent transition-colors active:bg-card"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 17l9.2-9.2M17 17V7H7" />

@@ -212,20 +212,20 @@ export default function MvpPage() {
   if (loading) {
     return (
       <div className="space-y-4 px-4 py-4">
-        <div className="h-8 w-40 animate-pulse rounded-lg bg-card" />
-        <div className="h-64 animate-pulse rounded-[14px] bg-card" />
-        <div className="h-20 animate-pulse rounded-[10px] bg-card" />
-        <div className="h-20 animate-pulse rounded-[10px] bg-card" />
+        <div className="h-8 w-40 animate-pulse rounded-xl bg-card" />
+        <div className="h-64 animate-pulse rounded-xl bg-card" />
+        <div className="h-20 animate-pulse rounded-xl bg-card" />
+        <div className="h-20 animate-pulse rounded-xl bg-card" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 px-4 py-4">
+    <div className="space-y-6 px-4 py-4">
       {/* Week header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[18px] font-bold text-text-1">
+          <h1 className="text-xl font-bold text-text-1">
             🏆 주간 MVP
           </h1>
           {weekStart && (
@@ -242,13 +242,13 @@ export default function MvpPage() {
       {/* My vote status */}
       {votingOpen && (
         <div
-          className="flex items-center justify-between rounded-[10px] px-4 py-3"
+          className="flex items-center justify-between rounded-xl px-4 py-3"
           style={{
             background: "var(--accent-bg)",
             border: "1px solid var(--border-accent)",
           }}
         >
-          <span className="text-[13px] font-bold text-text-1">
+          <span className="text-sm font-semibold text-text-1">
             🗳 내 투표
           </span>
           <div className="flex items-center gap-2">
@@ -281,7 +281,7 @@ export default function MvpPage() {
       {/* Votes exhausted banner */}
       {votingOpen && canVoteMvp && votesRemaining === 0 && (
         <div
-          className="flex items-center gap-2 rounded-[10px] px-4 py-3"
+          className="flex items-center gap-2 rounded-xl px-4 py-3"
           style={{
             background: "rgba(212,168,83,0.08)",
             border: "1px solid rgba(212,168,83,0.25)",
@@ -289,8 +289,8 @@ export default function MvpPage() {
         >
           <span className="text-[16px]">🎉</span>
           <div>
-            <p className="text-[13px] font-bold text-accent">이번 주 투표를 모두 사용했어요!</p>
-            <p className="text-[11px] text-text-3">투표한 클립에 다시 투표하면 취소할 수 있어요</p>
+            <p className="text-sm font-semibold text-accent">이번 주 투표를 모두 사용했어요!</p>
+            <p className="text-xs text-text-3">투표한 클립에 다시 투표하면 취소할 수 있어요</p>
           </div>
         </div>
       )}
@@ -303,7 +303,7 @@ export default function MvpPage() {
             <p className="text-[13px] text-text-2">
               아직 이번 주 후보가 없어요
             </p>
-            <p className="text-[11px] text-text-3">
+            <p className="text-[10px] text-text-3">
               클립을 업로드하면 자동으로 MVP 후보에 올라갑니다
             </p>
           </div>
@@ -312,7 +312,7 @@ export default function MvpPage() {
         <>
           {/* B8: 선수만 투표 가능 — role != 'player'이면 투표 버튼 비활성 */}
           {!canVoteMvp && votingOpen && (
-            <p className="rounded-[10px] bg-card-alt px-4 py-2 text-center text-[12px] text-text-3">
+            <p className="rounded-xl bg-card-alt px-4 py-2 text-center text-[12px] text-text-3">
               MVP 투표는 선수 계정만 참여할 수 있어요
             </p>
           )}
@@ -470,7 +470,7 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
       {votingOpen ? (
         <div>
           <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
             style={{
               background: "rgba(74,222,128,0.12)",
               color: "var(--color-green)",
@@ -480,7 +480,7 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
             투표 진행중
           </span>
           {timeRemaining && (
-            <p className="mt-0.5 font-stat text-[11px] text-text-3">
+            <p className="mt-0.5 font-stat text-[10px] text-text-3">
               {String(timeRemaining.hours).padStart(2, "0")}:
               {String(timeRemaining.minutes).padStart(2, "0")}:
               {String(timeRemaining.seconds).padStart(2, "0")} 남음
@@ -489,7 +489,7 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
         </div>
       ) : (
         <span
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
           style={{
             background: "rgba(113,113,122,0.12)",
             color: "var(--color-text-3)",
@@ -513,7 +513,7 @@ function StatBox({
   icon: string;
 }) {
   return (
-    <div className="card-elevated flex flex-col items-center gap-1 px-3 py-3">
+    <div className="card-elevated flex flex-col items-center gap-1 px-4 py-4">
       <span className="text-[14px]">{icon}</span>
       <span className="font-stat text-[18px] font-bold text-text-1">
         {value}

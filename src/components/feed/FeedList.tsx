@@ -25,7 +25,7 @@ function FeedSkeleton() {
   return (
     <div className="flex flex-col gap-4 pb-4">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-[12px] bg-card p-4 animate-pulse">
+        <div key={i} className="rounded-xl bg-card p-4 animate-pulse">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-9 w-9 rounded-full bg-card-alt" />
             <div className="flex-1 space-y-1.5">
@@ -33,7 +33,7 @@ function FeedSkeleton() {
               <div className="h-2.5 w-16 rounded bg-card-alt" />
             </div>
           </div>
-          <div className="aspect-video w-full rounded-[10px] bg-card-alt" />
+          <div className="aspect-video w-full rounded-xl bg-card-alt" />
         </div>
       ))}
     </div>
@@ -45,7 +45,7 @@ export default function FeedList({
   initialNextCursor = null,
   showNudge = false,
 }: FeedListProps) {
-  const { items, loading, hasMore, loadMore, toggleKudos, updateKudosCount, updateCommentCount } = useFeed(
+  const { items, loading, error, hasMore, loadMore, refresh, toggleKudos, updateKudosCount, updateCommentCount } = useFeed(
     initialItems,
     initialNextCursor
   );
@@ -95,6 +95,28 @@ export default function FeedList({
   // Show skeleton only when no initial data and still loading
   if (loading && items.length === 0) {
     return <FeedSkeleton />;
+  }
+
+  // Network / server error with no items to show
+  if (error && items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 pt-20 gap-3 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+        <p className="text-sm font-semibold text-text-1">피드를 불러오지 못했어요</p>
+        <p className="text-xs text-text-3">{error}</p>
+        <button
+          onClick={refresh}
+          className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
   }
 
   if (!loading && items.length === 0) {
@@ -200,6 +222,15 @@ export default function FeedList({
         {loading && (
           <div className="flex justify-center py-4">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          </div>
+        )}
+        {/* Inline error banner for pagination failures */}
+        {error && items.length > 0 && (
+          <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3">
+            <p className="text-xs text-text-3">{error}</p>
+            <button onClick={refresh} className="text-xs font-semibold text-accent">
+              다시 시도
+            </button>
           </div>
         )}
       </div>

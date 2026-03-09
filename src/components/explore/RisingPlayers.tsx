@@ -14,7 +14,7 @@ export default function RisingPlayers() {
     return (
       <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-[160px] w-[120px] shrink-0 animate-pulse rounded-[12px] bg-card" />
+          <div key={i} className="h-[160px] w-[120px] shrink-0 animate-pulse rounded-xl bg-card" />
         ))}
       </div>
     );
@@ -22,7 +22,7 @@ export default function RisingPlayers() {
 
   if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-[12px] bg-card py-6">
+      <div className="flex items-center justify-center rounded-xl bg-card py-6">
         <p className="text-[13px] text-text-3">떠오르는 선수가 없어요</p>
       </div>
     );
@@ -35,7 +35,7 @@ export default function RisingPlayers() {
         return (
           <div
             key={p.profile_id}
-            className="card-elevated flex w-[120px] h-[160px] shrink-0 flex-col items-center justify-between p-3"
+            className="card-elevated flex w-[120px] h-[160px] shrink-0 flex-col items-center justify-between p-4"
           >
             <Link href={`/p/${p.handle}`} className="flex flex-col items-center gap-1.5">
               <Avatar
@@ -44,7 +44,7 @@ export default function RisingPlayers() {
                 level={p.level}
                 imageUrl={p.avatar_url ?? undefined}
               />
-              <span className="text-[12px] font-semibold text-text-1 text-center truncate w-full">
+              <span className="text-sm font-semibold text-text-1 text-center truncate w-full">
                 {p.name}
               </span>
               {p.position && (

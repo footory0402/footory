@@ -23,7 +23,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="px-4 pb-4 pt-4">
+    <div className="px-4 pb-6 pt-4">
       {teams.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center pt-12">
@@ -39,8 +39,8 @@ export default function TeamPage() {
               </svg>
             </div>
           </div>
-          <p className="mt-4 text-[17px] font-bold text-text-1">아직 소속 팀이 없어요</p>
-          <p className="mt-2 text-[13px] leading-relaxed text-text-3">
+          <p className="mt-4 text-xl font-bold text-text-1">아직 소속 팀이 없어요</p>
+          <p className="mt-2 text-sm leading-relaxed text-text-3">
             팀을 직접 만들거나, 코치에게 받은<br />초대코드로 팀에 가입해보세요
           </p>
           <div className="mt-6 flex gap-3">
@@ -55,7 +55,7 @@ export default function TeamPage() {
           {/* Recommended teams placeholder */}
           <div className="mt-12 w-full">
             <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold text-text-2">추천 팀</h2>
+              <h2 className="text-base font-semibold text-text-2">추천 팀</h2>
             </div>
             <div className="card-elevated flex flex-col items-center px-4 py-8 opacity-60">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3/60">
@@ -70,7 +70,7 @@ export default function TeamPage() {
         /* Team list — current / previous separation */
         <>
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="text-[17px] font-bold text-text-1">내 팀</h1>
+            <h1 className="text-xl font-bold text-text-1">내 팀</h1>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowJoin(true)}
@@ -90,7 +90,7 @@ export default function TeamPage() {
           {/* Current teams */}
           {teams.filter((t) => t.myRole !== "alumni").length > 0 && (
             <div className="mb-6">
-              <h2 className="mb-2 text-[13px] font-semibold text-text-2">현재 소속</h2>
+              <h2 className="mb-3 text-base font-semibold text-text-2">현재 소속</h2>
               <div className="space-y-3">
                 {teams
                   .filter((t) => t.myRole !== "alumni")
@@ -104,7 +104,7 @@ export default function TeamPage() {
           {/* Previous teams (alumni) */}
           {teams.filter((t) => t.myRole === "alumni").length > 0 && (
             <div>
-              <h2 className="mb-2 text-[13px] font-semibold text-text-3">이전 소속</h2>
+              <h2 className="mb-3 text-base font-semibold text-text-3">이전 소속</h2>
               <div className="space-y-3">
                 {teams
                   .filter((t) => t.myRole === "alumni")
@@ -146,7 +146,7 @@ function TeamCard({
       />
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-semibold text-text-1">{team.name}</span>
+          <span className="text-sm font-semibold text-text-1">{team.name}</span>
           {team.myRole === "admin" && (
             <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
               관리자
@@ -166,7 +166,7 @@ function TeamCard({
           )}
         </div>
         {lastActivity && (
-          <p className="mt-1 text-[11px] text-text-3">최근 활동: {lastActivity}</p>
+          <p className="mt-1 text-xs text-text-3">최근 활동: {lastActivity}</p>
         )}
       </div>
       <svg className="h-4 w-4 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

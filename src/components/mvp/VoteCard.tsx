@@ -85,7 +85,7 @@ export default function VoteCard({
       )}
 
       {/* Video / Thumbnail — 5:2 ratio */}
-      <div className="relative aspect-[5/2] w-full overflow-hidden bg-card-alt">
+      <div className="relative aspect-[5/2] w-full overflow-hidden bg-black/30">
         {playing && candidate.videoUrl ? (
           <video
             ref={videoRef}
@@ -146,10 +146,10 @@ export default function VoteCard({
               className="absolute inset-0 flex items-center justify-center"
             >
               <div
-                className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
                 style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               </div>
@@ -159,7 +159,7 @@ export default function VoteCard({
       </div>
 
       {/* Info section — compact single row */}
-      <div className="flex items-center gap-2.5 px-3 py-2.5">
+      <div className="flex items-center gap-2.5 px-4 py-3">
         <Avatar
           name={candidate.playerName}
           size="sm"
@@ -168,14 +168,14 @@ export default function VoteCard({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[13px] font-bold text-text-1">
+            <span className="truncate text-sm font-semibold text-text-1">
               {candidate.playerName}
             </span>
             {candidate.playerPosition && (
               <PositionBadge position={candidate.playerPosition} size="sm" />
             )}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-text-3">
+          <div className="flex items-center gap-2 text-xs text-text-3">
             {candidate.teamName && <span className="truncate">{candidate.teamName}</span>}
             <span>⚡<span className="font-stat font-bold text-text-2">{candidate.totalScore}</span></span>
             <span>🗳 {candidate.voteCount}</span>
@@ -238,7 +238,7 @@ export function VoteCardCompact({
       }}
     >
       {/* Thumbnail / Video */}
-      <div className="relative aspect-video w-full overflow-hidden bg-card-alt">
+      <div className="relative aspect-video w-full overflow-hidden bg-black/30">
         {playing && candidate.videoUrl ? (
           <video
             ref={videoRef}
@@ -278,10 +278,10 @@ export function VoteCardCompact({
               className="absolute inset-0 flex items-center justify-center"
             >
               <div
-                className="flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90"
-                style={{ background: "rgba(0,0,0,0.5)" }}
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-90"
+                style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               </div>
@@ -291,9 +291,9 @@ export function VoteCardCompact({
       </div>
 
       {/* Info + Vote */}
-      <div className="flex flex-col gap-2 p-2.5">
-        <div className="min-w-0">
-          <span className="block truncate text-[12px] font-bold text-text-1">
+      <div className="flex flex-col gap-2 p-3">
+        <div className="min-w-0 w-full">
+          <span className="block truncate text-sm font-semibold text-text-1 max-w-full">
             {candidate.playerName}
           </span>
           {candidate.teamName && (
@@ -302,8 +302,8 @@ export function VoteCardCompact({
             </p>
           )}
           <div className="mt-1 flex items-center gap-1.5">
-            <span className="font-stat text-[12px] font-bold text-text-1">
-              ⚡ {candidate.totalScore}점
+            <span className="font-stat text-xs font-bold text-text-1">
+              ⚡ {candidate.totalScore}
             </span>
             <span className="text-[10px] text-text-3">
               🗳 {candidate.voteCount}
