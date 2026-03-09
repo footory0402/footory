@@ -134,9 +134,9 @@ export default function SummaryTab({
       {/* Share CTA */}
       <button
         onClick={onShareProfile}
-        className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-semibold text-accent transition-colors active:bg-card"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-[13px] font-semibold text-bg transition-opacity active:opacity-80"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 17l9.2-9.2M17 17V7H7" />
         </svg>
         프로필 공유하기

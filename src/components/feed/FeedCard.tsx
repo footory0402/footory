@@ -41,7 +41,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
             <p className="text-[14px] text-text-1 mb-2">새 하이라이트를 등록했어요</p>
           )}
           {thumbnailUrl && (
-            <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black/30">
+            <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03]">
               <Image
                 src={thumbnailUrl}
                 alt="Highlight thumbnail"
@@ -53,12 +53,12 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
                 className="h-full w-full object-cover"
               />
               {duration !== null && (
-                <span className="absolute bottom-2 right-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                <span className="absolute bottom-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
                   {Math.floor(duration)}초
                 </span>
               )}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
@@ -89,7 +89,7 @@ function FeedBody({ item, eagerImage = false }: { item: FeedItemEnriched; eagerI
         <div>
           <p className="text-[14px] text-text-1">대표 클립을 변경했어요</p>
           {thumbnailUrl && (
-            <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-xl bg-black/30">
+            <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03]">
               <Image
                 src={thumbnailUrl}
                 alt="Featured clip"

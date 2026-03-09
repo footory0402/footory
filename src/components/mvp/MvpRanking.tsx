@@ -29,7 +29,7 @@ export default function MvpRanking({
       <div className="flex flex-col items-center gap-2 py-8 text-center">
         <span className="text-[28px]">📊</span>
         <p className="text-[13px] text-text-2">아직 후보가 없어요</p>
-        <p className="text-[11px] text-text-3">
+        <p className="text-[10px] text-text-3">
           클립을 업로드하면 자동으로 후보에 올라갑니다
         </p>
       </div>
@@ -163,7 +163,7 @@ function RankingRow({
           <button
             onClick={() => isVoted ? onUnvote?.(c.clipId) : (votesRemaining > 0 && onVote?.(c.clipId))}
             disabled={(!isVoted && votesRemaining <= 0)}
-            className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+            className="shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-40"
             style={{
               background: isVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
               color: isVoted ? "var(--color-text-2)" : "#0C0C0E",

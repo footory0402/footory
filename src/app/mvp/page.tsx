@@ -221,7 +221,7 @@ export default function MvpPage() {
   }
 
   return (
-    <div className="space-y-6 px-4 py-4">
+    <div className="space-y-6 px-4 py-4 pb-24">
       {/* Week header */}
       <div className="flex items-center justify-between">
         <div>
@@ -299,13 +299,19 @@ export default function MvpPage() {
       {candidates.length === 0 ? (
         <SectionCard title="이번 주 MVP" icon="🏆">
           <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <span className="text-[32px]">🏆</span>
-            <p className="text-[13px] text-text-2">
+            <span className="text-4xl">🏆</span>
+            <p className="text-xs text-text-2">
               아직 이번 주 후보가 없어요
             </p>
             <p className="text-[10px] text-text-3">
               클립을 업로드하면 자동으로 MVP 후보에 올라갑니다
             </p>
+            <a
+              href="/upload"
+              className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
+            >
+              첫 번째 클립을 올려보세요!
+            </a>
           </div>
         </SectionCard>
       ) : (
@@ -381,8 +387,8 @@ export default function MvpPage() {
         </>
       )}
 
-      {/* Weekly stats */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Weekly stats — dimmed when no candidates */}
+      <div className={`grid grid-cols-3 gap-2 transition-opacity ${candidates.length === 0 ? "opacity-40" : ""}`}>
         <StatBox label="이번 주 클립" value={weeklyStats.clipCount} icon="🎬" />
         <StatBox label="총 투표" value={weeklyStats.totalVotes} icon="🗳" />
         <StatBox label="신규 선수" value={weeklyStats.newPlayers} icon="👤" />
@@ -480,10 +486,10 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
             투표 진행중
           </span>
           {timeRemaining && (
-            <p className="mt-0.5 font-stat text-[10px] text-text-3">
+            <p className="mt-0.5 font-stat text-base font-bold text-accent">
               {String(timeRemaining.hours).padStart(2, "0")}:
               {String(timeRemaining.minutes).padStart(2, "0")}:
-              {String(timeRemaining.seconds).padStart(2, "0")} 남음
+              {String(timeRemaining.seconds).padStart(2, "0")}
             </p>
           )}
         </div>

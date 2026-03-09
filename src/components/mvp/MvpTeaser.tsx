@@ -43,7 +43,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
 
         <div className="flex items-center gap-3 px-4 py-3">
           {/* Thumbnail */}
-          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[8px] bg-card-alt">
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-card-alt">
             {leader.thumbnailUrl ? (
               <Image
                 src={leader.thumbnailUrl}
@@ -109,7 +109,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
 
           {/* CTA */}
           <div
-            className="shrink-0 flex items-center gap-1 rounded-[8px] px-3 py-2 text-[11px] font-bold"
+            className="shrink-0 flex items-center gap-1 rounded-full px-3 py-2 text-xs font-bold"
             style={{ background: "var(--accent-gradient)", color: "var(--color-bg)" }}
           >
             투표

@@ -34,7 +34,13 @@ export async function GET() {
   const [profileResult, counts, teamResult] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     fetchCounts(supabase, user.id),
-    supabase.from("team_members").select("team_id, teams(name)").eq("profile_id", user.id).limit(1).single(),
+    supabase
+      .from("team_members")
+      .select("team_id, teams(name)")
+      .eq("profile_id", user.id)
+      .neq("role", "alumni")
+      .limit(1)
+      .single(),
   ]);
 
   if (profileResult.error || !profileResult.data) {

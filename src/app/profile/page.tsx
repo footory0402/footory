@@ -114,7 +114,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="px-4 pb-6 pt-4">
+    <div className="px-4 pb-24 pt-4">
       <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
       {/* Action row: scout links + more menu */}

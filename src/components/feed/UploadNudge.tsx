@@ -11,7 +11,7 @@ import Link from "next/link";
 export default memo(function UploadNudge() {
   return (
     <div
-      className="rounded-[14px] p-4"
+      className="rounded-xl p-4"
       style={{ background: "var(--accent-bg)" }}
     >
       <div className="flex items-start gap-3">

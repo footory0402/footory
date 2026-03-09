@@ -13,7 +13,7 @@ function MedalBadge({ label, value, unit, verified, size = "sm" }: MedalBadgePro
 
   return (
     <div
-      className={`animate-pop-in inline-flex flex-col items-center gap-1 rounded-[10px] border border-[var(--border-accent)] bg-[var(--accent-bg)] ${
+      className={`animate-pop-in inline-flex flex-col items-center gap-1 rounded-xl border border-[var(--border-accent)] bg-[var(--accent-bg)] ${
         isSmall ? "px-3 py-2" : "px-4 py-3"
       }`}
     >

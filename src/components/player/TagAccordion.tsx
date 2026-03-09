@@ -24,7 +24,7 @@ export default function TagAccordion({ emoji, label, clips }: TagAccordionProps)
   const topClip = clips.find((c) => c.isTop);
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between px-4 py-3"

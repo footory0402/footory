@@ -15,7 +15,7 @@ interface ProfileTabsProps {
 
 export default function ProfileTabs({ active, onChange }: ProfileTabsProps) {
   return (
-    <div className="flex items-center gap-1 rounded-[10px] bg-card p-[3px]">
+    <div className="flex items-center gap-1 rounded-xl bg-card p-[3px]">
       {TABS.map((tab) => {
         const isActive = active === tab.id;
         return (

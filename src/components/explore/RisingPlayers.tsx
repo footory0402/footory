@@ -28,14 +28,17 @@ export default function RisingPlayers() {
     );
   }
 
+  const visibleItems = items.slice(0, 5);
+  const hasMore = items.length > 5;
+
   return (
     <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-      {items.map((p) => {
+      {visibleItems.map((p) => {
         const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
         return (
           <div
             key={p.profile_id}
-            className="card-elevated flex w-[120px] h-[160px] shrink-0 flex-col items-center justify-between p-4"
+            className="card-elevated flex w-[112px] h-[152px] shrink-0 flex-col items-center justify-between p-3"
           >
             <Link href={`/p/${p.handle}`} className="flex flex-col items-center gap-1.5">
               <Avatar
@@ -62,6 +65,16 @@ export default function RisingPlayers() {
           </div>
         );
       })}
+      {hasMore && (
+        <div className="card-elevated flex w-[80px] h-[152px] shrink-0 flex-col items-center justify-center gap-1.5 text-text-3">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 8 16 12 12 16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+          <span className="text-[10px] font-medium text-center">더보기</span>
+        </div>
+      )}
     </div>
   );
 }

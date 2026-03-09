@@ -46,7 +46,7 @@ export default function TagGrid() {
             <Link
               key={clip.id}
               href={`/p/${clip.owner_handle}`}
-              className="group relative aspect-square overflow-hidden rounded-[6px] bg-card"
+              className="group relative aspect-square overflow-hidden rounded-md bg-[#08080a] border border-white/[0.03]"
             >
               {clip.thumbnail_url ? (
                 <Image

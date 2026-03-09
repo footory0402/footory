@@ -44,6 +44,7 @@ export async function GET(
       .from("team_members")
       .select("team_id, teams(name)")
       .eq("profile_id", profile.id)
+      .neq("role", "alumni")
       .limit(1)
       .single(),
   ]);

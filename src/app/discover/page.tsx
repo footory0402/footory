@@ -61,7 +61,7 @@ export default function DiscoverPage() {
   }, [positionFilter, regionFilter]);
 
   return (
-    <div className="px-4 pt-4 pb-6">
+    <div className="px-4 pt-4 pb-24">
       {/* Search bar (tap to open overlay) */}
       <button
         onClick={() => setSearchOpen(true)}
@@ -103,7 +103,7 @@ export default function DiscoverPage() {
                 <button
                   key={pos}
                   onClick={() => setPositionFilter(active ? null : pos)}
-                  className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors"
+                  className="min-h-[32px] rounded-full px-3 text-xs font-medium transition-colors"
                   style={
                     active
                       ? { backgroundColor: `${color}20`, color }
@@ -128,7 +128,7 @@ export default function DiscoverPage() {
       )}
 
       {/* Content sections */}
-      <div className="mt-6 space-y-8">
+      <div className="mt-6 space-y-6">
         {/* "전체" tab: shows all sections in overview */}
         {tab === "all" && (
           <>

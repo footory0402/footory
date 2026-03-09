@@ -73,7 +73,7 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
             <span className="text-[13px] font-semibold text-text-1 text-center truncate w-full">
               {t.name}
             </span>
-            <span className="text-[11px] text-text-3">
+            <span className="text-xs text-text-3">
               {t.city && `${t.city} · `}{t.member_count}명
             </span>
           </Link>
@@ -121,9 +121,9 @@ export default function TeamRanking({ compact = false }: TeamRankingProps) {
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               {t.city && (
-                <span className="text-[11px] text-text-3">{t.city}</span>
+                <span className="text-xs text-text-3">{t.city}</span>
               )}
-              <span className="text-[11px] text-text-3">{t.member_count}명</span>
+              <span className="text-xs text-text-3">{t.member_count}명</span>
             </div>
           </div>
 

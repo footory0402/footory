@@ -37,12 +37,12 @@ function FeaturedSlot({
     return (
       <button
         onClick={onAdd}
-        className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-accent)] bg-[var(--accent-bg)] p-4"
+        className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border-accent)] bg-[var(--accent-bg)]"
         style={{ aspectRatio: "16/10" }}
       >
-        <span className="text-[20px]">✨</span>
-        <span className="text-[11px] font-medium text-accent">
-          대표 영상 {sortOrder} 추가
+        <span className="text-base">✨</span>
+        <span className="text-xs font-medium text-accent">
+          영상 {sortOrder} 추가
         </span>
       </button>
     );
@@ -81,7 +81,7 @@ function FeaturedSlot({
       </div>
 
       {/* Duration badge — bottom-left, Oswald */}
-      <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 font-stat text-[11px] font-medium text-white backdrop-blur-sm">
+      <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 font-stat text-[10px] font-medium text-white backdrop-blur-sm">
         {formatDuration(Math.round(duration))}
       </span>
 

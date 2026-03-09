@@ -43,7 +43,7 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-16 animate-pulse rounded-[10px] bg-card"
+            className="h-16 animate-pulse rounded-xl bg-card"
           />
         ))}
       </div>
@@ -71,7 +71,7 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
         return (
           <div
             key={week.weekStart}
-            className="overflow-hidden rounded-[10px] border border-border bg-card"
+            className="overflow-hidden rounded-xl border border-border bg-card"
           >
             {/* Week header */}
             <button

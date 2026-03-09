@@ -314,7 +314,7 @@ export function VoteCardCompact({
         <button
           onClick={hasVoted ? handleUnvote : handleVote}
           disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
-          className="w-full rounded-lg py-1.5 text-[11px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+          className="w-full rounded-lg py-1.5 text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-40"
           style={{
             background: hasVoted ? "rgba(113,113,122,0.2)" : "var(--accent-gradient)",
             color: hasVoted ? "var(--color-text-2)" : "#0C0C0E",

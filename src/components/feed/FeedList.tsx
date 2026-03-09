@@ -158,12 +158,12 @@ export default function FeedList({
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col gap-4 pb-4">
+      <div className="flex flex-col gap-3.5 pb-4">
         {/* Video-only filter toggle */}
         <div className="flex items-center">
           <button
             onClick={() => setVideoOnly((v) => !v)}
-            className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+            className={`min-h-[36px] rounded-full px-4 text-xs font-medium transition-colors ${
               videoOnly
                 ? "bg-accent text-bg"
                 : "bg-card text-text-2"

@@ -23,7 +23,7 @@ export default function VideoThumb({
 }: VideoThumbProps) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-lg bg-gradient-to-b from-[#1a1a1e] to-[#121214] ${className}`}
+      className={`group relative overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03] ${className}`}
       style={{ aspectRatio }}
     >
       {/* Grass pattern */}
@@ -40,7 +40,7 @@ export default function VideoThumb({
 
       {/* Play button */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm transition-transform group-hover:scale-110">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-transform group-hover:scale-110">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
             <path d="M8 5v14l11-7z" />
           </svg>
@@ -48,7 +48,7 @@ export default function VideoThumb({
       </div>
 
       {/* Duration */}
-      <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 font-stat text-[11px] font-medium text-white backdrop-blur-sm">
+      <span className="absolute bottom-1.5 left-1.5 rounded bg-black/70 px-1.5 py-0.5 font-stat text-[10px] font-medium text-white backdrop-blur-sm">
         {formatDuration(duration)}
       </span>
 

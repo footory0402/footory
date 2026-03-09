@@ -13,7 +13,7 @@ function BestCarouselCard({ item }: { item: BestClipItem }) {
   return (
     <Link
       href={`/p/${item.playerHandle}`}
-      className="group relative block shrink-0 overflow-hidden rounded-[10px] bg-card"
+      className="group relative block shrink-0 overflow-hidden rounded-xl bg-card"
       style={{ width: 120, height: 160 }}
     >
       {/* Thumbnail */}

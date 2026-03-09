@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMyTeams } from "@/hooks/useTeam";
 import Avatar from "@/components/ui/Avatar";
-import Button from "@/components/ui/Button";
 import AlumniLabel from "@/components/team/AlumniLabel";
 import CreateTeamSheet from "@/components/team/CreateTeamSheet";
 import JoinTeamSheet from "@/components/team/JoinTeamSheet";
@@ -23,7 +22,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="px-4 pb-6 pt-4">
+    <div className="px-4 pb-24 pt-4">
       {teams.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center pt-12">
@@ -44,12 +43,18 @@ export default function TeamPage() {
             팀을 직접 만들거나, 코치에게 받은<br />초대코드로 팀에 가입해보세요
           </p>
           <div className="mt-6 flex gap-3">
-            <Button variant="primary" onClick={() => setShowCreate(true)}>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-bg"
+            >
               팀 만들기
-            </Button>
-            <Button variant="secondary" onClick={() => setShowJoin(true)}>
+            </button>
+            <button
+              onClick={() => setShowJoin(true)}
+              className="rounded-full border border-border px-5 py-2.5 text-sm font-medium text-text-2 transition-colors hover:border-accent hover:text-accent"
+            >
               초대코드 입력
-            </Button>
+            </button>
           </div>
 
           {/* Recommended teams placeholder */}
@@ -74,13 +79,13 @@ export default function TeamPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowJoin(true)}
-                className="rounded-full bg-card px-3 py-1.5 text-[12px] text-text-2 hover:bg-card-alt transition-colors"
+                className="rounded-full border border-border px-3 py-1.5 text-xs text-text-2 transition-colors hover:border-accent hover:text-accent"
               >
                 가입
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="rounded-full bg-accent px-3 py-1.5 text-[12px] font-semibold text-bg"
+                className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-bg"
               >
                 + 만들기
               </button>
@@ -103,7 +108,7 @@ export default function TeamPage() {
 
           {/* Previous teams (alumni) */}
           {teams.filter((t) => t.myRole === "alumni").length > 0 && (
-            <div>
+            <div className="mb-6">
               <h2 className="mb-3 text-base font-semibold text-text-3">이전 소속</h2>
               <div className="space-y-3">
                 {teams
@@ -114,6 +119,13 @@ export default function TeamPage() {
               </div>
             </div>
           )}
+
+          {/* Placeholder sections */}
+          <div className="space-y-4 mt-2">
+            <PlaceholderSection title="팀 활동" icon="📢" />
+            <PlaceholderSection title="최근 경기" icon="⚽" />
+            <PlaceholderSection title="팀 통계" icon="📊" />
+          </div>
         </>
       )}
 
@@ -173,5 +185,18 @@ function TeamCard({
         <polyline points="9 18 15 12 9 6" />
       </svg>
     </Link>
+  );
+}
+
+function PlaceholderSection({ title, icon }: { title: string; icon: string }) {
+  return (
+    <div>
+      <h2 className="mb-2 text-sm font-semibold text-text-2">
+        <span className="mr-1.5">{icon}</span>{title}
+      </h2>
+      <div className="card-elevated flex flex-col items-center px-4 py-6 opacity-50">
+        <p className="text-xs text-text-3">준비 중이에요</p>
+      </div>
+    </div>
   );
 }

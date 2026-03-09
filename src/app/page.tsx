@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/server";
 import { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } from "@/lib/server/feed";
+import { isPocAdminUser } from "@/lib/poc-admin";
 import MvpTeaser from "@/components/mvp/MvpTeaser";
 import ChallengeBanner from "@/components/challenge/ChallengeBanner";
 
@@ -20,7 +21,7 @@ const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
               <div className="h-2.5 w-16 rounded bg-card-alt" />
             </div>
           </div>
-          <div className="aspect-video w-full rounded-[10px] bg-card-alt" />
+          <div className="aspect-video w-full rounded-xl bg-card-alt" />
         </div>
       ))}
     </div>
@@ -31,6 +32,7 @@ export default async function HomePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  if (isPocAdminUser(user)) redirect("/admin/video-lab");
 
   const profileRes = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = profileRes.data?.role;
@@ -55,7 +57,7 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="px-4 pt-4">
+    <div className="px-4 pt-4 pb-24">
       {/* MVP Teaser — server-fetched, renders immediately */}
       <MvpTeaser leader={mvpLeader} />
 
