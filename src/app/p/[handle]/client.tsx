@@ -25,7 +25,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import { APP_URL, POSITION_LABELS, MEASUREMENTS, SKILL_TAGS } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS, MEASUREMENTS, SKILL_TAGS, getSkillTagsForPosition } from "@/lib/constants";
 import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
@@ -45,6 +45,8 @@ interface TagClip {
   duration: number;
   tag: string;
   isTop: boolean;
+  videoUrl: string;
+  thumbnailUrl: string | null;
 }
 
 interface PublicProfileData {

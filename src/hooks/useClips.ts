@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { SKILL_TAGS } from "@/lib/constants";
 
 interface ClipWithTags {
   id: string;
@@ -130,10 +131,8 @@ interface UseTagClipsOptions {
 export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
   const [tagClips, setTagClips] = useState<Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]>>({});
   const [loading, setLoading] = useState(enabled);
-  const hasFetchedRef = useRef(false);
 
   const fetchTagClips = useCallback(async () => {
-    hasFetchedRef.current = true;
     setLoading(true);
     try {
       const supabase = createClient();
@@ -147,11 +146,12 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
 
       if (!clips) { setTagClips({}); return; }
 
+      const dbNameToId = Object.fromEntries(SKILL_TAGS.map((t) => [t.dbName, t.id]));
       const result: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
       clips.forEach((clip) => {
         const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
         clipTags.forEach((t) => {
-          const tagId = t.tag_name;
+          const tagId = dbNameToId[t.tag_name] ?? t.tag_name;
           if (!result[tagId]) result[tagId] = [];
           result[tagId].push({
             id: clip.id,
@@ -175,8 +175,6 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
       setLoading(false);
       return;
     }
-
-    if (hasFetchedRef.current) return;
     void fetchTagClips();
   }, [enabled, fetchTagClips]);
 

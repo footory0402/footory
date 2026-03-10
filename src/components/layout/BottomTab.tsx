@@ -17,25 +17,26 @@ interface Tab {
 
 const playerTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
-  { href: "/discover", label: "탐색", icon: DiscoverIcon },
-  { href: "/upload", label: "업로드", icon: PlusIcon, isCenter: true },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
-  { href: "/profile", label: "프로필", icon: UserIcon },
+  { href: "/upload", label: "업로드", icon: PlusIcon, isCenter: true },
+  { href: "/team", label: "팀", icon: TeamIcon },
+  { href: "/profile", label: "내 프로필", icon: UserIcon },
 ];
 
 const parentTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
-  { href: "/discover", label: "탐색", icon: DiscoverIcon },
+  { href: "/mvp", label: "MVP", icon: MvpIcon },
   { href: "/upload", label: "영상 올려주기", icon: PlusIcon, isCenter: true },
+  { href: "/team", label: "팀", icon: TeamIcon },
   { href: "/profile/settings", label: "설정", icon: SettingsIcon },
 ];
 
 const scoutTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
-  { href: "/discover", label: "탐색", icon: DiscoverIcon },
-  { href: "/scout/watchlist", label: "관심", icon: StarIcon, isCenter: true },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
-  { href: "/profile", label: "프로필", icon: UserIcon },
+  { href: "/scout/watchlist", label: "관심", icon: StarIcon, isCenter: true },
+  { href: "/team", label: "팀", icon: TeamIcon },
+  { href: "/profile", label: "내 프로필", icon: UserIcon },
 ];
 
 function getTabsForRole(role: string): Tab[] {
@@ -189,6 +190,17 @@ function MvpIcon({ active }: { active: boolean }) {
       <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22" />
       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22" />
       <path d="M18 2H6v7a6 6 0 0012 0V2z" />
+    </svg>
+  );
+}
+
+function TeamIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+      <path d="M16 3.13a4 4 0 010 7.75" />
     </svg>
   );
 }

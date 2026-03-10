@@ -19,11 +19,9 @@ function getWeekKey(): string {
 }
 
 export const ONBOARDING_QUESTS: QuestDef[] = [
-  { key: "profile_photo", type: "onboarding", label: "프사 등록하기", xp: 10, action: "profile_photo" },
+  { key: "profile_photo", type: "onboarding", label: "프로필 사진 등록", xp: 10, action: "profile_photo" },
   { key: "first_upload", type: "onboarding", label: "첫 영상 올리기", xp: 50, action: "upload" },
-  { key: "first_follow", type: "onboarding", label: "친구 1명 팔로우", xp: 10, action: "follow" },
-  { key: "first_kudos", type: "onboarding", label: "첫 응원 보내기", xp: 10, action: "kudos" },
-  { key: "first_dm", type: "onboarding", label: "첫 DM 보내기", xp: 10, action: "dm" },
+  { key: "first_follow", type: "onboarding", label: "선수 1명 팔로우", xp: 10, action: "follow" },
 ];
 
 export function getWeeklyQuests(): QuestDef[] {
@@ -31,7 +29,7 @@ export function getWeeklyQuests(): QuestDef[] {
   return [
     { key: `weekly_upload_${weekKey}`, type: "weekly", label: "영상 1개 업로드", xp: 30, action: "upload" },
     { key: `weekly_vote_${weekKey}`, type: "weekly", label: "MVP 투표 3표 사용", xp: 20, action: "vote" },
-    { key: `weekly_kudos_${weekKey}`, type: "weekly", label: "응원 5개 보내기", xp: 10, action: "kudos" },
+    { key: `weekly_kudos_${weekKey}`, type: "weekly", label: "응원 3개 보내기", xp: 10, action: "kudos" },
   ];
 }
 

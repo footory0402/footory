@@ -2,6 +2,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
+import { SKILL_TAGS } from "@/lib/constants";
 import {
   canFollow,
   canUseWatchlist,
@@ -80,7 +81,7 @@ const getProfile = cache(async (handle: string) => {
       .limit(50),
     supabase
       .from("clips")
-      .select("id, duration_seconds, clip_tags(tag_name, is_top)")
+      .select("id, video_url, thumbnail_url, duration_seconds, clip_tags(tag_name, is_top)")
       .eq("owner_id", profile.id),
   ]);
 
@@ -206,17 +207,21 @@ const getProfile = cache(async (handle: string) => {
     };
   }
 
-  // Build tagClips map from SSR data
-  const tagClipsMap: Record<string, { id: string; duration: number; tag: string; isTop: boolean }[]> = {};
+  // Build tagClips map from SSR data (keyed by tag id, not dbName)
+  const dbNameToId = Object.fromEntries(SKILL_TAGS.map((t) => [t.dbName, t.id]));
+  const tagClipsMap: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
   (tagClipsData.data ?? []).forEach((clip: Record<string, unknown>) => {
     const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
     clipTags.forEach((t) => {
-      if (!tagClipsMap[t.tag_name]) tagClipsMap[t.tag_name] = [];
-      tagClipsMap[t.tag_name].push({
+      const tagId = dbNameToId[t.tag_name] ?? t.tag_name;
+      if (!tagClipsMap[tagId]) tagClipsMap[tagId] = [];
+      tagClipsMap[tagId].push({
         id: clip.id as string,
         duration: (clip.duration_seconds as number) ?? 0,
         tag: t.tag_name,
         isTop: t.is_top,
+        videoUrl: (clip.video_url as string) ?? "",
+        thumbnailUrl: (clip.thumbnail_url as string | null) ?? null,
       });
     });
   });

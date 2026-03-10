@@ -8,6 +8,7 @@ import { fetchLinkedChildren, fetchParentDashboard } from "@/lib/server/parent-h
 import { fetchScoutHomeData } from "@/lib/server/scout-home";
 import MvpTeaser from "@/components/mvp/MvpTeaser";
 import ChallengeBanner from "@/components/challenge/ChallengeBanner";
+import QuestChecklist from "@/components/quest/QuestChecklist";
 
 const ChildDashboard = dynamic(() => import("@/components/parent/ChildDashboard"));
 const ScoutHome = dynamic(() => import("@/components/scout/ScoutHome"));
@@ -90,6 +91,9 @@ export default async function HomePage() {
 
   return (
     <div className="px-4 pt-4 pb-24">
+      {/* Quest Checklist — 홈 최상단 */}
+      <QuestChecklist />
+
       {/* MVP Teaser — server-fetched, renders immediately */}
       <MvpTeaser leader={mvpLeader} />
 

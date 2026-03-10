@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useUploadStore } from "@/stores/upload-store";
 import PushPermissionPrompt, { shouldShowPushPrompt } from "@/components/notifications/PushPermissionPrompt";
 
@@ -20,9 +21,16 @@ function createConfettiParticles(): ConfettiParticle[] {
 }
 
 export default function UploadComplete() {
+  const router = useRouter();
   const { tags, context, childName, reset } = useUploadStore();
   const isParent = context === "parent";
   const isChallenge = context === "challenge";
+
+  const goToProfile = (href: string) => {
+    reset();
+    router.refresh();
+    router.push(href);
+  };
   const [showPush, setShowPush] = useState(false);
   const [confettiVisible, setConfettiVisible] = useState(false);
   const [particles] = useState<ConfettiParticle[]>(createConfettiParticles);
@@ -131,32 +139,35 @@ export default function UploadComplete() {
           {/* Action buttons */}
           <div className="flex w-full flex-col gap-2.5">
             {!isParent && (
-              <Link
-                href="/profile?tab=highlights&new=true"
-                onClick={() => reset()}
+              <button
+                type="button"
+                onClick={() => goToProfile("/profile?tab=highlights")}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent py-3.5 text-sm font-bold text-bg transition-opacity active:opacity-80"
               >
                 대표 영상으로 설정
-              </Link>
+              </button>
             )}
 
             {isChallenge && (
-              <Link
-                href="/mvp"
-                onClick={() => reset()}
+              <button
+                type="button"
+                onClick={() => { reset(); router.push("/mvp"); }}
                 className="flex w-full items-center justify-center rounded-xl border border-accent/30 py-3 text-sm font-medium text-accent transition-opacity active:opacity-80"
               >
                 챌린지 순위 확인하기
-              </Link>
+              </button>
             )}
 
-            <Link
-              href={isParent ? `/p/${useUploadStore.getState().childHandle ?? ""}` : "/profile?tab=highlights&new=true"}
-              onClick={() => reset()}
+            <button
+              type="button"
+              onClick={() => isParent
+                ? goToProfile(`/p/${useUploadStore.getState().childHandle ?? ""}`)
+                : goToProfile("/profile?tab=highlights")
+              }
               className="flex w-full items-center justify-center rounded-xl border border-[var(--color-border)] py-3 text-sm font-medium text-text-2 transition-opacity active:opacity-80"
             >
               {isParent ? "자녀 프로필 보기" : "내 프로필에서 확인"}
-            </Link>
+            </button>
 
             <button
               type="button"

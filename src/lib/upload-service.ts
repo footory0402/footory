@@ -34,7 +34,10 @@ export async function startUpload() {
 
     // 1. Get presigned URL
     const presignRes = await fetch("/api/upload/presign", { method: "POST" });
-    if (!presignRes.ok) throw new Error("Presign 요청 실패");
+    if (!presignRes.ok) {
+      const errBody = await presignRes.json().catch(() => ({}));
+      throw new Error(errBody.error ?? `Presign 요청 실패 (${presignRes.status})`);
+    }
     const { url, key, clipId } = await presignRes.json();
     store.setClipId(clipId);
 
@@ -139,7 +142,10 @@ export async function startUpload() {
       body: JSON.stringify(body),
     });
 
-    if (!clipRes.ok) throw new Error("클립 저장 실패");
+    if (!clipRes.ok) {
+      const errBody = await clipRes.json().catch(() => ({}));
+      throw new Error(errBody.error ?? `클립 저장 실패 (${clipRes.status})`);
+    }
 
     store.setProgress(100);
     store.setStatus("done");

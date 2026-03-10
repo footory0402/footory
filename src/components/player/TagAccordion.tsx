@@ -3,25 +3,43 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import VideoThumb from "./VideoThumb";
+import ClipPlayerSheet from "./ClipPlayerSheet";
 
 interface TagClip {
   id: string;
   duration: number;
   tag: string;
   isTop: boolean;
+  videoUrl: string;
+  thumbnailUrl: string | null;
 }
 
 interface TagAccordionProps {
   emoji: string;
   label: string;
   clips: TagClip[];
+  onDeleteClip?: (clipId: string) => Promise<boolean>;
 }
 
-export default function TagAccordion({ emoji, label, clips }: TagAccordionProps) {
+export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagAccordionProps) {
   const router = useRouter();
   const [open, setOpen] = useState(clips.length > 0);
+  const [playingClip, setPlayingClip] = useState<TagClip | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const hasClips = clips.length > 0;
   const topClip = clips.find((c) => c.isTop);
+
+  const handleDelete = async (clipId: string) => {
+    if (!onDeleteClip) return;
+    setDeleting(true);
+    try {
+      await onDeleteClip(clipId);
+    } finally {
+      setDeleting(false);
+      setConfirmDeleteId(null);
+    }
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -57,15 +75,57 @@ export default function TagAccordion({ emoji, label, clips }: TagAccordionProps)
           {hasClips ? (
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
               {clips.map((clip) => (
-                <div key={clip.id} className="w-[140px] shrink-0">
-                  <div className="relative">
-                    <VideoThumb duration={clip.duration} aspectRatio="4/3" />
-                    {clip.isTop && (
-                      <div className="absolute top-1 left-1 rounded bg-accent px-1 py-0.5 text-[8px] font-bold text-bg">
-                        TOP
+                <div key={clip.id} className="relative w-[140px] shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPlayingClip(clip)}
+                    className="w-full text-left"
+                  >
+                    <div className="relative">
+                      <VideoThumb
+                        thumbnailUrl={clip.thumbnailUrl ?? undefined}
+                        duration={clip.duration}
+                        aspectRatio="4/3"
+                      />
+                      {clip.isTop && (
+                        <div className="absolute top-1 left-1 rounded bg-accent px-1 py-0.5 text-[8px] font-bold text-bg">
+                          TOP
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  {/* Delete button */}
+                  {onDeleteClip && (
+                    confirmDeleteId === clip.id ? (
+                      <div className="absolute top-1 right-1 flex items-center gap-1">
+                        <button
+                          onClick={() => handleDelete(clip.id)}
+                          disabled={deleting}
+                          className="rounded bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white"
+                        >
+                          {deleting ? "..." : "삭제"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="rounded bg-white/20 px-1.5 py-0.5 text-[9px] font-bold text-white"
+                        >
+                          취소
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(clip.id)}
+                        className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:!opacity-100 active:!opacity-100"
+                        style={{ opacity: undefined }}
+                        onPointerDown={(e) => { e.currentTarget.style.opacity = "1"; }}
+                        aria-label="영상 삭제"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )
+                  )}
                 </div>
               ))}
               {/* Add button */}
@@ -90,6 +150,14 @@ export default function TagAccordion({ emoji, label, clips }: TagAccordionProps)
             </div>
           )}
         </div>
+      )}
+
+      {/* Video Player */}
+      {playingClip && (
+        <ClipPlayerSheet
+          videoUrl={playingClip.videoUrl}
+          onClose={() => setPlayingClip(null)}
+        />
       )}
     </div>
   );

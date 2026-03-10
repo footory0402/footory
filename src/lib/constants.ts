@@ -25,45 +25,50 @@ export const POSITION_LABELS: Record<Position, string> = {
   GK: "골키퍼",
 };
 
-// Skill Tags (7 tags) — DB DDL tag_name CHECK과 일치
+// Skill Tags — 포지션별 필터링, 쉬운 한글 이름
+// DB DDL tag_name CHECK과 일치하도록 dbName 유지
 export const SKILL_TAGS = [
-  { id: "dribble", dbName: "1v1 돌파", label: "1v1 돌파", emoji: "\u26BD" },
-  { id: "shoot", dbName: "슈팅", label: "슈팅", emoji: "\uD83E\uDD45" },
-  { id: "first_touch", dbName: "퍼스트터치", label: "퍼스트터치", emoji: "\uD83C\uDFAF" },
-  { id: "pass", dbName: "전진패스", label: "전진패스", emoji: "\uD83C\uDFAF" },
-  { id: "heading", dbName: "헤딩경합", label: "헤딩경합", emoji: "\uD83D\uDCAA" },
-  { id: "defense", dbName: "1v1 수비", label: "1v1 수비", emoji: "\uD83D\uDEE1\uFE0F" },
-  { id: "etc", dbName: "기타", label: "기타", emoji: "\u2B50" },
-  { id: "gk_save", dbName: "세이브", label: "세이브", emoji: "🧤" },
-  { id: "gk_distribution", dbName: "배급", label: "배급", emoji: "🦶" },
-  { id: "gk_1v1_save", dbName: "1v1세이브", label: "1v1세이브", emoji: "🛑" },
+  // 필드 선수 공통 (FW/MF/DF)
+  { id: "dribble", dbName: "1v1 돌파", label: "드리블", emoji: "⚽", forGK: false },
+  { id: "shoot", dbName: "슈팅", label: "슈팅", emoji: "🦵", forGK: false },
+  { id: "first_touch", dbName: "퍼스트터치", label: "볼컨트롤", emoji: "🎯", forGK: false },
+  { id: "pass", dbName: "전진패스", label: "패스", emoji: "🏐", forGK: false },
+  { id: "defense", dbName: "1v1 수비", label: "수비", emoji: "🛡️", forGK: false },
+  // GK 전용
+  { id: "gk_save", dbName: "세이브", label: "세이브", emoji: "🧤", forGK: true },
+  { id: "gk_distribution", dbName: "배급", label: "배급", emoji: "🦶", forGK: true },
+  { id: "gk_1v1_save", dbName: "1v1세이브", label: "1대1", emoji: "🛑", forGK: true },
+  // 공통
+  { id: "etc", dbName: "기타", label: "스페셜", emoji: "⭐", forGK: false },
 ] as const;
+
+/** 포지션에 맞는 태그만 반환 */
+export function getSkillTagsForPosition(position?: string | null) {
+  if (position === "GK") {
+    return SKILL_TAGS.filter((t) => t.forGK || t.id === "etc");
+  }
+  return SKILL_TAGS.filter((t) => !t.forGK);
+}
 
 export type SkillTagDbName = (typeof SKILL_TAGS)[number]["dbName"];
 
-// Measurement Types
+// Measurement Types — 쉬운 이름, 전부 선택 (필수 없음)
 export const MEASUREMENTS = [
-  { id: "sprint_50m", label: "50m 스프린트", unit: "초", icon: "⏱️", lowerIsBetter: true },
-  { id: "shuttle_run", label: "셔틀런", unit: "회", icon: "🔄", lowerIsBetter: false },
-  { id: "kick_power", label: "킥 파워", unit: "km/h", icon: "🥅", lowerIsBetter: false },
-  { id: "vertical_jump", label: "수직 점프", unit: "cm", icon: "⬆️", lowerIsBetter: false },
-  { id: "agility", label: "민첩성", unit: "초", icon: "⚡", lowerIsBetter: true },
-  { id: "sprint_30m", label: "30m 스프린트", unit: "초", icon: "🏃", lowerIsBetter: true },
-  { id: "run_1000m", label: "1000m 달리기", unit: "초", icon: "🏃‍♂️", lowerIsBetter: true },
-  { id: "shooting_accuracy", label: "슈팅 정확도", unit: "%", icon: "⚽", lowerIsBetter: false },
-  { id: "juggling", label: "리프팅", unit: "회", icon: "🎯", lowerIsBetter: false },
+  { id: "sprint_50m", label: "50m 달리기", unit: "초", icon: "🏃", lowerIsBetter: true },
+  { id: "juggling", label: "리프팅", unit: "회", icon: "⚽", lowerIsBetter: false },
+  { id: "kick_power", label: "슈팅 속도", unit: "km/h", icon: "🦵", lowerIsBetter: false },
+  { id: "run_1000m", label: "1000m 달리기", unit: "분:초", icon: "🏃‍♂️", lowerIsBetter: true },
+  { id: "shuttle_run", label: "왕복달리기", unit: "회", icon: "🔄", lowerIsBetter: false },
+  { id: "vertical_jump", label: "제자리멀리뛰기", unit: "cm", icon: "⬆️", lowerIsBetter: false },
 ] as const;
 
 export const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
   sprint_50m: { min: 5.5, max: 12 },
-  shuttle_run: { min: 10, max: 150 },
-  kick_power: { min: 20, max: 150 },
-  vertical_jump: { min: 10, max: 80 },
-  agility: { min: 5, max: 30 },
-  sprint_30m: { min: 3.5, max: 8 },
-  run_1000m: { min: 180, max: 600 },
-  shooting_accuracy: { min: 1, max: 30 },
   juggling: { min: 1, max: 3000 },
+  kick_power: { min: 20, max: 150 },
+  run_1000m: { min: 180, max: 600 },
+  shuttle_run: { min: 10, max: 150 },
+  vertical_jump: { min: 10, max: 80 },
 } as const;
 
 // MVP Tiers

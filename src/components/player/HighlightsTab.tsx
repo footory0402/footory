@@ -10,19 +10,23 @@ import Link from "next/link";
 const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false });
 import { useFeaturedClips } from "@/hooks/useClips";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { MAX_FEATURED_SLOTS, SKILL_TAGS } from "@/lib/constants";
+import { MAX_FEATURED_SLOTS, getSkillTagsForPosition } from "@/lib/constants";
 
 interface TagClip {
   id: string;
   duration: number;
   tag: string;
   isTop: boolean;
+  videoUrl: string;
+  thumbnailUrl: string | null;
 }
 
 interface HighlightsTabProps {
   level: number;
   tagClips: Record<string, TagClip[]>;
   tagClipsLoading?: boolean;
+  position?: string | null;
+  onDeleteClip?: (clipId: string) => Promise<boolean>;
 }
 
 function maxSlotsByLevel(level: number): number {
@@ -36,6 +40,8 @@ export default function HighlightsTab({
   level,
   tagClips,
   tagClipsLoading,
+  position,
+  onDeleteClip,
 }: HighlightsTabProps) {
   const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -56,7 +62,7 @@ export default function HighlightsTab({
   const slotsToShow = maxSlots === 0 ? 0 : Math.min(featured.length + 1, maxSlots);
   const excludeClipIds = featured.map((f) => f.clip_id);
 
-  const tagsToShow = SKILL_TAGS;
+  const tagsToShow = getSkillTagsForPosition(position);
 
   return (
     <ErrorBoundary>
@@ -118,6 +124,7 @@ export default function HighlightsTab({
               emoji={tag.emoji}
               label={tag.label}
               clips={tagClips[tag.id] ?? []}
+              onDeleteClip={onDeleteClip}
             />
           </div>
         ))
