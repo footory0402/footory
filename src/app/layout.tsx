@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR, Oswald, Rajdhani } from "next/font/google";
 import AppShell from "@/components/layout/AppShell";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -54,6 +55,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`dark ${notoSansKr.variable} ${oswald.variable} ${rajdhani.variable}`}>
       <body>
+        <ServiceWorkerRegister />
         <div className="mx-auto min-h-dvh max-w-[430px]">
           <AppShell>{children}</AppShell>
         </div>
