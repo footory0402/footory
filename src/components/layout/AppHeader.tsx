@@ -101,12 +101,12 @@ export default function AppHeader() {
         </div>
 
         {/* Search bar */}
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-2.5">
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-3 py-2 text-[13px] text-text-3 transition-colors active:bg-white/[0.08]"
+            className="flex w-full items-center gap-2.5 rounded-xl bg-white/[0.08] px-3.5 py-2.5 text-[13px] text-text-3 transition-colors active:bg-white/[0.12] border border-white/[0.06]"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>

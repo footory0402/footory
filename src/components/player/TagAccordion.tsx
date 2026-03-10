@@ -97,17 +97,17 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
                   {/* Delete button */}
                   {onDeleteClip && (
                     confirmDeleteId === clip.id ? (
-                      <div className="absolute top-1 right-1 flex items-center gap-1">
+                      <div className="absolute top-1 right-1 flex items-center gap-1 z-10">
                         <button
                           onClick={() => handleDelete(clip.id)}
                           disabled={deleting}
-                          className="rounded bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white"
+                          className="rounded-md bg-red-500 px-2 py-1 text-[10px] font-bold text-white shadow-lg"
                         >
                           {deleting ? "..." : "삭제"}
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="rounded bg-white/20 px-1.5 py-0.5 text-[9px] font-bold text-white"
+                          className="rounded-md bg-white/30 px-2 py-1 text-[10px] font-bold text-white shadow-lg backdrop-blur-sm"
                         >
                           취소
                         </button>
@@ -115,12 +115,10 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
                     ) : (
                       <button
                         onClick={() => setConfirmDeleteId(clip.id)}
-                        className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:!opacity-100 active:!opacity-100"
-                        style={{ opacity: undefined }}
-                        onPointerDown={(e) => { e.currentTarget.style.opacity = "1"; }}
+                        className="absolute top-1 right-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm"
                         aria-label="영상 삭제"
                       >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                           <path d="M18 6L6 18M6 6l12 12" />
                         </svg>
                       </button>

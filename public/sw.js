@@ -1,8 +1,8 @@
-const CACHE_NAME = "footory-v1";
+const CACHE_NAME = "footory-v2";
 
 // App shell: 오프라인에서도 빠르게 로드할 핵심 자원
+// "/" 제거 — SSR 페이지를 SW가 캐시하면 hydration mismatch + 무한 리로드 발생
 const APP_SHELL = [
-  "/",
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
@@ -48,7 +48,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML 페이지: Network First (빠른 fallback)
+  // HTML 네비게이션 요청: SW가 캐시하지 않고 네트워크로 직접 전달
+  // SSR 페이지를 SW가 캐시하면 hydration mismatch → 무한 리로드 발생
+  if (request.mode === "navigate") {
+    return;
+  }
+
+  // 기타 GET 요청: Network First
   event.respondWith(networkFirst(request));
 });
 

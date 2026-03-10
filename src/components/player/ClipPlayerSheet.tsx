@@ -23,7 +23,7 @@ export default function ClipPlayerSheet({ videoUrl, onClose }: ClipPlayerSheetPr
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute -top-12 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm"
+          className="absolute -top-12 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-white shadow-lg backdrop-blur-md border border-white/10"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
