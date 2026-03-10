@@ -9,9 +9,8 @@ import type { UserRole } from "@/lib/permissions";
 export default async function MvpPage() {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user;
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");

@@ -34,9 +34,8 @@ const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
 export default async function HomePage() {
   const supabase = await createClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user;
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   if (isPocAdminUser(user)) redirect("/admin/video-lab");
 

@@ -48,13 +48,6 @@ export default function FeedList({
   );
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<FeedItemEnriched | null>(null);
-  const [videoOnly, setVideoOnly] = useState(false);
-
-  const displayItems = useMemo(
-    () => (videoOnly ? items.filter((item) => item.type === "highlight") : items),
-    [items, videoOnly]
-  );
-
   const feedItemIds = useMemo(() => items.map((i) => i.id), [items]);
 
   useRealtimeFeed({
@@ -140,7 +133,7 @@ export default function FeedList({
   // Nudge insertion position (0-indexed, after 2 items = position 3)
   const NUDGE_POSITION = 2;
   const eagerImageIndexes = new Set(
-    displayItems
+    items
       .map((item, i) => ({
         i,
         hasThumbnail:
@@ -155,21 +148,7 @@ export default function FeedList({
   return (
     <ErrorBoundary>
       <div className="flex flex-col gap-3.5 pb-4">
-        {/* Video-only filter toggle */}
-        <div className="flex items-center">
-          <button
-            onClick={() => setVideoOnly((v) => !v)}
-            className={`min-h-[36px] rounded-full px-4 text-xs font-medium transition-colors ${
-              videoOnly
-                ? "bg-accent text-bg"
-                : "bg-card text-text-2"
-            }`}
-          >
-            {videoOnly ? "전체" : "영상만"}
-          </button>
-        </div>
-
-        {displayItems.map((item, i) => (
+        {items.map((item, i) => (
           (() => {
             const meta = item.metadata as Record<string, unknown>;
             const hasThumbnail =
@@ -188,7 +167,7 @@ export default function FeedList({
                 <UploadNudge />
               </div>
             )}
-            <div ref={i === displayItems.length - 1 ? setLastItemRef : null}>
+            <div ref={i === items.length - 1 ? setLastItemRef : null}>
               <FeedCard
                 item={item}
                 onKudos={toggleKudos}
@@ -202,7 +181,7 @@ export default function FeedList({
           })()
         ))}
         {/* If feed has fewer than 3 items, show nudge at the end */}
-        {showNudge && displayItems.length > 0 && displayItems.length < NUDGE_POSITION + 1 && (
+        {showNudge && items.length > 0 && items.length < NUDGE_POSITION + 1 && (
           <UploadNudge />
         )}
         {loading && (

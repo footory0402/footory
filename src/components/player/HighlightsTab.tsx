@@ -32,21 +32,6 @@ function maxSlotsByLevel(level: number): number {
   return MAX_FEATURED_SLOTS; // 3
 }
 
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${
-        active
-          ? "bg-accent text-bg"
-          : "bg-card text-text-3 active:bg-card-alt"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
 export default function HighlightsTab({
   level,
   tagClips,
@@ -54,7 +39,6 @@ export default function HighlightsTab({
 }: HighlightsTabProps) {
   const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [filter, setFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFeatured();
@@ -72,10 +56,7 @@ export default function HighlightsTab({
   const slotsToShow = maxSlots === 0 ? 0 : Math.min(featured.length + 1, maxSlots);
   const excludeClipIds = featured.map((f) => f.clip_id);
 
-  const tagsWithClips = SKILL_TAGS.filter((t) => (tagClips[t.id]?.length ?? 0) > 0);
-  const tagsToShow = filter
-    ? SKILL_TAGS.filter((t) => t.id === filter)
-    : SKILL_TAGS;
+  const tagsToShow = SKILL_TAGS;
 
   return (
     <ErrorBoundary>
@@ -124,19 +105,6 @@ export default function HighlightsTab({
       >
         <span>+</span> 영상 추가
       </Link>
-
-      {/* Filter bar */}
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        <FilterChip label="전체" active={filter === null} onClick={() => setFilter(null)} />
-        {tagsWithClips.map((tag) => (
-          <FilterChip
-            key={tag.id}
-            label={`${tag.emoji} ${tag.label}`}
-            active={filter === tag.id}
-            onClick={() => setFilter(filter === tag.id ? null : tag.id)}
-          />
-        ))}
-      </div>
 
       {/* Tag accordions */}
       {tagClipsLoading ? (
