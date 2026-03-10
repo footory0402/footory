@@ -19,7 +19,7 @@ const METHODS: { value: Method; label: string; desc: string }[] = [
   {
     value: "referral",
     label: "인증 코치 추천",
-    desc: "이미 인증된 코치의 @핸들을 입력하면 확인 요청이 전송됩니다",
+    desc: "이미 인증된 코치의 @주소를 입력하면 확인 요청이 전송됩니다",
   },
 ];
 
@@ -64,7 +64,7 @@ export default function VerificationFlow({
       } else if (method === "referral") {
         const handle = referrerHandle.replace("@", "").trim();
         if (!handle) {
-          setError("코치 핸들을 입력해주세요");
+          setError("코치 주소를 입력해주세요");
           setSubmitting(false);
           return;
         }
@@ -76,7 +76,7 @@ export default function VerificationFlow({
           .single();
 
         if (!referrer) {
-          setError("해당 핸들의 사용자를 찾을 수 없습니다");
+          setError("해당 주소의 사용자를 찾을 수 없습니다");
           setSubmitting(false);
           return;
         }
@@ -197,13 +197,13 @@ export default function VerificationFlow({
           {method === "referral" && (
             <div>
               <label className="mb-2 block text-[13px] text-text-2">
-                인증 코치 @핸들
+                인증 코치 @주소
               </label>
               <input
                 type="text"
                 value={referrerHandle}
                 onChange={(e) => setReferrerHandle(e.target.value)}
-                placeholder="@코치핸들"
+                placeholder="@코치주소"
                 className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-[14px] text-text-1 placeholder:text-text-3 outline-none focus:border-accent"
                 autoFocus
               />

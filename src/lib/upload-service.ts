@@ -38,9 +38,10 @@ export async function startUpload() {
     const { url, key, clipId } = await presignRes.json();
     store.setClipId(clipId);
 
-    // 2. Upload to R2 via PUT
-    const xhr = new XMLHttpRequest();
+    // 2. Upload to R2 via presigned PUT
+    let presignUploadOk = false;
     try {
+      const xhr = new XMLHttpRequest();
       await new Promise<void>((resolve, reject) => {
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
@@ -48,15 +49,29 @@ export async function startUpload() {
           }
         };
         xhr.onload = () =>
-          xhr.status < 300 ? resolve() : reject(new Error("Upload failed"));
+          xhr.status < 300 ? resolve() : reject(new Error(`R2 PUT ${xhr.status}`));
         xhr.onerror = () => reject(new Error("Network error"));
         xhr.open("PUT", url);
         xhr.setRequestHeader("Content-Type", "video/mp4");
         xhr.send(store.file);
       });
-    } catch {
-      await uploadViaDirectApi(store.file!, key, "video/mp4");
-      store.setProgress(90);
+      presignUploadOk = true;
+    } catch (xhrErr) {
+      // XHR failed — try fetch as fallback (different CORS handling)
+      try {
+        const fetchRes = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "video/mp4" },
+          body: store.file,
+        });
+        if (!fetchRes.ok) throw new Error(`R2 PUT ${fetchRes.status}`);
+        presignUploadOk = true;
+        store.setProgress(90);
+      } catch {
+        // Both presigned methods failed — try direct server upload
+        await uploadViaDirectApi(store.file!, key, "video/mp4");
+        store.setProgress(90);
+      }
     }
 
     // 3. Capture thumbnail

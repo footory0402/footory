@@ -69,7 +69,7 @@ export default function DiscoverPage() {
           <button
             key={ft.key}
             onClick={() => handleTabChange(ft.key)}
-            className={`flex-1 min-h-[36px] pt-1 pb-2.5 text-sm font-medium relative ${
+            className={`flex-1 min-h-[44px] pt-1 pb-2.5 text-sm font-medium relative ${
               tab === ft.key ? "text-accent" : "text-text-3"
             }`}
           >

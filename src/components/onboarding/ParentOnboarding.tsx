@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { HANDLE_REGEX } from "@/lib/constants";
 import { toast } from "sonner";
 
 interface Props {
@@ -25,41 +24,19 @@ export default function ParentOnboarding({ onBack }: Props) {
 
   // Step 1: 기본 정보
   const [name, setName] = useState("");
-  const [handle, setHandle] = useState("");
-  const [handleStatus, setHandleStatus] = useState<
-    "idle" | "checking" | "available" | "taken" | "invalid"
-  >("idle");
-
   // Step 2: 자녀 검색
   const [childQuery, setChildQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [linkedChild, setLinkedChild] = useState<SearchResult | null>(null);
 
-  // Handle check
-  useEffect(() => {
-    if (!handle) {
-      setHandleStatus("idle");
-      return;
-    }
-    if (!HANDLE_REGEX.test(handle)) {
-      setHandleStatus("invalid");
-      return;
-    }
-    setHandleStatus("checking");
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/profile/handle-check?handle=${handle}`);
-        const data = await res.json();
-        setHandleStatus(data.available ? "available" : "taken");
-      } catch {
-        setHandleStatus("idle");
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [handle]);
+  function generateHandle(n: string) {
+    const base = n.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "parent";
+    const rand = Math.random().toString(36).slice(2, 6);
+    return `parent_${base}_${rand}`;
+  }
 
-  const canProceedStep1 = name.trim().length >= 1 && handleStatus === "available";
+  const canProceedStep1 = name.trim().length >= 1;
 
   // 자녀 검색
   const searchChild = useCallback(async () => {
@@ -92,7 +69,7 @@ export default function ParentOnboarding({ onBack }: Props) {
           body: JSON.stringify({
             role: "parent",
             name: name.trim(),
-            handle,
+            handle: generateHandle(name),
             position: null,
             birth_year: null,
             avatar_url: null,
@@ -121,7 +98,7 @@ export default function ParentOnboarding({ onBack }: Props) {
         setSubmitting(false);
       }
     },
-    [submitting, name, handle, linkedChild, router]
+    [submitting, name, linkedChild, router]
   );
 
   return (
@@ -157,24 +134,6 @@ export default function ParentOnboarding({ onBack }: Props) {
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-text-2">핸들</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-text-3">@</span>
-                <input
-                  type="text"
-                  value={handle}
-                  onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                  placeholder="my_handle"
-                  className="w-full rounded-lg border border-border bg-card py-3 pl-9 pr-4 text-sm text-text-1 placeholder:text-text-3 focus:border-accent focus:outline-none"
-                  maxLength={20}
-                />
-              </div>
-              {handleStatus === "checking" && <p className="mt-1 text-xs text-text-3">확인 중...</p>}
-              {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 핸들이에요</p>}
-              {handleStatus === "taken" && <p className="mt-1 text-xs text-red">이미 사용 중인 핸들이에요</p>}
-              {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">3~20자, 영소문자/숫자/밑줄만 가능</p>}
-            </div>
           </div>
 
           <div className="mt-8 flex gap-3">
@@ -204,14 +163,14 @@ export default function ParentOnboarding({ onBack }: Props) {
           <div className="mt-8 flex flex-col gap-5">
             {/* 검색 */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-text-2">이름 또는 @핸들로 검색</label>
+              <label className="mb-1.5 block text-xs font-medium text-text-2">이름 또는 @주소로 검색</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={childQuery}
                   onChange={(e) => setChildQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && searchChild()}
-                  placeholder="이름 또는 @핸들"
+                  placeholder="이름 또는 @주소"
                   className="flex-1 rounded-lg border border-border bg-card px-4 py-3 text-sm text-text-1 placeholder:text-text-3 focus:border-accent focus:outline-none"
                 />
                 <button

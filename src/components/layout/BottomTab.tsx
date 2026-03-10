@@ -121,7 +121,7 @@ export default function BottomTab() {
                 )}
                 <tab.icon active={active} />
                 <span
-                  className={`text-[10px] font-medium ${active ? "text-accent" : "text-text-3"}`}
+                  className={`text-xs font-medium ${active ? "text-accent" : "text-text-3"}`}
                 >
                   {tab.label}
                 </span>

@@ -162,7 +162,7 @@ export default function ProfileEditSheet({
             <Field label="이름" value={name} onChange={setName} />
 
             <div>
-              <label className="mb-1 block text-xs text-text-3">핸들</label>
+              <label className="mb-1 block text-xs text-text-3">내 주소</label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-3">@</span>
                 <input

@@ -26,12 +26,6 @@ export default function WeeklyRecap({ childId, childName }: WeeklyRecapProps) {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const isMonday = new Date().getDay() === 1;
-    if (!isMonday) {
-      setLoading(false);
-      return;
-    }
-
     const dismissedKey = `recap_dismissed_${childId}_${getWeekKey()}`;
     if (localStorage.getItem(dismissedKey)) {
       setLoading(false);
@@ -90,7 +84,10 @@ export default function WeeklyRecap({ childId, childName }: WeeklyRecapProps) {
 
       <div className="mt-3 flex gap-2">
         <button
-          onClick={dismiss}
+          onClick={() => {
+            dismiss();
+            window.location.href = `/p/${childName}?tab=records`;
+          }}
           className="flex-1 rounded-xl bg-accent/10 py-2 text-[13px] font-medium text-accent"
         >
           자세히 보기

@@ -43,7 +43,7 @@ export default function UploadPage() {
 
   const canUpload = (() => {
     if (!store.file) return false;
-    if (store.tags.length === 0) return false;
+    // tags are optional — don't block upload
     if (isParent && !store.childId) return false;
     return true;
   })();

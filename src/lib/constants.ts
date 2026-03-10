@@ -34,6 +34,9 @@ export const SKILL_TAGS = [
   { id: "heading", dbName: "헤딩경합", label: "헤딩경합", emoji: "\uD83D\uDCAA" },
   { id: "defense", dbName: "1v1 수비", label: "1v1 수비", emoji: "\uD83D\uDEE1\uFE0F" },
   { id: "etc", dbName: "기타", label: "기타", emoji: "\u2B50" },
+  { id: "gk_save", dbName: "세이브", label: "세이브", emoji: "🧤" },
+  { id: "gk_distribution", dbName: "배급", label: "배급", emoji: "🦶" },
+  { id: "gk_1v1_save", dbName: "1v1세이브", label: "1v1세이브", emoji: "🛑" },
 ] as const;
 
 export type SkillTagDbName = (typeof SKILL_TAGS)[number]["dbName"];

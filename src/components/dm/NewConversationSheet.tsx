@@ -76,7 +76,7 @@ export default function NewConversationSheet({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="이름 또는 @핸들 검색"
+            placeholder="이름 또는 @주소 검색"
             className="flex-1 bg-transparent text-sm text-text-1 placeholder:text-text-3 outline-none"
             autoFocus
           />

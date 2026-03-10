@@ -40,7 +40,7 @@ export default function ChildrenPage() {
             👨‍👧
           </div>
           <p className="mt-4 text-[15px] font-semibold text-text-1">연동된 자녀가 없어요</p>
-          <p className="mt-1 text-[13px] text-text-3">자녀의 핸들로 연동하세요</p>
+          <p className="mt-1 text-[13px] text-text-3">자녀의 주소로 연동하세요</p>
           <Button variant="primary" className="mt-6" onClick={() => setShowLink(true)}>
             자녀 연동하기
           </Button>

@@ -94,7 +94,7 @@ export default function ChildDashboard({
           </div>
           <p className="mt-4 text-[17px] font-bold text-text-1">자녀 계정을 연결해주세요</p>
           <p className="mt-2 text-center text-[13px] text-text-3">
-            자녀의 핸들(@)을 입력하면<br />활동을 확인하고 영상을 올려줄 수 있어요
+            자녀의 주소(@)를 입력하면<br />활동을 확인하고 영상을 올려줄 수 있어요
           </p>
           <div className="mt-6 flex gap-3">
             <button

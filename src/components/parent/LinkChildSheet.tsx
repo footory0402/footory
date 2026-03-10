@@ -37,7 +37,7 @@ export default function LinkChildSheet({ open, onClose, onLink }: LinkChildSheet
       <div className="relative w-full max-w-[430px] rounded-t-2xl bg-surface px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-4">
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
         <h2 className="mb-2 text-[17px] font-bold text-text-1">자녀 프로필 연동</h2>
-        <p className="mb-5 text-[13px] text-text-3">자녀의 핸들을 입력해주세요</p>
+        <p className="mb-5 text-[13px] text-text-3">자녀의 주소를 입력해주세요</p>
 
         <div className="space-y-4">
           <div>

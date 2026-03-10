@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { putObjectToR2 } from "@/lib/r2";
 
+// Allow up to 100MB for video uploads
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 function isAllowedKey(userId: string, key: string) {
   return (
     key.startsWith(`originals/${userId}/`) || key.startsWith(`thumbnails/${userId}/`)
@@ -54,6 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, key });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
+    console.error("[upload/direct] Error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

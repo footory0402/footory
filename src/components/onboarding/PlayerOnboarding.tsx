@@ -179,7 +179,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
 
             {/* Handle */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-text-2">핸들</label>
+              <label className="mb-1.5 block text-xs font-medium text-text-2">내 주소</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-text-3">@</span>
                 <input
@@ -192,8 +192,8 @@ export default function PlayerOnboarding({ onBack }: Props) {
                 />
               </div>
               {handleStatus === "checking" && <p className="mt-1 text-xs text-text-3">확인 중...</p>}
-              {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 핸들이에요</p>}
-              {handleStatus === "taken" && <p className="mt-1 text-xs text-red">이미 사용 중인 핸들이에요</p>}
+              {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 주소예요</p>}
+              {handleStatus === "taken" && <p className="mt-1 text-xs text-red">이미 사용 중인 주소예요</p>}
               {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">3~20자, 영소문자/숫자/밑줄만 가능</p>}
             </div>
 
@@ -205,7 +205,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
                   <button
                     key={pos}
                     onClick={() => setPosition(pos)}
-                    className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all ${
+                    className={`flex-1 rounded-lg border py-3 text-sm font-semibold transition-all ${
                       position === pos
                         ? "border-accent bg-[var(--accent-bg)] text-accent"
                         : "border-border bg-card text-text-2"
@@ -293,7 +293,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
                   <button
                     key={opt.value}
                     onClick={() => setPreferredFoot(opt.value)}
-                    className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all ${
+                    className={`flex-1 rounded-lg border py-3 text-sm font-semibold transition-all ${
                       preferredFoot === opt.value
                         ? "border-accent bg-[var(--accent-bg)] text-accent"
                         : "border-border bg-card text-text-2"

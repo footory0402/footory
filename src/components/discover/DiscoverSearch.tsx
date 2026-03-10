@@ -20,7 +20,7 @@ export default function DiscoverSearch() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="선수, 팀, 핸들 검색"
+          placeholder="선수, 팀, 주소 검색"
           className="ml-2 flex-1 bg-transparent text-[13px] text-text-1 placeholder:text-text-3 outline-none"
         />
         {isSearching && (

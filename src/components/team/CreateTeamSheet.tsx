@@ -75,7 +75,7 @@ export default function CreateTeamSheet({ open, onClose, onCreated }: CreateTeam
           </div>
 
           <div>
-            <label className="mb-1 block text-[12px] font-medium text-text-3">핸들 *</label>
+            <label className="mb-1 block text-[12px] font-medium text-text-3">주소 *</label>
             <input
               value={handle}
               onChange={(e) => onHandleChange(e.target.value)}
