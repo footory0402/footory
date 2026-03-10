@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useProfileContext } from "@/providers/ProfileProvider";
 
 interface Preferences {
   push_enabled: boolean;
@@ -50,9 +51,25 @@ const CATEGORY_LABELS: { key: keyof Preferences; label: string }[] = [
   { key: "upload_nudge", label: "업로드 유도" },
 ];
 
+const PARENT_KEYS: Set<keyof Preferences> = new Set([
+  "kudos", "comments", "follows", "dm", "team_invite", "weekly_recap",
+]);
+
+const SCOUT_KEYS: Set<keyof Preferences> = new Set([
+  "kudos", "comments", "follows", "dm", "mentions",
+]);
+
 export default function NotificationSettings({ onBack }: { onBack: () => void }) {
+  const { profile } = useProfileContext();
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const filteredCategories = useMemo(() => {
+    const role = profile?.role;
+    if (role === "parent") return CATEGORY_LABELS.filter((c) => PARENT_KEYS.has(c.key));
+    if (role === "scout") return CATEGORY_LABELS.filter((c) => SCOUT_KEYS.has(c.key));
+    return CATEGORY_LABELS; // player sees all
+  }, [profile?.role]);
 
   useEffect(() => {
     fetch("/api/notifications/preferences")
@@ -144,7 +161,7 @@ export default function NotificationSettings({ onBack }: { onBack: () => void })
 
           {showAdvanced && (
             <div className="space-y-1 rounded-[10px] bg-card p-4">
-              {CATEGORY_LABELS.map(({ key, label }) => (
+              {filteredCategories.map(({ key, label }) => (
                 <div key={key} className="flex items-center justify-between py-2">
                   <span className="text-sm text-text-2">{label}</span>
                   <Toggle

@@ -18,9 +18,10 @@ interface RecapData {
 interface WeeklyRecapProps {
   childId: string;
   childName: string;
+  childHandle?: string;
 }
 
-export default function WeeklyRecap({ childId, childName }: WeeklyRecapProps) {
+export default function WeeklyRecap({ childId, childName, childHandle }: WeeklyRecapProps) {
   const [recap, setRecap] = useState<RecapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
@@ -86,7 +87,7 @@ export default function WeeklyRecap({ childId, childName }: WeeklyRecapProps) {
         <button
           onClick={() => {
             dismiss();
-            window.location.href = `/p/${childName}?tab=records`;
+            window.location.href = `/p/${childHandle ?? childName}?tab=records`;
           }}
           className="flex-1 rounded-xl bg-accent/10 py-2 text-[13px] font-medium text-accent"
         >

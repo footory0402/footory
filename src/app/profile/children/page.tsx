@@ -10,6 +10,7 @@ import Button from "@/components/ui/Button";
 export default function ChildrenPage() {
   const { children, loading, linkChild, unlinkChild } = useLinkedChildren();
   const [showLink, setShowLink] = useState(false);
+  const [unlinkTarget, setUnlinkTarget] = useState<{ id: string; name: string } | null>(null);
 
   if (loading) {
     return (
@@ -66,11 +67,7 @@ export default function ChildrenPage() {
                 <span className="text-[12px] text-text-3">@{child.handle}</span>
               </div>
               <button
-                onClick={() => {
-                  if (confirm(`${child.name}과의 연동을 해제하시겠습니까?`)) {
-                    unlinkChild(child.childId);
-                  }
-                }}
+                onClick={() => setUnlinkTarget({ id: child.childId, name: child.name })}
                 className="text-[12px] text-text-3 hover:text-red"
               >
                 연동 해제
@@ -88,6 +85,35 @@ export default function ChildrenPage() {
       )}
 
       <LinkChildSheet open={showLink} onClose={() => setShowLink(false)} onLink={linkChild} />
+
+      {/* Unlink confirmation modal */}
+      {unlinkTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+          <div className="w-full max-w-[320px] rounded-xl bg-card p-5">
+            <h3 className="text-[15px] font-bold text-text-1">연동 해제</h3>
+            <p className="mt-2 text-[13px] text-text-2">
+              {unlinkTarget.name}과의 연동을 해제하시겠습니까?
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setUnlinkTarget(null)}
+                className="flex-1 rounded-lg bg-elevated py-2.5 text-[13px] font-medium text-text-2"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  unlinkChild(unlinkTarget.id);
+                  setUnlinkTarget(null);
+                }}
+                className="flex-1 rounded-lg bg-red py-2.5 text-[13px] font-bold text-white"
+              >
+                해제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

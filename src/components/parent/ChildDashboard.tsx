@@ -127,7 +127,7 @@ export default function ChildDashboard({
       </p>
 
       {/* Weekly Recap (Monday only) */}
-      <WeeklyRecap childId={selectedChild.childId} childName={selectedChild.name} />
+      <WeeklyRecap childId={selectedChild.childId} childName={selectedChild.name} childHandle={selectedChild.handle} />
 
       {/* MVP Rank Card */}
       {dashboard && dashboard.weeklyStats.mvpRank != null && dashboard.weeklyStats.mvpRank > 0 && (
