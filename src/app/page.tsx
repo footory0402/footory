@@ -1,23 +1,114 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/server";
-import { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } from "@/lib/server/feed";
 import { isPocAdminUser } from "@/lib/poc-admin";
-import { canUseWatchlist } from "@/lib/permissions";
-import { fetchLinkedChildren, fetchParentDashboard } from "@/lib/server/parent-home";
-import { fetchScoutHomeData } from "@/lib/server/scout-home";
-import MvpTeaser from "@/components/mvp/MvpTeaser";
-import ChallengeBanner from "@/components/challenge/ChallengeBanner";
-import QuestChecklist from "@/components/quest/QuestChecklist";
 
-const ChildDashboard = dynamic(() => import("@/components/parent/ChildDashboard"));
-const ScoutHome = dynamic(() => import("@/components/scout/ScoutHome"));
+/* ── Async server components (heavy data fetch, streamed via Suspense) ── */
 
-const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
-  loading: () => (
-    <div className="flex flex-col gap-3 pb-4">
+async function PlayerFeed({ userId }: { userId: string }) {
+  const { default: dynamic } = await import("next/dynamic");
+  const { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } = await import(
+    "@/lib/server/feed"
+  );
+  const { default: MvpTeaser } = await import("@/components/mvp/MvpTeaser");
+  const { default: ChallengeBanner } = await import(
+    "@/components/challenge/ChallengeBanner"
+  );
+  const { default: QuestChecklist } = await import(
+    "@/components/quest/QuestChecklist"
+  );
+  const { default: FeedListClient } = await import(
+    "@/components/feed/FeedList"
+  );
+
+  const supabase = await createClient();
+  const [feedData, hasClips, mvpLeader] = await Promise.all([
+    fetchFeedPage(supabase, userId),
+    hasUserUploadedClips(supabase, userId),
+    fetchMvpLeader(supabase),
+  ]);
+
+  return (
+    <>
+      <QuestChecklist />
+      <MvpTeaser leader={mvpLeader} />
+      <ChallengeBanner />
+      <FeedListClient
+        initialItems={feedData.items}
+        initialNextCursor={feedData.nextCursor}
+        showNudge={!hasClips}
+      />
+    </>
+  );
+}
+
+async function ParentDashboardServer({ userId, name }: { userId: string; name: string }) {
+  const { createClient } = await import("@/lib/supabase/server");
+  const { fetchLinkedChildren, fetchParentDashboard } = await import(
+    "@/lib/server/parent-home"
+  );
+  const { default: ChildDashboard } = await import(
+    "@/components/parent/ChildDashboard"
+  );
+
+  const supabase = await createClient();
+  const initialChildren = await fetchLinkedChildren(supabase, userId);
+  const initialSelectedChildId = initialChildren[0]?.childId ?? null;
+  const initialDashboard = initialSelectedChildId
+    ? await fetchParentDashboard(supabase, initialSelectedChildId, name)
+    : null;
+
+  return (
+    <ChildDashboard
+      initialChildren={initialChildren}
+      hasInitialChildrenData
+      initialSelectedChildId={initialSelectedChildId}
+      initialDashboard={initialDashboard}
+    />
+  );
+}
+
+async function ScoutHomeServer({ userId, isVerified }: { userId: string; isVerified: boolean }) {
+  const { createClient } = await import("@/lib/supabase/server");
+  const { fetchScoutHomeData } = await import("@/lib/server/scout-home");
+  const { default: ScoutHome } = await import("@/components/scout/ScoutHome");
+
+  const supabase = await createClient();
+  const initialData = await fetchScoutHomeData(
+    supabase,
+    userId,
+    isVerified // scout role already confirmed by caller
+  );
+
+  return <ScoutHome initialData={initialData} />;
+}
+
+/* ── Skeleton loaders (shown instantly while data streams) ── */
+
+function PlayerFeedSkeleton() {
+  return (
+    <div className="px-4 pt-4 pb-24 animate-pulse">
+      {/* Quest skeleton */}
+      <div className="mb-4 rounded-xl bg-card p-4">
+        <div className="h-4 w-28 rounded bg-card-alt mb-3" />
+        <div className="space-y-2">
+          <div className="h-3 w-full rounded bg-card-alt" />
+          <div className="h-3 w-3/4 rounded bg-card-alt" />
+        </div>
+      </div>
+      {/* MVP teaser skeleton */}
+      <div className="mb-4 rounded-xl bg-card p-4">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-full bg-card-alt" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-32 rounded bg-card-alt" />
+            <div className="h-3 w-20 rounded bg-card-alt" />
+          </div>
+        </div>
+      </div>
+      {/* Feed skeleton */}
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-xl bg-card p-4 animate-pulse">
+        <div key={i} className="mb-3 rounded-xl bg-card p-4">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-9 w-9 rounded-full bg-card-alt" />
             <div className="flex-1 space-y-1.5">
@@ -29,8 +120,24 @@ const FeedList = dynamic(() => import("@/components/feed/FeedList"), {
         </div>
       ))}
     </div>
-  ),
-});
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="px-4 pt-4 pb-24 animate-pulse">
+      <div className="h-10 w-40 rounded bg-card-alt mb-4" />
+      <div className="rounded-xl bg-card p-4 mb-4">
+        <div className="h-20 rounded bg-card-alt" />
+      </div>
+      <div className="rounded-xl bg-card p-4">
+        <div className="h-32 rounded bg-card-alt" />
+      </div>
+    </div>
+  );
+}
+
+/* ── Page (fast: auth check + role → Suspense stream) ── */
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -45,67 +152,30 @@ export default async function HomePage() {
     .select("role, name, is_verified")
     .eq("id", user.id)
     .maybeSingle();
+
   const role = profile?.role;
-  const isParent = role === "parent";
 
-  // Parent gets a dedicated dashboard — no feed/MVP
-  if (isParent) {
-    const initialChildren = await fetchLinkedChildren(supabase, user.id);
-    const initialSelectedChildId = initialChildren[0]?.childId ?? null;
-    const initialDashboard = initialSelectedChildId
-      ? await fetchParentDashboard(
-          supabase,
-          initialSelectedChildId,
-          profile?.name ?? "보호자"
-        )
-      : null;
-
+  if (role === "parent") {
     return (
-      <ChildDashboard
-        initialChildren={initialChildren}
-        hasInitialChildrenData
-        initialSelectedChildId={initialSelectedChildId}
-        initialDashboard={initialDashboard}
-      />
+      <Suspense fallback={<DashboardSkeleton />}>
+        <ParentDashboardServer userId={user.id} name={profile?.name ?? "보호자"} />
+      </Suspense>
     );
   }
 
-  // Scout gets an optimized discovery-focused home
-  const isScout = role === "scout";
-  if (isScout) {
-    const initialData = await fetchScoutHomeData(
-      supabase,
-      user.id,
-      canUseWatchlist(role, profile?.is_verified ?? false)
+  if (role === "scout") {
+    return (
+      <Suspense fallback={<DashboardSkeleton />}>
+        <ScoutHomeServer userId={user.id} isVerified={profile?.is_verified ?? false} />
+      </Suspense>
     );
-
-    return <ScoutHome initialData={initialData} />;
   }
-
-  // Player/coach: normal feed home
-  const [feedData, hasClips, mvpLeader] = await Promise.all([
-    fetchFeedPage(supabase, user.id),
-    hasUserUploadedClips(supabase, user.id),
-    fetchMvpLeader(supabase),
-  ]);
 
   return (
     <div className="px-4 pt-4 pb-24">
-      {/* Quest Checklist — 홈 최상단 */}
-      <QuestChecklist />
-
-      {/* MVP Teaser — server-fetched, renders immediately */}
-      <MvpTeaser leader={mvpLeader} />
-
-      {/* Weekly Challenge Banner */}
-      <ChallengeBanner />
-
-      {/* Recommended Feed with upload nudge for new users */}
-      <FeedList
-        initialItems={feedData.items}
-        initialNextCursor={feedData.nextCursor}
-        showNudge={!hasClips}
-      />
+      <Suspense fallback={<PlayerFeedSkeleton />}>
+        <PlayerFeed userId={user.id} />
+      </Suspense>
     </div>
   );
 }
