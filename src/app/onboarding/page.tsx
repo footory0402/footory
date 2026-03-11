@@ -24,7 +24,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-10">
+    <div className="flex min-h-screen min-h-[100dvh] flex-col px-6 py-10">
       {/* Role Select */}
       {showRoleSelect && (
         <div className="animate-fade-up flex-1">

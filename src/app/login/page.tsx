@@ -14,7 +14,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-6">
+    <div className="flex min-h-screen min-h-[100dvh] flex-col items-center justify-center px-6">
       {/* Logo */}
       <div className="mb-10 text-center">
         <h1
