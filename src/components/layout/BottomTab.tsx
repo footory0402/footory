@@ -64,7 +64,12 @@ export default function BottomTab() {
 
   const handleCenterTap = (tab: Tab) => {
     if (tab.href === "/upload" && (role === "player" || role === "parent")) {
-      setSheetOpen(true);
+      // 활성 챌린지가 있을 때만 시트로 선택지 제공
+      if (activeChallenge) {
+        setSheetOpen(true);
+        return;
+      }
+      router.push("/upload");
       return;
     }
     router.push(tab.href);

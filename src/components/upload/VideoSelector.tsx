@@ -4,8 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { useUploadStore } from "@/stores/upload-store";
 
-const MAX_SIZE = 100 * 1024 * 1024; // 100MB
-const MAX_DURATION = 5 * 60; // 5 minutes
+const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_DURATION = 90; // 90초 (1분 30초)
 
 export default function VideoSelector() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,17 +68,25 @@ export default function VideoSelector() {
       selected.type === "" ||
       /\.(mp4|mov|m4v|webm|avi)$/i.test(selected.name);
     if (!isVideo) {
-      setError("영상 파일만 업로드할 수 있습니다.");
+      setError("영상 파일이 아닌 것 같아요. MP4 또는 MOV 파일을 선택해주세요.");
       return;
     }
+
+    const sizeMB = (selected.size / 1024 / 1024).toFixed(0);
     if (selected.size > MAX_SIZE) {
-      setError("파일 크기는 100MB 이하만 가능합니다.");
+      setError(
+        `영상이 ${sizeMB}MB예요. 50MB 이내의 영상을 선택해주세요.\n촬영 시 해상도를 1080p로 설정하면 용량을 줄일 수 있어요.`
+      );
       return;
     }
 
     const dur = await getVideoDuration(selected);
     if (dur > MAX_DURATION) {
-      setError("영상 길이는 5분 이하만 가능합니다.");
+      const m = Math.floor(dur / 60);
+      const s = Math.round(dur % 60);
+      setError(
+        `영상이 ${m}분 ${s}초예요. 하이라이트는 1분 30초 이내가 좋아요.\n갤러리에서 영상을 잘라서 다시 선택해주세요.`
+      );
       return;
     }
 
@@ -90,6 +98,12 @@ export default function VideoSelector() {
     const s = sec % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
+
+  const sizeMB = file ? (file.size / 1024 / 1024).toFixed(1) : "0";
+  const sizePercent = file ? Math.min((file.size / MAX_SIZE) * 100, 100) : 0;
+  const durationPercent = duration
+    ? Math.min((duration / MAX_DURATION) * 100, 100)
+    : 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -112,34 +126,69 @@ export default function VideoSelector() {
               {formatDuration(duration)}
             </div>
           </div>
-          {/* File info row */}
-          <div className="flex items-center justify-between px-3 py-2.5">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              <span className="text-lg">🎬</span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-text-1">
-                  {file.name}
-                </p>
-                <p className="text-[11px] text-text-3">
-                  {(file.size / 1024 / 1024).toFixed(1)} MB
-                </p>
+
+          {/* File info + usage bars */}
+          <div className="px-3 py-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-text-1">
+                    {file.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFile(null);
+                  setPreview(null);
+                  setDuration(0);
+                  if (inputRef.current) inputRef.current.value = "";
+                }}
+                className="rounded-full p-1.5 text-text-3 transition-colors active:bg-surface"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Usage indicators */}
+            <div className="mt-2 flex gap-3">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-text-3">용량</span>
+                  <span className="text-[11px] text-text-3 font-stat">{sizeMB} / 50MB</span>
+                </div>
+                <div className="h-1 rounded-full bg-white/10">
+                  <div
+                    className="h-1 rounded-full transition-all"
+                    style={{
+                      width: `${sizePercent}%`,
+                      backgroundColor: sizePercent > 85 ? "var(--color-accent)" : "var(--color-accent)",
+                      opacity: sizePercent > 85 ? 1 : 0.6,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-text-3">길이</span>
+                  <span className="text-[11px] text-text-3 font-stat">{formatDuration(duration)} / 1:30</span>
+                </div>
+                <div className="h-1 rounded-full bg-white/10">
+                  <div
+                    className="h-1 rounded-full transition-all"
+                    style={{
+                      width: `${durationPercent}%`,
+                      backgroundColor: "var(--color-accent)",
+                      opacity: durationPercent > 85 ? 1 : 0.6,
+                    }}
+                  />
+                </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setFile(null);
-                setPreview(null);
-                setDuration(0);
-                if (inputRef.current) inputRef.current.value = "";
-              }}
-              className="rounded-full p-1.5 text-text-3 transition-colors active:bg-surface"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
           </div>
         </div>
       ) : (
@@ -147,7 +196,7 @@ export default function VideoSelector() {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[var(--color-border)] bg-card transition-colors active:border-accent"
+          className="flex aspect-video w-full flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-[var(--color-border)] bg-card transition-colors active:border-accent"
         >
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent-bg)]">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -155,12 +204,22 @@ export default function VideoSelector() {
               <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
           </div>
-          <span className="text-sm font-medium text-text-2">
-            영상을 선택하세요
-          </span>
-          <span className="text-xs text-text-3">
-            MP4, MOV · 최대 5분 · 100MB 이하
-          </span>
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-sm font-medium text-text-2">
+              하이라이트 영상을 선택하세요
+            </span>
+            <div className="flex items-center gap-2 text-[11px] text-text-3">
+              <span className="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                1분 30초 이내
+              </span>
+              <span className="text-border">|</span>
+              <span className="flex items-center gap-1">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                50MB 이내
+              </span>
+            </div>
+          </div>
         </button>
       )}
 
@@ -184,9 +243,8 @@ export default function VideoSelector() {
       )}
 
       {error && (
-        <div className="flex items-start gap-2 rounded-lg bg-red/10 px-3 py-2.5 text-sm text-red ring-1 ring-red/30">
-          <span className="mt-0.5 shrink-0">⚠️</span>
-          <span>{error}</span>
+        <div className="rounded-xl bg-[#2a1f1f] px-4 py-3 ring-1 ring-[#ff6b6b]/20">
+          <p className="text-[13px] leading-relaxed text-[#ff8a8a] whitespace-pre-line">{error}</p>
         </div>
       )}
     </div>
