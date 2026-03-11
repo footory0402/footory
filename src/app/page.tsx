@@ -2,23 +2,19 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isPocAdminUser } from "@/lib/poc-admin";
+import ChildDashboard from "@/components/parent/ChildDashboard";
+import ScoutHome from "@/components/scout/ScoutHome";
+import MvpTeaser from "@/components/mvp/MvpTeaser";
+import ChallengeBanner from "@/components/challenge/ChallengeBanner";
+import QuestChecklist from "@/components/quest/QuestChecklist";
+import FeedListClient from "@/components/feed/FeedList";
+import WelcomeModal from "@/components/onboarding/WelcomeModal";
 
 /* ── Async server components (heavy data fetch, streamed via Suspense) ── */
 
 async function PlayerFeed({ userId }: { userId: string }) {
-  const { default: dynamic } = await import("next/dynamic");
   const { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } = await import(
     "@/lib/server/feed"
-  );
-  const { default: MvpTeaser } = await import("@/components/mvp/MvpTeaser");
-  const { default: ChallengeBanner } = await import(
-    "@/components/challenge/ChallengeBanner"
-  );
-  const { default: QuestChecklist } = await import(
-    "@/components/quest/QuestChecklist"
-  );
-  const { default: FeedListClient } = await import(
-    "@/components/feed/FeedList"
   );
 
   const supabase = await createClient();
@@ -30,6 +26,7 @@ async function PlayerFeed({ userId }: { userId: string }) {
 
   return (
     <>
+      <WelcomeModal />
       <QuestChecklist />
       <MvpTeaser leader={mvpLeader} />
       <ChallengeBanner />
@@ -43,12 +40,8 @@ async function PlayerFeed({ userId }: { userId: string }) {
 }
 
 async function ParentDashboardServer({ userId, name }: { userId: string; name: string }) {
-  const { createClient } = await import("@/lib/supabase/server");
   const { fetchLinkedChildren, fetchParentDashboard } = await import(
     "@/lib/server/parent-home"
-  );
-  const { default: ChildDashboard } = await import(
-    "@/components/parent/ChildDashboard"
   );
 
   const supabase = await createClient();
@@ -69,9 +62,7 @@ async function ParentDashboardServer({ userId, name }: { userId: string; name: s
 }
 
 async function ScoutHomeServer({ userId, isVerified }: { userId: string; isVerified: boolean }) {
-  const { createClient } = await import("@/lib/supabase/server");
   const { fetchScoutHomeData } = await import("@/lib/server/scout-home");
-  const { default: ScoutHome } = await import("@/components/scout/ScoutHome");
 
   const supabase = await createClient();
   const initialData = await fetchScoutHomeData(

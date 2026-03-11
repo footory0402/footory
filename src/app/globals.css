@@ -290,6 +290,10 @@ body {
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  *:focus-visible {
+    outline: 2px solid rgba(212, 168, 83, 0.7);
+    outline-offset: 2px;
   }
 }

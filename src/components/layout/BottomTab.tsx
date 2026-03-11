@@ -28,7 +28,7 @@ const parentTabs: Tab[] = [
   { href: "/mvp", label: "MVP", icon: MvpIcon },
   { href: "/upload", label: "영상 올려주기", icon: PlusIcon, isCenter: true },
   { href: "/team", label: "팀", icon: TeamIcon },
-  { href: "/profile/settings", label: "설정", icon: SettingsIcon },
+  { href: "/profile/settings", label: "내 계정", icon: UserIcon },
 ];
 
 const scoutTabs: Tab[] = [

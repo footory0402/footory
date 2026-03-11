@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signUpWithEmail } from "@/lib/auth";
 
 export default function EmailSignupForm() {
@@ -11,6 +11,36 @@ export default function EmailSignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
+  useEffect(() => {
+    if (!success) return;
+    setResendCooldown(60);
+    setCanResend(false);
+    const id = setInterval(() => {
+      setResendCooldown((c) => {
+        if (c <= 1) { clearInterval(id); setCanResend(true); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [success]);
+
+  const handleResend = async () => {
+    if (!canResend) return;
+    setCanResend(false);
+    setResendCooldown(60);
+    try {
+      await signUpWithEmail(email, password);
+    } catch {}
+    const id = setInterval(() => {
+      setResendCooldown((c) => {
+        if (c <= 1) { clearInterval(id); setCanResend(true); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+  };
 
   const passwordValid = password.length >= 8;
   const passwordMatch = password === confirmPassword;
@@ -50,6 +80,17 @@ export default function EmailSignupForm() {
           <br />
           메일함에서 인증 링크를 클릭해주세요.
         </p>
+        <p className="text-xs text-text-3">스팸 폴더도 확인해보세요</p>
+        {canResend ? (
+          <button
+            onClick={handleResend}
+            className="mt-1 rounded-full border border-border px-5 py-2 text-sm text-text-2 transition-colors hover:border-accent hover:text-accent"
+          >
+            인증 메일 다시 보내기
+          </button>
+        ) : (
+          <p className="mt-1 text-xs text-text-3">{resendCooldown}초 후 재전송 가능</p>
+        )}
       </div>
     );
   }

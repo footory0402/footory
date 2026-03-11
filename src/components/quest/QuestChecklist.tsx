@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ONBOARDING_QUESTS, getWeeklyQuests } from "@/lib/quests";
+
+const ACTION_ROUTES: Record<string, string> = {
+  profile_photo: "/profile",
+  upload: "/upload",
+  follow: "/discover",
+  kudos: "/",
+  vote: "/mvp",
+};
 
 interface QuestProgress {
   quest_key: string;
@@ -22,14 +31,19 @@ function QuestItem({
   xp,
   completed,
   action,
+  onClick,
 }: {
   label: string;
   xp: number;
   completed: boolean;
   action: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 py-2.5">
+    <div
+      className={`flex items-center gap-3 py-2.5 ${!completed && onClick ? "cursor-pointer rounded-lg transition-colors hover:bg-white/[0.03] active:bg-white/[0.05]" : ""}`}
+      onClick={!completed ? onClick : undefined}
+    >
       {/* Check circle / icon */}
       <div
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors"
@@ -66,17 +80,25 @@ function QuestItem({
         {label}
       </span>
 
-      {/* XP */}
+      {/* XP + 화살표 */}
       {!completed && (
-        <span className="font-stat text-[11px] font-bold text-accent">
-          +{xp}
-        </span>
+        <div className="flex items-center gap-1">
+          <span className="font-stat text-[11px] font-bold text-accent">
+            +{xp}
+          </span>
+          {onClick && (
+            <svg className="h-3.5 w-3.5 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
 export default function QuestChecklist() {
+  const router = useRouter();
   const [progress, setProgress] = useState<QuestProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
@@ -163,6 +185,8 @@ export default function QuestChecklist() {
             {done}/{total}
           </span>
         </div>
+        {/* XP 설명 툴팁 */}
+        <span className="text-[10px] text-text-3">XP 쌓으면 레벨업!</span>
         {/* 닫기 (주간 퀘스트만 — 온보딩은 못 닫음) */}
         {!showOnboarding && (
           <button
@@ -207,6 +231,7 @@ export default function QuestChecklist() {
             xp={q.xp}
             completed={completedKeys.has(q.key)}
             action={q.action}
+            onClick={ACTION_ROUTES[q.action] ? () => router.push(ACTION_ROUTES[q.action]) : undefined}
           />
         ))}
 

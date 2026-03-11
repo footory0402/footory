@@ -179,7 +179,7 @@ export default function ScoutOnboarding({ onBack }: Props) {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-text-2">내 주소</label>
+          <label className="mb-1.5 block text-xs font-medium text-text-2">내 프로필 주소</label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-text-3">@</span>
             <input
@@ -187,14 +187,38 @@ export default function ScoutOnboarding({ onBack }: Props) {
               value={handle}
               onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
               placeholder="my_handle"
-              className="w-full rounded-lg border border-border bg-card py-3 pl-9 pr-4 text-sm text-text-1 placeholder:text-text-3 focus:border-accent focus:outline-none"
+              className={`w-full rounded-lg border bg-card py-3 pl-9 pr-8 text-sm text-text-1 placeholder:text-text-3 focus:outline-none transition-colors ${
+                handleStatus === "available" ? "border-green" :
+                handleStatus === "taken" || handleStatus === "invalid" ? "border-red" :
+                handleStatus === "checking" ? "border-yellow" :
+                "border-border focus:border-accent"
+              }`}
               maxLength={20}
             />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2">
+              {handleStatus === "checking" && (
+                <svg className="h-4 w-4 animate-spin text-yellow" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              )}
+              {handleStatus === "available" && (
+                <svg className="h-4 w-4 text-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+              {(handleStatus === "taken" || handleStatus === "invalid") && (
+                <svg className="h-4 w-4 text-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              )}
+            </span>
           </div>
+          {handleStatus === "idle" && <p className="mt-1 text-xs text-text-3">영문 소문자, 숫자, _(언더스코어) 3~20자</p>}
           {handleStatus === "checking" && <p className="mt-1 text-xs text-text-3">확인 중...</p>}
-          {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 주소예요</p>}
-          {handleStatus === "taken" && <p className="mt-1 text-xs text-red">이미 사용 중인 주소예요</p>}
-          {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">3~20자, 영소문자/숫자/밑줄만 가능</p>}
+          {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 주소예요 ✓</p>}
+          {handleStatus === "taken" && <p className="mt-1 text-xs text-red">⚠ 이미 사용 중인 주소예요</p>}
+          {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">⚠ 3~20자, 영문 소문자·숫자·_(언더스코어)만 가능</p>}
         </div>
 
         <div>

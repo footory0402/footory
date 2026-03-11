@@ -43,6 +43,16 @@ export default function LoginPage() {
         </p>
       </div>
 
+      {/* App preview strip — CSS 애니메이션(state 불필요, hydration 안전) */}
+      <div
+        className="mb-8 flex justify-center gap-5 text-[11px] text-text-3"
+        style={{ animation: "fadeUp 0.5s var(--ease-out) 1s both" }}
+      >
+        <span>⚽ 하이라이트 업로드</span>
+        <span>🏆 주간 MVP 투표</span>
+        <span>📊 스킬 포트폴리오</span>
+      </div>
+
       {/* Login content */}
       <div
         className={`w-full max-w-[320px] transition-all duration-500 ${

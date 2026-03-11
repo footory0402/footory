@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { POSITIONS, HANDLE_REGEX } from "@/lib/constants";
+import { POSITIONS, POSITION_LABELS, HANDLE_REGEX } from "@/lib/constants";
 import { toast } from "sonner";
+
+const DRAFT_KEY = "footory_onboarding_player_draft";
 
 const FOOT_OPTIONS = [
   { value: "right", label: "오른발" },
@@ -39,6 +41,32 @@ export default function PlayerOnboarding({ onBack }: Props) {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // localStorage 복원
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.name) setName(d.name);
+      if (d.handle) setHandle(d.handle);
+      if (d.position) setPosition(d.position);
+      if (d.birthYear) setBirthYear(d.birthYear);
+      if (d.heightCm) setHeightCm(d.heightCm);
+      if (d.weightKg) setWeightKg(d.weightKg);
+      if (d.preferredFoot) setPreferredFoot(d.preferredFoot);
+      if (d.step && d.step > 1) setStep(d.step);
+    } catch {}
+  }, []);
+
+  // localStorage 저장
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        name, handle, position, birthYear, heightCm, weightKg, preferredFoot, step,
+      }));
+    } catch {}
+  }, [name, handle, position, birthYear, heightCm, weightKg, preferredFoot, step]);
 
   // Handle check debounce
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -131,7 +159,9 @@ export default function PlayerOnboarding({ onBack }: Props) {
       });
 
       if (res.ok) {
-        router.push("/profile");
+        try { localStorage.removeItem(DRAFT_KEY); } catch {}
+        localStorage.setItem("footory_show_welcome", "1");
+        router.push("/");
       } else {
         const data = await res.json();
         toast.error(data.error || "프로필 생성에 실패했어요");
@@ -179,7 +209,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
 
             {/* Handle */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-text-2">내 주소</label>
+              <label className="mb-1.5 block text-xs font-medium text-text-2">내 프로필 주소</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-text-3">@</span>
                 <input
@@ -187,14 +217,39 @@ export default function PlayerOnboarding({ onBack }: Props) {
                   value={handle}
                   onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
                   placeholder="my_handle"
-                  className="w-full rounded-lg border border-border bg-card py-3 pl-9 pr-4 text-sm text-text-1 placeholder:text-text-3 focus:border-accent focus:outline-none"
+                  className={`w-full rounded-lg border bg-card py-3 pl-9 pr-8 text-sm text-text-1 placeholder:text-text-3 focus:outline-none transition-colors ${
+                    handleStatus === "available" ? "border-green" :
+                    handleStatus === "taken" || handleStatus === "invalid" ? "border-red" :
+                    handleStatus === "checking" ? "border-yellow" :
+                    "border-border focus:border-accent"
+                  }`}
                   maxLength={20}
                 />
+                {/* 상태 아이콘 */}
+                <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {handleStatus === "checking" && (
+                    <svg className="h-4 w-4 animate-spin text-yellow" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                  )}
+                  {handleStatus === "available" && (
+                    <svg className="h-4 w-4 text-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                  {(handleStatus === "taken" || handleStatus === "invalid") && (
+                    <svg className="h-4 w-4 text-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  )}
+                </span>
               </div>
+              {handleStatus === "idle" && <p className="mt-1 text-xs text-text-3">영문 소문자, 숫자, _(언더스코어) 3~20자</p>}
               {handleStatus === "checking" && <p className="mt-1 text-xs text-text-3">확인 중...</p>}
-              {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 주소예요</p>}
-              {handleStatus === "taken" && <p className="mt-1 text-xs text-red">이미 사용 중인 주소예요</p>}
-              {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">3~20자, 영소문자/숫자/밑줄만 가능</p>}
+              {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 주소예요 ✓</p>}
+              {handleStatus === "taken" && <p className="mt-1 text-xs text-red">⚠ 이미 사용 중인 주소예요</p>}
+              {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">⚠ 3~20자, 영문 소문자·숫자·_(언더스코어)만 가능</p>}
             </div>
 
             {/* Position */}
@@ -205,13 +260,18 @@ export default function PlayerOnboarding({ onBack }: Props) {
                   <button
                     key={pos}
                     onClick={() => setPosition(pos)}
-                    className={`flex-1 rounded-lg border py-3 text-sm font-semibold transition-all ${
+                    className={`flex-1 rounded-lg border py-2.5 transition-all ${
                       position === pos
                         ? "border-accent bg-[var(--accent-bg)] text-accent"
                         : "border-border bg-card text-text-2"
                     }`}
                   >
-                    {pos}
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-sm font-bold">{pos}</span>
+                      <span className={`text-[10px] font-normal ${position === pos ? "text-accent/70" : "text-text-3"}`}>
+                        {POSITION_LABELS[pos]}
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -306,18 +366,26 @@ export default function PlayerOnboarding({ onBack }: Props) {
             </div>
           </div>
 
-          <div className="mt-8 flex gap-3">
-            <button
-              onClick={() => setStep(1)}
-              className="rounded-full border border-border px-6 py-3 text-sm font-medium text-text-2"
-            >
-              이전
-            </button>
+          <div className="mt-8 flex flex-col gap-2">
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(1)}
+                className="rounded-full border border-border px-6 py-3 text-sm font-medium text-text-2"
+              >
+                이전
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                className="flex-1 rounded-full bg-accent py-3 text-sm font-bold text-bg transition-opacity"
+              >
+                다음
+              </button>
+            </div>
             <button
               onClick={() => setStep(3)}
-              className="flex-1 rounded-full bg-accent py-3 text-sm font-bold text-bg transition-opacity"
+              className="py-2 text-center text-sm text-text-3 transition-colors hover:text-text-2"
             >
-              다음
+              측정 정보 건너뛰기
             </button>
           </div>
         </div>
