@@ -47,7 +47,6 @@ export async function startUpload() {
     store.setClipId(clipId);
 
     // 2. Upload to R2 via presigned PUT
-    let presignUploadOk = false;
     try {
       const xhr = new XMLHttpRequest();
       await new Promise<void>((resolve, reject) => {
@@ -60,27 +59,21 @@ export async function startUpload() {
           xhr.status < 300 ? resolve() : reject(new Error(`R2 PUT ${xhr.status}`));
         xhr.onerror = () => reject(new Error("Network error"));
         xhr.open("PUT", url);
-        xhr.setRequestHeader("Content-Type", store.file!.type || "video/mp4");
+        xhr.setRequestHeader("Content-Type", fileContentType);
         xhr.send(store.file);
       });
-      presignUploadOk = true;
     } catch (xhrErr) {
-      // XHR failed — try fetch as fallback (different CORS handling)
-      try {
-        const fetchRes = await fetch(url, {
-          method: "PUT",
-          headers: { "Content-Type": store.file!.type || "video/mp4" },
-          body: store.file,
-        });
-        if (!fetchRes.ok) throw new Error(`R2 PUT ${fetchRes.status}`);
-        presignUploadOk = true;
-        store.setProgress(90);
-      } catch {
-        // Both presigned methods failed — try direct server upload
-        await uploadViaDirectApi(store.file!, key, fileContentType);
-        store.setProgress(90);
+      // XHR failed — try fetch as fallback
+      const fetchRes = await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": fileContentType },
+        body: store.file,
+      });
+      if (!fetchRes.ok) {
+        throw new Error(`영상 업로드 실패 (${fetchRes.status}). 네트워크를 확인해주세요.`);
       }
     }
+    store.setProgress(90);
 
     // 3. Capture thumbnail
     store.setStatus("thumbnail");
