@@ -50,7 +50,7 @@ export async function updatePassword(newPassword: string) {
 
 export async function signOut() {
   const supabase = createClient();
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  // signOut can fail if refresh token is already invalid — ignore the error
+  await supabase.auth.signOut().catch(() => {});
   window.location.href = "/login";
 }

@@ -45,11 +45,20 @@ export async function proxy(request: NextRequest) {
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Not logged in → redirect to login
+  // Not logged in → redirect to login & clear stale auth cookies
   if (userError || !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+
+    // Clear all Supabase auth cookies to prevent stale refresh token loops
+    request.cookies.getAll().forEach(({ name }) => {
+      if (name.startsWith("sb-")) {
+        redirectResponse.cookies.delete(name);
+      }
+    });
+
+    return redirectResponse;
   }
 
   // 프로필 없는 인증 사용자 → 온보딩으로 리다이렉트

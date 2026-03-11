@@ -9,6 +9,13 @@ export default function LoginPage() {
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
+    // Clear stale Supabase session from localStorage to prevent auth errors
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("sb-")) localStorage.removeItem(key);
+      });
+    } catch {}
+
     const timer = setTimeout(() => setShowContent(true), 300);
     return () => clearTimeout(timer);
   }, []);
