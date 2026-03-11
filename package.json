@@ -5,7 +5,7 @@
   "scripts": {
     "admin:create": "node --env-file=.env.local scripts/create-poc-admin.mjs",
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "node scripts/setup-r2-cors.mjs && next build",
     "start": "next start",
     "start:e2e": "next build && next start",
     "seed:showcase": "node scripts/refresh-showcase-data.mjs",

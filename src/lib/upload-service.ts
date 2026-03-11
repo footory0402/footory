@@ -3,7 +3,9 @@ import { captureVideoThumbnail } from "@/lib/thumbnail";
 import { getFileDuration } from "@/lib/video";
 import { useUploadStore } from "@/stores/upload-store";
 
-async function uploadViaDirectApi(
+const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB — Vercel body limit
+
+async function uploadViaProxy(
   file: Blob,
   key: string,
   contentType: string
@@ -20,8 +22,67 @@ async function uploadViaDirectApi(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? "Direct upload failed");
+    throw new Error(body.error ?? "서버 업로드 실패");
   }
+}
+
+async function uploadToR2(
+  url: string,
+  file: File,
+  key: string,
+  contentType: string,
+  onProgress: (pct: number) => void
+): Promise<void> {
+  // 1차: XHR (progress 지원)
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress((e.loaded / e.total) * 90);
+      };
+      xhr.onload = () =>
+        xhr.status < 300
+          ? resolve()
+          : reject(new Error(`R2 ${xhr.status}: ${xhr.statusText}`));
+      xhr.onerror = () => reject(new Error("네트워크 오류 (XHR)"));
+      xhr.ontimeout = () => reject(new Error("업로드 시간 초과"));
+      xhr.timeout = 5 * 60 * 1000; // 5분
+      xhr.open("PUT", url);
+      xhr.send(file); // Content-Type 헤더 설정하지 않음 (CORS preflight 최소화)
+    });
+    return;
+  } catch (xhrErr) {
+    console.warn("[Upload] XHR failed:", xhrErr);
+  }
+
+  // 2차: fetch
+  try {
+    const res = await fetch(url, {
+      method: "PUT",
+      body: file,
+    });
+    if (res.ok) {
+      onProgress(90);
+      return;
+    }
+    console.warn("[Upload] Fetch PUT failed:", res.status, res.statusText);
+  } catch (fetchErr) {
+    console.warn("[Upload] Fetch failed:", fetchErr);
+  }
+
+  // 3차: 서버 프록시 (4MB 이하만)
+  if (file.size <= SERVER_PROXY_LIMIT) {
+    await uploadViaProxy(file, key, contentType);
+    onProgress(90);
+    return;
+  }
+
+  // 모두 실패
+  throw new Error(
+    "영상을 R2에 업로드할 수 없습니다.\n" +
+    "Cloudflare Dashboard → R2 → 버킷 설정에서\n" +
+    "CORS 정책을 확인해주세요."
+  );
 }
 
 export async function startUpload() {
@@ -32,8 +93,9 @@ export async function startUpload() {
     store.setStatus("uploading");
     store.setProgress(0);
 
-    // 1. Get presigned URL
     const fileContentType = store.file!.type || "video/mp4";
+
+    // 1. Get presigned URL
     const presignRes = await fetch("/api/upload/presign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -46,33 +108,10 @@ export async function startUpload() {
     const { url, key, clipId } = await presignRes.json();
     store.setClipId(clipId);
 
-    // 2. Upload to R2 via presigned PUT
-    try {
-      const xhr = new XMLHttpRequest();
-      await new Promise<void>((resolve, reject) => {
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            store.setProgress((e.loaded / e.total) * 90);
-          }
-        };
-        xhr.onload = () =>
-          xhr.status < 300 ? resolve() : reject(new Error(`R2 PUT ${xhr.status}`));
-        xhr.onerror = () => reject(new Error("Network error"));
-        xhr.open("PUT", url);
-        xhr.setRequestHeader("Content-Type", fileContentType);
-        xhr.send(store.file);
-      });
-    } catch (xhrErr) {
-      // XHR failed — try fetch as fallback
-      const fetchRes = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": fileContentType },
-        body: store.file,
-      });
-      if (!fetchRes.ok) {
-        throw new Error(`영상 업로드 실패 (${fetchRes.status}). 네트워크를 확인해주세요.`);
-      }
-    }
+    // 2. Upload video to R2
+    await uploadToR2(url, store.file!, key, fileContentType, (pct) =>
+      store.setProgress(pct)
+    );
     store.setProgress(90);
 
     // 3. Capture thumbnail
@@ -91,13 +130,15 @@ export async function startUpload() {
       });
       if (thumbPresign.ok) {
         const { url: thumbUrl, key: thumbKey } = await thumbPresign.json();
-        const thumbUploadRes = await fetch(thumbUrl, {
-          method: "PUT",
-          headers: { "Content-Type": "image/jpeg" },
-          body: thumbBlob,
-        }).catch(() => null);
-        if (!thumbUploadRes || !thumbUploadRes.ok) {
-          await uploadViaDirectApi(thumbBlob, thumbKey, "image/jpeg");
+        // 썸네일은 작으므로 presigned URL 또는 서버 프록시 모두 가능
+        try {
+          const thumbRes = await fetch(thumbUrl, {
+            method: "PUT",
+            body: thumbBlob,
+          });
+          if (!thumbRes.ok) throw new Error("thumb presign fail");
+        } catch {
+          await uploadViaProxy(thumbBlob, thumbKey, "image/jpeg");
         }
         thumbnailUrl = getPublicVideoUrl(thumbKey);
       }
