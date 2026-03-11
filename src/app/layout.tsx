@@ -57,7 +57,7 @@ export default function RootLayout({
     <html lang="ko" className={`dark ${notoSansKr.variable} ${oswald.variable} ${rajdhani.variable}`}>
       <body>
         <ServiceWorkerRegister />
-        <div className="mx-auto min-h-screen min-h-[100dvh] max-w-[430px]">
+        <div className="mx-auto min-h-screen max-w-[430px]">
           <AppShell>{children}</AppShell>
         </div>
         <Toaster

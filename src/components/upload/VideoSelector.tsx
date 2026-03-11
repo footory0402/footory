@@ -60,7 +60,14 @@ export default function VideoSelector() {
     setPreview(null);
     setDuration(0);
 
-    if (!selected.type.startsWith("video/")) {
+    // iOS Safari에서 MOV 파일의 MIME type이 빈 문자열이거나
+    // application/octet-stream으로 보고될 수 있음
+    const isVideo =
+      selected.type.startsWith("video/") ||
+      selected.type === "application/octet-stream" ||
+      selected.type === "" ||
+      /\.(mp4|mov|m4v|webm|avi)$/i.test(selected.name);
+    if (!isVideo) {
       setError("영상 파일만 업로드할 수 있습니다.");
       return;
     }
@@ -152,7 +159,7 @@ export default function VideoSelector() {
             영상을 선택하세요
           </span>
           <span className="text-xs text-text-3">
-            MP4 · 최대 5분 · 100MB 이하
+            MP4, MOV · 최대 5분 · 100MB 이하
           </span>
         </button>
       )}

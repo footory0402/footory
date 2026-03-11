@@ -33,7 +33,12 @@ export async function startUpload() {
     store.setProgress(0);
 
     // 1. Get presigned URL
-    const presignRes = await fetch("/api/upload/presign", { method: "POST" });
+    const fileContentType = store.file!.type || "video/mp4";
+    const presignRes = await fetch("/api/upload/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentType: fileContentType }),
+    });
     if (!presignRes.ok) {
       const errBody = await presignRes.json().catch(() => ({}));
       throw new Error(errBody.error ?? `Presign 요청 실패 (${presignRes.status})`);
@@ -72,7 +77,7 @@ export async function startUpload() {
         store.setProgress(90);
       } catch {
         // Both presigned methods failed — try direct server upload
-        await uploadViaDirectApi(store.file!, key, "video/mp4");
+        await uploadViaDirectApi(store.file!, key, fileContentType);
         store.setProgress(90);
       }
     }

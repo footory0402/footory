@@ -41,19 +41,19 @@ export async function proxy(request: NextRequest) {
   );
 
   const {
-    data: claimsData,
-    error: claimsError,
-  } = await supabase.auth.getClaims();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
   // Not logged in → redirect to login
-  if (claimsError || !claimsData?.claims?.sub) {
+  if (userError || !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   // 프로필 없는 인증 사용자 → 온보딩으로 리다이렉트
-  const userId = claimsData.claims.sub as string;
+  const userId = user.id;
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")

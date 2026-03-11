@@ -19,16 +19,18 @@ function getR2Client() {
 
 export async function getPresignedUploadUrl(
   userId: string,
-  clipId: string
+  clipId: string,
+  contentType: string = "video/mp4"
 ): Promise<{ url: string; key: string }> {
-  const key = `originals/${userId}/${clipId}.mp4`;
+  const ext = contentType === "video/quicktime" ? "mov" : "mp4";
+  const key = `originals/${userId}/${clipId}.${ext}`;
   const bucket = process.env.R2_BUCKET_NAME || "footory-videos";
 
   const client = getR2Client();
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
-    ContentType: "video/mp4",
+    ContentType: contentType,
   });
 
   const url = await getSignedUrl(client, command, { expiresIn: 600 });

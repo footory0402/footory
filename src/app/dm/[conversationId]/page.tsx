@@ -135,7 +135,7 @@ export default function ConversationPage({
   );
 
   return (
-    <div className="flex h-dvh flex-col bg-bg">
+    <div className="flex h-screen flex-col bg-bg">
       {/* Header */}
       <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-bg/95 px-4 py-3">
         <button
