@@ -35,6 +35,7 @@ export async function getPresignedUploadUrl(
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
+    ContentType: contentType,
   });
 
   const url = await getSignedUrl(client, command, { expiresIn: 600 });
@@ -52,6 +53,7 @@ export async function getPresignedThumbnailUrl(
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
+    ContentType: "image/jpeg",
   });
 
   const url = await getSignedUrl(client, command, { expiresIn: 600 });

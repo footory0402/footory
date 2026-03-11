@@ -4,11 +4,29 @@ export function getFileDuration(file: File): Promise<number> {
     video.preload = "metadata";
     video.muted = true;
     video.playsInline = true;
-    video.onloadedmetadata = () => {
+
+    // iOS Safari timeout: onloadedmetadata may never fire for some codecs
+    const timeout = setTimeout(() => {
       URL.revokeObjectURL(video.src);
-      resolve(Math.round(video.duration));
+      resolve(0);
+    }, 8000);
+
+    video.onloadedmetadata = () => {
+      clearTimeout(timeout);
+      URL.revokeObjectURL(video.src);
+      const dur = video.duration;
+      // iOS can return Infinity for some MOV files
+      if (!dur || !isFinite(dur)) {
+        resolve(0);
+        return;
+      }
+      resolve(Math.round(dur));
     };
-    video.onerror = () => resolve(0);
+    video.onerror = () => {
+      clearTimeout(timeout);
+      URL.revokeObjectURL(video.src);
+      resolve(0);
+    };
     video.src = URL.createObjectURL(file);
   });
 }

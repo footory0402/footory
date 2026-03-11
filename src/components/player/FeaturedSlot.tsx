@@ -98,14 +98,17 @@ function FeaturedSlot({
         </span>
       )}
 
-      {/* Remove button */}
+      {/* Remove from featured button */}
       {onRemove && (
         <button
-          onClick={() => onRemove(clipId)}
-          className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={(e) => { e.stopPropagation(); onRemove(clipId); }}
+          className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors active:bg-red-500/80"
           style={tag ? { top: "28px" } : undefined}
+          aria-label="대표 영상 해제"
         >
-          ✕
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
         </button>
       )}
     </div>

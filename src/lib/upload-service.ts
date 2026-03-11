@@ -5,6 +5,29 @@ import { useUploadStore } from "@/stores/upload-store";
 
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB — Vercel body limit
 
+/**
+ * iOS Safari often reports empty or wrong MIME types for video files.
+ * Infer from file extension as fallback.
+ */
+function resolveContentType(file: File): string {
+  if (file.type && file.type.startsWith("video/")) return file.type;
+
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "mov":
+      return "video/quicktime";
+    case "m4v":
+      return "video/x-m4v";
+    case "webm":
+      return "video/webm";
+    case "avi":
+      return "video/x-msvideo";
+    case "mp4":
+    default:
+      return "video/mp4";
+  }
+}
+
 async function uploadViaProxy(
   file: Blob,
   key: string,
@@ -48,7 +71,8 @@ async function uploadToR2(
       xhr.ontimeout = () => reject(new Error("업로드 시간 초과"));
       xhr.timeout = 5 * 60 * 1000; // 5분
       xhr.open("PUT", url);
-      xhr.send(file); // Content-Type 헤더 설정하지 않음 (CORS preflight 최소화)
+      xhr.setRequestHeader("Content-Type", contentType);
+      xhr.send(file);
     });
     return;
   } catch (xhrErr) {
@@ -59,6 +83,7 @@ async function uploadToR2(
   try {
     const res = await fetch(url, {
       method: "PUT",
+      headers: { "Content-Type": contentType },
       body: file,
     });
     if (res.ok) {
@@ -93,7 +118,7 @@ export async function startUpload() {
     store.setStatus("uploading");
     store.setProgress(0);
 
-    const fileContentType = store.file!.type || "video/mp4";
+    const fileContentType = resolveContentType(store.file!);
 
     // 1. Get presigned URL
     const presignRes = await fetch("/api/upload/presign", {
@@ -134,6 +159,7 @@ export async function startUpload() {
         try {
           const thumbRes = await fetch(thumbUrl, {
             method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
             body: thumbBlob,
           });
           if (!thumbRes.ok) throw new Error("thumb presign fail");

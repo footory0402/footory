@@ -25,19 +25,18 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
   const router = useRouter();
   const [open, setOpen] = useState(clips.length > 0);
   const [playingClip, setPlayingClip] = useState<TagClip | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const hasClips = clips.length > 0;
   const topClip = clips.find((c) => c.isTop);
 
-  const handleDelete = async (clipId: string) => {
-    if (!onDeleteClip) return;
+  const handleDelete = async (clipId: string): Promise<boolean> => {
+    if (!onDeleteClip) return false;
     setDeleting(true);
     try {
-      await onDeleteClip(clipId);
+      const ok = await onDeleteClip(clipId);
+      return ok;
     } finally {
       setDeleting(false);
-      setConfirmDeleteId(null);
     }
   };
 
@@ -94,36 +93,6 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
                       )}
                     </div>
                   </button>
-                  {/* Delete button */}
-                  {onDeleteClip && (
-                    confirmDeleteId === clip.id ? (
-                      <div className="absolute top-1 right-1 flex items-center gap-1 z-10">
-                        <button
-                          onClick={() => handleDelete(clip.id)}
-                          disabled={deleting}
-                          className="rounded-md bg-red-500 px-2 py-1 text-[10px] font-bold text-white shadow-lg"
-                        >
-                          {deleting ? "..." : "삭제"}
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteId(null)}
-                          className="rounded-md bg-white/30 px-2 py-1 text-[10px] font-bold text-white shadow-lg backdrop-blur-sm"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmDeleteId(clip.id)}
-                        className="absolute top-1 right-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-lg backdrop-blur-sm"
-                        aria-label="영상 삭제"
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                          <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )
-                  )}
                 </div>
               ))}
               {/* Add button */}
@@ -154,7 +123,9 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
       {playingClip && (
         <ClipPlayerSheet
           videoUrl={playingClip.videoUrl}
+          clipId={playingClip.id}
           onClose={() => setPlayingClip(null)}
+          onDelete={onDeleteClip ? handleDelete : undefined}
         />
       )}
     </div>

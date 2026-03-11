@@ -12,6 +12,13 @@ export function captureVideoThumbnail(
     video.playsInline = true;
 
     const url = URL.createObjectURL(file);
+
+    // iOS Safari: metadata/seek may never complete for some codecs
+    const timeout = setTimeout(() => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    }, 10000);
+
     video.src = url;
 
     video.onloadedmetadata = () => {
@@ -21,6 +28,7 @@ export function captureVideoThumbnail(
     };
 
     video.onseeked = () => {
+      clearTimeout(timeout);
       const canvas = document.createElement("canvas");
       canvas.width = 320;
       canvas.height = 180;
@@ -49,6 +57,7 @@ export function captureVideoThumbnail(
     };
 
     video.onerror = () => {
+      clearTimeout(timeout);
       URL.revokeObjectURL(url);
       resolve(null);
     };
