@@ -55,7 +55,7 @@ export async function startUpload() {
           xhr.status < 300 ? resolve() : reject(new Error(`R2 PUT ${xhr.status}`));
         xhr.onerror = () => reject(new Error("Network error"));
         xhr.open("PUT", url);
-        xhr.setRequestHeader("Content-Type", "video/mp4");
+        xhr.setRequestHeader("Content-Type", store.file!.type || "video/mp4");
         xhr.send(store.file);
       });
       presignUploadOk = true;
@@ -64,7 +64,7 @@ export async function startUpload() {
       try {
         const fetchRes = await fetch(url, {
           method: "PUT",
-          headers: { "Content-Type": "video/mp4" },
+          headers: { "Content-Type": store.file!.type || "video/mp4" },
           body: store.file,
         });
         if (!fetchRes.ok) throw new Error(`R2 PUT ${fetchRes.status}`);

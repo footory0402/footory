@@ -22,6 +22,7 @@ export default function VideoSelector() {
     const video = document.createElement("video");
     video.preload = "metadata";
     video.muted = true;
+    video.playsInline = true;
     video.src = url;
 
     video.onloadedmetadata = () => {
@@ -159,7 +160,7 @@ export default function VideoSelector() {
       <input
         ref={inputRef}
         type="file"
-        accept="video/*"
+        accept="video/*,video/mp4,video/quicktime,.mp4,.mov"
         className="hidden"
         onChange={handleSelect}
       />
@@ -189,6 +190,8 @@ function getVideoDuration(file: File): Promise<number> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
     video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(video.src);
       resolve(video.duration);

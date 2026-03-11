@@ -2,6 +2,8 @@ export function getFileDuration(file: File): Promise<number> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
     video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
     video.onloadedmetadata = () => {
       URL.revokeObjectURL(video.src);
       resolve(Math.round(video.duration));
