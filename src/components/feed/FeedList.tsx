@@ -154,7 +154,7 @@ export default function FeedList({
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col gap-3.5 pb-4">
+      <div className="flex flex-col gap-4 pb-4">
         {items.map((item, i) => (
           (() => {
             const meta = item.metadata as Record<string, unknown>;

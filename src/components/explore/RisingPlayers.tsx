@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
-import { POSITION_COLORS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
+import { getPositionBadgeStyle } from "@/components/ui/Badge";
 import { useRisingPlayers } from "@/hooks/useDiscover";
 
 export default function RisingPlayers() {
@@ -35,12 +35,12 @@ export default function RisingPlayers() {
   return (
     <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
       {visibleItems.map((p) => {
-        const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
+        const posStyle = p.position ? getPositionBadgeStyle(p.position) : null;
         return (
           <Link
             key={p.profile_id}
             href={`/p/${p.handle}`}
-            className="card-elevated flex w-[120px] shrink-0 flex-col items-center gap-1.5 p-3"
+            className="card-elevated flex w-[120px] shrink-0 flex-col items-center gap-1.5 p-3 transition-transform duration-100 active:scale-[0.98]"
           >
             <Avatar
               name={p.name}
@@ -48,13 +48,13 @@ export default function RisingPlayers() {
               level={p.level}
               imageUrl={p.avatar_url ?? undefined}
             />
-            <span className="text-sm font-bold text-text-1 text-center truncate w-full">
+            <span className="text-sm font-bold text-text-1 text-center truncate w-full" style={{ letterSpacing: "-0.3px" }}>
               {p.name}
             </span>
-            {p.position && (
+            {p.position && posStyle && (
               <span
-                className="rounded-md px-2 py-0.5 text-[10px] font-stat font-bold border border-accent/20"
-                style={{ color: posColor, backgroundColor: `${posColor}15` }}
+                className="rounded-md px-2 py-0.5 text-[10px] font-stat font-bold"
+                style={{ color: posStyle.text, backgroundColor: posStyle.bg, border: `1px solid ${posStyle.border}` }}
               >
                 {p.position}
               </span>

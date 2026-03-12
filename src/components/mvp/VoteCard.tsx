@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Avatar from "@/components/ui/Avatar";
-import { PositionBadge } from "@/components/ui/Badge";
+import { PositionBadge, getPositionBadgeStyle } from "@/components/ui/Badge";
 import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
 import type { Position } from "@/lib/constants";
 import MvpThumbnail from "./MvpThumbnail";
@@ -67,24 +67,27 @@ export default function VoteCard({
 
   return (
     <div
-      className="animate-fade-up overflow-hidden transition-transform duration-100 active:scale-[0.99]"
+      className={`animate-fade-up overflow-hidden transition-transform duration-100 active:scale-[0.98] ${isFirst ? "card-accent" : ""}`}
       style={{
         background: "#161618",
         border: isFirst
           ? "2px solid var(--color-accent)"
-          : "1px solid var(--border-accent)",
+          : "1px solid rgba(255,255,255,0.06)",
         borderRadius: 12,
         boxShadow: isFirst
           ? "0 0 24px rgba(212,168,83,0.18), 0 4px 16px rgba(0,0,0,0.5)"
-          : undefined,
+          : "0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)",
       }}
     >
       {/* Gold gradient top bar for 1st place */}
       {isFirst && (
-        <div
-          className="h-[3px] w-full"
-          style={{ background: "var(--accent-gradient)" }}
-        />
+        <>
+          <div
+            className="h-[3px] w-full"
+            style={{ background: "var(--accent-gradient)" }}
+          />
+          <div className="card-accent-line" />
+        </>
       )}
 
       {/* Video / Thumbnail — 5:2 ratio */}
@@ -169,7 +172,7 @@ export default function VoteCard({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-bold text-text-1">
+            <span className="truncate text-[15px] font-bold text-text-1" style={{ letterSpacing: "-0.3px" }}>
               {candidate.playerName}
             </span>
             {candidate.playerPosition && (
@@ -177,9 +180,9 @@ export default function VoteCard({
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-text-3">
-            {candidate.teamName && <span className="truncate text-text-2">{candidate.teamName}</span>}
-            <span>⚡<span className="font-stat font-bold text-text-1">{candidate.totalScore}</span></span>
-            <span>🗳 <span className="text-text-1 font-medium">{candidate.voteCount}</span></span>
+            {candidate.teamName && <span className="truncate text-accent font-medium">{candidate.teamName}</span>}
+            <span className="text-text-3/50">⚡</span><span className="font-stat font-bold text-accent">{candidate.totalScore}</span>
+            <span className="text-text-3/50">🗳</span> <span className="text-accent font-semibold">{candidate.voteCount}</span>
           </div>
         </div>
 
@@ -232,11 +235,12 @@ export function VoteCardCompact({
 
   return (
     <div
-      className="animate-fade-up flex flex-col overflow-hidden"
+      className="animate-fade-up flex flex-col overflow-hidden transition-transform duration-100 active:scale-[0.98]"
       style={{
         background: "#161618",
-        border: "1px solid var(--border-accent)",
+        border: "1px solid rgba(255,255,255,0.06)",
         borderRadius: 12,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)",
       }}
     >
       {/* Thumbnail / Video */}
@@ -293,20 +297,18 @@ export function VoteCardCompact({
       {/* Info + Vote */}
       <div className="flex flex-col gap-2 p-3">
         <div className="min-w-0 w-full">
-          <span className="block truncate text-[15px] font-bold text-text-1 max-w-full">
+          <span className="block truncate text-[15px] font-bold text-text-1 max-w-full" style={{ letterSpacing: "-0.3px" }}>
             {candidate.playerName}
           </span>
           {candidate.teamName && (
-            <p className="truncate text-[10px] text-text-2">
+            <p className="truncate text-[10px] text-accent font-medium">
               {candidate.teamName}
             </p>
           )}
           <div className="mt-1 flex items-center gap-1.5">
-            <span className="font-stat text-xs font-bold text-text-1">
-              ⚡ {candidate.totalScore}
-            </span>
+            <span className="text-text-3/50">⚡</span> <span className="font-stat text-xs font-bold text-accent">{candidate.totalScore}</span>
             <span className="text-[10px] text-text-3">
-              🗳 <span className="text-text-1 font-medium">{candidate.voteCount}</span>
+              <span className="text-text-3/50">🗳</span> <span className="text-accent font-semibold">{candidate.voteCount}</span>
             </span>
           </div>
         </div>

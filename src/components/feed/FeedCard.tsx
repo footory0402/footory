@@ -84,7 +84,7 @@ function FeedBody({
               <div className="mt-2.5 flex items-center justify-between">
                 <div className="flex flex-wrap gap-1.5">
                   {tags.map((tag) => (
-                    <span key={tag} className="text-xs font-semibold text-accent">
+                    <span key={tag} className="rounded-md bg-accent/[0.08] px-2 py-0.5 text-xs font-semibold text-accent">
                       #{tag}
                     </span>
                   ))}
@@ -101,15 +101,15 @@ function FeedBody({
                       extras.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
                     }`}
                   >
-                    <span>{extras.myReactionEmoji ?? "👏"}</span>
-                    <span>{extras.kudosCount > 0 ? <span className="text-text-1 font-medium">{extras.kudosCount}</span> : "응원"}</span>
+                    <span className="text-text-3/50">{extras.myReactionEmoji ?? "👏"}</span>
+                    <span>{extras.kudosCount > 0 ? <span className="text-accent font-semibold">{extras.kudosCount}</span> : "응원"}</span>
                   </button>
                   <button
                     onClick={extras.onComment}
                     className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
                   >
-                    <span>💬</span>
-                    <span>{extras.commentCount > 0 ? <span className="text-text-1 font-medium">{extras.commentCount}</span> : "댓글"}</span>
+                    <span className="text-text-3/50">💬</span>
+                    <span>{extras.commentCount > 0 ? <span className="text-accent font-semibold">{extras.commentCount}</span> : "댓글"}</span>
                   </button>
                 </div>
               </div>
@@ -252,7 +252,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
   };
 
   return (
-    <div className="card-elevated p-4 transition-transform duration-100 active:scale-[0.99]">
+    <div className="card-elevated p-4 transition-transform duration-100 active:scale-[0.98]">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <Link href={`/p/${item.playerHandle}`} aria-label={`${item.playerName} 프로필`}>
@@ -260,7 +260,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <Link href={`/p/${item.playerHandle}`} className="text-[15px] font-bold text-text-1 truncate hover:text-accent transition-colors">
+            <Link href={`/p/${item.playerHandle}`} className="text-[15px] font-bold text-text-1 truncate hover:text-accent transition-colors" style={{ letterSpacing: "-0.3px" }}>
               {item.playerName}
             </Link>
             <span className="shrink-0 text-[10px] text-text-3">›</span>
@@ -270,11 +270,11 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
           <div className="flex items-center gap-1 text-xs">
             {item.teamName && (
               <>
-                <span className="text-text-2">{item.teamName}</span>
+                <span className="text-accent font-medium">{item.teamName}</span>
                 <span className="text-text-3/40">·</span>
               </>
             )}
-            <span className="text-text-3">{timeAgo(item.created_at)}</span>
+            <span className="text-text-3/50">{timeAgo(item.created_at)}</span>
           </div>
         </div>
         {/* Share button */}
@@ -320,8 +320,8 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
                 item.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
               }`}
             >
-              <span>{myReactionEmoji ?? "👏"}</span>
-              <span>{item.kudosCount > 0 ? <span className="text-text-1 font-medium">{item.kudosCount}</span> : "응원"}</span>
+              <span className="text-text-3/50">{myReactionEmoji ?? "👏"}</span>
+              <span>{item.kudosCount > 0 ? <span className="text-accent font-semibold">{item.kudosCount}</span> : "응원"}</span>
             </button>
           </div>
 
@@ -329,8 +329,8 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
             onClick={() => onComment?.(item.id)}
             className="ml-auto flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
           >
-            <span>💬</span>
-            <span>{item.commentCount > 0 ? <span className="text-text-1 font-medium">{item.commentCount}</span> : "댓글"}</span>
+            <span className="text-text-3/50">💬</span>
+            <span>{item.commentCount > 0 ? <span className="text-accent font-semibold">{item.commentCount}</span> : "댓글"}</span>
           </button>
         </div>
       )}

@@ -129,7 +129,7 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             {/* 이름 행 — 375px 대응: 이름은 min-w-0 truncate, 편집 버튼 우측 고정 */}
             <div className="flex min-w-0 items-center gap-1.5">
-              <span className="min-w-0 truncate text-xl font-bold text-text-1">{profile.name}</span>
+              <span className="min-w-0 truncate text-xl font-bold text-text-1" style={{ letterSpacing: "-0.3px" }}>{profile.name}</span>
               {/* A15: 인증 완료 시 ✅ 표시 */}
               {profile.isVerified && (
                 <span title="인증된 코치/스카우터" className="shrink-0 text-[16px] leading-none">✅</span>
@@ -227,7 +227,7 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            <span className="font-stat font-semibold text-text-1">{profile.views}</span>
+            <span className="font-stat font-semibold text-accent">{profile.views}</span>
           </div>
         </div>
 

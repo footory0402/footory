@@ -128,7 +128,7 @@ function Section({ title, subtitle, children, seeMoreHref }: { title: string; su
           )}
         </div>
         {seeMoreHref && (
-          <Link href={seeMoreHref} className="text-xs text-text-3 shrink-0">더보기 →</Link>
+          <Link href={seeMoreHref} className="text-xs text-accent font-semibold shrink-0">더보기 →</Link>
         )}
       </div>
       {children}

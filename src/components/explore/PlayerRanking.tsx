@@ -6,6 +6,7 @@ import Avatar from "@/components/ui/Avatar";
 import FollowButton from "@/components/social/FollowButton";
 import { POSITIONS, POSITION_COLORS, MVP_TIERS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
+import { getPositionBadgeStyle } from "@/components/ui/Badge";
 import { usePlayerRanking, type PlayerSortKey } from "@/hooks/useDiscover";
 
 const SORT_OPTIONS: { key: PlayerSortKey; label: string }[] = [
@@ -124,11 +125,11 @@ function PlayerRankingRow({
   item: ReturnType<typeof usePlayerRanking>["items"][number];
   rank: number;
 }) {
-  const posColor = POSITION_COLORS[item.position as Position] ?? "#A1A1AA";
+  const posStyle = item.position ? getPositionBadgeStyle(item.position) : null;
   const mvpTier = MVP_TIERS.find((t) => t.tier === item.mvp_tier);
 
   return (
-    <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 last:border-b-0">
+    <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 last:border-b-0 transition-transform duration-100 active:scale-[0.98]">
       {/* Rank number */}
       <span
         className={`w-6 text-center font-stat text-base font-bold tabular-nums shrink-0 ${
@@ -138,26 +139,28 @@ function PlayerRankingRow({
         {rank}
       </span>
 
-      {/* Avatar */}
+      {/* Avatar — 1st place gets gold ring */}
       <Link href={`/p/${item.handle}`} className="shrink-0">
-        <Avatar
-          name={item.name}
-          size="sm"
-          level={item.level}
-          imageUrl={item.avatar_url ?? undefined}
-        />
+        <div className={rank === 1 ? "rounded-full ring-2 ring-accent/30 ring-offset-2 ring-offset-bg" : ""}>
+          <Avatar
+            name={item.name}
+            size="sm"
+            level={item.level}
+            imageUrl={item.avatar_url ?? undefined}
+          />
+        </div>
       </Link>
 
       {/* Info */}
       <Link href={`/p/${item.handle}`} className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[15px] font-bold text-text-1 truncate">
+          <span className="text-[15px] font-bold text-text-1 truncate" style={{ letterSpacing: "-0.3px" }}>
             {item.name}
           </span>
-          {item.position && (
+          {item.position && posStyle && (
             <span
-              className="rounded-md text-[10px] font-stat px-2 py-0.5 font-bold border border-accent/20"
-              style={{ color: posColor, backgroundColor: `${posColor}15` }}
+              className="rounded-md text-[10px] font-stat px-2 py-0.5 font-bold"
+              style={{ color: posStyle.text, backgroundColor: posStyle.bg, border: `1px solid ${posStyle.border}` }}
             >
               {item.position}
             </span>
@@ -170,11 +173,11 @@ function PlayerRankingRow({
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {item.team_name && (
-            <span className="text-xs text-text-2 truncate">{item.team_name}</span>
+            <span className="text-xs text-accent font-medium truncate">{item.team_name}</span>
           )}
           {item.followers_count > 0 && (
             <span className="text-xs text-text-3">
-              팔로워 <span className="text-text-1 font-medium">{item.followers_count}</span>
+              팔로워 <span className="text-text-1 font-bold">{item.followers_count}</span>
             </span>
           )}
         </div>

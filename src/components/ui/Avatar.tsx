@@ -35,7 +35,9 @@ export default memo(function Avatar({ name, size = "md", level = 1, imageUrl }: 
       aria-label={`${name} 프로필 사진`}
       className="relative shrink-0 overflow-hidden rounded-full"
       style={{
-        boxShadow: hasGlow ? `0 0 12px ${borderColor}40` : undefined,
+        boxShadow: hasGlow
+          ? `0 0 12px ${borderColor}40, 0 2px 8px rgba(212,168,83,0.15)`
+          : "0 2px 8px rgba(212,168,83,0.15)",
         border: `2.5px solid ${borderColor}`,
       }}
     >

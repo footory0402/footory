@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
-import { POSITION_COLORS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
+import { getPositionBadgeStyle } from "@/components/ui/Badge";
 import type {
   ScoutHomeData,
   ScoutRecentHighlight,
@@ -107,15 +107,15 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             {watchlist.map(p => {
-              const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
+              const posStyle = p.position ? getPositionBadgeStyle(p.position) : null;
               return (
                 <Link key={p.id} href={`/p/${p.handle}`} className="flex w-[80px] shrink-0 flex-col items-center gap-1.5">
                   <Avatar name={p.name} size="md" imageUrl={p.avatar_url} />
-                  <span className="text-xs font-bold text-text-1 truncate w-full text-center">{p.name}</span>
-                  {p.position && (
+                  <span className="text-xs font-bold text-text-1 truncate w-full text-center" style={{ letterSpacing: "-0.3px" }}>{p.name}</span>
+                  {p.position && posStyle && (
                     <span
-                      className="rounded-md px-2 py-0.5 text-[10px] font-bold border border-accent/20"
-                      style={{ color: posColor, backgroundColor: `${posColor}15` }}
+                      className="rounded-md px-2 py-0.5 text-[10px] font-bold"
+                      style={{ color: posStyle.text, backgroundColor: posStyle.bg, border: `1px solid ${posStyle.border}` }}
                     >
                       {p.position}
                     </span>
@@ -132,15 +132,15 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold text-text-1">🚀 떠오르는 선수</h2>
-            <Link href="/discover" className="text-xs text-accent">
-              더보기
+            <Link href="/discover" className="text-xs text-accent font-semibold">
+              더보기 →
             </Link>
           </div>
           <div className="space-y-2">
             {rising.slice(0, 5).map((p, idx) => {
-              const posColor = POSITION_COLORS[p.position as Position] ?? "#A1A1AA";
+              const posStyle = p.position ? getPositionBadgeStyle(p.position) : null;
               return (
-                <div key={p.profile_id} className="card-elevated flex items-center gap-3 px-4 py-3">
+                <div key={p.profile_id} className="card-elevated flex items-center gap-3 px-4 py-3 transition-transform duration-100 active:scale-[0.98]">
                   <span className={`w-5 shrink-0 text-center font-stat text-base font-bold ${
                     idx === 0 ? "text-accent" : idx < 3 ? "text-text-1" : "text-text-3"
                   }`}>
@@ -151,11 +151,11 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
                   </Link>
                   <Link href={`/p/${p.handle}`} className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[15px] font-bold text-text-1 truncate">{p.name}</span>
-                      {p.position && (
+                      <span className="text-[15px] font-bold text-text-1 truncate" style={{ letterSpacing: "-0.3px" }}>{p.name}</span>
+                      {p.position && posStyle && (
                         <span
-                          className="rounded-md px-2 py-0.5 text-[10px] font-stat font-bold border border-accent/20"
-                          style={{ color: posColor, backgroundColor: `${posColor}15` }}
+                          className="rounded-md px-2 py-0.5 text-[10px] font-stat font-bold"
+                          style={{ color: posStyle.text, backgroundColor: posStyle.bg, border: `1px solid ${posStyle.border}` }}
                         >
                           {p.position}
                         </span>

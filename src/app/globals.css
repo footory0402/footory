@@ -203,16 +203,43 @@ body {
 /* Card elevation */
 .card-elevated {
   background: var(--color-card);
-  box-shadow: var(--card-shadow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.card-elevated:active {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 .card-elevated-lg {
   background: var(--color-card);
   box-shadow: var(--card-shadow-lg);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Accent-highlighted card (MVP hero, 1st place, level) */
+.card-accent {
+  background: var(--color-card);
+  box-shadow: 0 2px 12px rgba(212, 168, 83, 0.06);
+  border-radius: 12px;
+  border: 1px solid rgba(212, 168, 83, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Gold gradient line at top of accent cards */
+.card-accent-line {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(to right, transparent, rgba(251, 191, 36, 0.4), transparent);
+  pointer-events: none;
 }
 
 /* Glass nav */
