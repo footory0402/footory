@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import VideoThumb from "./VideoThumb";
-import ClipPlayerSheet from "./ClipPlayerSheet";
+import ClipPlayerSheet, { type PlayableClip } from "./ClipPlayerSheet";
 
 interface TagClip {
   id: string;
@@ -24,21 +24,18 @@ interface TagAccordionProps {
 export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagAccordionProps) {
   const router = useRouter();
   const [open, setOpen] = useState(clips.length > 0);
-  const [playingClip, setPlayingClip] = useState<TagClip | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const hasClips = clips.length > 0;
   const topClip = clips.find((c) => c.isTop);
 
-  const handleDelete = async (clipId: string): Promise<boolean> => {
-    if (!onDeleteClip) return false;
-    setDeleting(true);
-    try {
-      const ok = await onDeleteClip(clipId);
-      return ok;
-    } finally {
-      setDeleting(false);
-    }
-  };
+  // Convert to PlayableClip format
+  const playableClips: PlayableClip[] = clips.map((c) => ({
+    id: c.id,
+    videoUrl: c.videoUrl,
+    thumbnailUrl: c.thumbnailUrl,
+    tag: c.tag,
+    duration: c.duration,
+  }));
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -73,11 +70,11 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
         <div className="px-4 pb-3">
           {hasClips ? (
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-              {clips.map((clip) => (
+              {clips.map((clip, i) => (
                 <div key={clip.id} className="relative w-[160px] shrink-0">
                   <button
                     type="button"
-                    onClick={() => setPlayingClip(clip)}
+                    onClick={() => setPlayingIndex(i)}
                     className="w-full text-left"
                   >
                     <div className={`relative rounded-xl ${clip.isTop ? "ring-2 ring-accent/60" : ""}`}>
@@ -119,13 +116,13 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
         </div>
       )}
 
-      {/* Video Player */}
-      {playingClip && (
+      {/* Video Player — passes all clips for swipe navigation */}
+      {playingIndex !== null && (
         <ClipPlayerSheet
-          videoUrl={playingClip.videoUrl}
-          clipId={playingClip.id}
-          onClose={() => setPlayingClip(null)}
-          onDelete={onDeleteClip ? handleDelete : undefined}
+          clips={playableClips}
+          initialIndex={playingIndex}
+          onClose={() => setPlayingIndex(null)}
+          onDelete={onDeleteClip}
         />
       )}
     </div>

@@ -9,7 +9,7 @@ import Link from "next/link";
 
 const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false });
 import VideoThumb from "./VideoThumb";
-import ClipPlayerSheet from "./ClipPlayerSheet";
+import ClipPlayerSheet, { type PlayableClip } from "./ClipPlayerSheet";
 import TagEditSheet from "./TagEditSheet";
 import { useFeaturedClips } from "@/hooks/useClips";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -65,11 +65,22 @@ export default function HighlightsTab({
     await removeFeatured(clipId);
   }, [removeFeatured]);
 
+  const [featuredPlayIndex, setFeaturedPlayIndex] = useState<number | null>(null);
+
   const maxSlots = maxSlotsByLevel(level);
   const slotsToShow = maxSlots === 0 ? 0 : Math.min(featured.length + 1, maxSlots);
   const excludeClipIds = featured.map((f) => f.clip_id);
 
   const tagsToShow = getSkillTagsForPosition(position);
+
+  // Convert featured clips to PlayableClip format
+  const featuredPlayable: PlayableClip[] = featured
+    .filter((f) => f.clips?.video_url)
+    .map((f) => ({
+      id: f.clip_id,
+      videoUrl: f.clips!.video_url,
+      thumbnailUrl: f.clips?.thumbnail_url,
+    }));
 
   return (
     <ErrorBoundary>
@@ -81,7 +92,17 @@ export default function HighlightsTab({
             {Array.from({ length: slotsToShow }).map((_, i) => {
               const feat = featured[i];
               return (
-                <div key={i} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                <div
+                  key={i}
+                  className="animate-fade-up cursor-pointer"
+                  style={{ animationDelay: `${i * 0.05}s` }}
+                  onClick={() => {
+                    if (feat?.clips?.video_url) {
+                      const idx = featuredPlayable.findIndex((p) => p.id === feat.clip_id);
+                      if (idx >= 0) setFeaturedPlayIndex(idx);
+                    }
+                  }}
+                >
                   <FeaturedSlot
                     clipId={feat?.clip_id}
                     videoUrl={feat?.clips?.video_url}
@@ -111,6 +132,15 @@ export default function HighlightsTab({
         )}
       </SectionCard>
 
+      {/* Featured clip player */}
+      {featuredPlayIndex !== null && featuredPlayable.length > 0 && (
+        <ClipPlayerSheet
+          clips={featuredPlayable}
+          initialIndex={featuredPlayIndex}
+          onClose={() => setFeaturedPlayIndex(null)}
+        />
+      )}
+
       {/* Upload CTA */}
       <Link
         href="/upload"
@@ -121,32 +151,11 @@ export default function HighlightsTab({
 
       {/* 태그 없는 클립 → 상단 "최근 업로드" 섹션 */}
       {!tagClipsLoading && untaggedClips.length > 0 && (
-        <div className="animate-fade-up">
-          <div className="overflow-hidden rounded-xl border border-accent/20 bg-card">
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[16px]">📹</span>
-                <span className="text-[13px] font-semibold text-text-1">최근 업로드</span>
-                <span className="text-[11px] text-text-3">{untaggedClips.length}개</span>
-              </div>
-              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
-                태그를 추가해 포트폴리오를 정리하세요
-              </span>
-            </div>
-            <div className="px-4 pb-3">
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-                {untaggedClips.map((clip) => (
-                  <UntaggedClipCard
-                    key={clip.id}
-                    clip={clip}
-                    onDeleteClip={onDeleteClip}
-                    onEditTags={onEditTags}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <UntaggedClipsSection
+          clips={untaggedClips}
+          onDeleteClip={onDeleteClip}
+          onEditTags={onEditTags}
+        />
       )}
 
       {/* Tag accordions */}
@@ -183,58 +192,91 @@ export default function HighlightsTab({
   );
 }
 
-/* ── Untagged clip card with inline player + tag edit ── */
-function UntaggedClipCard({
-  clip,
+/* ── Untagged clips section — opens shared player with swipe nav ── */
+function UntaggedClipsSection({
+  clips,
   onDeleteClip,
   onEditTags,
 }: {
-  clip: TagClip;
+  clips: TagClip[];
   onDeleteClip?: (clipId: string) => Promise<boolean>;
   onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
 }) {
-  const [playing, setPlaying] = useState(false);
-  const [editingTags, setEditingTags] = useState(false);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [editingClipId, setEditingClipId] = useState<string | null>(null);
+
+  const playableClips: PlayableClip[] = clips.map((c) => ({
+    id: c.id,
+    videoUrl: c.videoUrl,
+    thumbnailUrl: c.thumbnailUrl,
+    duration: c.duration,
+  }));
+
   return (
-    <>
-      <div className="relative w-[160px] shrink-0">
-        <button type="button" onClick={() => setPlaying(true)} className="w-full text-left">
-          <VideoThumb
-            thumbnailUrl={clip.thumbnailUrl ?? undefined}
-            duration={clip.duration}
-            aspectRatio="4/3"
-          />
-        </button>
-        {/* Tag add button */}
-        {onEditTags && (
-          <button
-            type="button"
-            onClick={() => setEditingTags(true)}
-            className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg bg-accent/10 py-1.5 text-[11px] font-medium text-accent active:bg-accent/20"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            태그 추가
-          </button>
-        )}
+    <div className="animate-fade-up">
+      <div className="overflow-hidden rounded-xl border border-accent/20 bg-card">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[16px]">📹</span>
+            <span className="text-[13px] font-semibold text-text-1">최근 업로드</span>
+            <span className="text-[11px] text-text-3">{clips.length}개</span>
+          </div>
+          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
+            태그를 추가해 포트폴리오를 정리하세요
+          </span>
+        </div>
+        <div className="px-4 pb-3">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            {clips.map((clip, i) => (
+              <div key={clip.id} className="relative w-[160px] shrink-0">
+                <button type="button" onClick={() => setPlayingIndex(i)} className="w-full text-left">
+                  <VideoThumb
+                    thumbnailUrl={clip.thumbnailUrl ?? undefined}
+                    duration={clip.duration}
+                    aspectRatio="4/3"
+                  />
+                </button>
+                {onEditTags && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingClipId(clip.id)}
+                    className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg bg-accent/10 py-1.5 text-[11px] font-medium text-accent active:bg-accent/20"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    태그 추가
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      {playing && (
+
+      {/* Shared player for all untagged clips */}
+      {playingIndex !== null && (
         <ClipPlayerSheet
-          videoUrl={clip.videoUrl}
-          clipId={clip.id}
-          onClose={() => setPlaying(false)}
+          clips={playableClips}
+          initialIndex={playingIndex}
+          onClose={() => setPlayingIndex(null)}
           onDelete={onDeleteClip}
+          onEditTags={onEditTags ? (clipId) => {
+            setPlayingIndex(null);
+            setEditingClipId(clipId);
+          } : undefined}
         />
       )}
-      {editingTags && onEditTags && (
+
+      {/* Tag edit sheet */}
+      {editingClipId && onEditTags && (
         <TagEditSheet
-          clipId={clip.id}
+          clipId={editingClipId}
           currentTags={[]}
-          onClose={() => setEditingTags(false)}
+          onClose={() => setEditingClipId(null)}
           onSave={onEditTags}
         />
       )}
-    </>
+    </div>
   );
 }
