@@ -167,7 +167,7 @@ export default function VoteCard({
         <Avatar
           name={candidate.playerName}
           size="sm"
-          level={candidate.playerLevel}
+          
           imageUrl={candidate.playerAvatarUrl}
         />
         <div className="min-w-0 flex-1">

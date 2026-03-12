@@ -147,7 +147,7 @@ export default function ScoutHome({ initialData }: ScoutHomeProps) {
                     {idx + 1}
                   </span>
                   <Link href={`/p/${p.handle}`} className="shrink-0">
-                    <Avatar name={p.name} size="sm" level={p.level} imageUrl={p.avatar_url ?? undefined} />
+                    <Avatar name={p.name} size="sm" imageUrl={p.avatar_url ?? undefined} />
                   </Link>
                   <Link href={`/p/${p.handle}`} className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
@@ -272,7 +272,6 @@ function parseRisingItems(value: unknown): ScoutRisingPlayer[] {
         handle: asString(row.handle),
         avatar_url: asNullableString(row.avatar_url),
         position: asNullableString(row.position),
-        level: asNumber(row.level, 1),
         weekly_change: asNumber(row.weekly_change, 0),
       };
     })

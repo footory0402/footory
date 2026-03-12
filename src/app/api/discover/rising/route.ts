@@ -14,7 +14,6 @@ interface ProfileRow {
   name: string;
   avatar_url: string | null;
   position: string | null;
-  level: number | null;
   role?: string | null;
 }
 
@@ -25,7 +24,6 @@ interface RisingItem {
   name: string;
   avatar_url: string | null;
   position: string | null;
-  level: number;
 }
 
 async function fetchProfiles(
@@ -36,8 +34,8 @@ async function fetchProfiles(
   if (profileIds.length === 0) return [] as ProfileRow[];
 
   const select = includeRole
-    ? "id, handle, name, avatar_url, position, level, role"
-    : "id, handle, name, avatar_url, position, level";
+    ? "id, handle, name, avatar_url, position, role"
+    : "id, handle, name, avatar_url, position";
   const { data, error } = await supabase.from("profiles").select(select).in("id", profileIds);
 
   if (error) throw error;
@@ -83,7 +81,6 @@ export async function GET(req: NextRequest) {
           name: profile.name,
           avatar_url: profile.avatar_url,
           position: profile.position,
-          level: profile.level ?? 1,
         },
       ];
     });
@@ -116,7 +113,6 @@ export async function GET(req: NextRequest) {
         name: profile.name,
         avatar_url: profile.avatar_url,
         position: profile.position,
-        level: profile.level ?? 1,
       }));
     }
 

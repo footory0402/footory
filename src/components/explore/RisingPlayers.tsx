@@ -45,7 +45,6 @@ export default function RisingPlayers() {
             <Avatar
               name={p.name}
               size="md"
-              level={p.level}
               imageUrl={p.avatar_url ?? undefined}
             />
             <span className="text-sm font-bold text-text-1 text-center truncate w-full" style={{ letterSpacing: "-0.3px" }}>

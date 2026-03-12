@@ -66,6 +66,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Delete dependent records first (FK constraints)
+  await supabase.from("featured_clips").delete().eq("clip_id", id);
+  await supabase.from("highlights").delete().eq("clip_id", id);
+  await supabase.from("clip_tags").delete().eq("clip_id", id);
+  await supabase.from("coach_reviews").delete().eq("clip_id", id);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase.from("messages") as any).update({ shared_clip_id: null }).eq("shared_clip_id", id);
+
   const { error } = await supabase.from("clips").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

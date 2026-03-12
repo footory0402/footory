@@ -13,7 +13,6 @@ interface ProfileApiResponse {
   city: string | null;
   bio: string | null;
   avatar_url: string | null;
-  level: number;
   role: "player" | "parent" | "scout";
   followers_count: number;
   following_count: number;
@@ -31,14 +30,6 @@ interface ProfileApiResponse {
   height_cm: number | null;
   weight_kg: number | null;
   preferred_foot: string | null;
-  xp?: number;
-  counts?: {
-    featuredCount: number;
-    statsCount: number;
-    topClipsCount: number;
-    medalsCount: number;
-    seasonsCount: number;
-  };
 }
 
 function toProfile(data: ProfileApiResponse): Profile {
@@ -52,8 +43,6 @@ function toProfile(data: ProfileApiResponse): Profile {
     teamName: data.teamName ?? undefined,
     teamId: data.teamId ?? undefined,
     avatarUrl: data.avatar_url ?? undefined,
-    level: data.level,
-    xp: data.xp ?? 0,
     bio: data.bio ?? undefined,
     followers: data.followers_count,
     following: data.following_count,

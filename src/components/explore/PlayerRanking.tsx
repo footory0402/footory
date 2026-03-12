@@ -145,7 +145,6 @@ function PlayerRankingRow({
           <Avatar
             name={item.name}
             size="sm"
-            level={item.level}
             imageUrl={item.avatar_url ?? undefined}
           />
         </div>

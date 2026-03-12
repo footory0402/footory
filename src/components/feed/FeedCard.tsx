@@ -4,7 +4,7 @@ import { memo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
-import { LEVELS, POSITION_COLORS } from "@/lib/constants";
+import { POSITION_COLORS } from "@/lib/constants";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
 import type { Position } from "@/lib/constants";
 import { timeAgo } from "@/lib/utils";
@@ -15,6 +15,7 @@ interface FeedCardProps {
   onKudos: (id: string, reaction?: string) => void;
   onComment?: (id: string) => void;
   onShare?: (item: FeedItemEnriched) => void;
+  onPlay?: (item: FeedItemEnriched) => void;
   eagerImage?: boolean;
 }
 
@@ -27,6 +28,7 @@ interface FeedBodyExtras {
   onKudosLongStart: () => void;
   onKudosLongEnd: () => void;
   onComment?: () => void;
+  onPlay?: () => void;
 }
 
 function FeedBody({
@@ -54,7 +56,12 @@ function FeedBody({
           )}
           {thumbnailUrl ? (
             <>
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03]">
+              <button
+                type="button"
+                onClick={extras.onPlay}
+                disabled={!extras.onPlay}
+                className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03] block"
+              >
                 <Image
                   src={thumbnailUrl}
                   alt="Highlight thumbnail"
@@ -67,7 +74,7 @@ function FeedBody({
                 />
                 {/* Play button */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
                       <polygon points="5 3 19 12 5 21 5 3" />
                     </svg>
@@ -79,7 +86,7 @@ function FeedBody({
                     {Math.floor(duration)}초
                   </span>
                 )}
-              </div>
+              </button>
               {/* Tags + Kudos/Comment — below thumbnail */}
               <div className="mt-2.5 flex items-center justify-between">
                 <div className="flex flex-wrap gap-1.5">
@@ -202,8 +209,7 @@ function FeedBody({
   }
 }
 
-export default memo(function FeedCard({ item, onKudos, onComment, onShare, eagerImage = false }: FeedCardProps) {
-  const lvl = LEVELS[Math.max(1, Math.min(item.playerLevel, 5)) - 1];
+export default memo(function FeedCard({ item, onKudos, onComment, onShare, onPlay, eagerImage = false }: FeedCardProps) {
   const posColor = POSITION_COLORS[item.playerPosition as Position] ?? "#A1A1AA";
 
   const [showPicker, setShowPicker] = useState(false);
@@ -249,6 +255,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
     onKudosLongStart: handleLongPressStart,
     onKudosLongEnd: handleLongPressEnd,
     onComment: onComment ? () => onComment(item.id) : undefined,
+    onPlay: onPlay ? () => onPlay(item) : undefined,
   };
 
   return (
@@ -256,7 +263,7 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
       {/* Header */}
       <div className="flex items-center gap-3 mb-3">
         <Link href={`/p/${item.playerHandle}`} aria-label={`${item.playerName} 프로필`}>
-          <Avatar name={item.playerName} size="sm" level={item.playerLevel} imageUrl={item.playerAvatarUrl ?? undefined} />
+          <Avatar name={item.playerName} size="sm" imageUrl={item.playerAvatarUrl ?? undefined} />
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -265,7 +272,6 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, eager
             </Link>
             <span className="shrink-0 text-[10px] text-text-3">›</span>
             <span className="shrink-0 text-[10px]" style={{ color: posColor }}>{item.playerPosition}</span>
-            <span className="shrink-0 text-[10px]" style={{ color: lvl.color }}>{lvl.icon}</span>
           </div>
           <div className="flex items-center gap-1 text-xs">
             {item.teamName && (

@@ -197,7 +197,7 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                       className="flex items-center gap-3 rounded-[10px] bg-card p-3 active:bg-card-alt transition-colors"
                     >
                       <Link href={`/p/${p.handle}`} onClick={close} className="flex items-center gap-3 min-w-0 flex-1">
-                        <Avatar name={p.name} size="sm" level={p.level} imageUrl={p.avatar_url ?? undefined} />
+                        <Avatar name={p.name} size="sm" imageUrl={p.avatar_url ?? undefined} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[15px] font-bold text-text-1 truncate">{p.name}</span>

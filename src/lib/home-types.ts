@@ -5,7 +5,6 @@ export interface LinkedChild {
   name: string;
   avatarUrl: string | null;
   position: string | null;
-  level: number;
   medalCount: number;
   clipCount: number;
   linkedAt: string;
@@ -19,8 +18,6 @@ export interface ParentDashboardData {
     handle: string;
     avatar_url: string | null;
     position: string | null;
-    level: number;
-    xp: number;
     followers_count: number;
     views_count: number;
   } | null;
@@ -29,7 +26,6 @@ export interface ParentDashboardData {
     kudosReceived: number;
     profileViews: number;
     mvpRank: number | null;
-    level: number;
   };
   prevWeeklyStats?: {
     newClips: number;
@@ -63,7 +59,6 @@ export interface ScoutRisingPlayer {
   handle: string;
   avatar_url: string | null;
   position: string | null;
-  level: number;
   weekly_change: number;
 }
 

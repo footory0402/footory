@@ -6,7 +6,6 @@ import ChildDashboard from "@/components/parent/ChildDashboard";
 import ScoutHome from "@/components/scout/ScoutHome";
 import MvpTeaser from "@/components/mvp/MvpTeaser";
 import ChallengeBanner from "@/components/challenge/ChallengeBanner";
-import QuestChecklist from "@/components/quest/QuestChecklist";
 import FeedListClient from "@/components/feed/FeedList";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 
@@ -27,7 +26,6 @@ async function PlayerFeed({ userId }: { userId: string }) {
   return (
     <>
       <WelcomeModal />
-      <QuestChecklist />
       <MvpTeaser leader={mvpLeader} />
       <ChallengeBanner />
       <FeedListClient
@@ -79,14 +77,6 @@ async function ScoutHomeServer({ userId, isVerified }: { userId: string; isVerif
 function PlayerFeedSkeleton() {
   return (
     <div className="px-4 pt-4 animate-pulse">
-      {/* Quest skeleton */}
-      <div className="mb-4 rounded-xl bg-card p-4">
-        <div className="h-4 w-28 rounded bg-card-alt mb-3" />
-        <div className="space-y-2">
-          <div className="h-3 w-full rounded bg-card-alt" />
-          <div className="h-3 w-3/4 rounded bg-card-alt" />
-        </div>
-      </div>
       {/* MVP teaser skeleton */}
       <div className="mb-4 rounded-xl bg-card p-4">
         <div className="flex items-center gap-3">

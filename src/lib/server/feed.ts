@@ -56,8 +56,10 @@ export async function fetchFeedPage(
       : Promise.resolve([]),
   ]);
 
-  // 3. Merge — follow items first, then recommended (interleaved by time)
-  const merged = mergeFeeds(followItems, recommendItems);
+  // 3. Merge and sort by created_at desc (newest first)
+  const merged = [...followItems, ...recommendItems].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   // 4. Deduplicate by id + G3: 차단 사용자 콘텐츠 제외
   //    featured_change는 같은 선수에 대해 24시간 내 1개만 노출
@@ -144,7 +146,9 @@ async function fetchFollowFeed(
   cursor: string | null | undefined,
   limit: number
 ): Promise<FeedItemEnriched[]> {
-  if (followingIds.length === 0) return [];
+  // Include own posts alongside followed users' posts
+  const profileIds = [userId, ...followingIds];
+  if (profileIds.length === 0) return [];
 
   // top_clip, season은 피드에서 제거 — 시스템 이벤트 노이즈
   const EXCLUDED_FEED_TYPES = ["top_clip", "season"];
@@ -157,7 +161,7 @@ async function fetchFollowFeed(
        kudos(count),
        comments(count)`
     )
-    .in("profile_id", followingIds)
+    .in("profile_id", profileIds)
     .not("type", "in", `(${EXCLUDED_FEED_TYPES.join(",")})`)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -291,7 +295,6 @@ function mapRowToEnriched(row: FeedRow, teamName?: string | null): FeedItemEnric
     playerName: profile?.name ?? "Unknown",
     playerHandle: profile?.handle ?? "",
     playerAvatarUrl: profile?.avatar_url ?? null,
-    playerLevel: profile?.level ?? 1,
     playerPosition: profile?.position ?? "MF",
     teamName: teamName ?? null,
     kudosCount: row.kudos?.[0]?.count ?? 0,

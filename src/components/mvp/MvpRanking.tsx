@@ -132,7 +132,7 @@ function RankingRow({
           <Avatar
             name={c.playerName}
             size="sm"
-            level={c.playerLevel}
+            
             imageUrl={c.playerAvatarUrl}
           />
         </Link>

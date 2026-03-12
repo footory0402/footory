@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
 import HighlightsTab from "@/components/player/HighlightsTab";
 import ProfileSkeleton from "@/components/player/ProfileSkeleton";
 
-
-const StatsCollapsible = dynamic(() => import("@/components/player/StatsTab"), { ssr: false });
+const InfoTab = dynamic(() => import("@/components/player/InfoTab"), { ssr: false });
 const ProfileEditSheet = dynamic(() => import("@/components/player/ProfileEditSheet"), { ssr: false });
 const StatInputSheet = dynamic(() => import("@/components/stats/StatInputSheet"), { ssr: false });
 const SeasonAddSheet = dynamic(() => import("@/components/player/SeasonAddSheet"), { ssr: false });
-const MedalCelebration = dynamic(() => import("@/components/stats/MedalCelebration"), { ssr: false });
 const ProfilePdfExport = dynamic(() => import("@/components/portfolio/ProfilePdfExport"), { ssr: false });
 
 import { useProfile } from "@/hooks/useProfile";
@@ -21,40 +19,35 @@ import Link from "next/link";
 import { useStats } from "@/hooks/useStats";
 import { useClips, useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
-import type { AwardedMedal } from "@/lib/medals";
+type ProfileTab = "video" | "info";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<ProfileTab>("video");
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
+  const [statInputType, setStatInputType] = useState<string | undefined>();
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
   const [pdfExportOpen, setPdfExportOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const [celebrationMedals, setCelebrationMedals] = useState<AwardedMedal[]>([]);
+  const [deletingStatId, setDeletingStatId] = useState<string | null>(null);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
   const isScoutProfile = profile?.role === "scout";
 
-  // 부모 역할은 홈 대시보드 사용
   useEffect(() => {
     if (profile?.role === "parent") {
       router.replace("/");
     }
   }, [profile?.role, router]);
 
-  // 원페이지이므로 모든 데이터를 바로 로드
   const shouldLoadData = !!profile && !isScoutProfile;
-  const { stats, medals, addStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
+  const { stats, medals, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
   const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
 
-  const displayProfile = profile;
+  if (loading && !profile) return <ProfileSkeleton />;
 
-  if (loading && !displayProfile) {
-    return <ProfileSkeleton />;
-  }
-
-  if (error || !displayProfile) {
+  if (error || !profile) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4">
         <span className="text-3xl">😢</span>
@@ -97,42 +90,57 @@ export default function ProfilePage() {
   };
 
   const handleAddStat = async (statType: string, value: number, evidenceClipId?: string) => {
-    const newMedals = await addStat(statType, value, evidenceClipId);
-    if (newMedals.length > 0) {
-      setCelebrationMedals(newMedals);
+    await addStat(statType, value, evidenceClipId);
+    toast.success("기록이 저장되었습니다.");
+  };
+
+  const handleDeleteStat = (statId: string) => {
+    setDeletingStatId(statId);
+  };
+
+  const confirmDeleteStat = async () => {
+    if (!deletingStatId) return;
+    const id = deletingStatId;
+    setDeletingStatId(null);
+    try {
+      await deleteStat(id);
+      toast.success("기록이 삭제되었습니다.");
+    } catch {
+      toast.error("삭제에 실패했습니다.");
     }
   };
 
   const handleShareProfile = async () => {
-    const url = `${window.location.origin}/p/${displayProfile.handle}`;
-    const title = `${displayProfile.name} (@${displayProfile.handle}) — Footory`;
+    const url = `${window.location.origin}/p/${profile.handle}`;
+    const title = `${profile.name} (@${profile.handle}) — Footory`;
     try {
       if (navigator.share) {
-        await navigator.share({ title, text: `${displayProfile.name} 선수 프로필을 확인해보세요`, url });
+        await navigator.share({ title, text: `${profile.name} 선수 프로필을 확인해보세요`, url });
         return;
       }
       await navigator.clipboard.writeText(url);
       toast.success("프로필 링크가 복사되었습니다.");
     } catch {
-      // User cancelled
+      // cancelled
     }
   };
 
-  // Map tagClips — pass videoUrl + thumbnailUrl for playback & thumbnails
   const mappedTagClips: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
   for (const [key, clips] of Object.entries(tagClips)) {
-    mappedTagClips[key] = clips.map((c) => ({ id: c.id, duration: c.duration, tag: c.tag, isTop: c.isTop, videoUrl: c.videoUrl, thumbnailUrl: c.thumbnailUrl }));
+    mappedTagClips[key] = clips.map((c) => ({
+      id: c.id, duration: c.duration, tag: c.tag, isTop: c.isTop, videoUrl: c.videoUrl, thumbnailUrl: c.thumbnailUrl,
+    }));
   }
 
   return (
     <div className="px-4 pt-4">
-      {/* 1. Profile Card */}
-      <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
+      {/* 프로필 카드 */}
+      <ProfileCard profile={profile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
-      {/* Action row */}
+      {/* 액션 행 */}
       <div className="mt-3 flex items-center justify-between">
         <div>
-          {displayProfile.isVerified && displayProfile.role === "scout" && (
+          {profile.isVerified && profile.role === "scout" && (
             <Link
               href="/profile/watchlist"
               className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
@@ -141,55 +149,34 @@ export default function ProfilePage() {
             </Link>
           )}
         </div>
-        <div className="relative">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setMoreMenuOpen((v) => !v)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-3 transition-colors hover:border-accent hover:text-accent"
-            aria-label="더 보기"
+            onClick={handleShareProfile}
+            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
+            공유
           </button>
-          {moreMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setMoreMenuOpen(false)} />
-              <div className="absolute right-0 top-9 z-50 min-w-[160px] overflow-hidden rounded-[12px] bg-elevated shadow-[0_8px_24px_rgba(0,0,0,0.6)]">
-                <button
-                  onClick={() => { setMoreMenuOpen(false); handleShareProfile(); }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-[13px] text-text-2 transition-colors hover:bg-card-alt hover:text-text-1"
-                >
-                  프로필 공유
-                </button>
-                <button
-                  onClick={() => { setMoreMenuOpen(false); setPdfExportOpen(true); }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-[13px] text-text-2 transition-colors hover:bg-card-alt hover:text-text-1"
-                >
-                  PDF 내보내기
-                </button>
-              </div>
-            </>
-          )}
+          <button
+            onClick={() => setPdfExportOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><polyline points="9 15 12 18 15 15" />
+            </svg>
+            PDF
+          </button>
         </div>
       </div>
 
-      {/* Views */}
-      {(displayProfile.views ?? 0) > 0 && (
-        <div className="mt-2 flex items-center gap-1.5 text-[12px] text-text-3">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-          이번 주 조회 {displayProfile.views}회
-        </div>
-      )}
-
-
-
-      {/* Scout: simplified view */}
-      {displayProfile.role === "scout" ? (
+      {/* 스카우터: 단순 뷰 */}
+      {profile.role === "scout" ? (
         <div className="mt-5 flex flex-col gap-4">
-          {(!displayProfile.bio && !displayProfile.city && !displayProfile.teamName) ? (
+          {(!profile.bio && !profile.city && !profile.teamName) ? (
             <div className="card-elevated flex flex-col items-center gap-3 py-8 text-center">
               <span className="text-4xl">👤</span>
               <p className="text-sm font-semibold text-text-1">프로필을 완성해보세요</p>
@@ -207,102 +194,64 @@ export default function ProfilePage() {
             <div className="card-elevated p-4">
               <p className="text-xs font-semibold text-text-3 mb-3">스카우터 정보</p>
               <div className="space-y-2.5">
-                {displayProfile.bio && <p className="text-sm text-text-2">{displayProfile.bio}</p>}
-                {displayProfile.city && (
-                  <div className="flex items-center gap-2 text-sm text-text-2"><span>📍</span><span>{displayProfile.city}</span></div>
-                )}
-                {displayProfile.teamName && (
-                  <div className="flex items-center gap-2 text-sm text-text-2"><span>🏟</span><span>{displayProfile.teamName}</span></div>
-                )}
+                {profile.bio && <p className="text-sm text-text-2">{profile.bio}</p>}
+                {profile.city && <div className="flex items-center gap-2 text-sm text-text-2"><span>📍</span><span>{profile.city}</span></div>}
+                {profile.teamName && <div className="flex items-center gap-2 text-sm text-text-2"><span>🏟</span><span>{profile.teamName}</span></div>}
               </div>
             </div>
           )}
         </div>
       ) : (
-        /* Player: Single-page scroll with sticky anchor tabs */
+        /* 선수: 2탭 구조 */
         <>
-          <ProfileAnchorTabs />
+          {/* 탭 바 */}
+          <div className="sticky top-[70px] z-30 -mx-4 mt-4 border-b border-white/[0.06] glass-nav">
+            <div className="flex px-4">
+              {(["video", "info"] as const).map((tab) => {
+                const label = tab === "video" ? "영상" : "정보";
+                const icon = tab === "video" ? "🎬" : "📋";
+                const isActive = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold transition-colors relative ${
+                      isActive ? "text-accent" : "text-text-3"
+                    }`}
+                  >
+                    <span className="text-[14px]">{icon}</span>
+                    {label}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] rounded-full bg-accent" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-          <div className="flex flex-col gap-5">
-            {/* 2. Featured Highlights + Skill Videos */}
-            <section id="section-video" className="scroll-mt-[100px]">
+          {/* 탭 콘텐츠 */}
+          <div className="mt-4 pb-6">
+            {activeTab === "video" ? (
               <HighlightsTab
-                level={displayProfile.level}
                 tagClips={mappedTagClips}
                 untaggedClips={untaggedClips}
                 tagClipsLoading={tagClipsLoading}
-                position={displayProfile.position}
+                position={profile.position}
                 onDeleteClip={handleDeleteClip}
                 onEditTags={handleEditTags}
               />
-            </section>
-
-            {/* 3. Physical Records (collapsible) */}
-            <section id="section-record" className="scroll-mt-[100px]">
-              <StatsCollapsible
+            ) : (
+              <InfoTab
                 stats={stats}
-                medals={medals}
-                onAddStat={() => setStatInputOpen(true)}
+                seasons={seasons}
+                profile={profile}
+                onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
+                onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
+                onDeleteStat={handleDeleteStat}
+                onAddSeason={() => setSeasonAddOpen(true)}
               />
-            </section>
-
-            {/* 4. Team Info */}
-            <section id="section-team" className="scroll-mt-[100px]">
-              <div className="rounded-xl border border-white/[0.06] bg-card p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">⚽</span>
-                    <span className="text-[13px] font-semibold text-text-1">소속 팀</span>
-                  </div>
-                  <button
-                    onClick={() => setSeasonAddOpen(true)}
-                    className="text-[12px] font-medium text-accent"
-                  >
-                    + 추가
-                  </button>
-                </div>
-
-                {displayProfile.teamName ? (
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-lg">🏟</div>
-                    <div>
-                      <p className="text-[13px] font-semibold text-text-1">{displayProfile.teamName}</p>
-                      {displayProfile.city && <p className="text-[12px] text-text-3">{displayProfile.city}</p>}
-                    </div>
-                    {displayProfile.teamId && (
-                      <Link href={`/team/${displayProfile.teamId}`} className="ml-auto text-[12px] text-accent">
-                        상세 →
-                      </Link>
-                    )}
-                  </div>
-                ) : (
-                  <p className="py-2 text-center text-[12px] text-text-3">
-                    아직 소속 팀이 없어요
-                  </p>
-                )}
-
-                {/* Previous teams from seasons */}
-                {seasons.filter((s) => !s.isCurrent).length > 0 && (
-                  <div className="mt-3 border-t border-white/[0.04] pt-3">
-                    <p className="mb-2 text-[12px] text-text-3">이전 소속</p>
-                    <div className="flex flex-col gap-1.5">
-                      {seasons.filter((s) => !s.isCurrent).map((s) => (
-                        <div key={s.id} className="flex items-center gap-2 text-[12px] text-text-2">
-                          <span className="text-text-3">•</span>
-                          <span>{s.teamName}</span>
-                          <span className="text-text-3">({s.year})</span>
-                          {s.gamesPlayed != null && (
-                            <span className="ml-auto text-[12px] text-text-3">
-                              {s.gamesPlayed}경기{s.goals ? ` ${s.goals}골` : ""}{s.assists ? ` ${s.assists}어시` : ""}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
+            )}
           </div>
         </>
       )}
@@ -310,7 +259,7 @@ export default function ProfilePage() {
       {/* Sheets */}
       {editOpen && (
         <ProfileEditSheet
-          profile={displayProfile}
+          profile={profile}
           open={editOpen}
           onClose={() => setEditOpen(false)}
           onSave={updateProfile}
@@ -318,15 +267,14 @@ export default function ProfilePage() {
           onCheckHandle={checkHandle}
         />
       )}
-
       {statInputOpen && (
         <StatInputSheet
           open={statInputOpen}
-          onClose={() => setStatInputOpen(false)}
+          onClose={() => { setStatInputOpen(false); setStatInputType(undefined); }}
           onSave={handleAddStat}
+          initialStatType={statInputType}
         />
       )}
-
       {seasonAddOpen && (
         <SeasonAddSheet
           open={seasonAddOpen}
@@ -334,89 +282,51 @@ export default function ProfilePage() {
           onSave={addSeason}
         />
       )}
-
-      {celebrationMedals.length > 0 && (
-        <MedalCelebration
-          medals={celebrationMedals}
-          onClose={() => setCelebrationMedals([])}
-        />
-      )}
-
       {pdfExportOpen && (
         <ProfilePdfExport
           open={pdfExportOpen}
           onClose={() => setPdfExportOpen(false)}
           loading={statsLoading || seasonsLoading}
-          profile={displayProfile}
+          profile={profile}
           stats={stats}
           medals={medals}
           seasons={seasons}
           achievements={[]}
         />
       )}
-    </div>
-  );
-}
 
-/* ── Sticky Anchor Tabs ── */
-
-const ANCHOR_TABS = [
-  { id: "section-video", label: "영상", icon: "🎬" },
-  { id: "section-record", label: "기록", icon: "📊" },
-  { id: "section-team", label: "팀", icon: "⚽" },
-] as const;
-
-function ProfileAnchorTabs() {
-  const [activeId, setActiveId] = useState<string>(ANCHOR_TABS[0].id);
-
-  useEffect(() => {
-    const sectionEls = ANCHOR_TABS.map((t) => document.getElementById(t.id)).filter(Boolean) as HTMLElement[];
-    if (sectionEls.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        }
-      },
-      { rootMargin: "-100px 0px -60% 0px", threshold: 0.1 }
-    );
-
-    sectionEls.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
-  const handleTap = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
-  return (
-    <div className="sticky top-[70px] z-30 -mx-4 mb-5 mt-4 border-b border-white/[0.06] glass-nav">
-      <div className="flex px-4">
-        {ANCHOR_TABS.map((tab) => {
-          const isActive = activeId === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTap(tab.id)}
-              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold transition-colors relative ${
-                isActive ? "text-accent" : "text-text-3"
-              }`}
-            >
-              <span className="text-[14px]">{tab.icon}</span>
-              {tab.label}
-              {isActive && (
-                <span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] rounded-full bg-accent" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* 성장 기록 삭제 확인 다이얼로그 */}
+      {deletingStatId && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          onClick={() => setDeletingStatId(null)}
+        >
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative w-full max-w-[430px] rounded-t-2xl bg-card p-5 pb-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-1 text-[15px] font-semibold text-text-1">성장 기록 삭제</div>
+            <p className="mb-5 text-[13px] text-text-3 leading-relaxed">
+              이 기록을 삭제하면 복구할 수 없어요.<br />정말 삭제할까요?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeletingStatId(null)}
+                className="flex-1 rounded-xl border border-white/[0.08] py-3 text-[13px] font-semibold text-text-2 active:bg-white/[0.04]"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmDeleteStat}
+                className="flex-1 rounded-xl bg-red-500/90 py-3 text-[13px] font-semibold text-white active:bg-red-600"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

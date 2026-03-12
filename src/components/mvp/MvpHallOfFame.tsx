@@ -76,7 +76,7 @@ export default function MvpHallOfFame({
             <Avatar
               name={entry.playerName}
               size="sm"
-              level={entry.playerLevel}
+              
               imageUrl={entry.playerAvatarUrl}
             />
 

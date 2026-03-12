@@ -1,29 +1,4 @@
-import { LEVELS, POSITION_COLORS, type Position } from "@/lib/constants";
-
-interface LevelBadgeProps {
-  level: number;
-  size?: "sm" | "md";
-}
-
-export function LevelBadge({ level, size = "sm" }: LevelBadgeProps) {
-  const lvl = LEVELS[Math.min(level, 5) - 1];
-  const textSize = size === "sm" ? "text-[10px]" : "text-[12px]";
-  const px = size === "sm" ? "px-2.5 py-0.5" : "px-2 py-1";
-
-  return (
-    <span
-      className={`inline-flex items-center gap-0.5 rounded-full ${px} ${textSize} font-bold`}
-      style={{
-        background: `${lvl.color}18`,
-        border: `1px solid ${lvl.color}33`,
-        color: lvl.color,
-      }}
-    >
-      <span>{lvl.icon}</span>
-      {lvl.name}
-    </span>
-  );
-}
+import { POSITION_COLORS, type Position } from "@/lib/constants";
 
 const POSITION_BADGE_STYLES: Record<Position, { bg: string; text: string; border: string }> = {
   FW: { bg: "rgba(239,68,68,0.10)", text: "#F87171", border: "rgba(239,68,68,0.20)" },

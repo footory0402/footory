@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
     type: "highlight" as const,
     reference_id: clip.id,
     metadata: {
+      video_url: clip.video_url,
       thumbnail_url: clip.thumbnail_url,
       duration: clip.duration_seconds,
       tags: validTags,

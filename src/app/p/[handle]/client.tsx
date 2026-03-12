@@ -25,7 +25,7 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import { APP_URL, POSITION_LABELS, MEASUREMENTS, SKILL_TAGS, getSkillTagsForPosition } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS, SKILL_TAGS, getStatMeta } from "@/lib/constants";
 import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
@@ -59,7 +59,6 @@ interface PublicProfileData {
   birth_year: number | null;
   city: string | null;
   avatar_url?: string | null;
-  level: number;
   bio?: string | null;
   followers_count: number;
   following_count: number;
@@ -108,8 +107,6 @@ function toProfile(data: PublicProfileData): Profile {
     birthYear: data.birth_year ?? 2010,
     city: data.city ?? "",
     avatarUrl: data.avatar_url ?? undefined,
-    level: data.level,
-    xp: 0,
     bio: data.bio ?? undefined,
     followers: data.followers_count ?? 0,
     following: data.following_count ?? 0,
@@ -263,89 +260,94 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
   return (
     <ErrorBoundary>
-    <div className="mx-auto max-w-[430px] px-4 pb-24 pt-4">
-      {/* Floating back button */}
-      <button
-        onClick={handleBack}
-        className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-card text-text-2 active:bg-elevated"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
-      </button>
+    <div className="mx-auto max-w-[430px] pb-24">
+      {/* 상단 고정 헤더 */}
+      <div className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 glass-nav">
+        <button
+          onClick={handleBack}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
+          aria-label="뒤로가기"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <span className="flex-1 truncate text-[14px] font-semibold text-text-1">{profile.name}</span>
+        <button
+          onClick={() => setShareOpen(true)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
+          aria-label="공유"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="px-4 pt-3">
       {/* Profile card (read-only, no edit button) */}
       <ProfileCard profile={profile} />
 
-      {/* Follow + Share buttons */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {!data.isOwnProfile && (
-          <>
-            {viewerAccess?.canFollow && (
-              <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
-            )}
-            {showWatchlistAction && viewerAccess?.watchlist.enabled && (
-              <AddToWatchlistButton playerId={profile.id} />
-            )}
-            {showWatchlistAction && !viewerAccess?.watchlist.enabled && (
-              <button
-                type="button"
-                disabled
-                className="flex items-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-[13px] font-semibold text-text-3 opacity-70"
-              >
-                <span>☆</span>
-                <span>{viewerAccess?.watchlist.label}</span>
-              </button>
-            )}
-            {viewerAccess?.dm.state !== "hidden" && (
-              <button
-                onClick={async () => {
-                  const supabase = createClient();
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) return;
+      {/* 액션 버튼 — 프로필 카드 바로 아래 */}
+      {!data.isOwnProfile && (
+        <div className="mt-3 flex gap-2">
+          {viewerAccess?.canFollow && (
+            <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
+          )}
+          {showWatchlistAction && viewerAccess?.watchlist.enabled && (
+            <AddToWatchlistButton playerId={profile.id} />
+          )}
+          {showWatchlistAction && !viewerAccess?.watchlist.enabled && (
+            <button
+              type="button"
+              disabled
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-[13px] font-semibold text-text-3 opacity-70"
+            >
+              <span>☆</span>
+              <span>{viewerAccess?.watchlist.label}</span>
+            </button>
+          )}
+          {viewerAccess?.dm.state !== "hidden" && (
+            <button
+              onClick={async () => {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-                  if (viewerAccess?.dm.state === "blocked") {
-                    toast.error(viewerAccess.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
-                    return;
-                  }
-                  if (viewerAccess?.dm.state === "request") {
-                    setDmModalOpen(true);
-                    return;
-                  }
+                if (viewerAccess?.dm.state === "blocked") {
+                  toast.error(viewerAccess.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
+                  return;
+                }
+                if (viewerAccess?.dm.state === "request") {
+                  setDmModalOpen(true);
+                  return;
+                }
 
-                  const perm = await canSendDm(user.id, profile.id);
-                  if (perm === "blocked") {
-                    toast.error(viewerAccess?.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
-                    return;
-                  }
-                  if (perm === "request") {
-                    setDmModalOpen(true);
-                    return;
-                  }
+                const perm = await canSendDm(user.id, profile.id);
+                if (perm === "blocked") {
+                  toast.error(viewerAccess?.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
+                  return;
+                }
+                if (perm === "request") {
+                  setDmModalOpen(true);
+                  return;
+                }
 
-                  const convId = await getOrCreateConversation(user.id, profile.id);
-                  router.push(`/dm/${convId}`);
-                }}
-                disabled={viewerAccess?.dm.state === "blocked"}
-                className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-[13px] font-semibold text-text-2 transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                </svg>
-                {viewerAccess?.dm.label ?? "메시지"}
-              </button>
-            )}
-          </>
-        )}
-        <button
-          onClick={() => setShareOpen(true)}
-          className="flex items-center gap-1.5 rounded-full border border-border px-4 py-1.5 text-[13px] font-semibold text-text-2 transition-colors hover:border-accent hover:text-accent"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 17l9.2-9.2M17 17V7H7" />
-          </svg>
-          공유
-        </button>
-      </div>
+                const convId = await getOrCreateConversation(user.id, profile.id);
+                router.push(`/dm/${convId}`);
+              }}
+              disabled={viewerAccess?.dm.state === "blocked"}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-[13px] font-semibold text-text-2 transition-colors active:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+              {viewerAccess?.dm.label ?? "대화 요청"}
+            </button>
+          )}
+        </div>
+      )}
       {helperTexts.length > 0 && (
         <div className="mt-2 flex flex-col gap-1 text-[12px] text-text-3">
           {helperTexts.map((text) => (
@@ -436,86 +438,75 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           </div>
         )}
 
-        {activeTab === "stats" && (
-          <div className="flex flex-col gap-4">
-            {/* Physical Info — compact chips */}
-            {hasPhysical && (
-              <div className="flex items-center gap-2">
-                {profile.heightCm && (
-                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                    <span className="text-[10px] uppercase tracking-wide text-text-3">키</span>
-                    <span className="font-stat text-sm font-bold text-text-1">{profile.heightCm}</span>
-                    <span className="text-[10px] text-text-3">cm</span>
-                  </div>
-                )}
-                {profile.weightKg && (
-                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                    <span className="text-[10px] uppercase tracking-wide text-text-3">몸무게</span>
-                    <span className="font-stat text-sm font-bold text-text-1">{profile.weightKg}</span>
-                    <span className="text-[10px] text-text-3">kg</span>
-                  </div>
-                )}
-                {profile.preferredFoot && (
-                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                    <span className="text-[10px] uppercase tracking-wide text-text-3">주발</span>
-                    <span className="text-sm font-medium text-text-1">{footLabel(profile.preferredFoot)}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Key Stats — FIFA-style 2-column grid */}
-            {stats.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-text-2 mb-3">핵심 스탯</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {stats.map((stat, i) => {
-                    const m = MEASUREMENTS.find((m) => m.id === stat.type);
-                    return (
-                      <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
-                        <StatRow
-                          icon={m?.icon ?? "📊"}
-                          label={m?.label ?? stat.type}
-                          value={stat.value}
-                          unit={stat.unit}
-                          type={stat.type}
-                          previousValue={stat.previousValue}
-                          verified={stat.verified}
-                          lowerIsBetter={m?.lowerIsBetter}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Achievements — clean card list */}
-            {medals.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-text-2 mb-3">달성 기록</h3>
-                <div className="flex flex-col gap-1.5">
-                  {medals.map((medal, i) => (
-                    <div key={medal.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
-                      <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} difficultyTier={medal.difficultyTier} verified={medal.verified} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Empty state */}
-            {!hasPhysical && stats.length === 0 && medals.length === 0 && (
-              <div className="py-12 text-center text-[13px] text-text-3">
-                아직 등록된 스탯이 없습니다
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === "records" && (
           <div className="flex flex-col gap-5">
-            {/* Season records — public profile uses SeasonTimeline directly (no MyTeamSection) */}
+            {/* Physical + Stats */}
+            {(hasPhysical || stats.length > 0 || medals.length > 0) && (
+              <div className="flex flex-col gap-4">
+                {hasPhysical && (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.heightCm && (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                        <span className="text-[10px] text-text-3">키</span>
+                        <span className="font-stat text-sm font-bold text-text-1">{profile.heightCm}</span>
+                        <span className="text-[10px] text-text-3">cm</span>
+                      </div>
+                    )}
+                    {profile.weightKg && (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                        <span className="text-[10px] text-text-3">몸무게</span>
+                        <span className="font-stat text-sm font-bold text-text-1">{profile.weightKg}</span>
+                        <span className="text-[10px] text-text-3">kg</span>
+                      </div>
+                    )}
+                    {profile.preferredFoot && (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                        <span className="text-[10px] text-text-3">주발</span>
+                        <span className="text-sm font-medium text-text-1">{footLabel(profile.preferredFoot)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {stats.length > 0 && (
+                  <div>
+                    <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-text-3">성장 기록</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {stats.map((stat, i) => {
+                        const m = getStatMeta(stat.type);
+                        return (
+                          <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                            <StatRow
+                              icon={m.icon}
+                              label={m.label}
+                              value={stat.value}
+                              unit={stat.unit}
+                              type={stat.type}
+                              previousValue={stat.previousValue}
+                              verified={stat.verified}
+                              lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {medals.length > 0 && (
+                  <div>
+                    <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-text-3">달성 기록</h3>
+                    <div className="flex flex-col gap-1.5">
+                      {medals.map((medal, i) => (
+                        <div key={medal.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                          <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} difficultyTier={medal.difficultyTier} verified={medal.verified} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Season records */}
             {seasons.length > 0 && (
               <SectionCard title="시즌 기록" icon="📅">
                 <SeasonTimeline seasons={seasons} />
@@ -529,7 +520,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                 <GrowthTimeline events={timelineEvents} />
               </SectionCard>
             )}
-            {seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && (
+            {!hasPhysical && stats.length === 0 && medals.length === 0 && seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && (
               <div className="py-12 text-center text-[13px] text-text-3">
                 아직 등록된 기록이 없습니다
               </div>
@@ -538,19 +529,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         )}
       </div>
 
-      {/* I16: Footory에서 보기 버튼 */}
-      <div className="mt-6 flex flex-col items-center gap-2 border-t border-border py-6">
-        <p className="text-[11px] text-text-3">Footory에서 전체 프로필 보기</p>
-        <a
-          href={`${APP_URL}/p/${data.handle}`}
-          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-[13px] font-bold text-bg"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 17l9.2-9.2M17 17V7H7" />
-          </svg>
-          Footory에서 보기
-        </a>
-      </div>
+      </div>{/* end px-4 */}
 
       <ShareSheet
         open={shareOpen}

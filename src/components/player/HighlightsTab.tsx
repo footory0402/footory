@@ -1,19 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { SectionCard } from "@/components/ui/Card";
-import FeaturedSlot from "./FeaturedSlot";
-import TagAccordion from "./TagAccordion";
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
-
-const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false });
+import dynamic from "next/dynamic";
 import VideoThumb from "./VideoThumb";
 import ClipPlayerSheet, { type PlayableClip } from "./ClipPlayerSheet";
 import TagEditSheet from "./TagEditSheet";
 import { useFeaturedClips } from "@/hooks/useClips";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { MAX_FEATURED_SLOTS, getSkillTagsForPosition } from "@/lib/constants";
+import { getSkillTagsForPosition } from "@/lib/constants";
+
+const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false });
 
 interface TagClip {
   id: string;
@@ -25,7 +23,6 @@ interface TagClip {
 }
 
 interface HighlightsTabProps {
-  level: number;
   tagClips: Record<string, TagClip[]>;
   untaggedClips?: TagClip[];
   tagClipsLoading?: boolean;
@@ -34,15 +31,13 @@ interface HighlightsTabProps {
   onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
 }
 
-function maxSlotsByLevel(level: number): number {
-  if (level <= 1) return 0;
-  if (level === 2) return 1;
-  if (level === 3) return 2;
-  return MAX_FEATURED_SLOTS; // 3
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}초`;
 }
 
 export default function HighlightsTab({
-  level,
   tagClips,
   untaggedClips = [],
   tagClipsLoading,
@@ -52,6 +47,10 @@ export default function HighlightsTab({
 }: HighlightsTabProps) {
   const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [playingSource, setPlayingSource] = useState<"featured" | "grid" | null>(null);
+  const [editingClipId, setEditingClipId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFeatured();
@@ -60,20 +59,40 @@ export default function HighlightsTab({
   const handleAdd = useCallback(() => setPickerOpen(true), []);
   const handleSelect = useCallback(async (clipId: string) => {
     await addFeatured(clipId);
+    setPickerOpen(false);
   }, [addFeatured]);
   const handleRemove = useCallback(async (clipId: string) => {
     await removeFeatured(clipId);
   }, [removeFeatured]);
 
-  const [featuredPlayIndex, setFeaturedPlayIndex] = useState<number | null>(null);
-
-  const maxSlots = maxSlotsByLevel(level);
-  const slotsToShow = maxSlots === 0 ? 0 : Math.min(featured.length + 1, maxSlots);
+  const maxSlots = 3;
   const excludeClipIds = featured.map((f) => f.clip_id);
 
   const tagsToShow = getSkillTagsForPosition(position);
 
-  // Convert featured clips to PlayableClip format
+  // Build flat grid clips — all tagged + untagged
+  const allTaggedClips: (TagClip & { tagLabel?: string; tagEmoji?: string })[] = Object.entries(tagClips).flatMap(([tagId, clips]) => {
+    const tagMeta = tagsToShow.find((t) => t.id === tagId);
+    return clips.map((c) => ({ ...c, tagLabel: tagMeta?.label, tagEmoji: tagMeta?.emoji }));
+  });
+  const allClips = [
+    ...allTaggedClips,
+    ...untaggedClips.map((c) => ({ ...c, tagLabel: undefined, tagEmoji: undefined })),
+  ];
+  // Deduplicate by id
+  const seenIds = new Set<string>();
+  const dedupedClips = allClips.filter((c) => {
+    if (seenIds.has(c.id)) return false;
+    seenIds.add(c.id);
+    return true;
+  });
+
+  // Filter
+  const filteredClips = activeFilter === "all"
+    ? dedupedClips
+    : dedupedClips.filter((c) => c.tag === activeFilter || c.tag === tagsToShow.find((t) => t.id === activeFilter)?.dbName);
+
+  // Featured playable
   const featuredPlayable: PlayableClip[] = featured
     .filter((f) => f.clips?.video_url)
     .map((f) => ({
@@ -82,200 +101,426 @@ export default function HighlightsTab({
       thumbnailUrl: f.clips?.thumbnail_url,
     }));
 
+  // Grid playable — filter out clips without valid videoUrl
+  const gridPlayable: PlayableClip[] = filteredClips
+    .filter((c) => !!c.videoUrl)
+    .map((c) => ({
+      id: c.id,
+      videoUrl: c.videoUrl,
+      thumbnailUrl: c.thumbnailUrl,
+      duration: c.duration,
+      tag: c.tag,
+    }));
+
+  const hasClips = dedupedClips.length > 0 || featured.length > 0;
+
+  // Filter tags that actually have clips
+  const activeTagsWithClips = tagsToShow.filter((t) =>
+    Object.keys(tagClips).includes(t.id) && (tagClips[t.id]?.length ?? 0) > 0
+  );
+
   return (
     <ErrorBoundary>
-    <div className="flex flex-col gap-5">
-      {/* Featured Highlights */}
-      <SectionCard title="대표 하이라이트" icon="⭐">
-        {slotsToShow > 0 ? (
-          <div className="grid grid-cols-2 gap-2">
-            {Array.from({ length: slotsToShow }).map((_, i) => {
-              const feat = featured[i];
-              return (
-                <div
-                  key={i}
-                  className="animate-fade-up cursor-pointer"
-                  style={{ animationDelay: `${i * 0.05}s` }}
-                  onClick={() => {
-                    if (feat?.clips?.video_url) {
-                      const idx = featuredPlayable.findIndex((p) => p.id === feat.clip_id);
-                      if (idx >= 0) setFeaturedPlayIndex(idx);
-                    }
-                  }}
-                >
-                  <FeaturedSlot
-                    clipId={feat?.clip_id}
-                    videoUrl={feat?.clips?.video_url}
-                    thumbnailUrl={feat?.clips?.thumbnail_url}
-                    highlightStart={feat?.clips?.highlight_start ?? undefined}
-                    highlightEnd={feat?.clips?.highlight_end ?? undefined}
-                    sortOrder={i + 1}
-                    onAdd={handleAdd}
-                    onRemove={handleRemove}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 py-4">
-            <span className="text-2xl">🔒</span>
-            <p className="text-[12px] text-text-3">
-              <span className="font-semibold text-accent">Lv.2</span>부터 대표 영상을 등록할 수 있습니다
+      <div className="flex flex-col gap-4">
+
+        {/* ── Hero Zone: 대표 하이라이트 ── */}
+        {maxSlots > 0 && (
+          <HeroZone
+            featured={featured}
+            maxSlots={maxSlots}
+            featuredPlayable={featuredPlayable}
+            onAdd={handleAdd}
+            onRemove={handleRemove}
+            onPlay={(idx) => { setPlayingIndex(idx); setPlayingSource("featured"); }}
+          />
+        )}
+
+        {/* ── 영상 추가 버튼 ── */}
+        <Link
+          href="/upload"
+          className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent/40 bg-card py-3 text-[13px] font-medium text-accent transition-colors active:bg-accent/10"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          영상 추가
+        </Link>
+
+        {/* ── 클립 없을 때 빈 상태 ── */}
+        {!tagClipsLoading && !hasClips && (
+          <div className="flex flex-col items-center gap-3 rounded-xl bg-card border border-white/[0.06] py-10 text-center">
+            <span className="text-4xl">🎬</span>
+            <p className="text-[13px] font-semibold text-text-1">아직 영상이 없어요</p>
+            <p className="text-[12px] text-text-3 leading-relaxed">
+              첫 영상을 올려 나만의 포트폴리오를<br />시작해보세요
             </p>
           </div>
         )}
-        {maxSlots > 0 && maxSlots < MAX_FEATURED_SLOTS && (
-          <p className="mt-2 text-center text-xs text-text-3">
-            다음 레벨에서 <span className="font-semibold text-accent">{maxSlots + 1}슬롯</span>이 열립니다
-          </p>
+
+        {/* ── 필터 칩 + 그리드 ── */}
+        {!tagClipsLoading && hasClips && (
+          <div className="flex flex-col gap-3">
+            {/* 필터 칩 */}
+            {activeTagsWithClips.length > 0 && (
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 scrollbar-none">
+                <FilterChip
+                  label="전체"
+                  count={dedupedClips.length}
+                  active={activeFilter === "all"}
+                  onClick={() => setActiveFilter("all")}
+                />
+                {activeTagsWithClips.map((tag) => (
+                  <FilterChip
+                    key={tag.id}
+                    label={`${tag.emoji} ${tag.label}`}
+                    count={tagClips[tag.id]?.length ?? 0}
+                    active={activeFilter === tag.id}
+                    onClick={() => setActiveFilter(tag.id)}
+                  />
+                ))}
+                {untaggedClips.length > 0 && (
+                  <FilterChip
+                    label="미분류"
+                    count={untaggedClips.length}
+                    active={activeFilter === "untagged"}
+                    onClick={() => setActiveFilter("untagged")}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* 3열 그리드 */}
+            {tagClipsLoading ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-card-alt" />
+                ))}
+              </div>
+            ) : filteredClips.length > 0 ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {filteredClips.map((clip, i) => (
+                  <GridThumb
+                    key={clip.id}
+                    clip={clip}
+                    onPlay={() => { setPlayingIndex(i); setPlayingSource("grid"); }}
+                    onEditTags={onEditTags ? () => setEditingClipId(clip.id) : undefined}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-[12px] text-text-3">
+                해당 태그의 영상이 없어요
+              </div>
+            )}
+          </div>
         )}
-      </SectionCard>
 
-      {/* Featured clip player */}
-      {featuredPlayIndex !== null && featuredPlayable.length > 0 && (
-        <ClipPlayerSheet
-          clips={featuredPlayable}
-          initialIndex={featuredPlayIndex}
-          onClose={() => setFeaturedPlayIndex(null)}
-        />
-      )}
+        {/* Players */}
+        {playingSource === "featured" && playingIndex !== null && featuredPlayable.length > 0 && (
+          <ClipPlayerSheet
+            clips={featuredPlayable}
+            initialIndex={playingIndex}
+            onClose={() => { setPlayingIndex(null); setPlayingSource(null); }}
+          />
+        )}
+        {playingSource === "grid" && playingIndex !== null && gridPlayable.length > 0 && (
+          <ClipPlayerSheet
+            clips={gridPlayable}
+            initialIndex={playingIndex}
+            onClose={() => { setPlayingIndex(null); setPlayingSource(null); }}
+            onDelete={onDeleteClip}
+            onEditTags={onEditTags ? (clipId) => {
+              setPlayingIndex(null);
+              setPlayingSource(null);
+              setEditingClipId(clipId);
+            } : undefined}
+          />
+        )}
 
-      {/* Upload CTA */}
-      <Link
-        href="/upload"
-        className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--color-accent)]/40 bg-[var(--color-card)] py-3 text-sm font-medium text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/10"
-      >
-        <span>+</span> 영상 추가
-      </Link>
+        {/* Clip Picker */}
+        {pickerOpen && (
+          <ClipPickerSheet
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            onSelect={handleSelect}
+            excludeClipIds={excludeClipIds}
+          />
+        )}
 
-      {/* 태그 없는 클립 → 상단 "최근 업로드" 섹션 */}
-      {!tagClipsLoading && untaggedClips.length > 0 && (
-        <UntaggedClipsSection
-          clips={untaggedClips}
-          onDeleteClip={onDeleteClip}
-          onEditTags={onEditTags}
-        />
-      )}
-
-      {/* Tag accordions */}
-      {tagClipsLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-        </div>
-      ) : (
-        <>
-          {tagsToShow.map((tag, i) => (
-            <div key={tag.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-              <TagAccordion
-                emoji={tag.emoji}
-                label={tag.label}
-                clips={tagClips[tag.id] ?? []}
-                onDeleteClip={onDeleteClip}
-              />
-            </div>
-          ))}
-        </>
-      )}
-
-      {/* Clip Picker */}
-      {pickerOpen && (
-        <ClipPickerSheet
-          open={pickerOpen}
-          onClose={() => setPickerOpen(false)}
-          onSelect={handleSelect}
-          excludeClipIds={excludeClipIds}
-        />
-      )}
-    </div>
+        {/* Tag Edit */}
+        {editingClipId && onEditTags && (
+          <TagEditSheet
+            clipId={editingClipId}
+            currentTags={[]}
+            onClose={() => setEditingClipId(null)}
+            onSave={onEditTags}
+          />
+        )}
+      </div>
     </ErrorBoundary>
   );
 }
 
-/* ── Untagged clips section — opens shared player with swipe nav ── */
-function UntaggedClipsSection({
-  clips,
-  onDeleteClip,
-  onEditTags,
+/* ── Hero Zone ── */
+function HeroZone({
+  featured,
+  maxSlots,
+  featuredPlayable,
+  onAdd,
+  onRemove,
+  onPlay,
 }: {
-  clips: TagClip[];
-  onDeleteClip?: (clipId: string) => Promise<boolean>;
-  onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
+  featured: Array<{ clip_id: string; clips?: { video_url: string; thumbnail_url?: string | null; highlight_start?: number | null; highlight_end?: number | null } | null }>;
+  maxSlots: number;
+  featuredPlayable: PlayableClip[];
+  onAdd: () => void;
+  onRemove: (clipId: string) => void;
+  onPlay: (index: number) => void;
 }) {
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const [editingClipId, setEditingClipId] = useState<string | null>(null);
+  const slotsToShow = Math.min(featured.length + 1, maxSlots);
+  const slots = Array.from({ length: slotsToShow });
 
-  const playableClips: PlayableClip[] = clips.map((c) => ({
-    id: c.id,
-    videoUrl: c.videoUrl,
-    thumbnailUrl: c.thumbnailUrl,
-    duration: c.duration,
-  }));
+  if (slotsToShow === 0) return null;
 
   return (
-    <div className="animate-fade-up">
-      <div className="overflow-hidden rounded-xl border border-accent/20 bg-card">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[16px]">📹</span>
-            <span className="text-[13px] font-semibold text-text-1">최근 업로드</span>
-            <span className="text-[11px] text-text-3">{clips.length}개</span>
-          </div>
-          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
-            태그를 추가해 포트폴리오를 정리하세요
-          </span>
-        </div>
-        <div className="px-4 pb-3">
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {clips.map((clip, i) => (
-              <div key={clip.id} className="relative w-[160px] shrink-0">
-                <button type="button" onClick={() => setPlayingIndex(i)} className="w-full text-left">
-                  <VideoThumb
-                    thumbnailUrl={clip.thumbnailUrl ?? undefined}
-                    duration={clip.duration}
-                    aspectRatio="4/3"
-                  />
-                </button>
-                {onEditTags && (
-                  <button
-                    type="button"
-                    onClick={() => setEditingClipId(clip.id)}
-                    className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg bg-accent/10 py-1.5 text-[11px] font-medium text-accent active:bg-accent/20"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    태그 추가
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-semibold text-text-3 uppercase tracking-wider">대표 하이라이트</span>
+        {maxSlots > featured.length && (
+          <button
+            onClick={onAdd}
+            className="text-[12px] font-medium text-accent"
+          >
+            + 추가
+          </button>
+        )}
       </div>
 
-      {/* Shared player for all untagged clips */}
-      {playingIndex !== null && (
-        <ClipPlayerSheet
-          clips={playableClips}
-          initialIndex={playingIndex}
-          onClose={() => setPlayingIndex(null)}
-          onDelete={onDeleteClip}
-          onEditTags={onEditTags ? (clipId) => {
-            setPlayingIndex(null);
-            setEditingClipId(clipId);
-          } : undefined}
+      {/* 1개 = 풀폭, 2~3개 = 가로 스크롤 */}
+      {featured.length <= 1 ? (
+        <div>
+          {featured[0] ? (
+            <HeroSlot
+              clip={featured[0]}
+              sortOrder={1}
+              fullWidth
+              onPlay={() => onPlay(0)}
+              onRemove={() => onRemove(featured[0].clip_id)}
+            />
+          ) : (
+            <HeroEmptySlot sortOrder={1} onAdd={onAdd} fullWidth />
+          )}
+        </div>
+      ) : (
+        <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none">
+          {slots.map((_, i) => {
+            const feat = featured[i];
+            return feat ? (
+              <HeroSlot
+                key={feat.clip_id}
+                clip={feat}
+                sortOrder={i + 1}
+                onPlay={() => onPlay(i)}
+                onRemove={() => onRemove(feat.clip_id)}
+              />
+            ) : (
+              <HeroEmptySlot key={`empty-${i}`} sortOrder={i + 1} onAdd={onAdd} />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeroSlot({
+  clip,
+  sortOrder,
+  fullWidth = false,
+  onPlay,
+  onRemove,
+}: {
+  clip: { clip_id: string; clips?: { video_url: string; thumbnail_url?: string | null; highlight_start?: number | null; highlight_end?: number | null } | null };
+  sortOrder: number;
+  fullWidth?: boolean;
+  onPlay: () => void;
+  onRemove: () => void;
+}) {
+  const thumbnailUrl = clip.clips?.thumbnail_url;
+  const hs = clip.clips?.highlight_start;
+  const he = clip.clips?.highlight_end;
+  const duration = hs != null && he != null ? he - hs : 30;
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-xl ${fullWidth ? "w-full aspect-video" : "w-[200px] shrink-0 aspect-video"}`}
+      style={{
+        boxShadow: "0 0 0 2px #D4A853, 0 4px 16px rgba(212,168,83,0.2)",
+      }}
+    >
+      {thumbnailUrl ? (
+        <Image
+          src={thumbnailUrl}
+          alt={`대표 영상 ${sortOrder}`}
+          fill
+          sizes={fullWidth ? "(max-width: 430px) calc(100vw - 2rem), 398px" : "200px"}
+          className="object-cover"
         />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-card-alt text-2xl">🎬</div>
       )}
 
-      {/* Tag edit sheet */}
-      {editingClipId && onEditTags && (
-        <TagEditSheet
-          clipId={editingClipId}
-          currentTags={[]}
-          onClose={() => setEditingClipId(null)}
-          onSave={onEditTags}
+      {/* Play 버튼 */}
+      <button
+        onClick={onPlay}
+        className="absolute inset-0 flex items-center justify-center"
+        aria-label="영상 재생"
+      >
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      </button>
+
+      {/* BEST 뱃지 */}
+      {sortOrder === 1 && (
+        <span className="absolute top-2 left-2 rounded-md bg-accent px-1.5 py-0.5 text-[9px] font-bold text-bg">
+          BEST
+        </span>
+      )}
+
+      {/* 재생시간 */}
+      <span className="absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 font-stat text-[10px] text-white">
+        {formatDuration(Math.round(duration))}
+      </span>
+
+      {/* 제거 버튼 */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm active:bg-red-500/80"
+        aria-label="대표 영상 해제"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function HeroEmptySlot({
+  sortOrder,
+  onAdd,
+  fullWidth = false,
+}: {
+  sortOrder: number;
+  onAdd: () => void;
+  fullWidth?: boolean;
+}) {
+  return (
+    <button
+      onClick={onAdd}
+      className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-accent/40 bg-card ${
+        fullWidth ? "w-full aspect-video" : "w-[200px] shrink-0 aspect-video"
+      }`}
+    >
+      <span className="text-xl">✨</span>
+      <span className="text-[12px] font-medium text-accent">영상 {sortOrder} 추가</span>
+    </button>
+  );
+}
+
+/* ── Filter Chip ── */
+function FilterChip({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+        active
+          ? "bg-accent text-bg"
+          : "bg-card border border-white/[0.08] text-text-3 hover:text-text-2"
+      }`}
+    >
+      {label}
+      <span className={`rounded-full px-1 text-[10px] font-bold ${active ? "bg-black/20 text-bg" : "text-text-3"}`}>
+        {count}
+      </span>
+    </button>
+  );
+}
+
+/* ── Grid Thumb ── */
+function GridThumb({
+  clip,
+  onPlay,
+  onEditTags,
+}: {
+  clip: TagClip & { tagLabel?: string; tagEmoji?: string };
+  onPlay: () => void;
+  onEditTags?: () => void;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-lg bg-card-alt" style={{ aspectRatio: "3/4" }}>
+      {clip.thumbnailUrl ? (
+        <Image
+          src={clip.thumbnailUrl}
+          alt=""
+          fill
+          sizes="(max-width: 430px) 30vw, 140px"
+          className="object-cover"
         />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-xl">🎬</div>
+      )}
+
+      {/* 탭 영역 */}
+      <button
+        onClick={onPlay}
+        className="absolute inset-0"
+        aria-label="영상 재생"
+      />
+
+      {/* 재생시간 */}
+      <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 py-0.5 font-stat text-[9px] text-white">
+        {formatDuration(Math.round(clip.duration))}
+      </span>
+
+      {/* 태그 칩 오버레이 */}
+      {clip.tagLabel && (
+        <span className="absolute top-1 left-1 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white/80 backdrop-blur-sm">
+          {clip.tagEmoji} {clip.tagLabel}
+        </span>
+      )}
+
+      {/* 미분류 뱃지 */}
+      {!clip.tagLabel && (
+        <span className="absolute top-1 right-1 rounded bg-white/10 px-1 py-0.5 text-[8px] text-white/50">
+          미분류
+        </span>
+      )}
+
+      {/* 태그 추가 (미분류만) */}
+      {!clip.tagLabel && onEditTags && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onEditTags(); }}
+          className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent/80 text-bg"
+          aria-label="태그 추가"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
       )}
     </div>
   );

@@ -5,7 +5,7 @@ import type { TeamMember } from "@/lib/types";
 import Avatar from "@/components/ui/Avatar";
 import FollowButton from "@/components/social/FollowButton";
 import AlumniLabel from "@/components/team/AlumniLabel";
-import { LevelBadge, PositionBadge } from "@/components/ui/Badge";
+import { PositionBadge } from "@/components/ui/Badge";
 import type { Position } from "@/lib/constants";
 
 interface MemberListProps {
@@ -43,7 +43,7 @@ export default function MemberList({ members, isAdmin, currentUserId, onRemove }
               name={member.profile?.name ?? "?"}
               imageUrl={member.profile?.avatar_url ?? undefined}
               size="sm"
-              level={member.profile?.level ?? 1}
+              
             />
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -61,7 +61,6 @@ export default function MemberList({ members, isAdmin, currentUserId, onRemove }
                 {member.profile?.position && (
                   <PositionBadge position={member.profile.position as Position} size="sm" />
                 )}
-                <LevelBadge level={member.profile?.level ?? 1} size="sm" />
               </div>
             </div>
           </Link>

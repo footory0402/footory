@@ -9,8 +9,10 @@ import UploadNudge from "./UploadNudge";
 import dynamic from "next/dynamic";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import ShareSheet from "@/components/social/ShareSheet";
+import type { PlayableClip } from "@/components/player/ClipPlayerSheet";
 
 const CommentSheet = dynamic(() => import("@/components/social/CommentSheet"), { ssr: false });
+const ClipPlayerSheet = dynamic(() => import("@/components/player/ClipPlayerSheet"), { ssr: false });
 
 interface FeedListProps {
   initialItems?: FeedItemEnriched[];
@@ -49,6 +51,20 @@ export default function FeedList({
   );
   const [commentTarget, setCommentTarget] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<FeedItemEnriched | null>(null);
+  const [playerClips, setPlayerClips] = useState<PlayableClip[] | null>(null);
+
+  const handlePlay = useCallback((item: FeedItemEnriched) => {
+    const meta = item.metadata as Record<string, unknown>;
+    const videoUrl = typeof meta.video_url === "string" ? meta.video_url : null;
+    if (!videoUrl) return;
+    setPlayerClips([{
+      id: item.reference_id ?? item.id,
+      videoUrl,
+      thumbnailUrl: typeof meta.thumbnail_url === "string" ? meta.thumbnail_url : null,
+      tag: Array.isArray(meta.tags) ? (meta.tags as string[])[0] : undefined,
+      duration: typeof meta.duration === "number" ? meta.duration : undefined,
+    }]);
+  }, []);
   const feedItemIds = useMemo(() => items.map((i) => i.id), [items]);
 
   useRealtimeFeed({
@@ -180,6 +196,7 @@ export default function FeedList({
                 onKudos={toggleKudos}
                 onComment={setCommentTarget}
                 onShare={setShareTarget}
+                onPlay={handlePlay}
                 eagerImage={eagerImage}
               />
             </div>
@@ -228,6 +245,13 @@ export default function FeedList({
           onClose={() => setShareTarget(null)}
           shareUrl={typeof window !== "undefined" ? `${window.location.origin}/p/${shareTarget.playerHandle}` : `/p/${shareTarget.playerHandle}`}
           title={`${shareTarget.playerName}의 하이라이트 — Footory`}
+        />
+      )}
+
+      {playerClips && (
+        <ClipPlayerSheet
+          clips={playerClips}
+          onClose={() => setPlayerClips(null)}
         />
       )}
     </ErrorBoundary>

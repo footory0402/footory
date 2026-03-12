@@ -242,6 +242,15 @@ body {
   pointer-events: none;
 }
 
+/* Hide scrollbars globally while keeping scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/WebKit */
+}
+
 /* Glass nav */
 .glass-nav {
   background: rgba(7, 7, 9, 0.88);

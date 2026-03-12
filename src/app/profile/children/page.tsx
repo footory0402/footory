@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useLinkedChildren } from "@/hooks/useParent";
 import Avatar from "@/components/ui/Avatar";
-import { LevelBadge } from "@/components/ui/Badge";
 import LinkChildSheet from "@/components/parent/LinkChildSheet";
 import Button from "@/components/ui/Button";
 
@@ -57,12 +56,11 @@ export default function ChildrenPage() {
                 name={child.name}
                 imageUrl={child.avatarUrl ?? undefined}
                 size="md"
-                level={child.level}
+                
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] font-semibold text-text-1">{child.name}</span>
-                  <LevelBadge level={child.level} size="sm" />
                 </div>
                 <span className="text-[12px] text-text-3">@{child.handle}</span>
               </div>

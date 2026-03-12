@@ -16,7 +16,6 @@ interface ProfileRow {
   name: string;
   avatar_url: string | null;
   position: string | null;
-  level: number | null;
   followers_count: number | null;
   mvp_count: number | null;
   mvp_tier: string | null;
@@ -36,7 +35,6 @@ interface PlayerRankingItem {
   name: string;
   avatar_url: string | null;
   position: string | null;
-  level: number;
   team_name: string | null;
   mvp_count: number;
   mvp_tier: string | null;
@@ -52,8 +50,8 @@ async function fetchProfiles(
   if (profileIds.length === 0) return [] as ProfileRow[];
 
   const select = includeRole
-    ? "id, handle, name, avatar_url, position, level, followers_count, mvp_count, mvp_tier, role"
-    : "id, handle, name, avatar_url, position, level, followers_count, mvp_count, mvp_tier";
+    ? "id, handle, name, avatar_url, position, followers_count, mvp_count, mvp_tier, role"
+    : "id, handle, name, avatar_url, position, followers_count, mvp_count, mvp_tier";
   const { data, error } = await supabase.from("profiles").select(select).in("id", profileIds);
 
   if (error) throw error;
@@ -151,7 +149,6 @@ export async function GET(req: NextRequest) {
           name: profile.name,
           avatar_url: profile.avatar_url,
           position: profile.position,
-          level: profile.level ?? 1,
           team_name: cachedTeamNames.get(row.profile_id) ?? null,
           mvp_count: profile.mvp_count ?? 0,
           mvp_tier: profile.mvp_tier ?? null,
@@ -167,7 +164,7 @@ export async function GET(req: NextRequest) {
     if (remaining > 0) {
       let fallbackQuery = supabase
         .from("profiles")
-        .select("id, handle, name, avatar_url, position, level, followers_count, mvp_count, mvp_tier")
+        .select("id, handle, name, avatar_url, position, followers_count, mvp_count, mvp_tier")
         .eq("role", "player");
 
       const cachedItemIds = cachedItems.map((item) => item.profile_id);
@@ -203,7 +200,6 @@ export async function GET(req: NextRequest) {
         name: profile.name,
         avatar_url: profile.avatar_url,
         position: profile.position,
-        level: profile.level ?? 1,
         team_name: fallbackTeamNames.get(profile.id) ?? null,
         mvp_count: profile.mvp_count ?? 0,
         mvp_tier: profile.mvp_tier ?? null,

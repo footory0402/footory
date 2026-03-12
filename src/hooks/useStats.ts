@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Stat, Medal } from "@/lib/types";
 import type { AwardedMedal } from "@/lib/medals";
+import { MEASUREMENTS } from "@/lib/constants";
 
 interface StatsApiStat {
   id: string;
@@ -36,22 +37,35 @@ interface StatsApiMedal {
   } | null;
 }
 
-function toStat(s: StatsApiStat, allStats: StatsApiStat[]): Stat {
-  // Find previous value for same stat type
+function toStat(s: StatsApiStat, allStats: StatsApiStat[], lowerIsBetter: boolean): Stat {
+  // Find all records for same stat type, sorted newest first
   const sameType = allStats
-    .filter((x) => x.stat_type === s.stat_type && x.id !== s.id)
+    .filter((x) => x.stat_type === s.stat_type)
     .sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime());
+
+  const previous = sameType.find((x) => x.id !== s.id);
+  const oldest = sameType[sameType.length - 1];
+
+  // Best value (PR) — depends on whether lower is better
+  const allValues = sameType.map((x) => x.value);
+  const bestValue = lowerIsBetter ? Math.min(...allValues) : Math.max(...allValues);
+  const isPR = s.value === bestValue;
 
   return {
     id: s.id,
     playerId: s.profile_id,
     type: s.stat_type,
     value: s.value,
-    previousValue: sameType[0]?.value,
+    previousValue: previous?.value,
     unit: s.unit,
     measuredAt: s.recorded_at,
     evidenceClipId: s.evidence_clip_id ?? undefined,
     verified: s.verified,
+    bestValue,
+    isPR,
+    firstValue: oldest?.value,
+    firstMeasuredAt: oldest?.recorded_at,
+    measureCount: sameType.length,
   };
 }
 
@@ -100,7 +114,10 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
       }
       const latestStats = Array.from(latestByType.values());
 
-      setStats(latestStats.map((s) => toStat(s, apiStats)));
+      setStats(latestStats.map((s) => {
+        const m = MEASUREMENTS.find((m) => m.id === s.stat_type);
+        return toStat(s, apiStats, m?.lowerIsBetter ?? false);
+      }));
       setMedals(apiMedals.map(toMedal));
     } finally {
       setLoading(false);

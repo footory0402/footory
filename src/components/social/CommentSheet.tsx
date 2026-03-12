@@ -33,7 +33,6 @@ function CommentRow({
         <Avatar
           name={comment.profile.name}
           size="xs"
-          level={comment.profile.level}
           imageUrl={comment.profile.avatar_url ?? undefined}
         />
       </Link>

@@ -1,27 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { MEASUREMENTS } from "@/lib/constants";
+import { MEASUREMENTS, getStatMeta } from "@/lib/constants";
 
 interface StatInputSheetProps {
   open: boolean;
   onClose: () => void;
   onSave: (statType: string, value: number, evidenceClipId?: string) => Promise<void>;
+  initialStatType?: string;
 }
 
 type Step = "type" | "value";
 
-export default function StatInputSheet({ open, onClose, onSave }: StatInputSheetProps) {
-  const [step, setStep] = useState<Step>("type");
-  const [selectedType, setSelectedType] = useState<string>("");
+function resolveInitialStep(initialStatType?: string): Step {
+  if (!initialStatType) return "type";
+  const known = MEASUREMENTS.find((m) => m.id === initialStatType);
+  return known ? "value" : "type";
+}
+
+export default function StatInputSheet({ open, onClose, onSave, initialStatType }: StatInputSheetProps) {
+  const [step, setStep] = useState<Step>(() => resolveInitialStep(initialStatType));
+  const [selectedType, setSelectedType] = useState<string>(
+    MEASUREMENTS.find((m) => m.id === initialStatType) ? (initialStatType ?? "") : ""
+  );
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const measurement = MEASUREMENTS.find((m) => m.id === selectedType);
+  const measurement = selectedType ? getStatMeta(selectedType) : null;
 
   const reset = () => {
-    setStep("type");
-    setSelectedType("");
+    setStep(resolveInitialStep(initialStatType));
+    setSelectedType(MEASUREMENTS.find((m) => m.id === initialStatType) ? (initialStatType ?? "") : "");
     setValue("");
     setSaving(false);
   };
@@ -83,14 +92,16 @@ export default function StatInputSheet({ open, onClose, onSave }: StatInputSheet
 
           {step === "value" && measurement && (
             <>
-              <button
-                onClick={() => setStep("type")}
-                className="mb-3 text-xs text-text-3"
-              >
-                ← 종류 다시 선택
-              </button>
+              {!initialStatType && (
+                <button
+                  onClick={() => setStep("type")}
+                  className="mb-3 text-xs text-text-3"
+                >
+                  ← 종류 다시 선택
+                </button>
+              )}
               <h2 className="mb-1 text-lg font-bold text-text-1">
-                {measurement.icon} {measurement.label}
+                {measurement.label}
               </h2>
               <p className="mb-5 text-xs text-text-3">기록 값을 입력하세요</p>
 

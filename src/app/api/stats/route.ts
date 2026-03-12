@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { checkAndAwardMedals } from "@/lib/medals";
 import { MEASUREMENTS, STAT_BOUNDS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { calculateLevel, estimateXp } from "@/lib/level";
 import { notifyLinkedParents } from "@/lib/notifications";
 
 export async function GET() {
@@ -126,39 +125,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Recalculate level after stat + medal award
-  let levelUpdated = false;
-  try {
-    const [profileRes, featuredRes, statsRes, topClipsRes, medalsRes, seasonsRes] = await Promise.all([
-      supabase.from("profiles").select("avatar_url, name, position, birth_year, level").eq("id", user.id).single(),
-      supabase.from("featured_clips").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-      supabase.from("stats").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-      supabase.from("clip_tags").select("id", { count: "exact", head: true }).eq("is_top", true).in("clip_id",
-        (await supabase.from("clips").select("id").eq("owner_id", user.id)).data?.map((c) => c.id) ?? []
-      ),
-      supabase.from("medals").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-      supabase.from("seasons").select("id", { count: "exact", head: true }).eq("profile_id", user.id),
-    ]);
-
-    if (profileRes.data) {
-      const counts = {
-        featuredCount: featuredRes.count ?? 0,
-        statsCount: statsRes.count ?? 0,
-        topClipsCount: topClipsRes.count ?? 0,
-        medalsCount: medalsRes.count ?? 0,
-        seasonsCount: seasonsRes.count ?? 0,
-      };
-      const newLevel = calculateLevel(profileRes.data, counts);
-      const newXp = estimateXp(profileRes.data, counts);
-      if (newLevel !== profileRes.data.level) {
-        await supabase.from("profiles").update({ level: newLevel, xp: newXp }).eq("id", user.id);
-        levelUpdated = true;
-      }
-    }
-  } catch {
-    // Level recalc is non-critical — don't fail the request
-  }
-
   // 연동된 부모에게 메달 획득 알림
   if (newMedals && newMedals.length > 0) {
     const { data: player } = await supabase
@@ -179,5 +145,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ stat, newMedals, levelUpdated });
+  return NextResponse.json({ stat, newMedals });
 }

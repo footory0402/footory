@@ -19,7 +19,7 @@ export async function fetchLinkedChildren(
   const { data: links, error } = await supabase
     .from("parent_links")
     .select(
-      "id, child_id, created_at, profiles!parent_links_child_id_fkey(id, handle, name, avatar_url, position, level)"
+      "id, child_id, created_at, profiles!parent_links_child_id_fkey(id, handle, name, avatar_url, position)"
     )
     .eq("parent_id", parentId);
 
@@ -35,7 +35,6 @@ export async function fetchLinkedChildren(
         name: string;
         avatar_url: string | null;
         position: string | null;
-        level: number;
       } | null;
 
       if (!child) {
@@ -46,7 +45,6 @@ export async function fetchLinkedChildren(
           name: "",
           avatarUrl: null,
           position: null,
-          level: 1,
           medalCount: 0,
           clipCount: 0,
           linkedAt: link.created_at,
@@ -71,7 +69,6 @@ export async function fetchLinkedChildren(
         name: child.name,
         avatarUrl: child.avatar_url,
         position: child.position,
-        level: child.level ?? 1,
         medalCount: medals.count ?? 0,
         clipCount: clips.count ?? 0,
         linkedAt: link.created_at,
@@ -111,7 +108,7 @@ export async function fetchParentDashboard(
     supabase
       .from("profiles")
       .select(
-        "id, name, handle, avatar_url, position, level, xp, followers_count, views_count"
+        "id, name, handle, avatar_url, position, followers_count, views_count"
       )
       .eq("id", childId)
       .maybeSingle(),
@@ -199,7 +196,6 @@ export async function fetchParentDashboard(
       kudosReceived: typeof weeklyKudos === "number" ? weeklyKudos : 0,
       profileViews: weeklyViews?.views_count ?? 0,
       mvpRank: mvpResult?.rank ?? null,
-      level: childProfile.level ?? 1,
     },
     prevWeeklyStats: {
       newClips: prevWeeklyClipsCount,

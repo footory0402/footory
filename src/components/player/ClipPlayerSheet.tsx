@@ -59,6 +59,9 @@ export default function ClipPlayerSheet({
   const hasNext = index < clips.length - 1;
   const hasPrev = index > 0;
 
+  // Prevent click from firing after touch (double-toggle fix)
+  const touchHandled = useRef(false);
+
   // Lock body scroll
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -179,6 +182,8 @@ export default function ClipPlayerSheet({
       setSwiping(false);
     } else if (!swipeStart.current.locked) {
       handleTap();
+      touchHandled.current = true;
+      setTimeout(() => { touchHandled.current = false; }, 300);
     }
     swipeStart.current = null;
   };
@@ -224,7 +229,7 @@ export default function ClipPlayerSheet({
 
   const bgOpacity = sheetDragging ? Math.max(0, 1 - sheetDragY / 500) : mounted ? 1 : 0;
 
-  if (!clip) return null;
+  if (!clip || !clip.videoUrl) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col justify-end">
@@ -316,8 +321,8 @@ export default function ClipPlayerSheet({
             <video
               key={clip.id}
               ref={videoRef}
-              src={clip.videoUrl}
-              autoPlay
+              src={clip.videoUrl || undefined}
+              autoPlay={!!clip.videoUrl}
               playsInline
               className="w-full"
               style={{
@@ -335,7 +340,7 @@ export default function ClipPlayerSheet({
               onTouchStart={handleVideoTouchStart}
               onTouchMove={handleVideoTouchMove}
               onTouchEnd={handleVideoTouchEnd}
-              onClick={handleTap}
+              onClick={() => { if (!touchHandled.current) handleTap(); }}
             />
 
             {/* Pause overlay */}

@@ -157,7 +157,7 @@ export default function MentionInput({
               onMouseDown={(e) => { e.preventDefault(); selectCandidate(c); }}
               className="flex items-center gap-2.5 w-full px-3 py-2 hover:bg-white/5 transition-colors text-left"
             >
-              <Avatar name={c.name} size="xs" level={c.level} imageUrl={c.avatar_url ?? undefined} />
+              <Avatar name={c.name} size="xs" imageUrl={c.avatar_url ?? undefined} />
               <div className="min-w-0">
                 <p className="text-[13px] font-semibold text-text-1 truncate">{c.name}</p>
                 <p className="text-[11px] text-text-3">@{c.handle} · {c.position}</p>

@@ -65,7 +65,8 @@ export function useProfile({ enabled = true }: UseProfileOptions = {}) {
     }
     const { avatarUrl } = await res.json();
     setLocalProfile((p) => (p ? { ...p, avatarUrl } : p));
-  }, []);
+    await ctx.refetch();
+  }, [ctx]);
 
   const checkHandle = useCallback(async (handle: string): Promise<boolean> => {
     const res = await fetch(`/api/profile/handle-check?handle=${encodeURIComponent(handle)}`);

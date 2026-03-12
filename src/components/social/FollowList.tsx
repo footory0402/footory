@@ -21,7 +21,7 @@ function UserRow({ user, currentUserId }: { user: FollowUser; currentUserId?: st
       <Avatar
         name={user.name}
         size="sm"
-        level={user.level}
+        
         imageUrl={user.avatar_url ?? undefined}
       />
       <div className="flex-1 min-w-0">

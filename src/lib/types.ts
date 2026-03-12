@@ -11,8 +11,6 @@ export interface Profile {
   teamName?: string;
   teamId?: string;
   avatarUrl?: string;
-  level: number;
-  xp: number;
   bio?: string;
   followers: number;
   following: number;
@@ -71,6 +69,16 @@ export interface Stat {
   measuredAt: string;
   evidenceClipId?: string;
   verified: boolean;
+  /** 최고 기록 (PR) */
+  bestValue?: number;
+  /** 최고 기록 여부 */
+  isPR?: boolean;
+  /** 최초 기록 값 */
+  firstValue?: number;
+  /** 최초 측정일 */
+  firstMeasuredAt?: string;
+  /** 총 측정 횟수 */
+  measureCount?: number;
 }
 
 export interface Medal {
@@ -113,7 +121,6 @@ export interface TeamMember {
     name: string;
     avatar_url: string | null;
     position: string | null;
-    level: number;
   };
 }
 
@@ -129,12 +136,11 @@ export interface TeamAlbumItem {
 
 export interface FeedItem {
   id: string;
-  type: "highlight" | "medal" | "stat" | "team_join" | "level_up" | "season" | "featured_change" | "top_clip";
+  type: "highlight" | "medal" | "stat" | "team_join" | "season" | "featured_change" | "top_clip";
   playerId: string;
   playerName: string;
   playerHandle: string;
   playerAvatarUrl?: string;
-  playerLevel: number;
   playerPosition: Position;
   teamName?: string;
   data: Record<string, unknown>;
@@ -177,7 +183,7 @@ export interface WeeklyMvpResult {
   totalScore: number;
   voteCount: number;
   createdAt: string;
-  profile?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "level" | "teamName">;
+  profile?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName">;
 }
 
 export interface PlayerRankingCache {
@@ -185,7 +191,7 @@ export interface PlayerRankingCache {
   popularityScore: number;
   weeklyChange: number;
   updatedAt: string;
-  profile?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "level" | "teamName" | "mvpCount" | "mvpTier">;
+  profile?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName" | "mvpCount" | "mvpTier">;
 }
 
 export interface TeamRankingCache {

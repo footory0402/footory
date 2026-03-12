@@ -103,7 +103,7 @@ async function fetchRisingPlayers(
   if (!risingData?.length) {
     const { data: fallbackProfiles, error: fallbackError } = await supabase
       .from("profiles")
-      .select("id, handle, name, avatar_url, position, level")
+      .select("id, handle, name, avatar_url, position")
       .order("updated_at", { ascending: false })
       .limit(limit);
 
@@ -118,14 +118,13 @@ async function fetchRisingPlayers(
       name: profile.name,
       avatar_url: profile.avatar_url,
       position: profile.position,
-      level: profile.level ?? 1,
     }));
   }
 
   const profileIds = risingData.map((item) => item.profile_id);
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, handle, name, avatar_url, position, level")
+    .select("id, handle, name, avatar_url, position")
     .in("id", profileIds);
 
   const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
@@ -139,7 +138,6 @@ async function fetchRisingPlayers(
       name: profile?.name ?? "",
       avatar_url: profile?.avatar_url ?? null,
       position: profile?.position ?? null,
-      level: profile?.level ?? 1,
     };
   });
 }

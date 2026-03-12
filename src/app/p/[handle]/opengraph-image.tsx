@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
-import { LEVELS } from "@/lib/constants";
-
 export const runtime = "nodejs";
 export const alt = "Footory 선수 프로필";
 export const size = { width: 1200, height: 630 };
@@ -13,7 +11,7 @@ export default async function OGImage({ params }: { params: Promise<{ handle: st
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, handle, position, level, birth_year, city, avatar_url, mvp_count, mvp_tier, height_cm, weight_kg, preferred_foot")
+    .select("name, handle, position, birth_year, city, avatar_url, mvp_count, mvp_tier, height_cm, weight_kg, preferred_foot")
     .eq("handle", handle)
     .single();
 
@@ -55,7 +53,6 @@ export default async function OGImage({ params }: { params: Promise<{ handle: st
     );
   }
 
-  const lvl = LEVELS[Math.min(Math.max(profile.level, 1), 5) - 1];
   const age = profile.birth_year ? new Date().getFullYear() - profile.birth_year : null;
   const positionColors: Record<string, string> = {
     FW: "#F87171", MF: "#4ADE80", DF: "#60A5FA", GK: "#FBBF24",
@@ -180,21 +177,6 @@ export default async function OGImage({ params }: { params: Promise<{ handle: st
 
             {/* Badges */}
             <div style={{ display: "flex", gap: 16, marginTop: 20 }}>
-              <div
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  background: "rgba(212,168,83,0.08)",
-                  border: "1px solid rgba(212,168,83,0.25)",
-                  borderRadius: 12,
-                  padding: "10px 20px",
-                }}
-              >
-                <span style={{ fontSize: 24 }}>{lvl.icon}</span>
-                <span style={{ fontSize: 22, color: "#D4A853", fontWeight: 700 }}>
-                  Lv.{profile.level} {lvl.name}
-                </span>
-              </div>
-
               {profile.mvp_count > 0 && (
                 <div
                   style={{

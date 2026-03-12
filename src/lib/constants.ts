@@ -1,12 +1,3 @@
-// Levels
-export const LEVELS = [
-  { level: 1, name: "시작", icon: "🌱", color: "#71717A", minXp: 0 },
-  { level: 2, name: "기본", icon: "📋", color: "#A1A1AA", minXp: 100 },
-  { level: 3, name: "성장", icon: "📈", color: "#D4A853", minXp: 300 },
-  { level: 4, name: "충실", icon: "⭐", color: "#F5C542", minXp: 600 },
-  { level: 5, name: "완성", icon: "🏅", color: "#F5D78E", minXp: 1000 },
-] as const;
-
 // Positions
 export const POSITIONS = ["FW", "MF", "DF", "GK"] as const;
 export type Position = (typeof POSITIONS)[number];
@@ -62,6 +53,20 @@ export const MEASUREMENTS = [
   { id: "vertical_jump", label: "제자리멀리뛰기", unit: "cm", icon: "⬆️", lowerIsBetter: false },
 ] as const;
 
+// 구버전 stat_type → 한글 레이블 폴백 (DB에 옛 타입이 남아 있을 때)
+export const STAT_TYPE_LABEL_FALLBACK: Record<string, { label: string; unit: string; icon: string }> = {
+  shooting_accuracy: { label: "슈팅 정확도", unit: "%", icon: "🎯" },
+  sprint_30m: { label: "30m 달리기", unit: "초", icon: "🏃" },
+  "30m_sprint": { label: "30m 달리기", unit: "초", icon: "🏃" },
+  "1000m_run": { label: "1000m 달리기", unit: "분:초", icon: "🏃‍♂️" },
+};
+
+export function getStatMeta(statType: string): { label: string; unit: string; icon: string; lowerIsBetter?: boolean } {
+  const m = MEASUREMENTS.find((m) => m.id === statType);
+  if (m) return m;
+  return STAT_TYPE_LABEL_FALLBACK[statType] ?? { label: statType, unit: "", icon: "📊" };
+}
+
 export const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
   sprint_50m: { min: 5.5, max: 12 },
   juggling: { min: 1, max: 3000 },
@@ -82,7 +87,7 @@ export const MVP_TIERS = [
 export type MvpTierKey = (typeof MVP_TIERS)[number]["tier"];
 
 // Weekly MVP Voting
-export const MAX_WEEKLY_VOTES = 5;
+export const MAX_WEEKLY_VOTES = 3;
 export const MVP_AUTO_WEIGHT = 0.4;
 export const MVP_VOTE_WEIGHT = 0.6;
 

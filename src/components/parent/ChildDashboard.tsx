@@ -187,7 +187,6 @@ export default function ChildDashboard({
               {dashboard.weeklyStats.mvpRank && (
                 <StatRow emoji="🏆" label="MVP 순위" value={`${dashboard.weeklyStats.mvpRank}위`} />
               )}
-              <StatRow emoji="📈" label="레벨" value={`Lv.${dashboard.weeklyStats.level}`} />
             </div>
             {/* Weekly Comparison */}
             {dashboard.prevWeeklyStats && (
@@ -332,7 +331,6 @@ function getActivityIconBg(type: string): string {
     top_clip: "bg-accent/20",
     medal: "bg-yellow-500/20",
     stat: "bg-blue-500/20",
-    level_up: "bg-blue-500/20",
   };
   return map[type] ?? "bg-card-alt";
 }
@@ -345,7 +343,6 @@ function getActivityIcon(type: string): string {
     season: "📋",
     featured_change: "⭐",
     top_clip: "🎯",
-    level_up: "📈",
     team_join: "👥",
   };
   return map[type] ?? "📌";
@@ -369,8 +366,6 @@ function getActivityLabel(type: string, metadata: Record<string, unknown>): stri
       return "대표 클립 변경";
     case "top_clip":
       return "태그 대표 클립 지정";
-    case "level_up":
-      return `레벨 업! Lv.${metadata?.level ?? ""}`;
     case "team_join":
       return `${metadata?.team_name ?? "팀"} 가입`;
     default:

@@ -12,7 +12,6 @@ export interface FeedItemEnriched {
   playerName: string;
   playerHandle: string;
   playerAvatarUrl: string | null;
-  playerLevel: number;
   playerPosition: string;
   teamName: string | null;
   kudosCount: number;
