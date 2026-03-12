@@ -3,12 +3,6 @@
 import { useEffect, useRef } from "react";
 import { toast } from "@/components/ui/Toast";
 
-interface RecentDm {
-  id: string;
-  name: string;
-  avatarUrl: string | null;
-}
-
 interface ShareSheetProps {
   open: boolean;
   onClose: () => void;
@@ -16,10 +10,9 @@ interface ShareSheetProps {
   url?: string;
   title?: string;
   text?: string;
-  recentDms?: RecentDm[];
 }
 
-export default function ShareSheet({ open, onClose, shareUrl, url, title, text, recentDms = [] }: ShareSheetProps) {
+export default function ShareSheet({ open, onClose, shareUrl, url, title }: ShareSheetProps) {
   const resolvedUrl = shareUrl ?? url ?? "";
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -80,11 +73,6 @@ export default function ShareSheet({ open, onClose, shareUrl, url, title, text, 
     onClose();
   };
 
-  const handleDm = () => {
-    toast("DM 기능은 준비 중입니다");
-    onClose();
-  };
-
   if (!open) return null;
 
   return (
@@ -110,7 +98,6 @@ export default function ShareSheet({ open, onClose, shareUrl, url, title, text, 
         {/* Share options */}
         <div className="px-4 py-2">
           {[
-            { icon: "📱", label: "DM으로 보내기", onClick: handleDm },
             { icon: "💬", label: "카카오톡", onClick: handleKakao },
             { icon: "📷", label: "인스타 스토리", onClick: handleInstagram },
             { icon: "🔗", label: "링크 복사", onClick: handleCopyLink },
@@ -125,27 +112,6 @@ export default function ShareSheet({ open, onClose, shareUrl, url, title, text, 
             </button>
           ))}
         </div>
-
-        {/* Recent DMs — shown when DM history is available */}
-        {recentDms.length > 0 && (
-          <div className="px-4 pb-4 border-t border-border pt-3">
-            <p className="text-[11px] text-text-3 mb-2">최근 DM</p>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {recentDms.map((dm) => (
-                <button
-                  key={dm.id}
-                  onClick={() => { toast(`${dm.name}님에게 전송 (준비 중)`); onClose(); }}
-                  className="flex flex-col items-center gap-1 shrink-0"
-                >
-                  <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-[14px] font-semibold text-text-1">
-                    {dm.name[0]}
-                  </div>
-                  <span className="text-[11px] text-text-2 max-w-[44px] truncate">{dm.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

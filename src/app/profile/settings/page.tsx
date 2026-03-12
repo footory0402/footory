@@ -129,27 +129,6 @@ export default function SettingsPage() {
         />
       </SettingsGroup>
 
-      {/* 그룹: 내 팀 */}
-      {role === "player" && (
-        <SettingsGroup title="팀">
-          <button
-            onClick={() => router.push("/team")}
-            className="flex w-full items-center justify-between px-4 py-3"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-accent"><TeamIcon /></span>
-              <div className="text-left">
-                <p className="text-sm text-text-1">내 팀</p>
-                <p className="text-xs text-text-3">팀 관리 및 가입</p>
-              </div>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
-          </button>
-        </SettingsGroup>
-      )}
-
       {/* 그룹 2: 공개 설정 */}
       <SettingsGroup title="공개 설정">
         <ToggleRow
@@ -266,13 +245,6 @@ export default function SettingsPage() {
 
       {/* 그룹 5: 기타 */}
       <SettingsGroup title="기타">
-        <SettingsRow
-          icon={<ShieldIcon />}
-          label="차단 목록"
-          value="없음"
-          dimValue
-        />
-        <div className="mx-4 border-t border-white/[0.06]" />
         <SettingsLinkRow label="이용약관" />
         <div className="mx-4 border-t border-white/[0.06]" />
         <SettingsLinkRow label="개인정보처리방침" />
@@ -421,21 +393,3 @@ function BellIcon() {
   );
 }
 
-function TeamIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 00-3-3.87" />
-      <path d="M16 3.13a4 4 0 010 7.75" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}

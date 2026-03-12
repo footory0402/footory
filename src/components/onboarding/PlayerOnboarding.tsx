@@ -245,22 +245,22 @@ export default function PlayerOnboarding({ onBack }: Props) {
                   )}
                 </span>
               </div>
-              {handleStatus === "idle" && <p className="mt-1 text-xs text-text-3">영문 소문자, 숫자, _(언더스코어) 3~20자</p>}
+              {handleStatus === "idle" && <p className="mt-1 text-xs text-text-3">footory.com/p/<span className="text-text-2">{handle || "my_handle"}</span> 로 공유할 수 있어요</p>}
               {handleStatus === "checking" && <p className="mt-1 text-xs text-text-3">확인 중...</p>}
-              {handleStatus === "available" && <p className="mt-1 text-xs text-green">사용 가능한 주소예요 ✓</p>}
-              {handleStatus === "taken" && <p className="mt-1 text-xs text-red">⚠ 이미 사용 중인 주소예요</p>}
-              {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">⚠ 3~20자, 영문 소문자·숫자·_(언더스코어)만 가능</p>}
+              {handleStatus === "available" && <p className="mt-1 text-xs text-green">footory.com/p/{handle} 사용 가능!</p>}
+              {handleStatus === "taken" && <p className="mt-1 text-xs text-red">이미 사용 중인 주소예요</p>}
+              {handleStatus === "invalid" && <p className="mt-1 text-xs text-red">3~20자, 영문 소문자·숫자·_ 만 가능</p>}
             </div>
 
             {/* Position */}
             <div>
               <label className="mb-1.5 block text-xs font-medium text-text-2">포지션</label>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {POSITIONS.map((pos) => (
                   <button
                     key={pos}
                     onClick={() => setPosition(pos)}
-                    className={`flex-1 rounded-lg border py-2.5 transition-all ${
+                    className={`rounded-lg border py-3 transition-all ${
                       position === pos
                         ? "border-accent bg-[var(--accent-bg)] text-accent"
                         : "border-border bg-card text-text-2"
@@ -313,8 +313,8 @@ export default function PlayerOnboarding({ onBack }: Props) {
       {/* Step 2: 추가 정보 (선택) */}
       {step === 2 && (
         <div className="animate-fade-up">
-          <h1 className="text-2xl font-bold text-text-1">추가 정보</h1>
-          <p className="mt-2 text-sm text-text-2">선택사항이에요. 건너뛸 수 있어요</p>
+          <h1 className="text-2xl font-bold text-text-1">신체 정보</h1>
+          <p className="mt-2 text-sm text-text-2">스카우터가 참고하는 정보예요 (건너뛰기 가능)</p>
 
           <div className="mt-8 flex flex-col gap-5">
             {/* Height */}
@@ -347,7 +347,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
 
             {/* Preferred foot */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-text-2">선호 발</label>
+              <label className="mb-1.5 block text-xs font-medium text-text-2">주발</label>
               <div className="flex gap-2">
                 {FOOT_OPTIONS.map((opt) => (
                   <button
@@ -366,26 +366,18 @@ export default function PlayerOnboarding({ onBack }: Props) {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col gap-2">
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep(1)}
-                className="rounded-full border border-border px-6 py-3 text-sm font-medium text-text-2"
-              >
-                이전
-              </button>
-              <button
-                onClick={() => setStep(3)}
-                className="flex-1 rounded-full bg-accent py-3 text-sm font-bold text-bg transition-opacity"
-              >
-                다음
-              </button>
-            </div>
+          <div className="mt-8 flex gap-3">
+            <button
+              onClick={() => setStep(1)}
+              className="rounded-full border border-border px-6 py-3 text-sm font-medium text-text-2"
+            >
+              이전
+            </button>
             <button
               onClick={() => setStep(3)}
-              className="py-2 text-center text-sm text-text-3 transition-colors hover:text-text-2"
+              className="flex-1 rounded-full bg-accent py-3 text-sm font-bold text-bg transition-opacity"
             >
-              측정 정보 건너뛰기
+              {heightCm || weightKg || preferredFoot ? "다음" : "건너뛰기"}
             </button>
           </div>
         </div>
@@ -404,7 +396,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="group relative mb-6 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-border transition-colors hover:border-accent/50"
+            className="group relative mb-6 flex h-32 w-32 items-center justify-center rounded-full border-2 border-dashed border-border transition-colors hover:border-accent/50"
           >
             {avatarPreview ? (
               <Image
@@ -429,6 +421,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
 
           <h1 className="text-2xl font-bold text-text-1">프로필 사진</h1>
           <p className="mt-2 text-sm text-text-2">나중에 설정할 수도 있어요</p>
+          <p className="mt-1 text-xs text-text-3">JPG, PNG (최대 5MB)</p>
 
           <div className="mt-10 flex w-full flex-col gap-3">
             <button

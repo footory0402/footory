@@ -32,8 +32,8 @@ export default function ParentOnboarding({ onBack }: Props) {
 
   function generateHandle(n: string) {
     const base = n.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "parent";
-    const rand = Math.random().toString(36).slice(2, 6);
-    return `parent_${base}_${rand}`;
+    const num = String(Math.floor(Math.random() * 9000) + 1000);
+    return `${base}_${num}`;
   }
 
   const canProceedStep1 = name.trim().length >= 1;

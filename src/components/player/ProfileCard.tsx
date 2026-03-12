@@ -158,7 +158,24 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
                 </span>
               )}
             </div>
-            <span className="text-[12px] text-text-3">@{profile.handle}</span>
+            <button
+              onClick={async () => {
+                const url = `${window.location.origin}/p/${profile.handle}`;
+                try {
+                  await navigator.clipboard.writeText(url);
+                  toast("프로필 링크가 복사되었습니다");
+                } catch {
+                  toast("링크 복사에 실패했습니다", "error");
+                }
+              }}
+              className="flex items-center gap-1 text-[12px] text-text-3 hover:text-accent transition-colors"
+            >
+              <span>@{profile.handle}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50">
+                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+              </svg>
+            </button>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-text-2">
               {profile.position && <span>{profile.position}{profile.subPosition ? ` · ${profile.subPosition}` : ""}</span>}
               {profile.birthYear && age != null && (

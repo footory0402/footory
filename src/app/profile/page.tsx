@@ -192,8 +192,16 @@ export default function ProfilePage() {
           {(!displayProfile.bio && !displayProfile.city && !displayProfile.teamName) ? (
             <div className="card-elevated flex flex-col items-center gap-3 py-8 text-center">
               <span className="text-4xl">👤</span>
-              <p className="text-sm font-semibold text-text-1">스카우터 프로필 준비 중</p>
-              <p className="text-xs text-text-3">관심 선수를 추가하고 메모를 남겨보세요</p>
+              <p className="text-sm font-semibold text-text-1">프로필을 완성해보세요</p>
+              <p className="text-xs text-text-3 leading-relaxed">
+                자기소개와 소속 기관을 추가하면<br />선수들에게 신뢰감을 줄 수 있어요
+              </p>
+              <button
+                onClick={() => setEditOpen(true)}
+                className="mt-1 rounded-full bg-accent px-5 py-2 text-sm font-bold text-bg"
+              >
+                프로필 편집
+              </button>
             </div>
           ) : (
             <div className="card-elevated p-4">
