@@ -12,12 +12,15 @@ interface RecentDm {
 interface ShareSheetProps {
   open: boolean;
   onClose: () => void;
-  shareUrl: string;
+  shareUrl?: string;
+  url?: string;
   title?: string;
+  text?: string;
   recentDms?: RecentDm[];
 }
 
-export default function ShareSheet({ open, onClose, shareUrl, title, recentDms = [] }: ShareSheetProps) {
+export default function ShareSheet({ open, onClose, shareUrl, url, title, text, recentDms = [] }: ShareSheetProps) {
+  const resolvedUrl = shareUrl ?? url ?? "";
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,19 +51,19 @@ export default function ShareSheet({ open, onClose, shareUrl, title, recentDms =
           title: title ?? "Footory 하이라이트",
           description: "유소년 축구 하이라이트",
           imageUrl: "",
-          link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
+          link: { mobileWebUrl: resolvedUrl, webUrl: resolvedUrl },
         },
-        buttons: [{ title: "보러 가기", link: { mobileWebUrl: shareUrl, webUrl: shareUrl } }],
+        buttons: [{ title: "보러 가기", link: { mobileWebUrl: resolvedUrl, webUrl: resolvedUrl } }],
       });
     } else if (typeof window !== "undefined") {
-      window.open(`https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(shareUrl)}`, "_blank");
+      window.open(`https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(resolvedUrl)}`, "_blank");
     }
     onClose();
   };
 
   const handleInstagram = () => {
     if (navigator.share) {
-      navigator.share({ title: title ?? "Footory", url: shareUrl }).catch(() => {});
+      navigator.share({ title: title ?? "Footory", url: resolvedUrl }).catch(() => {});
     } else {
       window.open(`instagram://story-camera`, "_blank");
     }
@@ -69,7 +72,7 @@ export default function ShareSheet({ open, onClose, shareUrl, title, recentDms =
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(resolvedUrl);
       toast("링크가 복사되었습니다");
     } catch {
       toast("링크 복사에 실패했습니다", "error");

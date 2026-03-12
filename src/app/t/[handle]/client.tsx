@@ -7,7 +7,7 @@ import MemberList from "@/components/team/MemberList";
 import TeamAlbum from "@/components/team/TeamAlbum";
 import dynamic from "next/dynamic";
 
-const ShareSheet = dynamic(() => import("@/components/ui/ShareSheet"), { ssr: false });
+const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
 import { APP_URL } from "@/lib/constants";
 import type { Team, TeamMember, TeamAlbumItem } from "@/lib/types";
 

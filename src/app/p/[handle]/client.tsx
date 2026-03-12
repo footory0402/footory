@@ -20,7 +20,7 @@ const AddToWatchlistButton = dynamic(
   { ssr: false }
 );
 
-const ShareSheet = dynamic(() => import("@/components/ui/ShareSheet"), { ssr: false });
+const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";

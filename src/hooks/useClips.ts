@@ -20,19 +20,26 @@ interface ClipWithTags {
 export function useClips() {
   const [clips, setClips] = useState<ClipWithTags[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchClips = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: clipsData } = await supabase
+      const { data: clipsData, error: fetchError } = await supabase
         .from("clips")
         .select("*, clip_tags(tag_name)")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false });
+
+      if (fetchError) {
+        setError("클립을 불러오는 데 실패했습니다");
+        return;
+      }
 
       if (!clipsData) { setClips([]); return; }
 
@@ -54,6 +61,8 @@ export function useClips() {
           };
         })
       );
+    } catch {
+      setError("네트워크 오류가 발생했습니다");
     } finally {
       setLoading(false);
     }
@@ -67,7 +76,7 @@ export function useClips() {
     return res.ok;
   }, []);
 
-  return { clips, loading, fetchClips, deleteClip };
+  return { clips, loading, error, fetchClips, deleteClip };
 }
 
 interface FeaturedClip {

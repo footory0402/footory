@@ -6,7 +6,7 @@ import AppHeader from "./AppHeader";
 import BottomTab from "./BottomTab";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
-const BARE_ROUTES = ["/login", "/onboarding"];
+const BARE_ROUTES = ["/login", "/onboarding", "/signup", "/auth/"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

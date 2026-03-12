@@ -313,9 +313,12 @@ function mergeFeeds(
   let fi = 0;
   let ri = 0;
 
+  const followTimes = followItems.map((item) => new Date(item.created_at).getTime());
+  const recommendTimes = recommendItems.map((item) => new Date(item.created_at).getTime());
+
   while (fi < followItems.length && ri < recommendItems.length) {
-    const fTime = new Date(followItems[fi].created_at).getTime();
-    const rTime = new Date(recommendItems[ri].created_at).getTime();
+    const fTime = followTimes[fi];
+    const rTime = recommendTimes[ri];
     if (fTime >= rTime) {
       result.push(followItems[fi++]);
     } else {

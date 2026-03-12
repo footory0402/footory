@@ -7,13 +7,13 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   experimental: {
-    optimizePackageImports: ["@supabase/supabase-js", "zustand"],
+    optimizePackageImports: ["@supabase/supabase-js", "zustand", "lucide-react", "motion"],
   },
   turbopack: { root: turbopackRoot },
   serverExternalPackages: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
   images: {
     unoptimized: isDev,
-    formats: ["image/webp"],
+    formats: ["image/avif", "image/webp"],
     qualities: [60, 75],
     minimumCacheTTL: 60 * 60 * 24 * 7,
     deviceSizes: [320, 375, 414, 430, 768],

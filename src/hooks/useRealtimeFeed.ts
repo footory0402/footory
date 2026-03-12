@@ -12,10 +12,20 @@ interface UseRealtimeFeedOptions {
 export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: UseRealtimeFeedOptions) {
   const itemIdSetRef = useRef<Set<string>>(new Set(feedItemIds));
   const kudosFetchInFlightRef = useRef<Set<string>>(new Set());
+  const onKudosChangeRef = useRef(onKudosChange);
+  const onNewCommentRef = useRef(onNewComment);
 
   useEffect(() => {
     itemIdSetRef.current = new Set(feedItemIds);
   }, [feedItemIds]);
+
+  useEffect(() => {
+    onKudosChangeRef.current = onKudosChange;
+  }, [onKudosChange]);
+
+  useEffect(() => {
+    onNewCommentRef.current = onNewComment;
+  }, [onNewComment]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -33,18 +43,17 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
           const feedItemId = (payload.new as Record<string, unknown>)?.feed_item_id as string
             ?? (payload.old as Record<string, unknown>)?.feed_item_id as string;
 
-          if (feedItemId && itemIdSetRef.current.has(feedItemId) && onKudosChange) {
+          if (feedItemId && itemIdSetRef.current.has(feedItemId) && onKudosChangeRef.current) {
             if (kudosFetchInFlightRef.current.has(feedItemId)) return;
             kudosFetchInFlightRef.current.add(feedItemId);
 
             const syncKudosCount = async () => {
               try {
-                // Refetch kudos count for this item
                 const { count } = await supabase
                   .from("kudos")
                   .select("id", { count: "exact", head: true })
                   .eq("feed_item_id", feedItemId);
-                onKudosChange(feedItemId, count ?? 0);
+                onKudosChangeRef.current?.(feedItemId, count ?? 0);
               } finally {
                 kudosFetchInFlightRef.current.delete(feedItemId);
               }
@@ -63,8 +72,8 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
         },
         (payload) => {
           const feedItemId = (payload.new as Record<string, unknown>)?.feed_item_id as string;
-          if (feedItemId && itemIdSetRef.current.has(feedItemId) && onNewComment) {
-            onNewComment(feedItemId);
+          if (feedItemId && itemIdSetRef.current.has(feedItemId) && onNewCommentRef.current) {
+            onNewCommentRef.current(feedItemId);
           }
         }
       )
@@ -73,5 +82,5 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [onKudosChange, onNewComment]);
+  }, []);
 }

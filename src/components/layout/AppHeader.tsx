@@ -12,21 +12,17 @@ export default function AppHeader() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // 초기 로드 시 즉시 fetch
     void fetchCount();
 
-    // 탭 복귀 시 갱신
     const fetchWhenVisible = () => {
       if (document.visibilityState === "visible") {
         void fetchCount();
       }
     };
 
-    const interval = window.setInterval(fetchWhenVisible, 60_000);
     document.addEventListener("visibilitychange", fetchWhenVisible);
 
     return () => {
-      window.clearInterval(interval);
       document.removeEventListener("visibilitychange", fetchWhenVisible);
     };
   }, [fetchCount]);

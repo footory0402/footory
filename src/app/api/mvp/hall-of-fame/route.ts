@@ -53,5 +53,7 @@ export async function GET(req: NextRequest) {
     mvpTier: p.mvp_tier,
   }));
 
-  return NextResponse.json({ entries });
+  return NextResponse.json({ entries }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+  });
 }

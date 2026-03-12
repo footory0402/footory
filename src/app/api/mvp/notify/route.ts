@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createNotification } from "@/lib/notifications";
 
 /**
  * POST /api/mvp/notify
@@ -16,24 +15,23 @@ export async function POST(req: NextRequest) {
   const { type } = body as { type: string };
 
   if (type === "vote_open") {
-    // Broadcast to all players
     const { data: players } = await supabase
       .from("profiles")
       .select("id")
       .eq("role", "player");
 
-    let sent = 0;
-    for (const p of players ?? []) {
-      await createNotification(supabase, {
-        userId: p.id,
-        type: "vote_open",
-        title: "이번 주 MVP 투표가 시작됐어요! 🏆",
-        body: "토요일~일요일 사이에 투표하세요",
-      });
-      sent++;
+    const rows = (players ?? []).map((p) => ({
+      user_id: p.id,
+      type: "vote_open" as const,
+      title: "이번 주 MVP 투표가 시작됐어요! 🏆",
+      body: "토요일~일요일 사이에 투표하세요",
+    }));
+
+    if (rows.length > 0) {
+      await supabase.from("notifications").insert(rows);
     }
 
-    return NextResponse.json({ success: true, sent });
+    return NextResponse.json({ success: true, sent: rows.length });
   }
 
   if (type === "mvp_result") {
@@ -56,32 +54,31 @@ export async function POST(req: NextRequest) {
     const winner = results[0];
     const winnerName = (winner.profiles as unknown as { name: string })?.name ?? "선수";
 
-    // Broadcast MVP result to all players
     const { data: players } = await supabase
       .from("profiles")
       .select("id")
       .eq("role", "player");
 
-    let sent = 0;
-    for (const p of players ?? []) {
-      await createNotification(supabase, {
-        userId: p.id,
-        type: "mvp_result",
-        title: `이번 주 MVP: ${winnerName} 🏆`,
-        body: "MVP 탭에서 결과를 확인하세요",
-      });
-      sent++;
-    }
+    const rows = (players ?? []).map((p) => ({
+      user_id: p.id,
+      type: "mvp_result" as const,
+      title: `이번 주 MVP: ${winnerName} 🏆`,
+      body: "MVP 탭에서 결과를 확인하세요",
+    }));
 
-    // Special notification to the winner
-    await createNotification(supabase, {
-      userId: winner.profile_id,
-      type: "mvp_win",
+    const winnerRow = {
+      user_id: winner.profile_id,
+      type: "mvp_win" as const,
       title: "축하해요! 이번 주 MVP에 선정됐어요! 🥇",
       body: "프로필에 MVP 뱃지가 표시됩니다",
-    });
+    };
 
-    return NextResponse.json({ success: true, sent: sent + 1 });
+    const allRows = [...rows, winnerRow];
+    if (allRows.length > 0) {
+      await supabase.from("notifications").insert(allRows);
+    }
+
+    return NextResponse.json({ success: true, sent: allRows.length });
   }
 
   return NextResponse.json({ error: "Unknown notification type" }, { status: 400 });

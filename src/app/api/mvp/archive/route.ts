@@ -97,5 +97,7 @@ export async function GET(req: NextRequest) {
     }),
   }));
 
-  return NextResponse.json({ weeks });
+  return NextResponse.json({ weeks }, {
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+  });
 }
