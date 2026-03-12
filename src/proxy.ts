@@ -61,20 +61,7 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   }
 
-  // 프로필 없는 인증 사용자 → 온보딩으로 리다이렉트
-  const userId = user.id;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", userId)
-    .single();
-
-  if (!profile) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/onboarding";
-    return NextResponse.redirect(url);
-  }
-
+  // Profile check는 page.tsx에서 처리 (middleware에서 DB 쿼리 제거 → 로딩 속도 개선)
   return supabaseResponse;
 }
 

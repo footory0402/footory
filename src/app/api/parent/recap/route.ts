@@ -54,6 +54,23 @@ export async function GET(req: NextRequest) {
   const twoWeeksISO = twoWeeksAgoStart.toISOString();
 
   // Fetch data for last week and two weeks ago
+  const countWeeklyKudos = async (weekStart: string) => {
+    const { data, error } = await (
+      supabase as unknown as {
+        rpc: (
+          fn: string,
+          args: Record<string, string>
+        ) => Promise<{ data: number | null; error: { message: string } | null }>;
+      }
+    ).rpc("count_weekly_kudos", {
+      p_profile_id: childId,
+      p_week_start: weekStart,
+    });
+
+    if (error) return 0;
+    return typeof data === "number" ? data : 0;
+  };
+
   const [childProfile, lastWeekClips, prevWeekClips, lastWeekKudos, prevWeekKudos, mvpResult] =
     await Promise.all([
       supabase.from("profiles").select("name, level, views_count").eq("id", childId).single(),
@@ -72,10 +89,8 @@ export async function GET(req: NextRequest) {
         .gte("created_at", twoWeeksISO)
         .lt("created_at", lastWeekISO),
 
-      (supabase as unknown as { rpc: (fn: string, args: Record<string, string>) => Promise<{ data: number }> })
-        .rpc("count_weekly_kudos", { p_profile_id: childId, p_week_start: lastWeekISO }).catch(() => ({ data: 0 })),
-      (supabase as unknown as { rpc: (fn: string, args: Record<string, string>) => Promise<{ data: number }> })
-        .rpc("count_weekly_kudos", { p_profile_id: childId, p_week_start: twoWeeksISO }).catch(() => ({ data: 0 })),
+      countWeeklyKudos(lastWeekISO),
+      countWeeklyKudos(twoWeeksISO),
 
       supabase
         .from("weekly_mvp_results")
@@ -90,8 +105,8 @@ export async function GET(req: NextRequest) {
 
   const clips = lastWeekClips.count ?? 0;
   const prevClips = prevWeekClips.count ?? 0;
-  const kudos = typeof lastWeekKudos.data === "number" ? lastWeekKudos.data : 0;
-  const prevKudos = typeof prevWeekKudos.data === "number" ? prevWeekKudos.data : 0;
+  const kudos = lastWeekKudos;
+  const prevKudos = prevWeekKudos;
 
   return NextResponse.json({
     childName: childProfile.data?.name ?? "",

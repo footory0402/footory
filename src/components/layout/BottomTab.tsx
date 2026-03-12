@@ -34,7 +34,7 @@ const parentTabs: Tab[] = [
 const scoutTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
-  { href: "/scout/watchlist", label: "관심", icon: StarIcon, isCenter: true },
+  { href: "/profile/watchlist", label: "관심", icon: StarIcon, isCenter: true },
   { href: "/team", label: "팀", icon: TeamIcon },
   { href: "/profile", label: "내 프로필", icon: UserIcon },
 ];
@@ -86,9 +86,7 @@ export default function BottomTab() {
 
       <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-white/5 glass-nav">
         <div
-          className={`flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)] transition-opacity duration-150 ${
-            isLoading || isGuest ? "opacity-0" : "opacity-100"
-          }`}
+          className="flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)]"
         >
           {tabs.map((tab) => {
             const active =

@@ -2,54 +2,62 @@ import { defineConfig, devices } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
-// .env.local 자동 로드
 const envLocalPath = path.resolve(process.cwd(), ".env.local");
 if (fs.existsSync(envLocalPath)) {
   const raw = fs.readFileSync(envLocalPath, "utf8");
   for (const line of raw.split(/\r?\n/)) {
-    if (!line || line.trim().startsWith("#")) continue;
-    const index = line.indexOf("=");
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const index = trimmed.indexOf("=");
     if (index === -1) continue;
-    const key = line.slice(0, index).trim();
-    const value = line.slice(index + 1).trim();
+    const key = trimmed.slice(0, index).trim();
+    const value = trimmed.slice(index + 1).trim();
     if (key && process.env[key] === undefined) {
       process.env[key] = value;
     }
   }
 }
 
-// 역할별 인증 상태 파일 경로
 export const AUTH_FILES = {
-  player: path.resolve(process.cwd(), ".tmp/e2e/auth-player.json"),
-  parent: path.resolve(process.cwd(), ".tmp/e2e/auth-parent.json"),
-  scout: path.resolve(process.cwd(), ".tmp/e2e/auth-scout.json"),
+  player: path.resolve(process.cwd(), "tests/fixtures/auth/player.json"),
+  parent: path.resolve(process.cwd(), "tests/fixtures/auth/parent.json"),
+  scout: path.resolve(process.cwd(), "tests/fixtures/auth/scout.json"),
 } as const;
 
-const BASE_URL = process.env.E2E_BASE_URL ?? "https://footory.vercel.app";
-const e2eServerCommand = process.env.E2E_SERVER_COMMAND;
+const BASE_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
+const LOCAL_SERVER_PATTERN = /^https?:\/\/(127\.0\.0\.1|localhost):3000$/;
+const SHOULD_START_LOCAL_SERVER = LOCAL_SERVER_PATTERN.test(BASE_URL);
+const WEB_SERVER_COMMAND =
+  process.env.E2E_SERVER_COMMAND ?? "npm run dev -- --hostname 127.0.0.1";
 
-// Galaxy S21 커스텀 UA (Galaxy S III 기반)
-const GALAXY_S21_UA =
-  "Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
-
-// Galaxy S24 커스텀 UA
 const GALAXY_S24_UA =
-  "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
-
-// Galaxy Tab S9 커스텀 UA
+  "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
 const GALAXY_TAB_S9_UA =
-  "Mozilla/5.0 (Linux; Android 13; SM-X716B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Linux; Android 13; SM-X716B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+const GALAXY_S21_UA =
+  "Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36";
 
-// 모든 디바이스 프로젝트가 의존하는 setup 프로젝트 목록
 const AUTH_SETUP_DEPS = ["setup:player", "setup:parent", "setup:scout"];
+const DESKTOP_VIEWPORT = { width: 1280, height: 720 };
 
 export default defineConfig({
-  testDir: "./tests/e2e",
+  testDir: "./tests",
+  testMatch: [
+    "**/e2e/seed.spec.ts",
+    "**/e2e/auth.spec.ts",
+    "**/e2e/player.spec.ts",
+    "**/e2e/parent.spec.ts",
+    "**/e2e/scout.spec.ts",
+    "**/e2e/cross-role.spec.ts",
+    "**/e2e/mobile.spec.ts",
+    "**/e2e/ui.spec.ts",
+    "**/visual/*.spec.ts",
+  ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: Number(process.env.E2E_WORKERS ?? 1),
-  reporter: [["html", { outputFolder: "playwright-report" }]],
+  reporter: [["list"], ["html", { outputFolder: "playwright-report" }]],
 
   use: {
     baseURL: BASE_URL,
@@ -61,16 +69,11 @@ export default defineConfig({
   },
 
   projects: [
-    // ──────────────────────────────────────────────
-    // 역할별 인증 Setup (3개)
-    // 테스트 실행 전 storageState를 .tmp/e2e/auth-{role}.json 에 저장
-    // ──────────────────────────────────────────────
     {
       name: "setup:player",
       testMatch: /auth\.setup\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        extraHTTPHeaders: { "x-e2e-role": "player" },
       },
     },
     {
@@ -78,7 +81,6 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        extraHTTPHeaders: { "x-e2e-role": "parent" },
       },
     },
     {
@@ -86,19 +88,14 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        extraHTTPHeaders: { "x-e2e-role": "scout" },
       },
     },
-
-    // ──────────────────────────────────────────────
-    // 데스크톱 (3개)
-    // ──────────────────────────────────────────────
     {
       name: "Desktop Chrome",
       dependencies: AUTH_SETUP_DEPS,
       use: {
         ...devices["Desktop Chrome"],
-        viewport: { width: 1280, height: 720 },
+        viewport: DESKTOP_VIEWPORT,
       },
     },
     {
@@ -106,7 +103,7 @@ export default defineConfig({
       dependencies: AUTH_SETUP_DEPS,
       use: {
         ...devices["Desktop Firefox"],
-        viewport: { width: 1280, height: 720 },
+        viewport: DESKTOP_VIEWPORT,
       },
     },
     {
@@ -114,13 +111,37 @@ export default defineConfig({
       dependencies: AUTH_SETUP_DEPS,
       use: {
         ...devices["Desktop Safari"],
-        viewport: { width: 1280, height: 720 },
+        viewport: DESKTOP_VIEWPORT,
       },
     },
-
-    // ──────────────────────────────────────────────
-    // Android 기기 (4개) — Chromium 엔진
-    // ──────────────────────────────────────────────
+    {
+      name: "iPhone 15",
+      dependencies: AUTH_SETUP_DEPS,
+      use: {
+        ...devices["iPhone 15"],
+      },
+    },
+    {
+      name: "iPhone SE",
+      dependencies: AUTH_SETUP_DEPS,
+      use: {
+        ...devices["iPhone SE"],
+      },
+    },
+    {
+      name: "iPad Pro 11",
+      dependencies: AUTH_SETUP_DEPS,
+      use: {
+        ...devices["iPad Pro 11"],
+      },
+    },
+    {
+      name: "iPad Mini",
+      dependencies: AUTH_SETUP_DEPS,
+      use: {
+        ...devices["iPad Mini"],
+      },
+    },
     {
       name: "Galaxy S24",
       dependencies: AUTH_SETUP_DEPS,
@@ -156,7 +177,7 @@ export default defineConfig({
       name: "Galaxy S21",
       dependencies: AUTH_SETUP_DEPS,
       use: {
-        ...devices["Galaxy S III"],
+        browserName: "chromium",
         viewport: { width: 360, height: 800 },
         deviceScaleFactor: 3,
         isMobile: true,
@@ -164,45 +185,12 @@ export default defineConfig({
         userAgent: GALAXY_S21_UA,
       },
     },
-
-    // ──────────────────────────────────────────────
-    // iOS 기기 (4개) — WebKit 엔진
-    // ──────────────────────────────────────────────
-    {
-      name: "iPhone 15",
-      dependencies: AUTH_SETUP_DEPS,
-      use: {
-        ...devices["iPhone 15"],
-      },
-    },
-    {
-      name: "iPhone SE",
-      dependencies: AUTH_SETUP_DEPS,
-      use: {
-        ...devices["iPhone SE"],
-      },
-    },
-    {
-      name: "iPad Pro 11",
-      dependencies: AUTH_SETUP_DEPS,
-      use: {
-        ...devices["iPad Pro 11"],
-      },
-    },
-    {
-      name: "iPad Mini",
-      dependencies: AUTH_SETUP_DEPS,
-      use: {
-        ...devices["iPad Mini"],
-      },
-    },
   ],
 
-  // 로컬 개발 시에만 dev 서버 실행 (E2E_SERVER_COMMAND 환경변수로 제어)
-  ...(e2eServerCommand
+  ...(SHOULD_START_LOCAL_SERVER
     ? {
         webServer: {
-          command: e2eServerCommand,
+          command: WEB_SERVER_COMMAND,
           url: BASE_URL,
           reuseExistingServer: true,
           timeout: 240_000,

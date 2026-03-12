@@ -115,17 +115,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const runFetch = () => {
-      void fetchProfile();
-    };
-
-    if (typeof window.requestIdleCallback === "function") {
-      const idleId = window.requestIdleCallback(runFetch, { timeout: 500 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timeout = window.setTimeout(runFetch, 120);
-    return () => window.clearTimeout(timeout);
+    void fetchProfile();
   }, [fetchProfile]);
 
   const value = useMemo(

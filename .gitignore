@@ -18,6 +18,7 @@
 /.auth
 /.tmp
 /.playwright-mcp
+/tests/fixtures/auth/*.json
 
 # next.js
 /.next/

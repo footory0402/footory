@@ -44,7 +44,7 @@ export default function ProfilePage() {
   // 원페이지이므로 모든 데이터를 바로 로드
   const shouldLoadData = !!profile && !isScoutProfile;
   const { stats, medals, addStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
-  const { tagClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
+  const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
 
@@ -201,6 +201,7 @@ export default function ProfilePage() {
           <HighlightsTab
             level={displayProfile.level}
             tagClips={mappedTagClips}
+            untaggedClips={untaggedClips}
             tagClipsLoading={tagClipsLoading}
             position={displayProfile.position}
             onDeleteClip={handleDeleteClip}

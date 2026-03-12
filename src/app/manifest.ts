@@ -14,14 +14,14 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "ko",
     icons: [
       {
-        src: "/apple-icon",
-        sizes: "180x180",
+        src: "/icon-192.png",
+        sizes: "192x192",
         type: "image/png",
       },
       {
-        src: "/icon-512.svg",
+        src: "/icon-512.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         purpose: "any maskable" as any,
       },

@@ -1,7 +1,6 @@
-const CACHE_NAME = "footory-v2";
+const CACHE_NAME = "footory-v3";
 
 // App shell: 오프라인에서도 빠르게 로드할 핵심 자원
-// "/" 제거 — SSR 페이지를 SW가 캐시하면 hydration mismatch + 무한 리로드 발생
 const APP_SHELL = [
   "/icon-192.png",
   "/icon-512.png",
@@ -16,7 +15,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate: 이전 캐시 정리
+// Activate: 이전 캐시 정리 + 즉시 제어
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -31,7 +30,10 @@ self.addEventListener("activate", (event) => {
 // Fetch: 전략 분기
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+
+  // iOS Safari: scheme이 http/https가 아닌 요청 무시 (chrome-extension, blob 등)
   const url = new URL(request.url);
+  if (!url.protocol.startsWith("http")) return;
 
   // API, auth 요청은 캐시하지 않음
   if (

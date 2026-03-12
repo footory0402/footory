@@ -128,8 +128,11 @@ interface UseTagClipsOptions {
   enabled?: boolean;
 }
 
+type TagClipItem = { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null };
+
 export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
-  const [tagClips, setTagClips] = useState<Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]>>({});
+  const [tagClips, setTagClips] = useState<Record<string, TagClipItem[]>>({});
+  const [untaggedClips, setUntaggedClips] = useState<TagClipItem[]>([]);
   const [loading, setLoading] = useState(enabled);
 
   const fetchTagClips = useCallback(async () => {
@@ -142,14 +145,28 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
       const { data: clips } = await supabase
         .from("clips")
         .select("id, video_url, thumbnail_url, duration_seconds, clip_tags(tag_name, is_top)")
-        .eq("owner_id", user.id);
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (!clips) { setTagClips({}); return; }
+      if (!clips) { setTagClips({}); setUntaggedClips([]); return; }
 
       const dbNameToId = Object.fromEntries(SKILL_TAGS.map((t) => [t.dbName, t.id]));
-      const result: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
+      const result: Record<string, TagClipItem[]> = {};
+      const untagged: TagClipItem[] = [];
+
       clips.forEach((clip) => {
         const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
+        if (clipTags.length === 0) {
+          untagged.push({
+            id: clip.id,
+            duration: clip.duration_seconds ?? 0,
+            tag: "",
+            isTop: false,
+            videoUrl: clip.video_url,
+            thumbnailUrl: clip.thumbnail_url,
+          });
+          return;
+        }
         clipTags.forEach((t) => {
           const tagId = dbNameToId[t.tag_name] ?? t.tag_name;
           if (!result[tagId]) result[tagId] = [];
@@ -165,6 +182,7 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
       });
 
       setTagClips(result);
+      setUntaggedClips(untagged);
     } finally {
       setLoading(false);
     }
@@ -178,5 +196,5 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
     void fetchTagClips();
   }, [enabled, fetchTagClips]);
 
-  return { tagClips, loading, fetchTagClips };
+  return { tagClips, untaggedClips, loading, fetchTagClips };
 }

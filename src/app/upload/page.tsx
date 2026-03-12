@@ -127,15 +127,18 @@ export default function UploadPage() {
 
       {/* Sticky upload button */}
       {store.status !== "error" && (
-        <div className="fixed bottom-[calc(54px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2 px-4 pb-3">
-          <button
-            type="button"
-            disabled={!canUpload || store.status !== "idle"}
-            onClick={handleUpload}
-            className="w-full rounded-xl bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-opacity disabled:opacity-40"
-          >
-            업로드
-          </button>
+        <div className="pointer-events-none fixed bottom-[calc(54px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2">
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg via-bg/96 to-transparent" />
+          <div className="relative px-4 pb-3">
+            <button
+              type="button"
+              disabled={!canUpload || store.status !== "idle"}
+              onClick={handleUpload}
+              className="pointer-events-auto w-full rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color,border-color,color,box-shadow] active:scale-[0.99] disabled:border-border disabled:bg-card-alt disabled:text-text-3 disabled:shadow-none"
+            >
+              업로드
+            </button>
+          </div>
         </div>
       )}
     </>

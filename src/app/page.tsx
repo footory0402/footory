@@ -132,10 +132,13 @@ function DashboardSkeleton() {
 
 export default async function HomePage() {
   const supabase = await createClient();
+
+  // Middleware(proxy.ts)에서 이미 getUser()로 인증 검증됨 → 빠른 getSession() 사용
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user) redirect("/login");
+  const user = session.user;
   if (isPocAdminUser(user)) redirect("/admin/video-lab");
 
   const { data: profile } = await supabase
@@ -143,6 +146,9 @@ export default async function HomePage() {
     .select("role, name, is_verified")
     .eq("id", user.id)
     .maybeSingle();
+
+  // 프로필 없는 인증 사용자 → 온보딩 (proxy.ts에서 제거된 체크를 여기서 처리)
+  if (!profile) redirect("/onboarding");
 
   const role = profile?.role;
 

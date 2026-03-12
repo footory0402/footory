@@ -24,6 +24,7 @@ interface TagClip {
 interface HighlightsTabProps {
   level: number;
   tagClips: Record<string, TagClip[]>;
+  untaggedClips?: TagClip[];
   tagClipsLoading?: boolean;
   position?: string | null;
   onDeleteClip?: (clipId: string) => Promise<boolean>;
@@ -39,6 +40,7 @@ function maxSlotsByLevel(level: number): number {
 export default function HighlightsTab({
   level,
   tagClips,
+  untaggedClips = [],
   tagClipsLoading,
   position,
   onDeleteClip,
@@ -118,16 +120,30 @@ export default function HighlightsTab({
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         </div>
       ) : (
-        tagsToShow.map((tag, i) => (
-          <div key={tag.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-            <TagAccordion
-              emoji={tag.emoji}
-              label={tag.label}
-              clips={tagClips[tag.id] ?? []}
-              onDeleteClip={onDeleteClip}
-            />
-          </div>
-        ))
+        <>
+          {tagsToShow.map((tag, i) => (
+            <div key={tag.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
+              <TagAccordion
+                emoji={tag.emoji}
+                label={tag.label}
+                clips={tagClips[tag.id] ?? []}
+                onDeleteClip={onDeleteClip}
+              />
+            </div>
+          ))}
+
+          {/* 태그 없는 클립 */}
+          {untaggedClips.length > 0 && (
+            <div className="animate-fade-up">
+              <TagAccordion
+                emoji="📹"
+                label="태그 없는 영상"
+                clips={untaggedClips}
+                onDeleteClip={onDeleteClip}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Clip Picker */}

@@ -23,7 +23,7 @@ export interface ResolvedTestAccount extends TestAccountDefinition {
 export type ResolvedTestAccounts = Record<TestRole, ResolvedTestAccount>;
 
 const DEFAULT_PASSWORD = process.env.E2E_TEST_PASSWORD ?? "Footory!123";
-const APP_BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const APP_BASE_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3000";
 const MAX_COOKIE_CHUNK = 3180;
 const E2E_CACHE_DIR = path.resolve(process.cwd(), ".tmp/e2e");
 const ACCOUNT_CACHE_PATH = path.join(E2E_CACHE_DIR, "accounts.json");
@@ -53,7 +53,7 @@ export const TEST_ACCOUNTS: Record<TestRole, TestAccountDefinition> = {
     password: DEFAULT_PASSWORD,
     handle: "e2e_coach",
     name: "E2E Coach",
-    profileRole: "coach",
+    profileRole: "scout",
     isVerified: true,
   },
   scout: {
@@ -62,7 +62,7 @@ export const TEST_ACCOUNTS: Record<TestRole, TestAccountDefinition> = {
     password: DEFAULT_PASSWORD,
     handle: "e2e_scout",
     name: "E2E Scout",
-    profileRole: "coach",
+    profileRole: "scout",
     isVerified: true,
   },
 };
@@ -507,12 +507,6 @@ async function signInForSession(account: TestAccountDefinition): Promise<Session
   }
 
   const sessionCachePath = getSessionCachePath(account.role);
-  const persisted = await readJsonFile<Session>(sessionCachePath);
-  if (persisted?.access_token) {
-    sessionCacheByRole[account.role] = persisted;
-    return persisted;
-  }
-
   const existingPromise = sessionPromiseByRole[account.role];
   if (existingPromise) {
     return existingPromise;
@@ -520,12 +514,6 @@ async function signInForSession(account: TestAccountDefinition): Promise<Session
 
   const anon = createAnonClient();
   const sessionPromise = withFileLock(`session-${account.role}`, async () => {
-    const lockedCache = await readJsonFile<Session>(sessionCachePath);
-    if (lockedCache?.access_token) {
-      sessionCacheByRole[account.role] = lockedCache;
-      return lockedCache;
-    }
-
     const { data, error } = await signInWithRetry(anon, account.email, account.password);
 
     if (error || !data.session) {

@@ -106,13 +106,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Single bulk insert
-    await supabase.from("clip_tags").insert(
+    const { error: tagInsertError } = await supabase.from("clip_tags").insert(
       validTags.map((tagName) => ({
         clip_id: clip.id,
         tag_name: tagName,
         is_top: !existingTagNames.has(tagName),
       }))
     );
+
+    if (tagInsertError) {
+      console.error("[clips/POST] clip_tags insert error:", tagInsertError.message);
+      // 태그 저장 실패해도 클립 자체는 이미 저장됨 — 클라이언트에 경고 포함해서 반환
+      return NextResponse.json(
+        { clip, warning: "태그 저장에 실패했습니다. 클립은 저장됐어요." },
+        { status: 201 }
+      );
+    }
   }
 
   // Auto-create feed item
