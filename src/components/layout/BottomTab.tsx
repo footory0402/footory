@@ -35,7 +35,7 @@ const scoutTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
   { href: "/profile/watchlist", label: "관심", icon: StarIcon, isCenter: true },
-  { href: "/team", label: "팀", icon: TeamIcon },
+  { href: "/discover", label: "탐색", icon: SearchIcon },
   { href: "/profile", label: "내 프로필", icon: UserIcon },
 ];
 
@@ -101,11 +101,15 @@ export default function BottomTab() {
                   key={tab.href}
                   type="button"
                   onClick={() => handleCenterTap(tab)}
+                  aria-label={tab.label}
                   className="relative flex flex-col items-center"
                 >
                   <div className="relative -top-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent shadow-[0_0_12px_rgba(212,168,83,0.35)] transition-transform active:scale-95">
                     <tab.icon active={false} />
                   </div>
+                  <span className="relative -top-1 text-[10px] font-medium text-accent">
+                    {tab.label}
+                  </span>
                 </button>
               );
             }
@@ -185,6 +189,15 @@ function MvpIcon({ active }: { active: boolean }) {
       <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22" />
       <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22" />
       <path d="M18 2H6v7a6 6 0 0012 0V2z" />
+    </svg>
+  );
+}
+
+function SearchIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={active ? "text-accent" : "text-text-3"}>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   );
 }

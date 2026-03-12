@@ -7,7 +7,7 @@ import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--noto-sans-kr",
   display: "swap",
   preload: true,
@@ -26,7 +26,7 @@ const rajdhani = Rajdhani({
   weight: ["600", "700"],
   variable: "--rajdhani",
   display: "swap",
-  preload: false,
+  preload: true,
 });
 
 export const metadata: Metadata = {

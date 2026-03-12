@@ -18,7 +18,7 @@ export default function TeamPage() {
   // Scout sees discover-focused team view (only after role is confirmed)
   if (!roleLoading && role === "scout") {
     return (
-      <div className="px-4 pb-24 pt-4">
+      <div className="px-4 pt-4">
         <div className="flex flex-col items-center pt-16 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl mb-4">🏟</div>
           <p className="text-lg font-bold text-text-1">팀 기능 준비 중</p>
@@ -47,7 +47,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="px-4 pb-24 pt-4">
+    <div className="px-4 pt-4">
       {teams.length === 0 ? (
         /* Empty state */
         <div className="flex flex-col items-center justify-center pt-12">

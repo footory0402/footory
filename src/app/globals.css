@@ -32,7 +32,7 @@
   --color-text: #FAFAFA;
   --color-text-1: #FAFAFA;
   --color-text-2: #A1A1AA;
-  --color-text-3: #8A8A93;
+  --color-text-3: #9E9EA8;
 
   /* Border */
   --color-border: rgba(255, 255, 255, 0.07);
@@ -137,8 +137,7 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* iOS safe area support */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* iOS safe area — 헤더/바텀탭에서 개별 처리 (body 전체 패딩 제거) */
 }
 
 /* Animations */

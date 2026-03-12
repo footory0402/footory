@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
@@ -125,7 +125,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="px-4 pb-24 pt-4">
+    <div className="px-4 pt-4">
       {/* 1. Profile Card */}
       <ProfileCard profile={displayProfile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
 
@@ -211,83 +211,92 @@ export default function ProfilePage() {
           )}
         </div>
       ) : (
-        /* Player: Single-page scroll */
-        <div className="mt-5 flex flex-col gap-5">
+        /* Player: Single-page scroll with sticky anchor tabs */
+        <>
+          <ProfileAnchorTabs />
 
-          {/* 2. Featured Highlights + Skill Videos */}
-          <HighlightsTab
-            level={displayProfile.level}
-            tagClips={mappedTagClips}
-            untaggedClips={untaggedClips}
-            tagClipsLoading={tagClipsLoading}
-            position={displayProfile.position}
-            onDeleteClip={handleDeleteClip}
-            onEditTags={handleEditTags}
-          />
+          <div className="flex flex-col gap-5">
+            {/* 2. Featured Highlights + Skill Videos */}
+            <section id="section-video" className="scroll-mt-[100px]">
+              <HighlightsTab
+                level={displayProfile.level}
+                tagClips={mappedTagClips}
+                untaggedClips={untaggedClips}
+                tagClipsLoading={tagClipsLoading}
+                position={displayProfile.position}
+                onDeleteClip={handleDeleteClip}
+                onEditTags={handleEditTags}
+              />
+            </section>
 
-          {/* 3. Physical Records (collapsible) */}
-          <StatsCollapsible
-            stats={stats}
-            medals={medals}
-            onAddStat={() => setStatInputOpen(true)}
-          />
+            {/* 3. Physical Records (collapsible) */}
+            <section id="section-record" className="scroll-mt-[100px]">
+              <StatsCollapsible
+                stats={stats}
+                medals={medals}
+                onAddStat={() => setStatInputOpen(true)}
+              />
+            </section>
 
-          {/* 4. Team Info */}
-          <div className="rounded-xl border border-white/[0.06] bg-card p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-base">⚽</span>
-                <span className="text-[13px] font-semibold text-text-1">소속 팀</span>
-              </div>
-              <button
-                onClick={() => setSeasonAddOpen(true)}
-                className="text-[11px] font-medium text-accent"
-              >
-                + 추가
-              </button>
-            </div>
-
-            {displayProfile.teamName ? (
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-lg">🏟</div>
-                <div>
-                  <p className="text-[13px] font-semibold text-text-1">{displayProfile.teamName}</p>
-                  {displayProfile.city && <p className="text-[11px] text-text-3">{displayProfile.city}</p>}
+            {/* 4. Team Info */}
+            <section id="section-team" className="scroll-mt-[100px]">
+              <div className="rounded-xl border border-white/[0.06] bg-card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">⚽</span>
+                    <span className="text-[13px] font-semibold text-text-1">소속 팀</span>
+                  </div>
+                  <button
+                    onClick={() => setSeasonAddOpen(true)}
+                    className="text-[12px] font-medium text-accent"
+                  >
+                    + 추가
+                  </button>
                 </div>
-                {displayProfile.teamId && (
-                  <Link href={`/team/${displayProfile.teamId}`} className="ml-auto text-[11px] text-accent">
-                    상세 →
-                  </Link>
+
+                {displayProfile.teamName ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-lg">🏟</div>
+                    <div>
+                      <p className="text-[13px] font-semibold text-text-1">{displayProfile.teamName}</p>
+                      {displayProfile.city && <p className="text-[12px] text-text-3">{displayProfile.city}</p>}
+                    </div>
+                    {displayProfile.teamId && (
+                      <Link href={`/team/${displayProfile.teamId}`} className="ml-auto text-[12px] text-accent">
+                        상세 →
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <p className="py-2 text-center text-[12px] text-text-3">
+                    아직 소속 팀이 없어요
+                  </p>
+                )}
+
+                {/* Previous teams from seasons */}
+                {seasons.filter((s) => !s.isCurrent).length > 0 && (
+                  <div className="mt-3 border-t border-white/[0.04] pt-3">
+                    <p className="mb-2 text-[12px] text-text-3">이전 소속</p>
+                    <div className="flex flex-col gap-1.5">
+                      {seasons.filter((s) => !s.isCurrent).map((s) => (
+                        <div key={s.id} className="flex items-center gap-2 text-[12px] text-text-2">
+                          <span className="text-text-3">•</span>
+                          <span>{s.teamName}</span>
+                          <span className="text-text-3">({s.year})</span>
+                          {s.gamesPlayed != null && (
+                            <span className="ml-auto text-[12px] text-text-3">
+                              {s.gamesPlayed}경기{s.goals ? ` ${s.goals}골` : ""}{s.assists ? ` ${s.assists}어시` : ""}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-            ) : (
-              <p className="py-2 text-center text-[12px] text-text-3">
-                아직 소속 팀이 없어요
-              </p>
-            )}
-
-            {/* Previous teams from seasons */}
-            {seasons.filter((s) => !s.isCurrent).length > 0 && (
-              <div className="mt-3 border-t border-white/[0.04] pt-3">
-                <p className="mb-2 text-[11px] text-text-3">이전 소속</p>
-                <div className="flex flex-col gap-1.5">
-                  {seasons.filter((s) => !s.isCurrent).map((s) => (
-                    <div key={s.id} className="flex items-center gap-2 text-[12px] text-text-2">
-                      <span className="text-text-3">•</span>
-                      <span>{s.teamName}</span>
-                      <span className="text-text-3">({s.year})</span>
-                      {s.gamesPlayed != null && (
-                        <span className="ml-auto text-[11px] text-text-3">
-                          {s.gamesPlayed}경기{s.goals ? ` ${s.goals}골` : ""}{s.assists ? ` ${s.assists}어시` : ""}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            </section>
           </div>
-        </div>
+        </>
       )}
 
       {/* Sheets */}
@@ -337,6 +346,69 @@ export default function ProfilePage() {
           achievements={[]}
         />
       )}
+    </div>
+  );
+}
+
+/* ── Sticky Anchor Tabs ── */
+
+const ANCHOR_TABS = [
+  { id: "section-video", label: "영상", icon: "🎬" },
+  { id: "section-record", label: "기록", icon: "📊" },
+  { id: "section-team", label: "팀", icon: "⚽" },
+] as const;
+
+function ProfileAnchorTabs() {
+  const [activeId, setActiveId] = useState<string>(ANCHOR_TABS[0].id);
+
+  useEffect(() => {
+    const sectionEls = ANCHOR_TABS.map((t) => document.getElementById(t.id)).filter(Boolean) as HTMLElement[];
+    if (sectionEls.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: "-100px 0px -60% 0px", threshold: 0.1 }
+    );
+
+    sectionEls.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const handleTap = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  return (
+    <div className="sticky top-[70px] z-30 -mx-4 mb-5 mt-4 border-b border-white/[0.06] glass-nav">
+      <div className="flex px-4">
+        {ANCHOR_TABS.map((tab) => {
+          const isActive = activeId === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTap(tab.id)}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold transition-colors relative ${
+                isActive ? "text-accent" : "text-text-3"
+              }`}
+            >
+              <span className="text-[14px]">{tab.icon}</span>
+              {tab.label}
+              {isActive && (
+                <span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] rounded-full bg-accent" />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

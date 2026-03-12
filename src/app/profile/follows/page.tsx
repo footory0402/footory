@@ -29,7 +29,7 @@ function FollowsContent() {
   }, []);
 
   return (
-    <div className="px-4 pb-24 pt-4">
+    <div className="px-4 pt-4">
       {/* Back + Title */}
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => router.back()} className="text-text-3 hover:text-text-1 p-1">

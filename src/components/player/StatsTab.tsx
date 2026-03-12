@@ -80,7 +80,7 @@ export default function StatsCollapsible({ stats, medals, onAddStat }: StatsColl
           {/* Medals inline */}
           {medals.length > 0 && (
             <div className="mt-2 border-t border-white/[0.04] pt-3">
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-text-3">달성 기록</p>
+              <p className="mb-2 text-[12px] font-bold uppercase tracking-wider text-text-3">달성 기록</p>
               <div className="flex flex-col gap-1">
                 {medals.map((medal) => (
                   <MedalBadge

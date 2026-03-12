@@ -102,7 +102,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <div className="pb-24">
+    <div>
       {/* Back button */}
       <div className="flex items-center gap-3 px-4 pt-3 pb-1">
         <button

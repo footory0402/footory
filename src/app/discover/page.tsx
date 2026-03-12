@@ -9,8 +9,6 @@ const PlayerRanking = dynamic(() => import("@/components/explore/PlayerRanking")
 const RisingPlayers = dynamic(() => import("@/components/explore/RisingPlayers"), { ssr: false });
 const TeamRanking = dynamic(() => import("@/components/explore/TeamRanking"), { ssr: false });
 const TagGrid = dynamic(() => import("@/components/explore/TagGrid"), { ssr: false });
-const SearchOverlay = dynamic(() => import("@/components/explore/SearchOverlay"), { ssr: false });
-
 type FilterTab = "all" | "player" | "team" | "tag";
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
@@ -26,7 +24,6 @@ export default function DiscoverPage() {
   const searchParams = useSearchParams();
   const currentTab = getFilterTab(searchParams.get("tab"));
   const [tab, setTab] = useState<FilterTab>(currentTab);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -50,21 +47,9 @@ export default function DiscoverPage() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-24">
-      {/* Search bar (tap to open overlay) */}
-      <button
-        onClick={() => setSearchOpen(true)}
-        className="flex h-10 w-full items-center rounded-full bg-card px-4 text-left shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)] border border-white/[0.06]"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="7" />
-          <path d="M21 21l-4.35-4.35" />
-        </svg>
-        <span className="ml-2 text-xs text-text-3">선수, 팀, 태그 검색</span>
-      </button>
-
-      {/* Underline tab bar */}
-      <div className="flex border-b border-white/[0.06] mt-3">
+    <div className="px-4 pt-4">
+      {/* Underline tab bar — 검색은 AppHeader의 검색바 활용 */}
+      <div className="flex border-b border-white/[0.06]">
         {FILTER_TABS.map((ft) => (
           <button
             key={ft.key}
@@ -126,8 +111,6 @@ export default function DiscoverPage() {
         )}
       </div>
 
-      {/* Search overlay */}
-      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

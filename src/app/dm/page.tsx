@@ -34,7 +34,7 @@ export default function DmPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg pb-20">
+    <div className="min-h-screen bg-bg">
       {/* Header */}
       <div className="sticky top-[42px] z-30 flex items-center justify-between border-b border-border bg-bg/95 px-4 py-3">
         <div className="flex items-center gap-3">

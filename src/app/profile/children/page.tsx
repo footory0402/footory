@@ -21,7 +21,7 @@ export default function ChildrenPage() {
   }
 
   return (
-    <div className="px-4 pb-24 pt-4">
+    <div className="px-4 pt-4">
       {/* Back + Title */}
       <div className="mb-6 flex items-center gap-3">
         <button

@@ -78,7 +78,7 @@ async function ScoutHomeServer({ userId, isVerified }: { userId: string; isVerif
 
 function PlayerFeedSkeleton() {
   return (
-    <div className="px-4 pt-4 pb-24 animate-pulse">
+    <div className="px-4 pt-4 animate-pulse">
       {/* Quest skeleton */}
       <div className="mb-4 rounded-xl bg-card p-4">
         <div className="h-4 w-28 rounded bg-card-alt mb-3" />
@@ -116,7 +116,7 @@ function PlayerFeedSkeleton() {
 
 function DashboardSkeleton() {
   return (
-    <div className="px-4 pt-4 pb-24 animate-pulse">
+    <div className="px-4 pt-4 animate-pulse">
       <div className="h-10 w-40 rounded bg-card-alt mb-4" />
       <div className="rounded-xl bg-card p-4 mb-4">
         <div className="h-20 rounded bg-card-alt" />
@@ -169,7 +169,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="px-4 pt-4 pb-24">
+    <div className="px-4 pt-4">
       <Suspense fallback={<PlayerFeedSkeleton />}>
         <PlayerFeed userId={user.id} />
       </Suspense>

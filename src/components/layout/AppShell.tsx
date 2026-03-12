@@ -19,7 +19,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ProfileProvider>
       <AppHeader />
-      <main className="pb-[calc(54px+env(safe-area-inset-bottom)+20px)]">
+      <main className="pb-[calc(60px+env(safe-area-inset-bottom))]">
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
       <BottomTab />

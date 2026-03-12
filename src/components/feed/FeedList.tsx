@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFeed, type FeedItemEnriched } from "@/hooks/useFeed";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
+import Link from "next/link";
 import FeedCard from "./FeedCard";
 import UploadNudge from "./UploadNudge";
 import dynamic from "next/dynamic";
@@ -119,8 +120,14 @@ export default function FeedList({
         </div>
         <p className="mt-4 text-[15px] font-semibold text-text-1">피드가 비어있어요</p>
         <p className="mt-1 text-[13px] text-text-3 text-center">
-          곧 추천 콘텐츠가 채워질 거예요
+          첫 영상을 올려 피드를 채워보세요
         </p>
+        <Link
+          href="/upload"
+          className="mt-4 rounded-full bg-accent px-6 py-2.5 text-[13px] font-semibold text-bg"
+        >
+          영상 올리기
+        </Link>
         {showNudge && (
           <div className="mt-6 w-full">
             <UploadNudge />

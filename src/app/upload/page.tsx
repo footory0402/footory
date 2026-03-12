@@ -63,7 +63,7 @@ export default function UploadPage() {
       {/* Upload progress overlay */}
       <UploadProgress />
 
-      <div className="flex flex-col gap-6 px-4 pb-28 pt-4">
+      <div className="flex flex-col gap-6 px-4 pt-4">
         {/* Header */}
         <div className="flex items-center gap-3">
           <button

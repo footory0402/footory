@@ -87,7 +87,7 @@ export default function ChildDashboard({
   // No linked children — onboarding
   if (children.length === 0) {
     return (
-      <div className="px-4 pb-24 pt-6">
+      <div className="px-4 pt-6">
         <div className="flex flex-col items-center pt-10">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl">
             👨‍👧
@@ -113,7 +113,7 @@ export default function ChildDashboard({
   const selectedChild = children.find((c) => c.childId === selectedChildId) ?? children[0];
 
   return (
-    <div className="px-4 pb-24 pt-2">
+    <div className="px-4 pt-2">
       {/* Multi-child selector */}
       <ChildSelector
         childList={children}
@@ -122,9 +122,25 @@ export default function ChildDashboard({
       />
 
       {/* L2: '👋 {자녀이름} 보호자님' 인사 텍스트 */}
-      <p className="mb-4 text-[16px] text-text-2">
+      <p className="mb-3 text-[16px] text-text-2">
         👋 <span className="font-bold text-text-1">{selectedChild.name}</span> 보호자님
       </p>
+
+      {/* Quick actions — 자녀 프로필 + 영상 업로드 (학부모 핵심 액션) */}
+      <div className="mb-4 flex gap-2">
+        <Link
+          href={`/p/${selectedChild.handle}`}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/30 bg-accent/5 py-3 text-[13px] font-semibold text-accent active:bg-accent/10"
+        >
+          👤 {selectedChild.name} 프로필
+        </Link>
+        <button
+          onClick={() => setUploadTarget(selectedChild)}
+          className="flex-1 rounded-xl bg-gradient-to-r from-accent to-accent-dim py-3 text-[13px] font-semibold text-bg"
+        >
+          📹 영상 올려주기
+        </button>
+      </div>
 
       {/* Weekly Recap (Monday only) */}
       <WeeklyRecap childId={selectedChild.childId} childName={selectedChild.name} childHandle={selectedChild.handle} />
@@ -210,21 +226,7 @@ export default function ChildDashboard({
         ) : null}
       </div>
 
-      {/* CTA buttons */}
-      <div className="mb-4 flex gap-2">
-        <Link
-          href={`/p/${selectedChild.handle}`}
-          className="flex-1 rounded-xl border border-border bg-card py-3 text-center text-[13px] font-medium text-text-2 active:bg-surface"
-        >
-          {selectedChild.name} 프로필 보기
-        </Link>
-        <button
-          onClick={() => setUploadTarget(selectedChild)}
-          className="flex-1 rounded-xl bg-gradient-to-r from-accent to-accent-dim py-3 text-[13px] font-semibold text-bg"
-        >
-          영상 올려주기
-        </button>
-      </div>
+      {/* Quick actions already placed above */}
 
       {/* Recent Activity */}
       {dashboard && dashboard.recentActivity.length > 0 && (
@@ -243,7 +245,7 @@ export default function ChildDashboard({
                 </div>
                 <div className="flex-1">
                   <p className="text-[13px] text-text-1">{getActivityLabel(item.type, item.metadata)}</p>
-                  <p className="mt-0.5 text-[10px] text-text-3">{formatTimeAgo(item.createdAt)}</p>
+                  <p className="mt-0.5 text-[12px] text-text-3">{formatTimeAgo(item.createdAt)}</p>
                 </div>
               </div>
             ))}
@@ -317,7 +319,7 @@ function StatRow({ emoji, label, value, isZero }: { emoji: string; label: string
       </span>
       <span className={`font-stat text-[14px] font-semibold ${isZero ? "text-text-3" : "text-text-1"}`}>
         {value}
-        {isZero && <span className="ml-1 text-[10px] text-text-3">·</span>}
+        {isZero && <span className="ml-1 text-[12px] text-text-3">·</span>}
       </span>
     </div>
   );
@@ -425,8 +427,8 @@ function ComparisonBar({ label, current, previous }: { label: string; current: n
         </div>
       </div>
       <div className="flex justify-between mt-0.5">
-        <span className="text-[10px] text-accent">이번 주 {current}</span>
-        <span className="text-[10px] text-text-3">지난 주 {previous}</span>
+        <span className="text-[12px] text-accent">이번 주 {current}</span>
+        <span className="text-[12px] text-text-3">지난 주 {previous}</span>
       </div>
     </div>
   );
