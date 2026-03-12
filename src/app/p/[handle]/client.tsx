@@ -223,6 +223,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [activeTab, setActiveTab] = useState<ProfileTab>("highlights");
   const [shareOpen, setShareOpen] = useState(false);
   const [filter, setFilter] = useState<string | null>(null);
+  const [dmModalOpen, setDmModalOpen] = useState(false);
+  const [dmMsg, setDmMsg] = useState("");
+  const [dmSending, setDmSending] = useState(false);
 
   const profile = toProfile(data);
   const stats = mapStats(data.stats);
@@ -305,10 +308,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                     return;
                   }
                   if (viewerAccess?.dm.state === "request") {
-                    const msg = prompt("대화 요청 메시지를 입력하세요:");
-                    if (msg === null) return;
-                    await sendDmRequest(profile.id, msg);
-                    toast.success("대화 요청을 보냈습니다.");
+                    setDmModalOpen(true);
                     return;
                   }
 
@@ -318,10 +318,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                     return;
                   }
                   if (perm === "request") {
-                    const msg = prompt("대화 요청 메시지를 입력하세요:");
-                    if (msg === null) return;
-                    await sendDmRequest(profile.id, msg);
-                    toast.success("대화 요청을 보냈습니다.");
+                    setDmModalOpen(true);
                     return;
                   }
 
@@ -562,6 +559,55 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         title={`${profile.name} — Footory`}
         text={`${profile.name}${profile.position ? ` | ${POSITION_LABELS[profile.position] ?? profile.position}` : ""} | Footory 선수 프로필`}
       />
+
+      {/* DM 요청 모달 */}
+      {dmModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+          onClick={() => { setDmModalOpen(false); setDmMsg(""); }}
+        >
+          <div
+            className="w-full max-w-[430px] rounded-t-2xl bg-card p-5 pb-[calc(20px+env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-1 text-[15px] font-bold text-text-1">대화 요청</h3>
+            <p className="mb-3 text-[12px] text-text-3">{profile.name}님에게 대화 요청 메시지를 보내세요.</p>
+            <textarea
+              value={dmMsg}
+              onChange={(e) => setDmMsg(e.target.value)}
+              placeholder="안녕하세요! 메시지를 입력하세요..."
+              maxLength={200}
+              rows={3}
+              className="w-full resize-none rounded-xl bg-surface px-3 py-2.5 text-[14px] text-text-1 placeholder:text-text-3 focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <p className="mb-3 text-right text-[11px] text-text-3">{dmMsg.length}/200</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setDmModalOpen(false); setDmMsg(""); }}
+                className="flex-1 rounded-xl bg-surface py-3 text-[13px] font-semibold text-text-2"
+              >
+                취소
+              </button>
+              <button
+                disabled={dmSending || dmMsg.trim().length === 0}
+                onClick={async () => {
+                  if (dmMsg.trim().length === 0) return;
+                  setDmSending(true);
+                  await sendDmRequest(profile.id, dmMsg.trim());
+                  setDmSending(false);
+                  setDmModalOpen(false);
+                  setDmMsg("");
+                  toast.success("대화 요청을 보냈습니다.");
+                  router.push("/dm");
+                }}
+                className="flex-1 rounded-xl bg-accent py-3 text-[13px] font-bold text-bg disabled:opacity-50"
+              >
+                {dmSending ? "보내는 중..." : "요청 보내기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </ErrorBoundary>
   );
