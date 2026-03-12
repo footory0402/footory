@@ -79,6 +79,23 @@ export default function ProfilePage() {
     return ok;
   };
 
+  const handleEditTags = async (clipId: string, tags: string[]) => {
+    try {
+      const res = await fetch(`/api/clips/${clipId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags }),
+      });
+      if (!res.ok) return false;
+      toast.success("태그가 수정되었습니다.");
+      await fetchTagClips();
+      return true;
+    } catch {
+      toast.error("태그 수정에 실패했습니다.");
+      return false;
+    }
+  };
+
   const handleAddStat = async (statType: string, value: number, evidenceClipId?: string) => {
     const newMedals = await addStat(statType, value, evidenceClipId);
     if (newMedals.length > 0) {
@@ -205,6 +222,7 @@ export default function ProfilePage() {
             tagClipsLoading={tagClipsLoading}
             position={displayProfile.position}
             onDeleteClip={handleDeleteClip}
+            onEditTags={handleEditTags}
           />
 
           {/* 3. Physical Records (collapsible) */}

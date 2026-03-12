@@ -74,24 +74,24 @@ export default function TagAccordion({ emoji, label, clips, onDeleteClip }: TagA
           {hasClips ? (
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
               {clips.map((clip) => (
-                <div key={clip.id} className="relative w-[140px] shrink-0">
+                <div key={clip.id} className="relative w-[160px] shrink-0">
                   <button
                     type="button"
                     onClick={() => setPlayingClip(clip)}
                     className="w-full text-left"
                   >
-                    <div className="relative">
+                    <div className={`relative rounded-xl ${clip.isTop ? "ring-2 ring-accent/60" : ""}`}>
                       <VideoThumb
                         thumbnailUrl={clip.thumbnailUrl ?? undefined}
                         duration={clip.duration}
                         aspectRatio="4/3"
                       />
-                      {clip.isTop && (
-                        <div className="absolute top-1 left-1 rounded bg-accent px-1 py-0.5 text-[8px] font-bold text-bg">
-                          TOP
-                        </div>
-                      )}
                     </div>
+                    {clip.isTop && (
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-bg">TOP</span>
+                      </div>
+                    )}
                   </button>
                 </div>
               ))}

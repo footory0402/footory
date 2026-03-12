@@ -8,6 +8,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 
 const ClipPickerSheet = dynamic(() => import("./ClipPickerSheet"), { ssr: false });
+import VideoThumb from "./VideoThumb";
+import ClipPlayerSheet from "./ClipPlayerSheet";
+import TagEditSheet from "./TagEditSheet";
 import { useFeaturedClips } from "@/hooks/useClips";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { MAX_FEATURED_SLOTS, getSkillTagsForPosition } from "@/lib/constants";
@@ -28,6 +31,7 @@ interface HighlightsTabProps {
   tagClipsLoading?: boolean;
   position?: string | null;
   onDeleteClip?: (clipId: string) => Promise<boolean>;
+  onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
 }
 
 function maxSlotsByLevel(level: number): number {
@@ -44,6 +48,7 @@ export default function HighlightsTab({
   tagClipsLoading,
   position,
   onDeleteClip,
+  onEditTags,
 }: HighlightsTabProps) {
   const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -114,6 +119,36 @@ export default function HighlightsTab({
         <span>+</span> 영상 추가
       </Link>
 
+      {/* 태그 없는 클립 → 상단 "최근 업로드" 섹션 */}
+      {!tagClipsLoading && untaggedClips.length > 0 && (
+        <div className="animate-fade-up">
+          <div className="overflow-hidden rounded-xl border border-accent/20 bg-card">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[16px]">📹</span>
+                <span className="text-[13px] font-semibold text-text-1">최근 업로드</span>
+                <span className="text-[11px] text-text-3">{untaggedClips.length}개</span>
+              </div>
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
+                태그를 추가해 포트폴리오를 정리하세요
+              </span>
+            </div>
+            <div className="px-4 pb-3">
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+                {untaggedClips.map((clip) => (
+                  <UntaggedClipCard
+                    key={clip.id}
+                    clip={clip}
+                    onDeleteClip={onDeleteClip}
+                    onEditTags={onEditTags}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tag accordions */}
       {tagClipsLoading ? (
         <div className="flex justify-center py-12">
@@ -131,18 +166,6 @@ export default function HighlightsTab({
               />
             </div>
           ))}
-
-          {/* 태그 없는 클립 */}
-          {untaggedClips.length > 0 && (
-            <div className="animate-fade-up">
-              <TagAccordion
-                emoji="📹"
-                label="태그 없는 영상"
-                clips={untaggedClips}
-                onDeleteClip={onDeleteClip}
-              />
-            </div>
-          )}
         </>
       )}
 
@@ -157,5 +180,61 @@ export default function HighlightsTab({
       )}
     </div>
     </ErrorBoundary>
+  );
+}
+
+/* ── Untagged clip card with inline player + tag edit ── */
+function UntaggedClipCard({
+  clip,
+  onDeleteClip,
+  onEditTags,
+}: {
+  clip: TagClip;
+  onDeleteClip?: (clipId: string) => Promise<boolean>;
+  onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const [editingTags, setEditingTags] = useState(false);
+  return (
+    <>
+      <div className="relative w-[160px] shrink-0">
+        <button type="button" onClick={() => setPlaying(true)} className="w-full text-left">
+          <VideoThumb
+            thumbnailUrl={clip.thumbnailUrl ?? undefined}
+            duration={clip.duration}
+            aspectRatio="4/3"
+          />
+        </button>
+        {/* Tag add button */}
+        {onEditTags && (
+          <button
+            type="button"
+            onClick={() => setEditingTags(true)}
+            className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-lg bg-accent/10 py-1.5 text-[11px] font-medium text-accent active:bg-accent/20"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            태그 추가
+          </button>
+        )}
+      </div>
+      {playing && (
+        <ClipPlayerSheet
+          videoUrl={clip.videoUrl}
+          clipId={clip.id}
+          onClose={() => setPlaying(false)}
+          onDelete={onDeleteClip}
+        />
+      )}
+      {editingTags && onEditTags && (
+        <TagEditSheet
+          clipId={clip.id}
+          currentTags={[]}
+          onClose={() => setEditingTags(false)}
+          onSave={onEditTags}
+        />
+      )}
+    </>
   );
 }
