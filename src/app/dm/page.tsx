@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getOrCreateConversation, getPendingDmRequests } from "@/lib/dm";
+import { getOrCreateConversation, getPendingDmRequests, getSentDmRequests } from "@/lib/dm";
 import { useConversations } from "@/hooks/useDm";
 import ConversationList from "@/components/dm/ConversationList";
 import NewConversationSheet from "@/components/dm/NewConversationSheet";
 import DmRequestCard from "@/components/dm/DmRequestCard";
+import SentRequestCard from "@/components/dm/SentRequestCard";
 import type { DmRequest } from "@/lib/types";
 
 export default function DmPage() {
@@ -15,6 +16,7 @@ export default function DmPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [dmRequests, setDmRequests] = useState<DmRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<DmRequest[]>([]);
 
   useEffect(() => {
     createClient()
@@ -22,6 +24,7 @@ export default function DmPage() {
       .then(({ data }) => setUserId(data.user?.id ?? null));
 
     getPendingDmRequests().then(setDmRequests);
+    getSentDmRequests().then(setSentRequests);
   }, []);
 
   const { conversations, loading } = useConversations(userId);
@@ -39,7 +42,7 @@ export default function DmPage() {
       <div className="sticky top-[42px] z-30 flex items-center justify-between border-b border-border bg-bg/95 px-4 py-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/profile")}
             className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,16 +62,30 @@ export default function DmPage() {
         </button>
       </div>
 
-      {/* DM Requests */}
+      {/* Received DM Requests */}
       {dmRequests.length > 0 && (
         <div className="border-b border-border">
           <div className="px-4 py-2">
             <p className="text-[13px] font-semibold text-accent">
-              DM 요청 ({dmRequests.length})
+              받은 DM 요청 ({dmRequests.length})
             </p>
           </div>
           {dmRequests.map((req) => (
             <DmRequestCard key={req.id} request={req} />
+          ))}
+        </div>
+      )}
+
+      {/* Sent DM Requests (pending) */}
+      {sentRequests.length > 0 && (
+        <div className="border-b border-border">
+          <div className="px-4 py-2">
+            <p className="text-[13px] font-semibold text-text-2">
+              보낸 요청 ({sentRequests.length})
+            </p>
+          </div>
+          {sentRequests.map((req) => (
+            <SentRequestCard key={req.id} request={req} />
           ))}
         </div>
       )}

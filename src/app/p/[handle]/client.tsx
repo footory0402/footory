@@ -319,6 +319,21 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                   toast.error(viewerAccess.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
                   return;
                 }
+
+                // Check if conversation already exists — skip request flow
+                const { data: existingConv } = await supabase
+                  .from("conversations")
+                  .select("id")
+                  .or(
+                    `and(participant_1.eq.${user.id},participant_2.eq.${profile.id}),and(participant_1.eq.${profile.id},participant_2.eq.${user.id})`
+                  )
+                  .maybeSingle();
+
+                if (existingConv) {
+                  router.push(`/dm/${existingConv.id}`);
+                  return;
+                }
+
                 if (viewerAccess?.dm.state === "request") {
                   setDmModalOpen(true);
                   return;

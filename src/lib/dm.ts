@@ -180,6 +180,53 @@ export async function getPendingDmRequests() {
   });
 }
 
+export async function getSentDmRequests() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("dm_requests")
+    .select("*")
+    .eq("sender_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (!data || data.length === 0) return [];
+
+  const receiverIds = data.map((r) => r.receiver_id);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, handle, name, avatar_url, position, city")
+    .in("id", receiverIds);
+
+  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+  return data.map((r) => {
+    const p = profileMap.get(r.receiver_id);
+    return {
+      id: r.id,
+      senderId: r.sender_id,
+      receiverId: r.receiver_id,
+      previewMessage: r.preview_message,
+      status: r.status as "pending",
+      createdAt: r.created_at,
+      receiver: p
+        ? {
+            id: p.id,
+            handle: p.handle,
+            name: p.name,
+            avatarUrl: p.avatar_url ?? undefined,
+            position: p.position,
+            teamName: p.city ?? undefined,
+          }
+        : undefined,
+    };
+  });
+}
+
 export async function getOrCreateConversation(
   userId: string,
   targetId: string

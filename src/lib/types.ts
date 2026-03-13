@@ -288,4 +288,5 @@ export interface DmRequest {
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
   sender?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName">;
+  receiver?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName">;
 }
