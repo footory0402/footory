@@ -54,7 +54,7 @@ export default function ProfilePage() {
         <p className="text-[14px] font-medium text-text-1">프로필을 불러올 수 없습니다</p>
         <p className="text-[12px] text-text-3">네트워크를 확인하고 다시 시도해주세요</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => router.refresh()}
           className="mt-2 rounded-lg bg-accent px-5 py-2 text-[13px] font-semibold text-bg"
         >
           다시 시도
@@ -196,7 +196,7 @@ export default function ProfilePage() {
         /* 선수: 2탭 구조 */
         <>
           {/* 탭 바 — 세그먼트 컨트롤 */}
-          <div className="sticky top-[70px] z-30 -mx-4 mt-4 px-4 py-2.5 glass-nav border-b border-white/[0.05]">
+          <div className="sticky top-[70px] z-30 -mx-4 mt-4 px-4 py-2.5 bg-bg/95 backdrop-blur-sm border-b border-white/[0.05]">
             <div className="flex rounded-xl bg-white/[0.06] p-1 gap-1">
               {(["highlight", "stat"] as const).map((tab) => {
                 const label = tab === "highlight" ? "하이라이트" : "기록";

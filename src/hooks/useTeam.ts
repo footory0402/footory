@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Team, TeamMember } from "@/lib/types";
+
+// Module-level cache for team list (survives tab switches)
+let teamCache: { data: Team[]; ts: number } | null = null;
+const TEAM_CACHE_TTL = 30_000; // 30 seconds
 
 interface TeamApiResponse {
   id: string;
@@ -36,9 +40,12 @@ function toTeam(data: TeamApiResponse): Team {
 }
 
 export function useMyTeams() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [teams, setTeams] = useState<Team[]>(
+    teamCache && Date.now() - teamCache.ts < TEAM_CACHE_TTL ? teamCache.data : []
+  );
+  const [loading, setLoading] = useState(!teamCache || Date.now() - teamCache.ts >= TEAM_CACHE_TTL);
   const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
   const fetchTeams = useCallback(async () => {
     try {
@@ -49,7 +56,9 @@ export function useMyTeams() {
         throw new Error("Failed to fetch teams");
       }
       const data: TeamApiResponse[] = await res.json();
-      setTeams(data.map(toTeam));
+      const mapped = data.map(toTeam);
+      setTeams(mapped);
+      teamCache = { data: mapped, ts: Date.now() };
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -58,7 +67,15 @@ export function useMyTeams() {
     }
   }, []);
 
-  useEffect(() => { fetchTeams(); }, [fetchTeams]);
+  useEffect(() => {
+    // Use cache if fresh, skip fetch
+    if (teamCache && Date.now() - teamCache.ts < TEAM_CACHE_TTL && !fetchedRef.current) {
+      fetchedRef.current = true;
+      return;
+    }
+    fetchedRef.current = true;
+    fetchTeams();
+  }, [fetchTeams]);
 
   return { teams, loading, error, refetch: fetchTeams };
 }

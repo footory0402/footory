@@ -29,5 +29,7 @@ export async function GET(req: NextRequest) {
       ? items[items.length - 1].created_at
       : null;
 
-  return NextResponse.json({ items: items ?? [], nextCursor });
+  return NextResponse.json({ items: items ?? [], nextCursor }, {
+    headers: { "Cache-Control": "private, max-age=15, stale-while-revalidate=60" },
+  });
 }

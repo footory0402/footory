@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface RecapData {
   childName: string;
@@ -22,6 +23,7 @@ interface WeeklyRecapProps {
 }
 
 export default function WeeklyRecap({ childId, childName, childHandle }: WeeklyRecapProps) {
+  const router = useRouter();
   const [recap, setRecap] = useState<RecapData | null>(null);
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
@@ -87,7 +89,7 @@ export default function WeeklyRecap({ childId, childName, childHandle }: WeeklyR
         <button
           onClick={() => {
             dismiss();
-            window.location.href = `/p/${childHandle ?? childName}?tab=records`;
+            router.push(`/p/${childHandle ?? childName}?tab=records`);
           }}
           className="flex-1 rounded-xl bg-accent/10 py-2 text-[13px] font-medium text-accent"
         >

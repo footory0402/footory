@@ -32,12 +32,17 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("role, public_email, show_email, show_phone")
-        .eq("id", user.id)
-        .single();
+      // Profile query + linked-parents fetch in parallel
+      const [profileResult, parentsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("role, public_email, show_email, show_phone")
+          .eq("id", user.id)
+          .single(),
+        fetch("/api/profile/linked-parents").catch(() => null),
+      ]);
 
+      const data = profileResult.data;
       setRole(data?.role ?? null);
       setSettings({
         email: user.email ?? data?.public_email ?? null,
@@ -45,12 +50,8 @@ export default function SettingsPage() {
         show_phone: data?.show_phone ?? false,
       });
 
-      // 선수 역할이면 연동된 부모 목록 로드
-      if (data?.role === "player") {
-        const parentsRes = await fetch("/api/profile/linked-parents");
-        if (parentsRes.ok) {
-          setLinkedParents(await parentsRes.json());
-        }
+      if (data?.role === "player" && parentsRes?.ok) {
+        setLinkedParents(await parentsRes.json());
       }
 
       setLoading(false);

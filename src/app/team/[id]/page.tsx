@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
 import { useTeamDetail, useTeamActions } from "@/hooks/useTeam";
 import TeamHeader from "@/components/team/TeamHeader";
 import MemberList from "@/components/team/MemberList";
@@ -12,6 +13,7 @@ const TABS = ["멤버", "피드"] as const;
 
 export default function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { team, members, loading, refetch } = useTeamDetail(id);
   const { removeMember, leaveTeam } = useTeamActions();
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("멤버");
@@ -69,7 +71,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
   const handleLeave = async () => {
     if (!confirm("팀에서 탈퇴하시겠습니까?")) return;
     await leaveTeam(team.id);
-    window.location.href = "/team";
+    router.push("/team");
   };
 
   const handleCopyCode = async () => {

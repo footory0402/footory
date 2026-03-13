@@ -38,7 +38,9 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json(teams);
+  return NextResponse.json(teams, {
+    headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" },
+  });
 }
 
 export async function POST(request: NextRequest) {

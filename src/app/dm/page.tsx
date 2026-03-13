@@ -5,10 +5,15 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getOrCreateConversation, getPendingDmRequests, getSentDmRequests } from "@/lib/dm";
 import { useConversations } from "@/hooks/useDm";
+import dynamic from "next/dynamic";
 import ConversationList from "@/components/dm/ConversationList";
-import NewConversationSheet from "@/components/dm/NewConversationSheet";
 import DmRequestCard from "@/components/dm/DmRequestCard";
 import SentRequestCard from "@/components/dm/SentRequestCard";
+
+const NewConversationSheet = dynamic(
+  () => import("@/components/dm/NewConversationSheet"),
+  { ssr: false }
+);
 import type { DmRequest } from "@/lib/types";
 
 export default function DmPage() {
@@ -100,11 +105,13 @@ export default function DmPage() {
       )}
 
       {/* New conversation sheet */}
-      <NewConversationSheet
-        open={showNew}
-        onClose={() => setShowNew(false)}
-        onSelect={handleSelectUser}
-      />
+      {showNew && (
+        <NewConversationSheet
+          open={showNew}
+          onClose={() => setShowNew(false)}
+          onSelect={handleSelectUser}
+        />
+      )}
     </div>
   );
 }

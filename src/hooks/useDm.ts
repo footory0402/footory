@@ -33,29 +33,29 @@ export function useConversations(userId: string | null) {
       return;
     }
 
-    // Get other user profiles
+    // Get other user profiles + unread counts in parallel
     const otherIds = (data as ConversationRow[]).map((c) =>
       c.participant_1 === userId ? c.participant_2 : c.participant_1
     );
 
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, handle, name, avatar_url, position, city")
-      .in("id", otherIds);
+    const [profilesResult, unreadResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, handle, name, avatar_url, position, city")
+        .in("id", otherIds),
+      supabase
+        .from("messages")
+        .select("conversation_id")
+        .neq("sender_id", userId)
+        .eq("is_read", false),
+    ]);
 
     const profileMap = new Map(
-      (profiles ?? []).map((p) => [p.id, p])
+      (profilesResult.data ?? []).map((p) => [p.id, p])
     );
 
-    // Get unread counts per conversation
-    const { data: unreadData } = await supabase
-      .from("messages")
-      .select("conversation_id")
-      .neq("sender_id", userId)
-      .eq("is_read", false);
-
     const unreadMap = new Map<string, number>();
-    (unreadData ?? []).forEach((m) => {
+    (unreadResult.data ?? []).forEach((m) => {
       const cid = m.conversation_id;
       unreadMap.set(cid, (unreadMap.get(cid) ?? 0) + 1);
     });

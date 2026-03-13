@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -66,6 +66,16 @@ export default function BottomTab() {
   const isGuest = error === "not_authenticated";
   const isLoading = loading || (!isGuest && !profile?.id);
   const tabs = getTabsForRole(role);
+  const prefetchedRef = useRef(false);
+
+  // Prefetch all tab destinations on mount (hover/focus doesn't work on mobile touch)
+  useEffect(() => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+    tabs.forEach((tab) => {
+      if (!tab.isCenter) router.prefetch(tab.href);
+    });
+  }, [tabs, router]);
 
   const handleCenterTap = (tab: Tab) => {
     if (tab.href === "/upload" && (role === "player" || role === "parent")) {
@@ -127,8 +137,7 @@ export default function BottomTab() {
                 key={tab.href}
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                onMouseEnter={() => router.prefetch(tab.href)}
-                onFocus={() => router.prefetch(tab.href)}
+                prefetch={true}
                 className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"
               >
                 {active && (
