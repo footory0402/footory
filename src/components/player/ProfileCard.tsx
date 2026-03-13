@@ -24,7 +24,8 @@ function MvpBadge({ count, tier }: { count: number; tier: MvpTier | null }) {
       }}
     >
       <span>{icon}</span>
-      <span className="font-stat">{count}</span>
+      <span className="font-stat">{count}회</span>
+      <span>MVP</span>
     </span>
   );
 }
@@ -157,102 +158,102 @@ function ProfileCard({ profile, onEdit, onAvatarUpload }: ProfileCardProps) {
             </div>
 
             {/* Handle */}
-            <button
-              onClick={async () => {
-                const url = `${window.location.origin}/p/${profile.handle}`;
-                try {
-                  await navigator.clipboard.writeText(url);
-                  toast("프로필 링크가 복사되었습니다");
-                } catch {
-                  toast("링크 복사에 실패했습니다", "error");
-                }
-              }}
-              className="mt-1.5 flex items-center gap-1 w-fit text-[11px] text-text-3 hover:text-accent transition-colors"
-            >
-              <span>@{profile.handle}</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
-                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-              </svg>
-            </button>
+            <div className="mt-1.5">
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/p/${profile.handle}`;
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    toast("프로필 링크가 복사되었습니다");
+                  } catch {
+                    toast("링크 복사에 실패했습니다", "error");
+                  }
+                }}
+                className="flex items-center gap-0.5 text-[11px] text-text-3 hover:text-accent transition-colors"
+              >
+                <span>@{profile.handle}</span>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
+                  <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                </svg>
+              </button>
+            </div>
 
-            {/* 출생연도 + 도시 */}
-            {(profile.birthYear || profile.city) && (
-              <p className="mt-0.5 text-[12px] text-text-3">
-                {age != null && `만 ${age}세`}
-                {age != null && profile.city && <span className="mx-1 opacity-30">·</span>}
-                {profile.city}
-              </p>
+            {/* 소속팀 · 도시 · 나이 */}
+            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              {profile.teamName && (
+                <>
+                  {profile.teamId ? (
+                    <Link href={`/team/${profile.teamId}`} className="flex items-center gap-0.5 text-[11px] font-semibold text-accent hover:text-accent/80 transition-colors">
+                      <span>⚽</span>
+                      <span>{profile.teamName}</span>
+                    </Link>
+                  ) : (
+                    <span className="flex items-center gap-0.5 text-[11px] font-semibold text-accent">
+                      <span>⚽</span>
+                      <span>{profile.teamName}</span>
+                    </span>
+                  )}
+                </>
+              )}
+              {profile.city && (
+                <>
+                  {profile.teamName && <span className="text-[10px] text-text-3/40">·</span>}
+                  <span className="text-[11px] text-text-3">{profile.city}</span>
+                </>
+              )}
+              {age != null && (
+                <>
+                  {(profile.teamName || profile.city) && <span className="text-[10px] text-text-3/40">·</span>}
+                  <span className="text-[11px] text-text-3">만 {age}세</span>
+                </>
+              )}
+            </div>
+
+            {/* 신체 정보: 키 · 몸무게 · 주발 */}
+            {(profile.heightCm || profile.weightKg || preferredFootLabel) && (
+              <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                {profile.heightCm && (
+                  <span className="text-[11px] text-text-3">{profile.heightCm}cm</span>
+                )}
+                {profile.weightKg && (
+                  <>
+                    {profile.heightCm && <span className="text-[10px] text-text-3/40">·</span>}
+                    <span className="text-[11px] text-text-3">{profile.weightKg}kg</span>
+                  </>
+                )}
+                {preferredFootLabel && (
+                  <>
+                    {(profile.heightCm || profile.weightKg) && <span className="text-[10px] text-text-3/40">·</span>}
+                    <span className="text-[11px] text-text-3">{preferredFootLabel}</span>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {/* ── 팀: 카드 전체 너비, 독립 행 ── */}
-        {profile.teamName && (
-          <div className="mt-3">
-            {profile.teamId ? (
-              <Link
-                href={`/team/${profile.teamId}`}
-                className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/[0.07] px-3 py-2 transition-colors hover:bg-accent/[0.12]"
-              >
-                <span className="text-[14px]">⚽</span>
-                <span className="text-[13px] font-semibold text-accent">{profile.teamName}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-accent/50">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </Link>
-            ) : (
-              <div className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/[0.07] px-3 py-2">
-                <span className="text-[14px]">⚽</span>
-                <span className="text-[13px] font-semibold text-accent">{profile.teamName}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── 신체 칩: 팀 아래, 가장 작게 ── */}
-        {(profile.heightCm || profile.weightKg || preferredFootLabel) && (
-          <div className="mt-2 flex items-center gap-1.5">
-            {profile.heightCm && (
-              <span className="rounded-md bg-white/[0.05] px-2 py-1 text-[11px] leading-none text-text-3">
-                {profile.heightCm}cm
-              </span>
-            )}
-            {profile.weightKg && (
-              <span className="rounded-md bg-white/[0.05] px-2 py-1 text-[11px] leading-none text-text-3">
-                {profile.weightKg}kg
-              </span>
-            )}
-            {preferredFootLabel && (
-              <span className="rounded-md bg-white/[0.05] px-2 py-1 text-[11px] leading-none text-text-3">
-                {preferredFootLabel}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* ── Divider ── */}
-        <div className="my-3 h-px bg-white/[0.06]" />
-
-        {/* ── 소셜 스탯: 숫자 크게 ── */}
+        {/* ── 소셜 스탯 ── */}
+        <div className="my-2.5 h-px bg-white/[0.06]" />
         <div className="flex items-center">
           <Link
             href="/profile/follows?tab=followers"
-            className="flex flex-col items-center gap-0.5 px-3 hover:opacity-70 transition-opacity"
+            className="flex flex-1 flex-col items-center gap-0.5 hover:opacity-70 transition-opacity"
           >
-            <span className="font-stat text-[22px] font-bold leading-none text-text-1">{profile.followers}</span>
+            <span className="font-stat text-[16px] font-bold leading-none text-text-1">{profile.followers}</span>
             <span className="text-[10px] text-text-3">팔로워</span>
           </Link>
-          <div className="h-8 w-px bg-white/[0.07]" />
+          <div className="h-6 w-px bg-white/[0.07]" />
           <Link
             href="/profile/follows?tab=following"
-            className="flex flex-col items-center gap-0.5 px-3 hover:opacity-70 transition-opacity"
+            className="flex flex-1 flex-col items-center gap-0.5 hover:opacity-70 transition-opacity"
           >
-            <span className="font-stat text-[22px] font-bold leading-none text-text-1">{profile.following}</span>
+            <span className="font-stat text-[16px] font-bold leading-none text-text-1">{profile.following}</span>
             <span className="text-[10px] text-text-3">팔로잉</span>
           </Link>
-          <div className="ml-auto flex flex-col items-center gap-0.5">
-            <span className="font-stat text-[22px] font-bold leading-none text-accent">{profile.views}</span>
+          <div className="h-6 w-px bg-white/[0.07]" />
+          <div className="flex flex-1 flex-col items-center gap-0.5">
+            <span className="font-stat text-[16px] font-bold leading-none text-accent">{profile.views}</span>
             <span className="text-[10px] text-text-3">조회</span>
           </div>
         </div>

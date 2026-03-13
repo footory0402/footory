@@ -15,7 +15,7 @@ interface FeedCardProps {
   onKudos: (id: string, reaction?: string) => void;
   onComment?: (id: string) => void;
   onShare?: (item: FeedItemEnriched) => void;
-  onPlay?: (item: FeedItemEnriched) => void;
+  onPlay?: (item: FeedItemEnriched) => void | Promise<void>;
   eagerImage?: boolean;
 }
 
@@ -28,7 +28,7 @@ interface FeedBodyExtras {
   onKudosLongStart: () => void;
   onKudosLongEnd: () => void;
   onComment?: () => void;
-  onPlay?: () => void;
+  onPlay?: () => void | Promise<void>;
 }
 
 function FeedBody({
@@ -96,7 +96,7 @@ function FeedBody({
                     </span>
                   ))}
                 </div>
-                <div className="flex shrink-0 gap-3 ml-3">
+                <div className="flex shrink-0 gap-3 ml-auto">
                   <button
                     onClick={extras.onKudosTap}
                     onMouseDown={extras.onKudosLongStart}
@@ -109,14 +109,14 @@ function FeedBody({
                     }`}
                   >
                     <span className="text-text-3/50">{extras.myReactionEmoji ?? "👏"}</span>
-                    <span>{extras.kudosCount > 0 ? <span className="text-accent font-semibold">{extras.kudosCount}</span> : "응원"}</span>
+                    {extras.kudosCount > 0 && <span className="text-accent font-semibold">{extras.kudosCount}</span>}
                   </button>
                   <button
                     onClick={extras.onComment}
                     className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
                   >
                     <span className="text-text-3/50">💬</span>
-                    <span>{extras.commentCount > 0 ? <span className="text-accent font-semibold">{extras.commentCount}</span> : "댓글"}</span>
+                    {extras.commentCount > 0 && <span className="text-accent font-semibold">{extras.commentCount}</span>}
                   </button>
                 </div>
               </div>
@@ -313,30 +313,28 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, onPla
 
       {/* Footer — only for non-highlight types (or highlight without video) */}
       {!isHighlightWithVideo && (
-        <div className="mt-3 flex items-center gap-3 border-t border-white/5 pt-3 relative">
-          <div className="relative">
-            <button
-              onClick={handleKudosTap}
-              onMouseDown={handleLongPressStart}
-              onMouseUp={handleLongPressEnd}
-              onMouseLeave={handleLongPressEnd}
-              onTouchStart={handleLongPressStart}
-              onTouchEnd={handleLongPressEnd}
-              className={`flex items-center gap-1 text-[13px] transition-colors select-none ${
-                item.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
-              }`}
-            >
-              <span className="text-text-3/50">{myReactionEmoji ?? "👏"}</span>
-              <span>{item.kudosCount > 0 ? <span className="text-accent font-semibold">{item.kudosCount}</span> : "응원"}</span>
-            </button>
-          </div>
+        <div className="mt-3 flex items-center justify-end gap-3 border-t border-white/5 pt-3 relative">
+          <button
+            onClick={handleKudosTap}
+            onMouseDown={handleLongPressStart}
+            onMouseUp={handleLongPressEnd}
+            onMouseLeave={handleLongPressEnd}
+            onTouchStart={handleLongPressStart}
+            onTouchEnd={handleLongPressEnd}
+            className={`flex items-center gap-1 text-[13px] transition-colors select-none ${
+              item.hasKudos ? "text-accent" : "text-text-3 hover:text-text-2"
+            }`}
+          >
+            <span className="text-text-3/50">{myReactionEmoji ?? "👏"}</span>
+            {item.kudosCount > 0 && <span className="text-accent font-semibold">{item.kudosCount}</span>}
+          </button>
 
           <button
             onClick={() => onComment?.(item.id)}
-            className="ml-auto flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
+            className="flex items-center gap-1 text-[13px] text-text-3 hover:text-text-2 transition-colors"
           >
             <span className="text-text-3/50">💬</span>
-            <span>{item.commentCount > 0 ? <span className="text-accent font-semibold">{item.commentCount}</span> : "댓글"}</span>
+            {item.commentCount > 0 && <span className="text-accent font-semibold">{item.commentCount}</span>}
           </button>
         </div>
       )}

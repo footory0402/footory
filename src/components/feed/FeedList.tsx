@@ -9,10 +9,9 @@ import UploadNudge from "./UploadNudge";
 import dynamic from "next/dynamic";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import ShareSheet from "@/components/social/ShareSheet";
-import type { PlayableClip } from "@/components/player/ClipPlayerSheet";
+import ClipPlayerSheet, { type PlayableClip } from "@/components/player/ClipPlayerSheet";
 
 const CommentSheet = dynamic(() => import("@/components/social/CommentSheet"), { ssr: false });
-const ClipPlayerSheet = dynamic(() => import("@/components/player/ClipPlayerSheet"), { ssr: false });
 
 interface FeedListProps {
   initialItems?: FeedItemEnriched[];
@@ -53,9 +52,23 @@ export default function FeedList({
   const [shareTarget, setShareTarget] = useState<FeedItemEnriched | null>(null);
   const [playerClips, setPlayerClips] = useState<PlayableClip[] | null>(null);
 
-  const handlePlay = useCallback((item: FeedItemEnriched) => {
+  const handlePlay = useCallback(async (item: FeedItemEnriched) => {
     const meta = item.metadata as Record<string, unknown>;
-    const videoUrl = typeof meta.video_url === "string" ? meta.video_url : null;
+    let videoUrl = typeof meta.video_url === "string" ? meta.video_url : null;
+
+    // 구버전 feed_items는 video_url 없음 → reference_id로 clip 조회
+    if (!videoUrl && item.reference_id) {
+      try {
+        const res = await fetch(`/api/clips/${item.reference_id}`);
+        if (res.ok) {
+          const data = await res.json();
+          videoUrl = data.clip?.video_url ?? null;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     if (!videoUrl) return;
     setPlayerClips([{
       id: item.reference_id ?? item.id,

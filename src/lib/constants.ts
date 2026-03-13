@@ -55,7 +55,6 @@ export const MEASUREMENTS = [
 
 // 구버전 stat_type → 한글 레이블 폴백 (DB에 옛 타입이 남아 있을 때)
 export const STAT_TYPE_LABEL_FALLBACK: Record<string, { label: string; unit: string; icon: string }> = {
-  shooting_accuracy: { label: "슈팅 정확도", unit: "%", icon: "🎯" },
   sprint_30m: { label: "30m 달리기", unit: "초", icon: "🏃" },
   "30m_sprint": { label: "30m 달리기", unit: "초", icon: "🏃" },
   "1000m_run": { label: "1000m 달리기", unit: "분:초", icon: "🏃‍♂️" },

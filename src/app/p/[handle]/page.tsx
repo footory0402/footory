@@ -40,7 +40,9 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
-  const [featured, stats, medals, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
+  const [followersResult, followingResult, featured, stats, medals, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id),
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id),
     supabase
       .from("featured_clips")
       .select("id, clip_id, sort_order")
@@ -226,15 +228,13 @@ const getProfile = cache(async (handle: string) => {
     });
   });
 
-  // Increment view count (fire and forget)
-  supabase
-    .from("profiles")
-    .update({ views_count: (profile.views_count ?? 0) + 1 })
-    .eq("id", profile.id)
-    .then(() => {});
+  // Increment view count atomically (fire and forget)
+  supabase.rpc("increment_views", { profile_id: profile.id }).then(() => {});
 
   return {
     ...profile,
+    followers_count: followersResult.count ?? 0,
+    following_count: followingResult.count ?? 0,
     contact: Object.keys(contact).length > 0 ? contact : null,
     teamName: teamData?.teams?.name ?? null,
     teamId: teamData?.team_id ?? null,

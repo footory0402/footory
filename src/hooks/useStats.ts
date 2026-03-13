@@ -114,7 +114,11 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
       }
       const latestStats = Array.from(latestByType.values());
 
-      setStats(latestStats.map((s) => {
+      // 폐기된 stat_type은 표시하지 않음
+      const VALID_STAT_IDS = new Set<string>(MEASUREMENTS.map((m) => m.id));
+      const validStats = latestStats.filter((s) => VALID_STAT_IDS.has(s.stat_type));
+
+      setStats(validStats.map((s) => {
         const m = MEASUREMENTS.find((m) => m.id === s.stat_type);
         return toStat(s, apiStats, m?.lowerIsBetter ?? false);
       }));

@@ -19,11 +19,11 @@ import Link from "next/link";
 import { useStats } from "@/hooks/useStats";
 import { useClips, useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
-type ProfileTab = "video" | "info";
+type ProfileTab = "highlight" | "stat";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("video");
+  const [activeTab, setActiveTab] = useState<ProfileTab>("highlight");
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [statInputType, setStatInputType] = useState<string | undefined>();
@@ -141,30 +141,21 @@ export default function ProfilePage() {
       <div className="mt-3 flex items-center justify-between">
         <div>
           {profile.isVerified && profile.role === "scout" && (
-            <Link
-              href="/profile/watchlist"
-              className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
-            >
+            <Link href="/profile/watchlist" className="action-btn">
               <span>⭐</span> 관심 선수
             </Link>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleShareProfile}
-            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <button onClick={handleShareProfile} className="action-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
             공유
           </button>
-          <button
-            onClick={() => setPdfExportOpen(true)}
-            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-text-3 transition-colors hover:border-accent hover:text-accent"
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <button onClick={() => setPdfExportOpen(true)} className="action-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><polyline points="9 15 12 18 15 15" />
             </svg>
@@ -204,26 +195,26 @@ export default function ProfilePage() {
       ) : (
         /* 선수: 2탭 구조 */
         <>
-          {/* 탭 바 */}
-          <div className="sticky top-[70px] z-30 -mx-4 mt-4 border-b border-white/[0.06] glass-nav">
-            <div className="flex px-4">
-              {(["video", "info"] as const).map((tab) => {
-                const label = tab === "video" ? "영상" : "정보";
-                const icon = tab === "video" ? "🎬" : "📋";
+          {/* 탭 바 — 세그먼트 컨트롤 */}
+          <div className="sticky top-[70px] z-30 -mx-4 mt-4 px-4 py-2.5 glass-nav border-b border-white/[0.05]">
+            <div className="flex rounded-xl bg-white/[0.06] p-1 gap-1">
+              {(["highlight", "stat"] as const).map((tab) => {
+                const label = tab === "highlight" ? "하이라이트" : "기록";
+                const icon = tab === "highlight" ? "▶" : "📊";
                 const isActive = activeTab === tab;
                 return (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[13px] font-semibold transition-colors relative ${
-                      isActive ? "text-accent" : "text-text-3"
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-bold transition-all ${
+                      isActive
+                        ? "bg-card text-text-1 shadow-sm"
+                        : "text-text-3 hover:text-text-2"
                     }`}
+                    style={isActive ? { boxShadow: "0 1px 4px rgba(0,0,0,0.4)" } : undefined}
                   >
-                    <span className="text-[14px]">{icon}</span>
+                    <span className="text-[13px]">{icon}</span>
                     {label}
-                    {isActive && (
-                      <span className="absolute bottom-0 left-1/4 right-1/4 h-[2px] rounded-full bg-accent" />
-                    )}
                   </button>
                 );
               })}
@@ -232,7 +223,7 @@ export default function ProfilePage() {
 
           {/* 탭 콘텐츠 */}
           <div className="mt-4 pb-6">
-            {activeTab === "video" ? (
+            {activeTab === "highlight" ? (
               <HighlightsTab
                 tagClips={mappedTagClips}
                 untaggedClips={untaggedClips}

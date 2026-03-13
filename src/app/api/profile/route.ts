@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [profileResult, teamResult] = await Promise.all([
+  const [profileResult, teamResult, followersResult, followingResult] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase
       .from("team_members")
@@ -18,6 +18,8 @@ export async function GET() {
       .neq("role", "alumni")
       .limit(1)
       .single(),
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id),
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id),
   ]);
 
   if (profileResult.error || !profileResult.data) {
@@ -28,6 +30,8 @@ export async function GET() {
 
   return NextResponse.json({
     ...profileResult.data,
+    followers_count: followersResult.count ?? 0,
+    following_count: followingResult.count ?? 0,
     teamName: teamData?.teams?.name ?? null,
     teamId: teamData?.team_id ?? null,
   }, {

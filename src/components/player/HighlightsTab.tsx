@@ -123,8 +123,8 @@ export default function HighlightsTab({
     <ErrorBoundary>
       <div className="flex flex-col gap-4">
 
-        {/* ── Hero Zone: 대표 하이라이트 ── */}
-        {maxSlots > 0 && (
+        {/* ── Hero Zone: 대표 영상 있을 때만 표시 ── */}
+        {featured.length > 0 && (
           <HeroZone
             featured={featured}
             maxSlots={maxSlots}
@@ -135,85 +135,100 @@ export default function HighlightsTab({
           />
         )}
 
-        {/* ── 영상 추가 버튼 ── */}
-        <Link
-          href="/upload"
-          className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-accent/40 bg-card py-3 text-[13px] font-medium text-accent transition-colors active:bg-accent/10"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          영상 추가
-        </Link>
-
-        {/* ── 클립 없을 때 빈 상태 ── */}
-        {!tagClipsLoading && !hasClips && (
-          <div className="flex flex-col items-center gap-3 rounded-xl bg-card border border-white/[0.06] py-10 text-center">
-            <span className="text-4xl">🎬</span>
-            <p className="text-[13px] font-semibold text-text-1">아직 영상이 없어요</p>
-            <p className="text-[12px] text-text-3 leading-relaxed">
-              첫 영상을 올려 나만의 포트폴리오를<br />시작해보세요
-            </p>
-          </div>
+        {/* ── 대표 영상 없을 때 배너 ── */}
+        {featured.length === 0 && hasClips && (
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 rounded-xl border border-dashed border-accent/30 bg-accent/[0.04] px-4 py-2.5 text-left transition-colors active:bg-accent/10"
+          >
+            <span className="text-base">✨</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-accent">대표 영상을 설정해보세요</p>
+              <p className="text-[10px] text-text-3">스카우터가 가장 먼저 보는 영상이에요</p>
+            </div>
+          </button>
         )}
 
-        {/* ── 필터 칩 + 그리드 ── */}
-        {!tagClipsLoading && hasClips && (
-          <div className="flex flex-col gap-3">
-            {/* 필터 칩 */}
-            {activeTagsWithClips.length > 0 && (
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 scrollbar-none">
+        {/* ── 필터 칩 + 그리드 (항상 표시, "+" 첫 셀 포함) ── */}
+        <div className="flex flex-col gap-3">
+          {/* 필터 칩 */}
+          {!tagClipsLoading && activeTagsWithClips.length > 0 && (
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 scrollbar-none">
+              <FilterChip
+                label="전체"
+                count={dedupedClips.length}
+                active={activeFilter === "all"}
+                onClick={() => setActiveFilter("all")}
+              />
+              {activeTagsWithClips.map((tag) => (
                 <FilterChip
-                  label="전체"
-                  count={dedupedClips.length}
-                  active={activeFilter === "all"}
-                  onClick={() => setActiveFilter("all")}
+                  key={tag.id}
+                  label={`${tag.emoji} ${tag.label}`}
+                  count={tagClips[tag.id]?.length ?? 0}
+                  active={activeFilter === tag.id}
+                  onClick={() => setActiveFilter(tag.id)}
                 />
-                {activeTagsWithClips.map((tag) => (
-                  <FilterChip
-                    key={tag.id}
-                    label={`${tag.emoji} ${tag.label}`}
-                    count={tagClips[tag.id]?.length ?? 0}
-                    active={activeFilter === tag.id}
-                    onClick={() => setActiveFilter(tag.id)}
-                  />
-                ))}
-                {untaggedClips.length > 0 && (
-                  <FilterChip
-                    label="미분류"
-                    count={untaggedClips.length}
-                    active={activeFilter === "untagged"}
-                    onClick={() => setActiveFilter("untagged")}
-                  />
-                )}
-              </div>
-            )}
+              ))}
+              {untaggedClips.length > 0 && (
+                <FilterChip
+                  label="미분류"
+                  count={untaggedClips.length}
+                  active={activeFilter === "untagged"}
+                  onClick={() => setActiveFilter("untagged")}
+                />
+              )}
+            </div>
+          )}
 
-            {/* 3열 그리드 */}
-            {tagClipsLoading ? (
-              <div className="grid grid-cols-3 gap-1.5">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="aspect-[3/4] animate-pulse rounded-lg bg-card-alt" />
-                ))}
-              </div>
-            ) : filteredClips.length > 0 ? (
-              <div className="grid grid-cols-3 gap-1.5">
-                {filteredClips.map((clip, i) => (
-                  <GridThumb
-                    key={clip.id}
-                    clip={clip}
-                    onPlay={() => { setPlayingIndex(i); setPlayingSource("grid"); }}
-                    onEditTags={onEditTags ? () => setEditingClipId(clip.id) : undefined}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-[12px] text-text-3">
-                해당 태그의 영상이 없어요
-              </div>
-            )}
-          </div>
-        )}
+          {/* 3열 그리드 (1:1 비율) */}
+          {tagClipsLoading ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="aspect-square animate-pulse rounded-lg bg-card-alt" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1.5">
+              {/* "+" 업로드 카드 — 첫 번째 셀 */}
+              <Link
+                href="/upload"
+                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-accent/40 bg-card transition-colors active:bg-accent/10"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span className="text-[10px] font-semibold text-accent">영상 추가</span>
+              </Link>
+
+              {filteredClips.map((clip, i) => (
+                <GridThumb
+                  key={clip.id}
+                  clip={clip}
+                  onPlay={() => { setPlayingIndex(i); setPlayingSource("grid"); }}
+                  onEditTags={onEditTags ? () => setEditingClipId(clip.id) : undefined}
+                />
+              ))}
+
+              {/* 빈 상태 (영상 0개 + 필터 없음) */}
+              {!tagClipsLoading && filteredClips.length === 0 && activeFilter !== "all" && (
+                <div className="col-span-2 flex items-center justify-center py-8 text-[12px] text-text-3">
+                  해당 태그의 영상이 없어요
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 영상 0개 전체 빈 상태 */}
+          {!tagClipsLoading && !hasClips && (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <span className="text-3xl">🎬</span>
+              <p className="text-[13px] font-semibold text-text-1">아직 영상이 없어요</p>
+              <p className="text-[11px] text-text-3 leading-relaxed">
+                첫 영상을 올려 나만의 포트폴리오를<br />시작해보세요
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Players */}
         {playingSource === "featured" && playingIndex !== null && featuredPlayable.length > 0 && (
@@ -353,7 +368,7 @@ function HeroSlot({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl ${fullWidth ? "w-full aspect-video" : "w-[200px] shrink-0 aspect-video"}`}
+      className={`relative overflow-hidden rounded-xl ${fullWidth ? "w-full aspect-video" : "w-[160px] shrink-0 aspect-video"}`}
       style={{
         boxShadow: "0 0 0 2px #D4A853, 0 4px 16px rgba(212,168,83,0.2)",
       }}
@@ -422,7 +437,7 @@ function HeroEmptySlot({
     <button
       onClick={onAdd}
       className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-accent/40 bg-card ${
-        fullWidth ? "w-full aspect-video" : "w-[200px] shrink-0 aspect-video"
+        fullWidth ? "w-full aspect-video" : "w-[160px] shrink-0 aspect-video"
       }`}
     >
       <span className="text-xl">✨</span>
@@ -471,7 +486,7 @@ function GridThumb({
   onEditTags?: () => void;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-lg bg-card-alt" style={{ aspectRatio: "3/4" }}>
+    <div className="relative overflow-hidden rounded-lg bg-card-alt aspect-square">
       {clip.thumbnailUrl ? (
         <Image
           src={clip.thumbnailUrl}

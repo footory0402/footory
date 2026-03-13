@@ -4,6 +4,27 @@ import { SKILL_TAGS } from "@/lib/constants";
 
 const VALID_TAGS: string[] = SKILL_TAGS.map((t) => t.dbName);
 
+/** GET /api/clips/[id] — fetch clip video_url (auth required) */
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { data: clip } = await supabase
+    .from("clips")
+    .select("id, video_url, thumbnail_url, duration_seconds")
+    .eq("id", id)
+    .single();
+
+  if (!clip) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json({ clip });
+}
+
 /** PATCH /api/clips/[id] — update tags */
 export async function PATCH(
   req: NextRequest,

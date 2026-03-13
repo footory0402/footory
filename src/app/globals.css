@@ -284,6 +284,40 @@ body {
   margin: 0 -1rem;
 }
 
+/* Position-colored avatar ring */
+.avatar-ring-fw { --ring-color: #F87171; }
+.avatar-ring-mf { --ring-color: #4ADE80; }
+.avatar-ring-df { --ring-color: #60A5FA; }
+.avatar-ring-gk { --ring-color: #FBBF24; }
+
+/* Stat pulse — for view count */
+@keyframes statPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Action button row — pill style */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-3);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.action-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(212,168,83,0.06);
+}
+.action-btn:active {
+  transform: scale(0.96);
+}
+
 /* Confetti particles for upload complete */
 @keyframes confettiFall {
   0% {

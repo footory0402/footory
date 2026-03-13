@@ -24,14 +24,19 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
     MEASUREMENTS.find((m) => m.id === initialStatType) ? (initialStatType ?? "") : ""
   );
   const [value, setValue] = useState("");
+  const [minutes, setMinutes] = useState("");
+  const [seconds, setSeconds] = useState("");
   const [saving, setSaving] = useState(false);
 
   const measurement = selectedType ? getStatMeta(selectedType) : null;
+  const isTimeInput = measurement?.unit === "분:초";
 
   const reset = () => {
     setStep(resolveInitialStep(initialStatType));
     setSelectedType(MEASUREMENTS.find((m) => m.id === initialStatType) ? (initialStatType ?? "") : "");
     setValue("");
+    setMinutes("");
+    setSeconds("");
     setSaving(false);
   };
 
@@ -46,8 +51,16 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
   };
 
   const handleSave = async () => {
-    const num = parseFloat(value);
-    if (isNaN(num) || num <= 0) return;
+    let num: number;
+    if (isTimeInput) {
+      const m = parseInt(minutes) || 0;
+      const s = parseInt(seconds) || 0;
+      num = m * 60 + s;
+      if (num <= 0) return;
+    } else {
+      num = parseFloat(value);
+      if (isNaN(num) || num <= 0) return;
+    }
     setSaving(true);
     try {
       await onSave(selectedType, num);
@@ -56,6 +69,10 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
       setSaving(false);
     }
   };
+
+  const isTimeValid = isTimeInput
+    ? (parseInt(minutes) || 0) * 60 + (parseInt(seconds) || 0) > 0
+    : false;
 
   if (!open) return null;
 
@@ -106,18 +123,56 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
               <p className="mb-5 text-xs text-text-3">기록 값을 입력하세요</p>
 
               <div className="relative mb-6">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder="0"
-                  autoFocus
-                  className="w-full rounded-xl bg-bg px-4 py-4 pr-16 text-center font-stat text-3xl font-bold text-text-1 outline-none ring-1 ring-border focus:ring-accent"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-text-3">
-                  {measurement.unit}
-                </span>
+                {isTimeInput ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={minutes}
+                        onChange={(e) => setMinutes(e.target.value)}
+                        placeholder="0"
+                        autoFocus
+                        min={0}
+                        max={59}
+                        className="w-full rounded-xl bg-bg px-4 py-4 pr-10 text-center font-stat text-3xl font-bold text-text-1 outline-none ring-1 ring-border focus:ring-accent"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-3">분</span>
+                    </div>
+                    <span className="font-stat text-2xl font-bold text-text-3">:</span>
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={seconds}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value);
+                          if (e.target.value === "" || (v >= 0 && v <= 59)) setSeconds(e.target.value);
+                        }}
+                        placeholder="00"
+                        min={0}
+                        max={59}
+                        className="w-full rounded-xl bg-bg px-4 py-4 pr-10 text-center font-stat text-3xl font-bold text-text-1 outline-none ring-1 ring-border focus:ring-accent"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-3">초</span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      placeholder="0"
+                      autoFocus
+                      className="w-full rounded-xl bg-bg px-4 py-4 pr-16 text-center font-stat text-3xl font-bold text-text-1 outline-none ring-1 ring-border focus:ring-accent"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-text-3">
+                      {measurement.unit}
+                    </span>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-3">
@@ -129,7 +184,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving || !value || parseFloat(value) <= 0}
+                  disabled={saving || (isTimeInput ? !isTimeValid : !value || parseFloat(value) <= 0)}
                   className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-bg disabled:opacity-50"
                 >
                   {saving ? "저장 중..." : "저장"}
