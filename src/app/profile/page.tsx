@@ -206,12 +206,11 @@ export default function ProfilePage() {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-bold transition-all ${
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[13px] font-bold transition-all ${
                       isActive
-                        ? "bg-card text-text-1 shadow-sm"
+                        ? "bg-accent/15 text-accent border border-accent/30"
                         : "text-text-3 hover:text-text-2"
                     }`}
-                    style={isActive ? { boxShadow: "0 1px 4px rgba(0,0,0,0.4)" } : undefined}
                   >
                     <span className="text-[13px]">{icon}</span>
                     {label}

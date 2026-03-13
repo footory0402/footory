@@ -3,12 +3,34 @@
 import Image from "next/image";
 import { useEffect } from "react";
 import { useClips } from "@/hooks/useClips";
+import { SKILL_TAGS } from "@/lib/constants";
 
 interface ClipPickerSheetProps {
   open: boolean;
   onClose: () => void;
   onSelect: (clipId: string) => void;
   excludeClipIds: string[];
+}
+
+const dbNameToLabel = Object.fromEntries(
+  SKILL_TAGS.map((t) => [t.dbName, { label: t.label, emoji: t.emoji }])
+);
+
+function clipDisplayName(clip: { memo: string | null; tags: string[]; duration_seconds: number | null; created_at: string }): string {
+  if (clip.memo) return clip.memo;
+  const parts: string[] = [];
+  if (clip.tags.length > 0) {
+    const first = clip.tags[0];
+    const meta = dbNameToLabel[first];
+    parts.push(meta ? `${meta.emoji} ${meta.label}` : first);
+    if (clip.tags.length > 1) parts[0] += ` +${clip.tags.length - 1}`;
+  }
+  if (clip.duration_seconds) {
+    parts.push(`${clip.duration_seconds}초`);
+  }
+  if (parts.length > 0) return parts.join(" · ");
+  const d = new Date(clip.created_at);
+  return `${d.getMonth() + 1}/${d.getDate()} 업로드`;
 }
 
 export default function ClipPickerSheet({
@@ -86,7 +108,7 @@ export default function ClipPickerSheet({
                   <div className="flex-1 overflow-hidden">
                     <div className="flex items-center gap-1.5">
                       <p className="truncate text-sm font-medium text-[var(--color-text)]">
-                        {clip.memo || "제목 없음"}
+                        {clipDisplayName(clip)}
                       </p>
                       {clip.uploaded_by_parent && (
                         <span className="shrink-0 rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] font-medium text-accent">

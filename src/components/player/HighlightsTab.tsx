@@ -139,18 +139,31 @@ export default function HighlightsTab({
         {featured.length === 0 && hasClips && (
           <button
             onClick={handleAdd}
-            className="flex items-center gap-2 rounded-xl border border-dashed border-accent/30 bg-accent/[0.04] px-4 py-2.5 text-left transition-colors active:bg-accent/10"
+            className="flex items-center gap-3 rounded-xl border border-accent/20 bg-gradient-to-r from-accent/[0.08] to-transparent px-4 py-3 text-left transition-colors active:bg-accent/10"
           >
-            <span className="text-base">✨</span>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/15">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--color-accent)">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-semibold text-accent">대표 영상을 설정해보세요</p>
-              <p className="text-[10px] text-text-3">스카우터가 가장 먼저 보는 영상이에요</p>
+              <p className="text-[10px] text-text-3 mt-0.5">스카우터가 가장 먼저 보는 영상이에요</p>
             </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" className="shrink-0 opacity-50">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
           </button>
         )}
 
         {/* ── 필터 칩 + 그리드 (항상 표시, "+" 첫 셀 포함) ── */}
         <div className="flex flex-col gap-3">
+          {/* 섹션 헤더 */}
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-bold text-text-2">전체 클립</span>
+            <span className="text-[10px] text-text-3">{dedupedClips.length}개</span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </div>
           {/* 필터 칩 */}
           {!tagClipsLoading && activeTagsWithClips.length > 0 && (
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 scrollbar-none">
@@ -298,13 +311,22 @@ function HeroZone({
   if (slotsToShow === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[12px] font-semibold text-text-3 uppercase tracking-wider">대표 하이라이트</span>
+    <div className="-mx-4 rounded-none bg-gradient-to-b from-[#D4A853]/[0.06] to-transparent px-4 pb-4 pt-3">
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-5 w-5 items-center justify-center rounded bg-accent/20">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--color-accent)">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </div>
+          <span className="text-[12px] font-bold text-accent uppercase tracking-wider">Featured</span>
+          <span className="text-[10px] text-text-3">{featured.length}/{maxSlots}</span>
+        </div>
         {maxSlots > featured.length && (
           <button
             onClick={onAdd}
-            className="text-[12px] font-medium text-accent"
+            className="rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-semibold text-accent transition-colors active:bg-accent/20"
           >
             + 추가
           </button>
@@ -370,7 +392,9 @@ function HeroSlot({
     <div
       className={`relative overflow-hidden rounded-xl ${fullWidth ? "w-full aspect-video" : "w-[160px] shrink-0 aspect-video"}`}
       style={{
-        boxShadow: "0 0 0 2px #D4A853, 0 4px 16px rgba(212,168,83,0.2)",
+        boxShadow: sortOrder === 1
+          ? "0 0 0 2px #D4A853, 0 6px 20px rgba(212,168,83,0.25)"
+          : "0 0 0 1.5px rgba(212,168,83,0.4), 0 4px 12px rgba(0,0,0,0.3)",
       }}
     >
       {thumbnailUrl ? (
@@ -398,12 +422,14 @@ function HeroSlot({
         </div>
       </button>
 
-      {/* BEST 뱃지 */}
-      {sortOrder === 1 && (
-        <span className="absolute top-2 left-2 rounded-md bg-accent px-1.5 py-0.5 text-[9px] font-bold text-bg">
-          BEST
-        </span>
-      )}
+      {/* 순서 뱃지 (#1 BEST / #2 / #3) */}
+      <span className={`absolute top-2 left-2 rounded-md px-1.5 py-0.5 text-[9px] font-bold backdrop-blur-sm ${
+        sortOrder === 1
+          ? "bg-accent text-bg"
+          : "bg-black/60 text-white/80"
+      }`}>
+        {sortOrder === 1 ? "BEST" : `#${sortOrder}`}
+      </span>
 
       {/* 재생시간 */}
       <span className="absolute bottom-2 left-2 rounded bg-black/70 px-1.5 py-0.5 font-stat text-[10px] text-white">

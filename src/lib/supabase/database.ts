@@ -1056,6 +1056,10 @@ export interface Database {
         Args: { profile_id: string; amount: number };
         Returns: void;
       };
+      increment_views: {
+        Args: { profile_id: string };
+        Returns: void;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

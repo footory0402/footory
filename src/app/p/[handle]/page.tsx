@@ -40,9 +40,7 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
-  const [followersResult, followingResult, featured, stats, medals, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id),
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id),
+  const [featured, stats, medals, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
     supabase
       .from("featured_clips")
       .select("id, clip_id, sort_order")
@@ -233,8 +231,6 @@ const getProfile = cache(async (handle: string) => {
 
   return {
     ...profile,
-    followers_count: followersResult.count ?? 0,
-    following_count: followingResult.count ?? 0,
     contact: Object.keys(contact).length > 0 ? contact : null,
     teamName: teamData?.teams?.name ?? null,
     teamId: teamData?.team_id ?? null,

@@ -49,8 +49,6 @@ export const MEASUREMENTS = [
   { id: "juggling", label: "리프팅", unit: "회", icon: "⚽", lowerIsBetter: false },
   { id: "kick_power", label: "슈팅 속도", unit: "km/h", icon: "🦵", lowerIsBetter: false },
   { id: "run_1000m", label: "1000m 달리기", unit: "분:초", icon: "🏃‍♂️", lowerIsBetter: true },
-  { id: "shuttle_run", label: "왕복달리기", unit: "회", icon: "🔄", lowerIsBetter: false },
-  { id: "vertical_jump", label: "제자리멀리뛰기", unit: "cm", icon: "⬆️", lowerIsBetter: false },
 ] as const;
 
 // 구버전 stat_type → 한글 레이블 폴백 (DB에 옛 타입이 남아 있을 때)
@@ -71,8 +69,6 @@ export const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
   juggling: { min: 1, max: 3000 },
   kick_power: { min: 20, max: 150 },
   run_1000m: { min: 180, max: 600 },
-  shuttle_run: { min: 10, max: 150 },
-  vertical_jump: { min: 10, max: 80 },
 } as const;
 
 // MVP Tiers

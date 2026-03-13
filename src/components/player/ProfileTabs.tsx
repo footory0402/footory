@@ -21,9 +21,9 @@ export default function ProfileTabs({ active, onChange }: ProfileTabsProps) {
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className={`flex-1 rounded-lg py-2 text-center text-[13px] font-medium transition-all duration-200 ${
+            className={`flex-1 rounded-lg py-2.5 text-center text-[13px] font-bold transition-all duration-200 ${
               isActive
-                ? "bg-[var(--accent-bg)] text-accent"
+                ? "bg-accent/15 text-accent border border-accent/30"
                 : "text-text-3 active:bg-card-alt"
             }`}
           >

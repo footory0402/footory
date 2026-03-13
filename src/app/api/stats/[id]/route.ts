@@ -50,10 +50,23 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // First, find the stat to get its stat_type
+  const { data: stat, error: fetchError } = await supabase
+    .from("stats")
+    .select("stat_type")
+    .eq("id", id)
+    .eq("profile_id", user.id)
+    .single();
+
+  if (fetchError || !stat) {
+    return NextResponse.json({ error: "Stat not found" }, { status: 404 });
+  }
+
+  // Delete ALL records of the same stat_type for this user
   const { error } = await supabase
     .from("stats")
     .delete()
-    .eq("id", id)
+    .eq("stat_type", stat.stat_type)
     .eq("profile_id", user.id);
 
   if (error) {
