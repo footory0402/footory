@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const [profileResult, teamResult] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    supabase.from("profiles").select("id, handle, name, position, birth_year, city, bio, avatar_url, role, followers_count, following_count, views_count, public_email, public_phone, show_email, show_phone, created_at, mvp_count, mvp_tier, is_verified, height_cm, weight_kg, preferred_foot").eq("id", user.id).single(),
     supabase
       .from("team_members")
       .select("team_id, teams(name)")

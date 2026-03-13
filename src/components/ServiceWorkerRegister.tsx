@@ -15,7 +15,16 @@ export default function ServiceWorkerRegister() {
       return;
     }
 
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    // Defer SW registration to not block initial render
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(() => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      });
+    } else {
+      setTimeout(() => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }, 2000);
+    }
   }, []);
 
   return null;

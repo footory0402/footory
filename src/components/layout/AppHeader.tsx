@@ -12,7 +12,10 @@ export default function AppHeader() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    void fetchCount();
+    // Defer notification count fetch to not compete with initial render
+    const timer = setTimeout(() => {
+      void fetchCount();
+    }, 2000);
 
     const fetchWhenVisible = () => {
       if (document.visibilityState === "visible") {
@@ -23,6 +26,7 @@ export default function AppHeader() {
     document.addEventListener("visibilitychange", fetchWhenVisible);
 
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("visibilitychange", fetchWhenVisible);
     };
   }, [fetchCount]);

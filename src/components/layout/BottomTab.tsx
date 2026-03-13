@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useProfileContext } from "@/providers/ProfileProvider";
-import UploadBottomSheet from "@/components/upload/UploadBottomSheet";
+
+const UploadBottomSheet = dynamic(
+  () => import("@/components/upload/UploadBottomSheet"),
+  { ssr: false }
+);
 
 /* ── Tab definitions per role ── */
 
@@ -77,12 +82,14 @@ export default function BottomTab() {
 
   return (
     <>
-      <UploadBottomSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        challengeTag={activeChallenge?.tag}
-        challengeTitle={activeChallenge?.title}
-      />
+      {sheetOpen && (
+        <UploadBottomSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          challengeTag={activeChallenge?.tag}
+          challengeTitle={activeChallenge?.title}
+        />
+      )}
 
       <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-white/5 glass-nav">
         <div

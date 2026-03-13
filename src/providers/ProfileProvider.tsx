@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Profile } from "@/lib/types";
 import type { Position } from "@/lib/constants";
 
@@ -81,6 +81,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -104,6 +105,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     void fetchProfile();
   }, [fetchProfile]);
 

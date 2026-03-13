@@ -44,17 +44,19 @@ export default function ChallengeBanner() {
       if (!data) return;
       setChallenge(data as Challenge);
 
-      // 참여자 수: skill_tag가 있는 clip_tags 개수
+      // 참여자 수: skill_tag가 있는 clip_tags 개수 (병렬 아닌 단독이지만 challenge 존재 시에만)
       if (data.skill_tag) {
-        const { count } = await supabase
+        supabase
           .from("clip_tags")
           .select("id", { count: "exact", head: true })
-          .eq("tag_name", data.skill_tag);
-        setParticipantCount(count ?? 0);
+          .eq("tag_name", data.skill_tag)
+          .then(({ count }) => setParticipantCount(count ?? 0));
       }
     }
 
-    load();
+    // Defer challenge banner fetch to not block initial feed render
+    const timer = setTimeout(load, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   if (!challenge) return null;

@@ -28,6 +28,14 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
   }, [onNewComment]);
 
   useEffect(() => {
+    // Defer WebSocket to not compete with initial render
+    const timer = setTimeout(() => {
+      setupChannel();
+    }, 3000);
+
+    let channelRef: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
+
+    function setupChannel() {
     const supabase = createClient();
 
     const channel = supabase
@@ -79,8 +87,15 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
       )
       .subscribe();
 
+    channelRef = channel;
+    }
+
     return () => {
-      supabase.removeChannel(channel);
+      clearTimeout(timer);
+      if (channelRef) {
+        const supabase = createClient();
+        supabase.removeChannel(channelRef);
+      }
     };
   }, []);
 }

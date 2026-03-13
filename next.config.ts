@@ -1,20 +1,17 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
-const turbopackRoot = process.env.INIT_CWD ?? process.cwd();
 
 const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   experimental: {
-    optimizePackageImports: ["@supabase/supabase-js", "zustand", "lucide-react", "motion"],
+    optimizePackageImports: ["@supabase/supabase-js", "zustand", "lucide-react"],
   },
-  turbopack: { root: turbopackRoot },
   serverExternalPackages: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
   images: {
     unoptimized: isDev,
     formats: ["image/avif", "image/webp"],
-    qualities: [60, 75],
     minimumCacheTTL: 60 * 60 * 24 * 7,
     deviceSizes: [320, 375, 414, 430, 768],
     imageSizes: [28, 36, 40, 48, 56, 120, 160, 200, 215, 398],
