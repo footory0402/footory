@@ -118,12 +118,11 @@ function DashboardSkeleton() {
   );
 }
 
-/* ── Page (fast: auth check + role → Suspense stream) ── */
+/* ── Role resolver (runs inside Suspense → skeleton shows instantly) ── */
 
-export default async function HomePage() {
+async function HomeContent() {
   const supabase = await createClient();
 
-  // Middleware(proxy.ts)에서 이미 getUser()로 인증 검증됨 → 빠른 getSession() 사용
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -137,32 +136,31 @@ export default async function HomePage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  // 프로필 없는 인증 사용자 → 온보딩 (proxy.ts에서 제거된 체크를 여기서 처리)
   if (!profile) redirect("/onboarding");
 
   const role = profile?.role;
 
   if (role === "parent") {
-    return (
-      <Suspense fallback={<DashboardSkeleton />}>
-        <ParentDashboardServer userId={user.id} name={profile?.name ?? "보호자"} />
-      </Suspense>
-    );
+    return <ParentDashboardServer userId={user.id} name={profile?.name ?? "보호자"} />;
   }
 
   if (role === "scout") {
-    return (
-      <Suspense fallback={<DashboardSkeleton />}>
-        <ScoutHomeServer userId={user.id} isVerified={profile?.is_verified ?? false} />
-      </Suspense>
-    );
+    return <ScoutHomeServer userId={user.id} isVerified={profile?.is_verified ?? false} />;
   }
 
   return (
     <div className="px-4 pt-4">
-      <Suspense fallback={<PlayerFeedSkeleton />}>
-        <PlayerFeed userId={user.id} />
-      </Suspense>
+      <PlayerFeed userId={user.id} />
     </div>
+  );
+}
+
+/* ── Page (instant skeleton → stream content) ── */
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<PlayerFeedSkeleton />}>
+      <HomeContent />
+    </Suspense>
   );
 }

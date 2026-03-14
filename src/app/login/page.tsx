@@ -16,7 +16,7 @@ export default function LoginPage() {
       });
     } catch {}
 
-    const timer = setTimeout(() => setShowContent(true), 300);
+    const timer = setTimeout(() => setShowContent(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
@@ -30,14 +30,14 @@ export default function LoginPage() {
             background: "var(--accent-shine)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            animation: "logoFadeIn 1.2s var(--ease-out) both",
+            animation: "logoFadeIn 0.5s var(--ease-out) both",
           }}
         >
           FOOTORY
         </h1>
         <p
           className="mt-3 text-sm text-text-2"
-          style={{ animation: "fadeUp 0.6s var(--ease-out) 0.8s both" }}
+          style={{ animation: "fadeUp 0.4s var(--ease-out) 0.3s both" }}
         >
           유스 축구 선수 프로필 플랫폼
         </p>
@@ -46,7 +46,7 @@ export default function LoginPage() {
       {/* App preview strip — CSS 애니메이션(state 불필요, hydration 안전) */}
       <div
         className="mb-8 flex justify-center gap-5 text-[11px] text-text-3"
-        style={{ animation: "fadeUp 0.5s var(--ease-out) 1s both" }}
+        style={{ animation: "fadeUp 0.4s var(--ease-out) 0.4s both" }}
       >
         <span>⚽ 하이라이트 업로드</span>
         <span>🏆 주간 MVP 투표</span>

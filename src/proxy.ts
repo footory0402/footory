@@ -40,13 +40,14 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  // getSession() = 로컬 JWT 디코딩 (네트워크 호출 없음, 즉시 완료)
+  // → TTFB를 100-200ms 단축. 보안 검증은 page.tsx/API route에서 getUser()로 처리.
   const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
   // Not logged in → redirect to login & clear stale auth cookies
-  if (userError || !user) {
+  if (!session?.user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     const redirectResponse = NextResponse.redirect(url);
