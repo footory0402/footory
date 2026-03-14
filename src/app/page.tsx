@@ -4,14 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { isPocAdminUser } from "@/lib/poc-admin";
 import ChildDashboard from "@/components/parent/ChildDashboard";
 import ScoutHome from "@/components/scout/ScoutHome";
-import MvpTeaser from "@/components/mvp/MvpTeaser";
-import ChallengeBanner from "@/components/challenge/ChallengeBanner";
-import FeedListClient from "@/components/feed/FeedList";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
+import HomePlayerView from "@/components/home/HomePlayerView";
 
 /* ── Async server components (heavy data fetch, streamed via Suspense) ── */
 
-async function PlayerFeed({ userId }: { userId: string }) {
+async function PlayerHome({ userId }: { userId: string }) {
   const { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } = await import(
     "@/lib/server/feed"
   );
@@ -26,10 +24,9 @@ async function PlayerFeed({ userId }: { userId: string }) {
   return (
     <>
       <WelcomeModal />
-      <MvpTeaser leader={mvpLeader} />
-      <ChallengeBanner />
-      <FeedListClient
-        initialItems={feedData.items}
+      <HomePlayerView
+        mvpLeader={mvpLeader}
+        initialFeedItems={feedData.items}
         initialNextCursor={feedData.nextCursor}
         showNudge={!hasClips}
       />
@@ -76,30 +73,37 @@ async function ScoutHomeServer({ userId, isVerified }: { userId: string; isVerif
 
 function PlayerFeedSkeleton() {
   return (
-    <div className="px-4 pt-4 animate-pulse">
-      {/* MVP teaser skeleton */}
-      <div className="mb-4 rounded-xl bg-card p-4">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full bg-card-alt" />
-          <div className="flex-1 space-y-2">
-            <div className="h-4 w-32 rounded bg-card-alt" />
-            <div className="h-3 w-20 rounded bg-card-alt" />
-          </div>
-        </div>
+    <div className="animate-pulse">
+      {/* Pill tabs skeleton */}
+      <div className="flex gap-1.5 px-4 py-2">
+        <div className="flex-1 h-9 rounded-full bg-accent/30" />
+        <div className="flex-1 h-9 rounded-full bg-white/[0.06]" />
       </div>
-      {/* Feed skeleton */}
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="mb-3 rounded-xl bg-card p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-full bg-card-alt" />
-            <div className="flex-1 space-y-1.5">
-              <div className="h-3 w-24 rounded bg-card-alt" />
-              <div className="h-2.5 w-16 rounded bg-card-alt" />
+      <div className="px-4 pt-2">
+        {/* MVP teaser skeleton */}
+        <div className="mb-4 rounded-xl bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-card-alt" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-32 rounded bg-card-alt" />
+              <div className="h-3 w-20 rounded bg-card-alt" />
             </div>
           </div>
-          <div className="aspect-video w-full rounded-xl bg-card-alt" />
         </div>
-      ))}
+        {/* Feed skeleton */}
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="mb-3 rounded-xl bg-card p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-9 w-9 rounded-full bg-card-alt" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 w-24 rounded bg-card-alt" />
+                <div className="h-2.5 w-16 rounded bg-card-alt" />
+              </div>
+            </div>
+            <div className="aspect-video w-full rounded-xl bg-card-alt" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -148,11 +152,7 @@ async function HomeContent() {
     return <ScoutHomeServer userId={user.id} isVerified={profile?.is_verified ?? false} />;
   }
 
-  return (
-    <div className="px-4 pt-4">
-      <PlayerFeed userId={user.id} />
-    </div>
-  );
+  return <PlayerHome userId={user.id} />;
 }
 
 /* ── Page (instant skeleton → stream content) ── */

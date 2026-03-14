@@ -6,17 +6,24 @@ import { useTeamDetail, useTeamActions } from "@/hooks/useTeam";
 import TeamHeader from "@/components/team/TeamHeader";
 import MemberList from "@/components/team/MemberList";
 import TeamFeed from "@/components/team/TeamFeed";
+import TeamRecordsTab from "@/components/team/TeamRecordsTab";
+import PillTabs from "@/components/ui/PillTabs";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-const TABS = ["멤버", "피드"] as const;
+type TeamTab = "영상" | "기록" | "멤버";
+const TABS: { key: TeamTab; label: string }[] = [
+  { key: "영상", label: "영상" },
+  { key: "기록", label: "기록" },
+  { key: "멤버", label: "멤버" },
+];
 
 export default function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { team, members, loading, refetch } = useTeamDetail(id);
   const { removeMember, leaveTeam } = useTeamActions();
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("멤버");
+  const [activeTab, setActiveTab] = useState<TeamTab>("영상");
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
   const [ranking, setRanking] = useState<{ activity_score?: number; rank?: number; mvp_count?: number }>({});
   const [codeCopied, setCodeCopied] = useState(false);
@@ -179,27 +186,20 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-border px-4">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2.5 text-center text-[13px] font-semibold transition-colors ${
-              activeTab === tab
-                ? "border-b-2 border-accent text-accent"
-                : "text-text-3"
-            }`}
-          >
-            {tab}
-            {tab === "멤버" && (
-              <span className="ml-1 text-[11px]">{members.length}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      <PillTabs
+        tabs={TABS.map((t) => ({
+          ...t,
+          label: t.key === "멤버" ? `멤버 ${members.length}` : t.label,
+        }))}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        sticky
+      />
 
       {/* Tab content */}
       <div className="px-4 pt-3">
+        {activeTab === "영상" && <TeamFeed teamId={id} />}
+        {activeTab === "기록" && <TeamRecordsTab teamId={id} />}
         {activeTab === "멤버" && (
           <MemberList
             members={members}
@@ -208,7 +208,6 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
             onRemove={handleRemove}
           />
         )}
-        {activeTab === "피드" && <TeamFeed teamId={id} />}
       </div>
     </div>
   );
