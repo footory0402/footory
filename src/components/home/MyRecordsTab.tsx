@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useStats } from "@/hooks/useStats";
 import { getStatMeta } from "@/lib/constants";
 import Link from "next/link";
+import { formatStatDelta, formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
 export default function MyRecordsTab() {
   const { stats, loading } = useStats();
@@ -79,6 +80,8 @@ export default function MyRecordsTab() {
         <div className="grid grid-cols-2 gap-3">
           {stats.map((stat, idx) => {
             const meta = getStatMeta(stat.type);
+            const displayUnit = normalizeStatUnit(stat.type, stat.unit);
+            const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
             const diff = stat.previousValue != null ? stat.value - stat.previousValue : null;
             const isBetter = diff != null && meta.lowerIsBetter ? diff < 0 : diff != null && diff > 0;
 
@@ -97,9 +100,9 @@ export default function MyRecordsTab() {
                 </div>
                 <div className="flex items-baseline gap-1">
                   <span className="font-stat text-[24px] font-bold text-text-1 leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {stat.value}
+                    {formatStatValue(stat.value, stat.type, stat.unit)}
                   </span>
-                  <span className="text-[11px] text-text-3">{meta.unit}</span>
+                  {showUnit && <span className="text-[11px] text-text-3">{displayUnit}</span>}
                 </div>
                 {diff != null && (
                   <div className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -108,7 +111,7 @@ export default function MyRecordsTab() {
                       : "bg-red/10 text-red"
                   }`}>
                     <span>{isBetter ? "▲" : "▼"}</span>
-                    <span>{Math.abs(diff).toFixed(1)}</span>
+                    <span>{formatStatDelta(diff, stat.type, stat.unit)}</span>
                   </div>
                 )}
                 {stat.isPR && (
@@ -194,6 +197,8 @@ export default function MyRecordsTab() {
               .filter((s) => (s.measureCount ?? 0) > 1)
               .map((stat) => {
                 const meta = getStatMeta(stat.type);
+                const displayUnit = normalizeStatUnit(stat.type, stat.unit);
+                const isTimeUnit = isTimeStatUnit(displayUnit);
                 const improved =
                   stat.firstValue != null
                     ? meta.lowerIsBetter
@@ -210,18 +215,20 @@ export default function MyRecordsTab() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-text-3 font-stat" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {stat.firstValue}{meta.unit}
+                        {formatStatValue(stat.firstValue ?? 0, stat.type, stat.unit)}
+                        {!isTimeUnit && displayUnit}
                       </span>
                       <svg width="12" height="8" viewBox="0 0 12 8" className="text-text-3">
                         <path d="M0 4h10M8 1l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <span className="font-stat text-[14px] font-bold text-text-1" style={{ fontVariantNumeric: "tabular-nums" }}>
-                        {stat.value}{meta.unit}
+                        {formatStatValue(stat.value, stat.type, stat.unit)}
+                        {!isTimeUnit && displayUnit}
                       </span>
                       <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                         improved ? "bg-green/10 text-green" : "bg-red/10 text-red"
                       }`}>
-                        {improved ? "▲" : "▼"}{diff.toFixed(1)}
+                        {improved ? "▲" : "▼"}{formatStatDelta(diff, stat.type, stat.unit)}
                       </span>
                     </div>
                   </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Avatar from "@/components/ui/Avatar";
 import { getStatMeta } from "@/lib/constants";
+import { formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
 interface TeamMemberStat {
   profileId: string;
@@ -87,6 +88,8 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
           <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
             {avgStats.map((stat, idx) => {
               const meta = getStatMeta(stat.statType);
+              const displayUnit = normalizeStatUnit(stat.statType, meta.unit);
+              const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
               return (
                 <div
                   key={stat.statType}
@@ -99,9 +102,9 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="font-stat text-[22px] font-bold text-text-1 leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {stat.avg.toFixed(1)}
+                      {formatStatValue(stat.avg, stat.statType, meta.unit)}
                     </span>
-                    <span className="text-[10px] text-text-3">{meta.unit}</span>
+                    {showUnit && <span className="text-[10px] text-text-3">{displayUnit}</span>}
                   </div>
                   <p className="mt-2 text-[10px] text-text-3">
                     <span
@@ -130,6 +133,8 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
               .filter((s) => s.best)
               .map((stat) => {
                 const meta = getStatMeta(stat.statType);
+                const displayUnit = normalizeStatUnit(stat.statType, meta.unit);
+                const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
                 return (
                   <div key={stat.statType} className="flex items-center justify-between px-4 py-3.5">
                     <div className="flex items-center gap-2.5">
@@ -144,7 +149,8 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
                         className="inline-flex items-baseline gap-0.5 rounded-full px-2 py-0.5 font-stat text-[13px] font-bold"
                         style={{ background: "rgba(212,168,83,0.12)", color: "var(--color-accent)", fontVariantNumeric: "tabular-nums" }}
                       >
-                        {stat.best.value}{meta.unit}
+                        {formatStatValue(stat.best.value, stat.statType, meta.unit)}
+                        {showUnit && displayUnit}
                       </span>
                     </div>
                   </div>
@@ -164,6 +170,8 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
           <div className="space-y-2">
             {recentRecords.map((record, i) => {
               const meta = getStatMeta(record.statType);
+              const displayUnit = normalizeStatUnit(record.statType, record.unit || meta.unit);
+              const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
               const date = new Date(record.recordedAt);
               const ago = getRelativeTime(date);
 
@@ -186,7 +194,8 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
                         className="font-stat font-bold"
                         style={{ color: "var(--color-accent)", fontVariantNumeric: "tabular-nums" }}
                       >
-                        {record.value}{meta.unit}
+                        {formatStatValue(record.value, record.statType, record.unit || meta.unit)}
+                        {showUnit && displayUnit}
                       </span>
                     </p>
                   </div>

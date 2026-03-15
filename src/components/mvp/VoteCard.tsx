@@ -163,7 +163,7 @@ export default function VoteCard({
       </div>
 
       {/* Info section — compact single row */}
-      <div className={`flex items-center gap-2.5 px-4 ${isFirst ? "py-4" : "py-3"}`}>
+      <div className={`flex items-center gap-2 px-3.5 sm:gap-2.5 sm:px-4 ${isFirst ? "py-3 sm:py-4" : "py-2.5 sm:py-3"}`}>
         <Avatar
           name={candidate.playerName}
           size="sm"
@@ -192,7 +192,7 @@ export default function VoteCard({
           disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
           className="shrink-0 rounded-lg px-4 text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
           style={{
-            height: 36,
+            height: 34,
             background: hasVoted ? "rgba(212,168,83,0.1)" : "var(--accent-gradient)",
             color: hasVoted ? "var(--color-accent)" : "#0C0C0E",
             border: hasVoted ? "1px solid rgba(212,168,83,0.2)" : "none",
@@ -244,7 +244,7 @@ export function VoteCardCompact({
       }}
     >
       {/* Thumbnail / Video */}
-      <div className="relative aspect-video w-full overflow-hidden bg-black/30">
+      <div className="relative aspect-[16/8] w-full overflow-hidden bg-black/30 sm:aspect-video">
         {playing && candidate.videoUrl ? (
           <LazyVideo
             videoRef={videoRef}
@@ -295,17 +295,17 @@ export function VoteCardCompact({
       </div>
 
       {/* Info + Vote */}
-      <div className="flex flex-col gap-2 p-3">
+      <div className="flex flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
         <div className="min-w-0 w-full">
-          <span className="block truncate text-[15px] font-bold text-text-1 max-w-full" style={{ letterSpacing: "-0.3px" }}>
+          <span className="block max-w-full truncate text-[14px] font-bold text-text-1 sm:text-[15px]" style={{ letterSpacing: "-0.3px" }}>
             {candidate.playerName}
           </span>
           {candidate.teamName && (
-            <p className="truncate text-[10px] text-accent font-medium">
+            <p className="truncate text-[10px] font-medium text-accent sm:text-[11px]">
               {candidate.teamName}
             </p>
           )}
-          <div className="mt-1 flex items-center gap-1.5">
+          <div className="mt-0.5 flex items-center gap-1.5 sm:mt-1">
             <span className="text-text-3/50">⚡</span> <span className="font-stat text-xs font-bold text-accent">{candidate.totalScore}</span>
             <span className="text-[10px] text-text-3">
               <span className="text-text-3/50">🗳</span> <span className="text-accent font-semibold">{candidate.voteCount}</span>
@@ -316,7 +316,7 @@ export function VoteCardCompact({
         <button
           onClick={hasVoted ? handleUnvote : handleVote}
           disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
-          className="w-full rounded-lg py-2 text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+          className="w-full rounded-lg py-1.5 text-[12px] font-bold transition-all active:scale-[0.97] disabled:opacity-40 sm:py-2 sm:text-[13px]"
           style={{
             background: hasVoted ? "rgba(212,168,83,0.1)" : "var(--accent-gradient)",
             color: hasVoted ? "var(--color-accent)" : "#0C0C0E",

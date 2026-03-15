@@ -10,10 +10,10 @@ interface FollowButtonProps {
 }
 
 export default function FollowButton({ targetId, initialFollowing = false, size = "sm" }: FollowButtonProps) {
-  const { canFollow } = usePermissions();
+  const { canFollow, userId } = usePermissions();
   const { isFollowing, toggle, loading } = useFollow(targetId, initialFollowing);
 
-  if (!canFollow) return null;
+  if (!canFollow || targetId === userId) return null;
 
   const sizeClasses = size === "sm"
     ? "px-3 py-1.5 text-xs"
@@ -21,8 +21,10 @@ export default function FollowButton({ targetId, initialFollowing = false, size 
 
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={loading}
+      aria-label={isFollowing ? "팔로잉 취소" : "팔로우"}
       className={`rounded-full font-semibold transition-all ${sizeClasses} ${
         isFollowing
           ? "border border-border bg-transparent text-text-2 hover:border-red/50 hover:text-red"

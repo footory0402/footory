@@ -6,6 +6,7 @@ import RadarChart from "./RadarChart";
 import { MEASUREMENTS, getStatMeta, RADAR_STATS, POSITION_COLORS, type RadarStatId, type Position } from "@/lib/constants";
 import { calcRadarStats, EMPTY_RADAR_STATS, type ClipTagCount } from "@/lib/radar-calc";
 import type { Profile, Stat } from "@/lib/types";
+import { formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
 interface CompareSheetProps {
   open: boolean;
@@ -247,6 +248,8 @@ export default function CompareSheet({ open, onClose, target }: CompareSheetProp
                         ? stat.myValue < stat.targetValue
                         : stat.myValue > stat.targetValue;
                       const isTie = stat.myValue === stat.targetValue;
+                      const displayUnit = normalizeStatUnit(stat.type, stat.unit);
+                      const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
 
                       // Compute bar widths (relative to max of the two)
                       const maxVal = Math.max(stat.myValue, stat.targetValue) || 1;
@@ -264,7 +267,8 @@ export default function CompareSheet({ open, onClose, target }: CompareSheetProp
                               className="w-14 text-right font-stat text-[14px] font-bold tabular-nums shrink-0"
                               style={{ color: isMeWinning && !isTie ? "#D4A853" : "#71717A" }}
                             >
-                              {stat.myValue}{stat.unit !== "분:초" ? stat.unit : ""}
+                              {formatStatValue(stat.myValue, stat.type, stat.unit)}
+                              {showUnit ? displayUnit : ""}
                             </span>
                             {/* My bar (right-aligned, grows left) */}
                             <div className="flex-1 flex justify-end">
@@ -301,7 +305,8 @@ export default function CompareSheet({ open, onClose, target }: CompareSheetProp
                               className="w-14 text-left font-stat text-[14px] font-bold tabular-nums shrink-0"
                               style={{ color: !isMeWinning && !isTie ? "#A1A1AA" : "#71717A" }}
                             >
-                              {stat.targetValue}{stat.unit !== "분:초" ? stat.unit : ""}
+                              {formatStatValue(stat.targetValue, stat.type, stat.unit)}
+                              {showUnit ? displayUnit : ""}
                             </span>
                           </div>
                           {/* Winner indicator */}

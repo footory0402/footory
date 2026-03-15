@@ -8,6 +8,7 @@ import { POSITIONS, POSITION_COLORS, MVP_TIERS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
 import { getPositionBadgeStyle } from "@/components/ui/Badge";
 import { usePlayerRanking, type PlayerSortKey } from "@/hooks/useDiscover";
+import { useProfileContext } from "@/providers/ProfileProvider";
 
 const SORT_OPTIONS: { key: PlayerSortKey; label: string }[] = [
   { key: "popularity", label: "인기순" },
@@ -31,6 +32,7 @@ export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
   const [sort, setSort] = useState<PlayerSortKey>("popularity");
   const [posFilter, setPosFilter] = useState<Position | null>(null);
   const { items, loading } = usePlayerRanking(sort);
+  const { profile } = useProfileContext();
 
   if (loading) {
     return (
@@ -51,10 +53,20 @@ export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
     );
   }
 
-  const filtered = posFilter
-    ? items.filter((i) => i.position === posFilter)
-    : items;
-  const displayed = compact ? filtered.slice(0, 5) : filtered;
+  const filtered = posFilter ? items.filter((item) => item.position === posFilter) : items;
+  const rankedItems = filtered
+    .map((item, index) => ({ item, rank: index + 1 }))
+    .filter(({ item }) => item.profile_id !== profile?.id);
+  const displayed = compact ? rankedItems.slice(0, 5) : rankedItems;
+
+  if (displayed.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl bg-card py-8 text-center">
+        <span className="mb-2 text-2xl">📊</span>
+        <p className="text-sm text-text-3">다른 선수 데이터를 모으고 있어요</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -110,8 +122,8 @@ export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
       </div>
 
       <div className="card-elevated overflow-hidden">
-        {displayed.map((item, idx) => (
-          <PlayerRankingRow key={item.profile_id} item={item} rank={idx + 1} />
+        {displayed.map(({ item, rank }) => (
+          <PlayerRankingRow key={item.profile_id} item={item} rank={rank} />
         ))}
       </div>
     </div>

@@ -140,6 +140,7 @@ export default function ConversationPage({
       <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-bg/95 px-4 py-3">
         <button
           onClick={() => router.push("/dm")}
+          aria-label="메시지 목록으로 돌아가기"
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg
@@ -182,6 +183,7 @@ export default function ConversationPage({
         </div>
         <button
           onClick={() => setShowActions(true)}
+          aria-label="대화 옵션"
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-text-2">

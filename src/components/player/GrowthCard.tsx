@@ -3,6 +3,12 @@
 import React, { useState } from "react";
 import type { Stat } from "@/lib/types";
 import { getPercentileTier } from "@/lib/constants";
+import {
+  formatStatDelta,
+  formatStatValue,
+  isTimeStatUnit,
+  normalizeStatUnit,
+} from "@/lib/stat-display";
 
 interface GrowthCardProps {
   label: string;
@@ -25,16 +31,11 @@ function fmtFull(dateStr: string): string {
   return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
 }
 
-function fmtTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, onUpdate, onDelete }: GrowthCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { value, previousValue, unit, isPR, bestValue, firstValue, firstMeasuredAt, measureCount, measuredAt } = stat;
-  const isTimeUnit = unit === "분:초";
+  const displayUnit = normalizeStatUnit(stat.type, unit);
+  const isTimeUnit = isTimeStatUnit(displayUnit);
 
   const diff = previousValue != null ? value - previousValue : null;
   const improved = diff != null && diff !== 0 && (lowerIsBetter ? diff < 0 : diff > 0);
@@ -85,9 +86,9 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
                 letterSpacing: "-0.5px",
               }}
             >
-              {isTimeUnit ? fmtTime(value) : value}
+              {formatStatValue(value, stat.type, unit)}
             </span>
-            {!isTimeUnit && <span className="text-[11px] text-text-3 font-medium">{unit}</span>}
+            {!isTimeUnit && <span className="text-[11px] text-text-3 font-medium">{displayUnit}</span>}
           </div>
 
           <div className="flex flex-col items-end gap-0.5">
@@ -100,8 +101,8 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
                 }}
               >
                 {lowerIsBetter
-                  ? diff < 0 ? `↓${Math.abs(diff).toFixed(1)}` : `↑${diff.toFixed(1)}`
-                  : diff > 0 ? `↑${diff.toFixed(1)}` : `↓${Math.abs(diff).toFixed(1)}`}
+                  ? diff < 0 ? `↓${formatStatDelta(diff, stat.type, unit)}` : `↑${formatStatDelta(diff, stat.type, unit)}`
+                  : diff > 0 ? `↑${formatStatDelta(diff, stat.type, unit)}` : `↓${formatStatDelta(diff, stat.type, unit)}`}
               </span>
             ) : isFirst ? (
               <span
@@ -164,8 +165,8 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
               <span className="text-[10px]">🌱</span>
               <span className="text-[10px] font-medium text-green-400">
                 첫 기록보다 {grewFromFirst ? "+" : "-"}
-                {isTimeUnit ? fmtTime(growthFromFirst) : growthFromFirst.toFixed(1)}
-                {!isTimeUnit && unit}
+                {formatStatDelta(growthFromFirst, stat.type, unit)}
+                {!isTimeUnit && displayUnit}
               </span>
             </div>
           ) : percentile != null && !tier ? (
@@ -204,14 +205,18 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-text-3">자기 최고</span>
               <span className={`font-stat text-[12px] font-bold ${hasPR ? "text-accent" : "text-text-2"}`}>
-                {isTimeUnit ? fmtTime(bestValue) : `${bestValue} ${unit}`}
+                {formatStatValue(bestValue, stat.type, unit)}
+                {!isTimeUnit && ` ${displayUnit}`}
               </span>
             </div>
           )}
           {firstValue != null && firstMeasuredAt && (measureCount ?? 1) > 1 && (
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-text-3">첫 기록 ({fmtFull(firstMeasuredAt)})</span>
-              <span className="font-stat text-[11px] text-text-3">{isTimeUnit ? fmtTime(firstValue) : `${firstValue} ${unit}`}</span>
+              <span className="font-stat text-[11px] text-text-3">
+                {formatStatValue(firstValue, stat.type, unit)}
+                {!isTimeUnit && ` ${displayUnit}`}
+              </span>
             </div>
           )}
           {growthFromFirst != null && growthFromFirst > 0 && firstValue != null && (
@@ -219,7 +224,8 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
               <span className="text-[10px] text-text-3">총 성장</span>
               <span className={`font-stat text-[11px] font-bold ${grewFromFirst ? "text-green-400" : "text-red-400"}`}>
                 {grewFromFirst ? (lowerIsBetter ? "↓" : "↑") : (lowerIsBetter ? "↑" : "↓")}
-                {isTimeUnit ? fmtTime(growthFromFirst) : `${growthFromFirst.toFixed(1)} ${unit}`}
+                {formatStatDelta(growthFromFirst, stat.type, unit)}
+                {!isTimeUnit && ` ${displayUnit}`}
               </span>
             </div>
           )}

@@ -26,6 +26,32 @@ const OPTION_LABELS: { key: keyof PdfOptions; label: string }[] = [
   { key: "includeVideoQr", label: "대표 영상 QR코드" },
 ];
 
+function canSharePdfFile(file: File) {
+  return (
+    typeof navigator !== "undefined" &&
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function" &&
+    navigator.canShare({ files: [file] })
+  );
+}
+
+function isShareAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+function triggerPdfDownload(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.rel = "noopener";
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
 export default function ProfilePdfExport({
   open,
   onClose,
@@ -49,22 +75,26 @@ export default function ProfilePdfExport({
     setGenerating(true);
     try {
       const blob = await generateProfilePdf(profile, stats, medals, seasons, achievements, options);
+      const fileName = `${profile.handle}_profile.pdf`;
 
       // Try sharing, fallback to download
-      const file = new File([blob], `${profile.handle}_profile.pdf`, { type: "application/pdf" });
+      const file = new File([blob], fileName, { type: "application/pdf" });
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: `${profile.name} — Footory`,
-          files: [file],
-        });
+      if (canSharePdfFile(file)) {
+        try {
+          await navigator.share({
+            title: `${profile.name} — Footory`,
+            files: [file],
+          });
+        } catch (error) {
+          if (isShareAbortError(error)) {
+            return;
+          }
+
+          triggerPdfDownload(blob, fileName);
+        }
       } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${profile.handle}_profile.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+        triggerPdfDownload(blob, fileName);
       }
 
       toast("PDF가 생성되었습니다", "success");

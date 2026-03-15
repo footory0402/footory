@@ -19,6 +19,14 @@ test.describe("09-프로필", () => {
     expect(nameVisible || positionVisible || profileLoaded).toBe(true);
   });
 
+  test("새로고침 후에도 프로필이 유지됨", async ({ page }) => {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1500);
+
+    await expect(page.getByText("오류가 발생했습니다")).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "PDF 내보내기" })).toBeVisible({ timeout: 10000 });
+  });
+
   test("프로필 편집", async ({ page }) => {
     // Find edit button
     const editBtn = page.getByRole("link", { name: /편집|수정/ }).first().or(
@@ -94,25 +102,9 @@ test.describe("09-프로필", () => {
   });
 
   test("PDF 내보내기", async ({ page }) => {
-    // Look for more options button (⋮)
-    const menuBtn = page.locator("button[aria-label*='더보기'], button[aria-label*='옵션']").first().or(
-      page.getByRole("button", { name: /⋮|더보기/ }).first()
-    );
-    const hasMenu = await menuBtn.isVisible().catch(() => false);
-    if (hasMenu) {
-      await menuBtn.click();
-      const exportBtn = page.getByRole("button", { name: /내보내기|PDF|export/i }).first();
-      const hasExport = await exportBtn.isVisible({ timeout: 3000 }).catch(() => false);
-      if (hasExport) {
-        await exportBtn.click();
-        expect(true).toBe(true);
-      } else {
-        expect(true).toBe(true);
-      }
-    } else {
-      const profileLoaded = await page.locator("main").isVisible().catch(() => false);
-      expect(profileLoaded || true).toBe(true);
-    }
+    await page.getByRole("button", { name: "PDF 내보내기" }).click();
+    await expect(page.getByRole("heading", { name: "프로필 내보내기 (PDF)" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "PDF 생성" })).toBeVisible();
   });
 
   test("프로필 조회수", async ({ page }) => {

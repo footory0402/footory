@@ -1,4 +1,10 @@
 import React, { useState } from "react";
+import {
+  formatStatDelta,
+  formatStatValue,
+  isTimeStatUnit,
+  normalizeStatUnit,
+} from "@/lib/stat-display";
 
 interface StatRowProps {
   icon: string;
@@ -15,8 +21,11 @@ interface StatRowProps {
   onReport?: (statId: string, profileId: string) => void;
 }
 
-function StatRow({ icon, label, value, unit, previousValue, verified, lowerIsBetter = false, statId, profileId, onReport }: StatRowProps) {
+function StatRow({ icon, label, value, unit, type, previousValue, verified, lowerIsBetter = false, statId, profileId, onReport }: StatRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const statType = type ?? label;
+  const displayUnit = normalizeStatUnit(statType, unit);
+  const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
   const diff = previousValue != null ? value - previousValue : null;
   const improved = diff != null && diff !== 0 && (lowerIsBetter ? diff < 0 : diff > 0);
 
@@ -32,8 +41,10 @@ function StatRow({ icon, label, value, unit, previousValue, verified, lowerIsBet
 
       {/* Value + diff */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="font-stat text-[18px] font-bold text-text-1 leading-none">{value}</span>
-        <span className="text-[11px] text-text-3">{unit}</span>
+        <span className="font-stat text-[18px] font-bold text-text-1 leading-none">
+          {formatStatValue(value, statType, unit)}
+        </span>
+        {showUnit && <span className="text-[11px] text-text-3">{displayUnit}</span>}
         {verified && (
           <span className="text-[9px] font-bold text-accent">✓</span>
         )}
@@ -43,8 +54,8 @@ function StatRow({ icon, label, value, unit, previousValue, verified, lowerIsBet
       {diff != null && diff !== 0 && (
         <span className={`text-[11px] font-bold shrink-0 ${improved ? "text-accent" : "text-text-3"}`}>
           {lowerIsBetter
-            ? (diff < 0 ? `↓${Math.abs(diff).toFixed(1)}` : `↑${diff.toFixed(1)}`)
-            : (diff > 0 ? `↑${diff.toFixed(1)}` : `↓${Math.abs(diff).toFixed(1)}`)
+            ? (diff < 0 ? `↓${formatStatDelta(diff, statType, unit)}` : `↑${formatStatDelta(diff, statType, unit)}`)
+            : (diff > 0 ? `↑${formatStatDelta(diff, statType, unit)}` : `↓${formatStatDelta(diff, statType, unit)}`)
           }
         </span>
       )}

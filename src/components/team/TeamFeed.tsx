@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { timeAgo } from "@/lib/utils";
+import { getClipDisplayTitle } from "@/lib/clip-display";
 
 interface TeamClip {
   id: string;
@@ -59,63 +60,71 @@ export default function TeamFeed({ teamId }: { teamId: string }) {
 
   return (
     <div className="space-y-3">
-      {clips.map((clip) => (
-        <Link
-          key={clip.id}
-          href={`/p/${clip.player.handle}`}
-          className="flex gap-3 rounded-[10px] bg-card p-3 transition-colors active:bg-card-alt"
-        >
-          {/* Thumbnail */}
-          <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-card-alt">
-            {clip.thumbnailUrl ? (
-              <Image
-                src={clip.thumbnailUrl}
-                alt={clip.title ?? ""}
-                fill
-                sizes="112px"
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <svg className="h-6 w-6 text-text-3" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-              </div>
-            )}
-            <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[10px] text-white">
-              {formatDuration(clip.duration)}
-            </span>
-          </div>
+      {clips.map((clip) => {
+        const displayTitle = getClipDisplayTitle(
+          clip.title,
+          clip.tags,
+          clip.player.name
+        );
 
-          {/* Info */}
-          <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-semibold text-text-1 line-clamp-1">
-              {clip.title || "제목 없음"}
-            </p>
-            <div className="mt-1 flex items-center gap-1.5">
-              <Avatar
-                name={clip.player.name}
-                imageUrl={clip.player.avatarUrl}
-                size="xs"
-              />
-              <span className="text-[12px] text-text-2">{clip.player.name}</span>
-              {clip.player.position && (
-                <span className="text-[10px] text-text-3">{clip.player.position}</span>
+        return (
+          <Link
+            key={clip.id}
+            href={`/p/${clip.player.handle}`}
+            className="flex gap-3 rounded-[10px] bg-card p-3 transition-colors active:bg-card-alt"
+          >
+            {/* Thumbnail */}
+            <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-card-alt">
+              {clip.thumbnailUrl ? (
+                <Image
+                  src={clip.thumbnailUrl}
+                  alt={displayTitle}
+                  fill
+                  sizes="112px"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <svg className="h-6 w-6 text-text-3" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </div>
               )}
+              <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[10px] text-white">
+                {formatDuration(clip.duration)}
+              </span>
             </div>
-            {clip.tags.length > 0 && (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {clip.tags.slice(0, 3).map((tag) => (
-                  <span key={tag} className="rounded bg-card-alt px-1.5 py-0.5 text-[10px] text-text-3">
-                    {tag}
-                  </span>
-                ))}
+
+            {/* Info */}
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-text-1 line-clamp-1">
+                {displayTitle}
+              </p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Avatar
+                  name={clip.player.name}
+                  imageUrl={clip.player.avatarUrl}
+                  size="xs"
+                />
+                <span className="text-[12px] text-text-2">{clip.player.name}</span>
+                {clip.player.position && (
+                  <span className="text-[10px] text-text-3">{clip.player.position}</span>
+                )}
               </div>
-            )}
-            <p className="mt-1 text-[11px] text-text-3">{timeAgo(clip.createdAt)}</p>
-          </div>
-        </Link>
-      ))}
+              {clip.tags.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {clip.tags.slice(0, 3).map((tag) => (
+                    <span key={tag} className="rounded bg-card-alt px-1.5 py-0.5 text-[10px] text-text-3">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mt-1 text-[11px] text-text-3">{timeAgo(clip.createdAt)}</p>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }

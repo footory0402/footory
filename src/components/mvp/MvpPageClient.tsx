@@ -190,7 +190,7 @@ export default function MvpPageClient({
   const third = top3[2];
 
   return (
-    <div className="space-y-6 px-4 py-4 pb-24">
+    <div className="space-y-4 px-4 py-3 pb-[calc(88px+env(safe-area-inset-bottom))] sm:space-y-6 sm:py-4 sm:pb-24">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-text-1">🏆 월간 MVP</h1>
@@ -317,7 +317,7 @@ export default function MvpPageClient({
           )}
 
           {(second || third) && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {second && (
                 <VoteCardCompact
                   candidate={second}

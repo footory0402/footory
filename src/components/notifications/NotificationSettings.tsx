@@ -96,6 +96,7 @@ export default function NotificationSettings({ onBack }: { onBack: () => void })
       <div className="sticky top-[42px] z-30 flex items-center gap-3 border-b border-border bg-bg/95 px-4 py-3">
         <button
           onClick={onBack}
+          aria-label="알림 설정 닫기"
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

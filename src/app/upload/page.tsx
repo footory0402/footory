@@ -241,6 +241,7 @@ export default function UploadPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => (step > 0 ? handleBack() : router.back())}
+            aria-label={step > 0 ? "이전 단계" : "뒤로가기"}
             className="flex h-11 w-11 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
             <svg

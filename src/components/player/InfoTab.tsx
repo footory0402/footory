@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import GrowthCard from "./GrowthCard";
 import RadarChart from "./RadarChart";
 import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId } from "@/lib/constants";
+import { formatStatDelta, formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
 /** Axes that are derived from video tags, not physical measurements */
 const VIDEO_BASED_AXES = new Set<RadarStatId>(["passing", "defense"]);
@@ -327,7 +328,8 @@ function GrowthTrendSection({ stats }: { stats: Stat[] }) {
       <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden divide-y divide-white/[0.05]">
         {stats.map((stat) => {
           const meta = getStatMeta(stat.type);
-          const isTime = stat.unit === "분:초";
+          const displayUnit = normalizeStatUnit(stat.type, stat.unit);
+          const isTime = isTimeStatUnit(displayUnit);
           const diff = stat.firstValue != null ? Math.abs(stat.value - stat.firstValue) : 0;
           const improved = stat.firstValue != null
             ? (meta.lowerIsBetter ? stat.value < stat.firstValue : stat.value > stat.firstValue)
@@ -341,15 +343,15 @@ function GrowthTrendSection({ stats }: { stats: Stat[] }) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-text-3 font-stat tabular-nums">
-                  {isTime ? fmtTimeSec(stat.firstValue ?? 0) : stat.firstValue}
-                  {!isTime && meta.unit}
+                  {formatStatValue(stat.firstValue ?? 0, stat.type, stat.unit)}
+                  {!isTime && displayUnit}
                 </span>
                 <svg width="12" height="8" viewBox="0 0 12 8" className="text-text-3 shrink-0">
                   <path d="M0 4h10M8 1l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="font-stat text-[14px] font-bold text-text-1 tabular-nums">
-                  {isTime ? fmtTimeSec(stat.value) : stat.value}
-                  {!isTime && meta.unit}
+                  {formatStatValue(stat.value, stat.type, stat.unit)}
+                  {!isTime && displayUnit}
                 </span>
                 {diff > 0 && (
                   <span
@@ -359,7 +361,7 @@ function GrowthTrendSection({ stats }: { stats: Stat[] }) {
                       color: improved ? "#4ADE80" : "#F87171",
                     }}
                   >
-                    {improved ? "▲" : "▼"}{isTime ? fmtTimeSec(diff) : diff.toFixed(1)}
+                    {improved ? "▲" : "▼"}{formatStatDelta(diff, stat.type, stat.unit)}
                   </span>
                 )}
               </div>
@@ -374,12 +376,6 @@ function GrowthTrendSection({ stats }: { stats: Stat[] }) {
       </div>
     </div>
   );
-}
-
-function fmtTimeSec(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.round(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /* ── 이전 소속 타임라인 섹션 ── */

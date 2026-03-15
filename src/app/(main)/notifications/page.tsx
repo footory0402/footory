@@ -111,6 +111,7 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
+            aria-label="뒤로가기"
             className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -121,6 +122,7 @@ export default function NotificationsPage() {
         </div>
         <button
           onClick={() => setShowSettings(true)}
+          aria-label="알림 설정"
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
