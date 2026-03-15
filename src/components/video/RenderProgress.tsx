@@ -29,6 +29,10 @@ export default function RenderProgress({
   const calledRef = useRef(false);
 
   useEffect(() => {
+    calledRef.current = false;
+  }, [jobId]);
+
+  useEffect(() => {
     if (calledRef.current) return;
     if (job?.status === "done" && job.output_key && onComplete) {
       calledRef.current = true;
@@ -40,7 +44,20 @@ export default function RenderProgress({
     }
   }, [job?.status, job?.output_key, job?.error, onComplete, onError]);
 
-  if (!jobId || !job) return null;
+  if (!jobId) return null;
+
+  if (!job) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/90 backdrop-blur-sm">
+        <div className="flex w-72 flex-col items-center gap-5 rounded-2xl border border-white/[0.06] bg-card p-8">
+          <div className="h-12 w-12 animate-spin rounded-full border-3 border-white/10 border-t-accent" />
+          <p className="text-center text-[15px] font-semibold text-text-1">
+            렌더 상태를 불러오는 중...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const isDone = job.status === "done";
   const isFailed = job.status === "failed";

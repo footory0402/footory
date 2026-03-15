@@ -22,7 +22,30 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { child_id, video_url, duration_seconds, file_size_bytes, tags, clip_id, thumbnail_url } = body as {
+  const {
+    child_id,
+    video_url,
+    duration_seconds,
+    file_size_bytes,
+    tags,
+    clip_id,
+    thumbnail_url,
+    memo,
+    highlight_start,
+    highlight_end,
+    raw_key,
+    skill_labels,
+    custom_labels,
+    trim_start,
+    trim_end,
+    spotlight_x,
+    spotlight_y,
+    slowmo_start,
+    slowmo_end,
+    slowmo_speed,
+    bgm_id,
+    effects,
+  } = body as {
     child_id: string;
     video_url: string;
     duration_seconds?: number;
@@ -30,6 +53,21 @@ export async function POST(req: NextRequest) {
     tags?: string[];
     clip_id?: string;
     thumbnail_url?: string;
+    memo?: string;
+    highlight_start?: number;
+    highlight_end?: number;
+    raw_key?: string;
+    skill_labels?: string[];
+    custom_labels?: string[];
+    trim_start?: number;
+    trim_end?: number;
+    spotlight_x?: number;
+    spotlight_y?: number;
+    slowmo_start?: number;
+    slowmo_end?: number;
+    slowmo_speed?: number;
+    bgm_id?: string;
+    effects?: Record<string, boolean>;
   };
 
   if (!child_id || !video_url) {
@@ -54,6 +92,7 @@ export async function POST(req: NextRequest) {
 
   // Insert clip — owner_id is the child, uploaded_by is the parent
   const highlightEnd = Math.min(duration_seconds ?? 30, 30);
+  const isRenderPipeline = !!raw_key;
 
   const { data: clip, error } = await supabase
     .from("clips")
@@ -64,11 +103,23 @@ export async function POST(req: NextRequest) {
       video_url,
       duration_seconds: duration_seconds ?? null,
       file_size_bytes: file_size_bytes ?? null,
-      memo: null,
+      memo: memo ?? null,
       thumbnail_url: thumbnail_url ?? null,
-      highlight_start: 0,
-      highlight_end: highlightEnd,
-      highlight_status: "done",
+      highlight_start: highlight_start ?? 0,
+      highlight_end: highlight_end ?? highlightEnd,
+      highlight_status: isRenderPipeline ? "processing" : "done",
+      ...(raw_key && { raw_key }),
+      ...(skill_labels && { skill_labels }),
+      ...(custom_labels && { custom_labels }),
+      ...(trim_start !== undefined && { trim_start }),
+      ...(trim_end !== undefined && { trim_end }),
+      ...(spotlight_x !== undefined && { spotlight_x }),
+      ...(spotlight_y !== undefined && { spotlight_y }),
+      ...(slowmo_start !== undefined && { slowmo_start }),
+      ...(slowmo_end !== undefined && { slowmo_end }),
+      ...(slowmo_speed !== undefined && { slowmo_speed }),
+      ...(bgm_id && { bgm_id }),
+      ...(effects && { effects }),
     })
     .select()
     .single();

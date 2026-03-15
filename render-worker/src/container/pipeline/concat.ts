@@ -2,7 +2,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { writeFile } from "fs/promises";
 import { join, dirname } from "path";
-import { CODEC, PRESET, CRF, AUDIO_CODEC, AUDIO_BITRATE } from "./config";
+import { CODEC, PRESET, CRF, AUDIO_CODEC, AUDIO_BITRATE } from "./config.js";
 
 const exec = promisify(execFile);
 

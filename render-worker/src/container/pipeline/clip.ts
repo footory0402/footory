@@ -52,6 +52,9 @@ interface RenderInput {
  */
 export async function renderClip(input: RenderInput): Promise<string> {
   const { jobId, clipId, inputKey, params } = input;
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   const workDir = await mkdtemp(join(tmpdir(), `render-${jobId}-`));
 
@@ -146,13 +149,11 @@ export async function renderClip(input: RenderInput): Promise<string> {
       ? `${process.env.R2_PUBLIC_URL}/${outputKey}`
       : outputKey;
 
-    await updateClipRendered(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      clipId,
-      publicUrl,
-      jobId
-    );
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Supabase env not configured");
+    }
+
+    await updateClipRendered(supabaseUrl, supabaseKey, clipId, publicUrl, jobId);
 
     console.log(`[Render] Job ${jobId} completed.`);
     return outputKey;

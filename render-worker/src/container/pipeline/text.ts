@@ -1,6 +1,6 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { OUTPUT_W, OUTPUT_H, CODEC, PRESET, CRF } from "./config";
+import { OUTPUT_W, OUTPUT_H, CODEC, PRESET, CRF } from "./config.js";
 
 const exec = promisify(execFile);
 
@@ -44,12 +44,6 @@ export async function passText(
     );
   }
 
-  // 타임스탬프 (우하단)
-  filters.push(
-    `drawtext=fontfile='${FONT}':text='%{pts\\:hms}':` +
-      `fontcolor=0xFFFFFF@0.6:fontsize=16:x=${OUTPUT_W}-tw-30:y=${OUTPUT_H}-60`
-  );
-
   // EA FC 스타일 카드 (좌하단)
   if (params.eafcEnabled !== false && params.playerName) {
     // 배경 박스
@@ -89,7 +83,7 @@ export async function passText(
     outputPath,
   ];
 
-  await exec("ffmpeg", args, { timeout: 120_000 });
+  await exec("ffmpeg", args, { timeout: 300_000 });
 }
 
 function escapeFfmpeg(text: string): string {

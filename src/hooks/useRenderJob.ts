@@ -41,8 +41,24 @@ export function useRenderJob(jobId: string | null) {
   }, [jobId]);
 
   useEffect(() => {
+    if (!jobId) {
+      setJob(null);
+      return;
+    }
     fetchJob();
   }, [fetchJob]);
+
+  // Realtime이 없거나 지연되는 환경에서도 상태가 갱신되도록 polling fallback 유지
+  useEffect(() => {
+    if (!jobId) return;
+    if (job?.status === "done" || job?.status === "failed") return;
+
+    const intervalId = window.setInterval(() => {
+      void fetchJob();
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [fetchJob, job?.status, jobId]);
 
   // Realtime 구독
   useEffect(() => {

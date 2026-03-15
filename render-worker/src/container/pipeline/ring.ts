@@ -1,7 +1,7 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { existsSync } from "fs";
-import { OUTPUT_W, OUTPUT_H, CODEC, PRESET, CRF } from "./config";
+import { OUTPUT_W, OUTPUT_H, CODEC, PRESET, CRF } from "./config.js";
 
 const exec = promisify(execFile);
 

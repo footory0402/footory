@@ -1,4 +1,6 @@
-import { SupabaseClient } from "@supabase/supabase-js";
+import "server-only";
+
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 export type NotificationType =
   | "highlight_ready"
@@ -48,9 +50,11 @@ export async function createNotification(
   supabase: SupabaseClient,
   { userId, type, title, body, referenceId, actionUrl, groupKey }: CreateNotificationParams
 ) {
+  const db = getNotificationClient(supabase);
+
   // 1. 알림 설정 확인 (푸시 ON/OFF + 조용한 시간)
   const prefCol = TYPE_TO_PREF[type];
-  const { data: pref } = await supabase
+  const { data: pref } = await db
     .from("notification_preferences")
     .select(`push_enabled, quiet_start, quiet_end${prefCol ? `, ${prefCol}` : ""}`)
     .eq("profile_id", userId)
@@ -81,7 +85,7 @@ export async function createNotification(
           : nowMinutes >= startMinutes && nowMinutes < endMinutes;
         if (inQuiet) {
           // 조용한 시간 — DB에만 기록, 푸시 발송 차단 표시
-          await supabase.from("notifications").insert({
+          await db.from("notifications").insert({
             user_id: userId, type, title,
             body: body ?? null, reference_id: referenceId ?? null,
             action_url: actionUrl ?? null, group_key: groupKey ?? null,
@@ -93,7 +97,7 @@ export async function createNotification(
   }
 
   // 2. notifications INSERT
-  const { error } = await supabase.from("notifications").insert({
+  const { error } = await db.from("notifications").insert({
     user_id: userId,
     type,
     title,
@@ -149,4 +153,18 @@ export async function notifyLinkedParents(
       })
     )
   );
+}
+
+function getNotificationClient(fallback: SupabaseClient) {
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return fallback;
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }

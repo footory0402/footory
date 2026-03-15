@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
     inputKey: string;
     params?: Record<string, unknown>;
   };
+  const normalizedParams = normalizeRenderParams(params);
 
   if (!clipId || !inputKey) {
     return NextResponse.json(
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       clip_id: clipId,
       owner_id: user.id,
       input_key: inputKey,
-      params: (params ?? {}) as Record<string, string | number | boolean | null>,
+      params: normalizedParams as Record<string, string | number | boolean | string[]>,
       status: "queued",
     })
     .select()
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       clipId,
       ownerId: user.id,
       inputKey,
-      params: (params as RenderRequest["params"]) ?? {},
+      params: normalizedParams,
     });
   } catch (err) {
     console.error("[render/route] Worker dispatch failed:", err);
@@ -89,6 +90,10 @@ export async function POST(req: NextRequest) {
       .from("render_jobs")
       .update({ status: "failed", error: errMsg })
       .eq("id", job.id);
+    await supabase
+      .from("clips")
+      .update({ highlight_status: "failed", render_job_id: job.id })
+      .eq("id", clipId);
   }
 
   return NextResponse.json({ job }, { status: 201 });
@@ -109,3 +114,71 @@ type RenderRequest = {
     effects?: Record<string, boolean>;
   };
 };
+
+type NumericRenderParamKey =
+  | "trimStart"
+  | "trimEnd"
+  | "spotlightX"
+  | "spotlightY"
+  | "slowmoStart"
+  | "slowmoEnd"
+  | "slowmoSpeed";
+
+function normalizeRenderParams(
+  params?: Record<string, unknown>
+): RenderRequest["params"] {
+  if (!params) return {};
+
+  const normalized: RenderRequest["params"] = {};
+
+  const assignNumber = (sourceKey: NumericRenderParamKey, value: unknown) => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      normalized[sourceKey] = value;
+    }
+  };
+
+  const assignStringArray = (
+    sourceKey: "skillLabels" | "customLabels",
+    value: unknown
+  ) => {
+    if (!Array.isArray(value)) return;
+
+    const items = value.filter(
+      (item): item is string => typeof item === "string" && item.length > 0
+    );
+    if (items.length > 0) {
+      normalized[sourceKey] = items;
+    }
+  };
+
+  assignNumber("trimStart", params.trimStart);
+  assignNumber("trimEnd", params.trimEnd);
+  assignNumber("spotlightX", params.spotlightX);
+  assignNumber("spotlightY", params.spotlightY);
+  assignNumber("slowmoStart", params.slowmoStart);
+  assignNumber("slowmoEnd", params.slowmoEnd);
+  assignNumber("slowmoSpeed", params.slowmoSpeed);
+  assignStringArray("skillLabels", params.skillLabels);
+  assignStringArray("customLabels", params.customLabels);
+
+  if (typeof params.bgmId === "string" && params.bgmId.length > 0) {
+    normalized.bgmId = params.bgmId;
+  }
+
+  if (params.effects && typeof params.effects === "object") {
+    const rawEffects = params.effects as Record<string, unknown>;
+    const effects: Record<string, boolean> = {};
+
+    for (const [key, value] of Object.entries(rawEffects)) {
+      if (typeof value === "boolean") {
+        effects[key] = value;
+      }
+    }
+
+    if (Object.keys(effects).length > 0) {
+      normalized.effects = effects;
+    }
+  }
+
+  return normalized;
+}

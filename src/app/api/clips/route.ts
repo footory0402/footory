@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const {
+    clip_id: requestedClipId,
     video_url, duration_seconds, file_size_bytes, memo, tags,
     thumbnail_url, highlight_start, highlight_end,
     // v1.3 렌더 파이프라인 필드
@@ -67,10 +68,10 @@ export async function POST(req: NextRequest) {
     bgm_id?: string;
     effects?: Record<string, boolean>;
     status?: string;
+    clip_id?: string;
   };
 
-  // Always use server-generated ID — ignore any client-supplied id/clip_id
-  const clip_id = crypto.randomUUID();
+  const clip_id = requestedClipId ?? crypto.randomUUID();
 
   if (!video_url) {
     return NextResponse.json({ error: "video_url is required" }, { status: 400 });

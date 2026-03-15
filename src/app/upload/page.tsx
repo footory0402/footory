@@ -46,10 +46,12 @@ type DecorateTab = (typeof DECORATE_TABS)[number]["key"];
 export default function UploadPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { profile } = useProfileContext();
+  const { profile, loading } = useProfileContext();
   const store = useUploadStore();
 
-  const isParent = profile?.role === "parent";
+  const role = profile?.role ?? null;
+  const isParent = role === "parent";
+  const canUpload = role === "player" || role === "parent";
   const challengeTag = searchParams.get("challenge_tag");
 
   const [decorateTab, setDecorateTab] = useState<DecorateTab>("spotlight");
@@ -57,6 +59,8 @@ export default function UploadPage() {
 
   // Set context + challenge tag on mount
   useEffect(() => {
+    if (!canUpload) return;
+
     if (isParent) {
       store.setContext("parent");
       setIsSimpleMode(true);
@@ -70,7 +74,7 @@ export default function UploadPage() {
       store.setContext("general");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isParent, challengeTag]);
+  }, [canUpload, isParent, challengeTag]);
 
   // Reset on unmount
   useEffect(() => {
@@ -130,6 +134,42 @@ export default function UploadPage() {
     },
     [step]
   );
+
+  // 완료 화면
+  if (loading && !role) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-6 text-center">
+        <p className="text-sm text-text-3">업로드 권한을 확인하고 있어요...</p>
+      </div>
+    );
+  }
+
+  if (role && !canUpload) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-4 pb-28">
+        <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-white/[0.06] bg-card px-6 py-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-card-alt text-2xl">
+            🚫
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-base font-semibold text-text-1">
+              업로드 권한이 없어요
+            </h1>
+            <p className="text-sm text-text-3">
+              영상 업로드는 선수 또는 부모 계정에서만 사용할 수 있어요.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="w-full rounded-xl bg-accent py-3 text-sm font-bold text-bg active:scale-[0.99]"
+          >
+            홈으로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // 완료 화면
   if (store.status === "done") {
@@ -442,6 +482,7 @@ export default function UploadPage() {
                   store.setStatus("idle");
                   store.setError(null);
                   store.setProgress(0);
+                  store.setRenderJobId(null);
                   store.setStep(store.step > 0 ? store.step : 0);
                 }}
                 className="flex-1 rounded-xl border border-white/[0.08] bg-card py-3 text-[13px] font-semibold text-text-2 active:scale-[0.99]"
@@ -454,6 +495,7 @@ export default function UploadPage() {
                   store.setStatus("idle");
                   store.setError(null);
                   store.setProgress(0);
+                  store.setRenderJobId(null);
                 }}
                 className="flex-1 rounded-xl bg-accent py-3 text-[13px] font-bold text-bg active:scale-[0.99]"
               >
@@ -691,10 +733,11 @@ function getErrorHint(error: string | null): string {
 const GUIDE_DISMISSED_KEY = "footory_upload_guide_dismissed";
 
 function UploadUsageGuide({ isChallenge }: { isChallenge: boolean }) {
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem(GUIDE_DISMISSED_KEY) === "true";
-  });
+  const [collapsed, setCollapsed] = useState(true);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(GUIDE_DISMISSED_KEY) === "true");
+  }, []);
 
   const toggle = () => {
     const next = !collapsed;

@@ -229,6 +229,8 @@ export async function startRenderUpload() {
   if (!store.file || store.status !== "idle") return;
 
   try {
+    store.setError(null);
+    store.setRenderJobId(null);
     store.setStatus("uploading_raw");
     store.setProgress(0);
 
@@ -238,7 +240,10 @@ export async function startRenderUpload() {
     const presignRes = await fetch("/api/upload/presign", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentType: fileContentType }),
+      body: JSON.stringify({
+        contentType: fileContentType,
+        prefix: "raw",
+      }),
     });
     if (!presignRes.ok) {
       const errBody = await presignRes.json().catch(() => ({}));
@@ -288,31 +293,61 @@ export async function startRenderUpload() {
     store.setProgress(95);
 
     const videoUrl = getPublicVideoUrl(key);
-    const clipRes = await fetch("/api/clips", {
+    const isParentUpload = store.context === "parent" && store.childId;
+    const apiUrl = isParentUpload ? "/api/parent/upload" : "/api/clips";
+    const clipPayload = isParentUpload
+      ? {
+          child_id: store.childId,
+          clip_id: clipId,
+          video_url: videoUrl,
+          duration_seconds: duration || null,
+          file_size_bytes: store.file.size,
+          memo: store.memo || null,
+          tags: store.tags,
+          thumbnail_url: thumbnailUrl,
+          highlight_start: store.trimStart,
+          highlight_end: store.trimEnd ?? Math.min(duration || 30, 30),
+          skill_labels: store.skillLabels,
+          custom_labels: store.customLabels,
+          trim_start: store.trimStart,
+          trim_end: store.trimEnd,
+          spotlight_x: store.spotlightX,
+          spotlight_y: store.spotlightY,
+          slowmo_start: store.slowmoStart,
+          slowmo_end: store.slowmoEnd,
+          slowmo_speed: store.slowmoSpeed,
+          bgm_id: store.bgmId,
+          effects: store.effects,
+          raw_key: key,
+        }
+      : {
+          clip_id: clipId,
+          video_url: videoUrl,
+          duration_seconds: duration || null,
+          file_size_bytes: store.file.size,
+          memo: store.memo || null,
+          tags: store.tags,
+          thumbnail_url: thumbnailUrl,
+          highlight_start: store.trimStart,
+          highlight_end: store.trimEnd ?? Math.min(duration || 30, 30),
+          skill_labels: store.skillLabels,
+          custom_labels: store.customLabels,
+          trim_start: store.trimStart,
+          trim_end: store.trimEnd,
+          spotlight_x: store.spotlightX,
+          spotlight_y: store.spotlightY,
+          slowmo_start: store.slowmoStart,
+          slowmo_end: store.slowmoEnd,
+          slowmo_speed: store.slowmoSpeed,
+          bgm_id: store.bgmId,
+          effects: store.effects,
+          raw_key: key,
+        };
+
+    const clipRes = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clip_id: clipId,
-        video_url: videoUrl,
-        duration_seconds: duration || null,
-        file_size_bytes: store.file.size,
-        memo: store.memo || null,
-        tags: store.tags,
-        thumbnail_url: thumbnailUrl,
-        highlight_start: store.trimStart,
-        highlight_end: store.trimEnd ?? Math.min(duration || 30, 30),
-        skill_labels: store.skillLabels,
-        custom_labels: store.customLabels,
-        trim_start: store.trimStart,
-        trim_end: store.trimEnd,
-        spotlight_x: store.spotlightX,
-        spotlight_y: store.spotlightY,
-        slowmo_start: store.slowmoStart,
-        slowmo_end: store.slowmoEnd,
-        slowmo_speed: store.slowmoSpeed,
-        bgm_id: store.bgmId,
-        effects: store.effects,
-      }),
+      body: JSON.stringify(clipPayload),
     });
 
     if (!clipRes.ok) {
@@ -320,29 +355,38 @@ export async function startRenderUpload() {
       throw new Error(errBody.error ?? `클립 저장 실패 (${clipRes.status})`);
     }
 
+    const clipData = (await clipRes.json().catch(() => ({}))) as {
+      clip?: { id?: string };
+    };
+    const savedClipId = clipData.clip?.id ?? clipId;
+    store.setClipId(savedClipId);
+
     // 5. 렌더 API 호출 → Container FFmpeg 렌더 시작
-    store.setStatus("rendering");
-    store.setProgress(0);
+    const renderParams = {
+      trimStart: store.trimStart,
+      ...(store.trimEnd !== null ? { trimEnd: store.trimEnd } : {}),
+      ...(store.spotlightX !== null ? { spotlightX: store.spotlightX } : {}),
+      ...(store.spotlightY !== null ? { spotlightY: store.spotlightY } : {}),
+      ...(store.skillLabels.length > 0 ? { skillLabels: store.skillLabels } : {}),
+      ...(store.customLabels.length > 0 ? { customLabels: store.customLabels } : {}),
+      ...(store.slowmoStart !== null ? { slowmoStart: store.slowmoStart } : {}),
+      ...(store.slowmoEnd !== null ? { slowmoEnd: store.slowmoEnd } : {}),
+      ...(store.slowmoStart !== null &&
+      store.slowmoEnd !== null &&
+      store.slowmoSpeed > 0
+        ? { slowmoSpeed: store.slowmoSpeed }
+        : {}),
+      ...(store.bgmId ? { bgmId: store.bgmId } : {}),
+      ...(Object.keys(store.effects).length > 0 ? { effects: store.effects } : {}),
+    };
 
     const renderRes = await fetch("/api/render", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        clipId,
+        clipId: savedClipId,
         inputKey: key,
-        params: {
-          trimStart: store.trimStart,
-          trimEnd: store.trimEnd,
-          spotlightX: store.spotlightX,
-          spotlightY: store.spotlightY,
-          skillLabels: store.skillLabels,
-          customLabels: store.customLabels,
-          slowmoStart: store.slowmoStart,
-          slowmoEnd: store.slowmoEnd,
-          slowmoSpeed: store.slowmoSpeed,
-          bgmId: store.bgmId,
-          effects: store.effects,
-        },
+        params: renderParams,
       }),
     });
 
@@ -353,6 +397,8 @@ export async function startRenderUpload() {
 
     const { job } = await renderRes.json();
     store.setRenderJobId(job.id);
+    store.setStatus("rendering");
+    store.setProgress(0);
 
     // Realtime 구독으로 진행률 추적 → upload/page.tsx의 RenderProgress가 처리
     // rendering 상태로 유지 (done 전환은 RenderProgress onComplete에서)

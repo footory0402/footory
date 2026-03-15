@@ -1,6 +1,6 @@
 import express from "express";
 import { renderClip } from "./pipeline/clip.js";
-import { updateJobStatus } from "./supabase.js";
+import { updateClipFailed, updateJobStatus } from "./supabase.js";
 
 const app = express();
 app.use(express.json({ limit: "1mb" }));
@@ -17,7 +17,8 @@ app.post("/render", async (req, res) => {
   const { jobId, clipId, inputKey, params } = req.body;
 
   // Supabase 자격증명은 Container 환경변수에서 가져옴
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseUrl =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!jobId || !inputKey) {
@@ -62,6 +63,7 @@ app.post("/render", async (req, res) => {
       status: "failed",
       error: message,
     }).catch(() => {});
+    await updateClipFailed(supabaseUrl, supabaseKey, clipId, jobId).catch(() => {});
   }
 });
 

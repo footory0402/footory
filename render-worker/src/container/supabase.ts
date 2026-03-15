@@ -37,6 +37,7 @@ export async function updateClipRendered(
   const { error } = await supabase
     .from("clips")
     .update({
+      video_url: renderedUrl,
       rendered_url: renderedUrl,
       render_job_id: renderJobId,
       highlight_status: "done",
@@ -45,5 +46,56 @@ export async function updateClipRendered(
 
   if (error) {
     console.error(`[Supabase] Failed to update clip ${clipId}:`, error.message);
+  }
+
+  const { data: feedItems, error: feedError } = await supabase
+    .from("feed_items")
+    .select("id, metadata")
+    .eq("reference_id", clipId)
+    .eq("type", "highlight");
+
+  if (feedError) {
+    console.error(
+      `[Supabase] Failed to load feed items for clip ${clipId}:`,
+      feedError.message
+    );
+    return;
+  }
+
+  await Promise.all(
+    (feedItems ?? []).map((item) =>
+      supabase
+        .from("feed_items")
+        .update({
+          metadata: {
+            ...((item.metadata as Record<string, unknown> | null) ?? {}),
+            video_url: renderedUrl,
+          },
+        })
+        .eq("id", item.id)
+    )
+  );
+}
+
+export async function updateClipFailed(
+  supabaseUrl: string,
+  supabaseKey: string,
+  clipId: string,
+  renderJobId: string
+): Promise<void> {
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false },
+  });
+
+  const { error } = await supabase
+    .from("clips")
+    .update({
+      render_job_id: renderJobId,
+      highlight_status: "failed",
+    })
+    .eq("id", clipId);
+
+  if (error) {
+    console.error(`[Supabase] Failed to mark clip ${clipId} as failed:`, error.message);
   }
 }

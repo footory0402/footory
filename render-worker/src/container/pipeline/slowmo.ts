@@ -1,6 +1,6 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { OUTPUT_W, CODEC, PRESET, CRF, AUDIO_CODEC, AUDIO_BITRATE } from "./config";
+import { OUTPUT_W, CODEC, PRESET, CRF, AUDIO_CODEC, AUDIO_BITRATE } from "./config.js";
 
 const exec = promisify(execFile);
 
