@@ -23,13 +23,14 @@ export async function POST(req: NextRequest) {
     const type = body.type ?? "video";
     const clipId = body.clipId ?? crypto.randomUUID();
     const contentType = body.contentType ?? "video/mp4";
+    const prefix = body.prefix ?? "originals"; // "raw" for v1.3 render pipeline
 
     if (type === "thumbnail") {
       const { url, key } = await getPresignedThumbnailUrl(user.id, clipId);
       return NextResponse.json({ url, key, clipId });
     }
 
-    const { url, key } = await getPresignedUploadUrl(user.id, clipId, contentType);
+    const { url, key } = await getPresignedUploadUrl(user.id, clipId, contentType, prefix);
     return NextResponse.json({ url, key, clipId });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

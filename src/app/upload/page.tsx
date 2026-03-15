@@ -3,13 +3,27 @@
 import { useEffect, useCallback, useState } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
-import { startUpload } from "@/lib/upload-service";
+import { startRenderUpload } from "@/lib/upload-service";
 import VideoSelector from "@/components/upload/VideoSelector";
 import TagMemoForm from "@/components/upload/TagMemoForm";
-import UploadProgress from "@/components/upload/UploadProgress";
 import UploadComplete from "@/components/upload/UploadComplete";
 import ChildSelector from "@/components/upload/ChildSelector";
+import VideoTrimmer from "@/components/video/VideoTrimmer";
+import SpotlightPicker from "@/components/video/SpotlightPicker";
+import RenderProgress from "@/components/video/RenderProgress";
+import SkillLabelPicker from "@/components/video/SkillLabelPicker";
+import EffectsToggle from "@/components/video/EffectsToggle";
+import SlowmoPicker from "@/components/video/SlowmoPicker";
+import BgmPicker from "@/components/video/BgmPicker";
 import { useRouter, useSearchParams } from "next/navigation";
+
+const STEPS = [
+  { id: 1, label: "트리밍" },
+  { id: 2, label: "주인공" },
+  { id: 3, label: "슬로모" },
+  { id: 4, label: "태그" },
+  { id: 5, label: "확인" },
+];
 
 export default function UploadPage() {
   const router = useRouter();
@@ -41,36 +55,120 @@ export default function UploadPage() {
     return () => useUploadStore.getState().reset();
   }, []);
 
-  const canUpload = (() => {
-    if (!store.file) return false;
-    // tags are optional — don't block upload
-    if (isParent && !store.childId) return false;
-    return true;
-  })();
+  // Step 0: 파일 선택, Step 1-5: 위저드
+  const step = store.step;
+
+  // 파일 선택 후 자동으로 Step 1로
+  const file = store.file;
+  useEffect(() => {
+    if (file && step === 0) {
+      useUploadStore.getState().setStep(1);
+    }
+  }, [file, step]);
+
+  const handleNext = useCallback(() => {
+    const s = useUploadStore.getState();
+    if (s.step < 5) s.setStep(s.step + 1);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    const s = useUploadStore.getState();
+    if (s.step > 1) s.setStep(s.step - 1);
+    else if (s.step === 1) {
+      s.setStep(0);
+      s.setFile(null);
+    }
+  }, []);
+
+  const handleTrimChange = useCallback((start: number, end: number) => {
+    const s = useUploadStore.getState();
+    s.setTrimStart(start);
+    s.setTrimEnd(end);
+  }, []);
 
   const handleUpload = useCallback(() => {
-    if (!canUpload) return;
-    startUpload();
-  }, [canUpload]);
+    startRenderUpload();
+  }, []);
 
-  // Show complete overlay
+  const handleRenderComplete = useCallback((_outputKey: string) => {
+    useUploadStore.getState().setStatus("done");
+  }, []);
+
+  const handleRenderError = useCallback((error: string) => {
+    const s = useUploadStore.getState();
+    s.setError(error);
+    s.setStatus("error");
+  }, []);
+
+  // 완료 화면
   if (store.status === "done") {
     return <UploadComplete />;
   }
 
+  // 렌더링 중 — Realtime 구독으로 진행률 표시
+  if (store.status === "rendering") {
+    return (
+      <RenderProgress
+        jobId={store.renderJobId}
+        onComplete={handleRenderComplete}
+        onError={handleRenderError}
+      />
+    );
+  }
+
+  // 업로드 중
+  if (
+    store.status === "uploading_raw" ||
+    store.status === "uploading" ||
+    store.status === "thumbnail" ||
+    store.status === "saving"
+  ) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/90 backdrop-blur-sm">
+        <div className="flex w-72 flex-col items-center gap-5 rounded-2xl border border-white/[0.06] bg-card p-8">
+          <div className="h-12 w-12 animate-spin rounded-full border-3 border-white/10 border-t-accent" />
+          <p className="text-[15px] font-semibold text-text-1">
+            {store.status === "uploading_raw" || store.status === "uploading"
+              ? "영상 업로드 중..."
+              : store.status === "thumbnail"
+                ? "썸네일 생성 중..."
+                : "저장 중..."}
+          </p>
+          <div className="w-full">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-300"
+                style={{ width: `${store.progress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-center text-[12px] text-text-3">
+              {store.progress}%
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Upload progress overlay */}
-      <UploadProgress />
-
-      <div className="flex flex-col gap-6 px-4 pt-4">
+      <div className="flex flex-col gap-4 px-4 pt-4 pb-28">
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            onClick={() => (step > 0 ? handleBack() : router.back())}
             className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
@@ -79,37 +177,167 @@ export default function UploadPage() {
           </h1>
         </div>
 
+        {/* Step Bar — 파일 선택 후에만 표시 */}
+        {step > 0 && (
+          <div className="flex items-center justify-center gap-2">
+            {STEPS.map((s) => (
+              <div key={s.id} className="flex flex-col items-center gap-1">
+                <div
+                  className={`h-2 w-2 rounded-full transition-colors ${
+                    s.id < step
+                      ? "bg-[#5A4A2A]"
+                      : s.id === step
+                        ? "bg-accent"
+                        : "bg-[#1E1E22]"
+                  }`}
+                />
+                <span
+                  className={`text-[10px] ${
+                    s.id === step ? "text-accent" : "text-text-3"
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Challenge banner */}
-        {challengeTag && (
+        {challengeTag && step === 0 && (
           <div className="flex items-center gap-3 rounded-xl bg-accent/8 px-4 py-3">
             <span className="text-lg">🏆</span>
             <div>
-              <p className="text-[13px] font-semibold text-accent">챌린지 참여</p>
-              <p className="text-[12px] text-text-2">{challengeTag} 태그가 자동 설정됩니다</p>
+              <p className="text-[13px] font-semibold text-accent">
+                챌린지 참여
+              </p>
+              <p className="text-[12px] text-text-2">
+                {challengeTag} 태그가 자동 설정됩니다
+              </p>
             </div>
           </div>
         )}
 
-        {/* Usage guide banner */}
-        {!isParent && <UploadUsageGuide isChallenge={!!challengeTag} />}
-
         {/* Parent: child selector */}
-        {isParent && <ChildSelector />}
+        {isParent && step === 0 && <ChildSelector />}
 
-        {/* Video selector with thumbnail preview */}
-        <VideoSelector />
+        {/* Step 0: 파일 선택 */}
+        {step === 0 && (
+          <>
+            {!isParent && <UploadUsageGuide isChallenge={!!challengeTag} />}
+            <VideoSelector />
+          </>
+        )}
 
-        {/* Tag & Memo — inline, always visible */}
-        {store.file && (
+        {/* Step 1: 트리밍 */}
+        {step === 1 && store.file && (
           <div className="animate-fade-up">
-            <TagMemoForm />
+            <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+              구간 선택
+            </h2>
+            <VideoTrimmer
+              file={store.file}
+              trimStart={store.trimStart}
+              trimEnd={store.trimEnd}
+              onTrimChange={handleTrimChange}
+            />
+          </div>
+        )}
+
+        {/* Step 2: 주인공 표시 */}
+        {step === 2 && store.file && (
+          <div className="animate-fade-up">
+            <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+              주인공 표시
+            </h2>
+            <SpotlightPicker
+              file={store.file}
+              spotlightX={store.spotlightX}
+              spotlightY={store.spotlightY}
+              onSpotlightChange={(x, y) => store.setSpotlight(x, y)}
+            />
+          </div>
+        )}
+
+        {/* Step 3: 슬로모션 */}
+        {step === 3 && (
+          <div className="animate-fade-up">
+            <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+              슬로모션 리플레이
+            </h2>
+            <SlowmoPicker
+              trimStart={store.trimStart}
+              trimEnd={store.trimEnd ?? 30}
+              slowmoStart={store.slowmoStart}
+              slowmoEnd={store.slowmoEnd}
+              slowmoSpeed={store.slowmoSpeed}
+              onSlowmoChange={(start, end, speed) =>
+                store.setSlowmo(start, end, speed)
+              }
+            />
+          </div>
+        )}
+
+        {/* Step 4: 스킬 라벨 + 태그 + 효과 */}
+        {step === 4 && (
+          <div className="animate-fade-up flex flex-col gap-6">
+            <div>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+                스킬 라벨
+              </h2>
+              <SkillLabelPicker
+                selected={store.skillLabels}
+                customLabels={store.customLabels}
+                onSelectedChange={(labels) => store.setSkillLabels(labels)}
+                onCustomChange={(labels) => store.setCustomLabels(labels)}
+              />
+            </div>
+
+            <div>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+                효과 설정
+              </h2>
+              <EffectsToggle
+                effects={store.effects}
+                onChange={(partial) => store.setEffects(partial)}
+              />
+            </div>
+
+            <div>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+                BGM
+              </h2>
+              <BgmPicker
+                selectedId={store.bgmId}
+                onSelect={(id) => store.setBgmId(id)}
+              />
+            </div>
+
+            <div>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+                태그 & 메모
+              </h2>
+              <TagMemoForm />
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: 확인 (프리뷰) — placeholder */}
+        {step === 5 && (
+          <div className="animate-fade-up">
+            <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+              업로드 확인
+            </h2>
+            <UploadSummary />
           </div>
         )}
 
         {/* Error state */}
         {store.status === "error" && (
           <div className="flex flex-col items-center gap-3 rounded-xl bg-red/10 px-4 py-4">
-            <p className="text-sm text-red">{store.error ?? "업로드에 실패했습니다."}</p>
+            <p className="text-sm text-red">
+              {store.error ?? "업로드에 실패했습니다."}
+            </p>
             <button
               type="button"
               onClick={() => {
@@ -125,24 +353,89 @@ export default function UploadPage() {
         )}
       </div>
 
-      {/* Sticky upload button */}
-      {store.status !== "error" && (
+      {/* Bottom navigation */}
+      {step > 0 && store.status !== "error" && (
         <div className="pointer-events-none fixed bottom-[calc(54px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2">
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg via-bg/96 to-transparent" />
-          <div className="relative px-4 pb-3">
+          <div className="relative flex gap-3 px-4 pb-3">
+            {/* 건너뛰기 (Step 2, 3) */}
+            {(step === 2 || step === 3) && (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="pointer-events-auto flex-1 rounded-xl border border-white/[0.08] bg-card py-3.5 text-sm font-semibold text-text-2 active:scale-[0.99]"
+              >
+                건너뛰기
+              </button>
+            )}
+
+            {/* 다음 / 업로드 */}
             <button
               type="button"
-              disabled={!canUpload || store.status !== "idle"}
-              onClick={handleUpload}
-              className="pointer-events-auto w-full rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color,border-color,color,box-shadow] active:scale-[0.99] disabled:border-border disabled:bg-card-alt disabled:text-text-3 disabled:shadow-none"
+              onClick={step === 5 ? handleUpload : handleNext}
+              disabled={step === 0 && !store.file}
+              className="pointer-events-auto flex-1 rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color] active:scale-[0.99] disabled:border-border disabled:bg-card-alt disabled:text-text-3 disabled:shadow-none"
             >
-              업로드
+              {step === 5 ? "업로드" : "다음"}
             </button>
           </div>
         </div>
       )}
     </>
   );
+}
+
+/* ── Upload Summary (Step 5) ── */
+function UploadSummary() {
+  const store = useUploadStore();
+
+  return (
+    <div className="flex flex-col gap-3">
+      <SummaryRow label="구간" value={`${formatTime(store.trimStart)} ~ ${formatTime(store.trimEnd ?? 0)}`} />
+      <SummaryRow
+        label="주인공"
+        value={store.spotlightX !== null ? "설정됨" : "건너뜀"}
+      />
+      <SummaryRow
+        label="슬로모"
+        value={store.slowmoStart !== null ? "설정됨" : "건너뜀"}
+      />
+      <SummaryRow
+        label="태그"
+        value={store.tags.length > 0 ? store.tags.join(", ") : "없음"}
+      />
+      {store.memo && <SummaryRow label="메모" value={store.memo} />}
+      <SummaryRow
+        label="효과"
+        value={Object.entries(store.effects)
+          .filter(([, v]) => v)
+          .map(([k]) => EFFECT_LABELS[k] ?? k)
+          .join(", ") || "없음"}
+      />
+    </div>
+  );
+}
+
+const EFFECT_LABELS: Record<string, string> = {
+  color: "색보정",
+  cinematic: "시네마틱 바",
+  eafc: "EA FC 카드",
+  intro: "인트로",
+};
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl bg-card px-4 py-3">
+      <span className="min-w-[52px] text-[13px] text-text-3">{label}</span>
+      <span className="text-[13px] text-text-1">{value}</span>
+    </div>
+  );
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /* ── Upload Usage Guide Banner ── */
@@ -175,8 +468,14 @@ function UploadUsageGuide({ isChallenge }: { isChallenge: boolean }) {
           영상을 올리면 이런 곳에 쓰여요
         </span>
         <svg
-          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           className={`text-text-3 transition-transform ${collapsed ? "" : "rotate-180"}`}
         >
           <polyline points="6 9 12 15 18 9" />

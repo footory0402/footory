@@ -62,3 +62,7 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+if (isDev) {
+  import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev()).catch(() => {});
+}

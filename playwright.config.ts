@@ -52,6 +52,7 @@ export default defineConfig({
     "**/e2e/mobile.spec.ts",
     "**/e2e/ui.spec.ts",
     "**/visual/*.spec.ts",
+    "**/e2e/upload-wizard.spec.ts",
   ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

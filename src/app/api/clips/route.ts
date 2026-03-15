@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
   const {
     video_url, duration_seconds, file_size_bytes, memo, tags,
     thumbnail_url, highlight_start, highlight_end,
+    // v1.3 렌더 파이프라인 필드
+    raw_key, skill_labels, custom_labels,
+    trim_start, trim_end, duration_sec,
+    spotlight_x, spotlight_y,
+    slowmo_start, slowmo_end, slowmo_speed,
+    bgm_id, effects,
+    status: reqStatus,
   } = body as {
     video_url: string;
     duration_seconds?: number;
@@ -46,6 +53,20 @@ export async function POST(req: NextRequest) {
     thumbnail_url?: string;
     highlight_start?: number;
     highlight_end?: number;
+    raw_key?: string;
+    skill_labels?: string[];
+    custom_labels?: string[];
+    trim_start?: number;
+    trim_end?: number;
+    duration_sec?: number;
+    spotlight_x?: number;
+    spotlight_y?: number;
+    slowmo_start?: number;
+    slowmo_end?: number;
+    slowmo_speed?: number;
+    bgm_id?: string;
+    effects?: Record<string, boolean>;
+    status?: string;
   };
 
   // Always use server-generated ID — ignore any client-supplied id/clip_id
@@ -61,6 +82,7 @@ export async function POST(req: NextRequest) {
   );
 
   // Insert clip
+  const isRenderPipeline = !!raw_key;
   const { data: clip, error } = await supabase
     .from("clips")
     .insert({
@@ -74,7 +96,21 @@ export async function POST(req: NextRequest) {
       thumbnail_url: thumbnail_url ?? null,
       highlight_start: highlight_start ?? 0,
       highlight_end: highlight_end ?? Math.min(duration_seconds ?? 30, 30),
-      highlight_status: "done",
+      highlight_status: isRenderPipeline ? "processing" : "done",
+      // v1.3 렌더 파이프라인 필드
+      ...(raw_key && { raw_key }),
+      ...(skill_labels && { skill_labels }),
+      ...(custom_labels && { custom_labels }),
+      ...(trim_start !== undefined && { trim_start }),
+      ...(trim_end !== undefined && { trim_end }),
+      ...(duration_sec !== undefined && { duration_sec }),
+      ...(spotlight_x !== undefined && { spotlight_x }),
+      ...(spotlight_y !== undefined && { spotlight_y }),
+      ...(slowmo_start !== undefined && { slowmo_start }),
+      ...(slowmo_end !== undefined && { slowmo_end }),
+      ...(slowmo_speed !== undefined && { slowmo_speed }),
+      ...(bgm_id && { bgm_id }),
+      ...(effects && { effects }),
     })
     .select()
     .single();

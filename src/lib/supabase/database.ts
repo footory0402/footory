@@ -119,6 +119,22 @@ export interface Database {
           highlight_start: number | null;
           highlight_end: number | null;
           created_at: string;
+          // v1.3 렌더 파이프라인
+          raw_key: string | null;
+          rendered_url: string | null;
+          render_job_id: string | null;
+          skill_labels: string[];
+          custom_labels: string[];
+          trim_start: number | null;
+          trim_end: number | null;
+          duration_sec: number | null;
+          spotlight_x: number | null;
+          spotlight_y: number | null;
+          slowmo_start: number | null;
+          slowmo_end: number | null;
+          slowmo_speed: number | null;
+          bgm_id: string | null;
+          effects: Json;
         };
         Insert: {
           id?: string;
@@ -134,6 +150,21 @@ export interface Database {
           highlight_start?: number | null;
           highlight_end?: number | null;
           created_at?: string;
+          raw_key?: string | null;
+          rendered_url?: string | null;
+          render_job_id?: string | null;
+          skill_labels?: string[];
+          custom_labels?: string[];
+          trim_start?: number | null;
+          trim_end?: number | null;
+          duration_sec?: number | null;
+          spotlight_x?: number | null;
+          spotlight_y?: number | null;
+          slowmo_start?: number | null;
+          slowmo_end?: number | null;
+          slowmo_speed?: number | null;
+          bgm_id?: string | null;
+          effects?: Json;
         };
         Update: {
           owner_id?: string;
@@ -147,6 +178,21 @@ export interface Database {
           highlight_status?: "pending" | "processing" | "done" | "failed";
           highlight_start?: number | null;
           highlight_end?: number | null;
+          raw_key?: string | null;
+          rendered_url?: string | null;
+          render_job_id?: string | null;
+          skill_labels?: string[];
+          custom_labels?: string[];
+          trim_start?: number | null;
+          trim_end?: number | null;
+          duration_sec?: number | null;
+          spotlight_x?: number | null;
+          spotlight_y?: number | null;
+          slowmo_start?: number | null;
+          slowmo_end?: number | null;
+          slowmo_speed?: number | null;
+          bgm_id?: string | null;
+          effects?: Json;
         };
         Relationships: [];
       };
@@ -1049,6 +1095,141 @@ export interface Database {
           private_note?: string | null;
           rating?: "good" | "great" | "excellent";
           hidden_by_owner?: boolean;
+        };
+        Relationships: [];
+      };
+      render_jobs: {
+        Row: {
+          id: string;
+          clip_id: string;
+          owner_id: string;
+          status: "queued" | "processing" | "done" | "failed";
+          progress: number;
+          error: string | null;
+          retry_count: number;
+          input_key: string;
+          output_key: string | null;
+          params: Json;
+          started_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          clip_id: string;
+          owner_id: string;
+          status?: "queued" | "processing" | "done" | "failed";
+          progress?: number;
+          error?: string | null;
+          retry_count?: number;
+          input_key: string;
+          output_key?: string | null;
+          params?: Json;
+          started_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: "queued" | "processing" | "done" | "failed";
+          progress?: number;
+          error?: string | null;
+          retry_count?: number;
+          output_key?: string | null;
+          params?: Json;
+          started_at?: string | null;
+          completed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      skill_labels: {
+        Row: {
+          id: string;
+          label_ko: string;
+          category: "common" | "attack" | "defense" | "gk";
+          sort_order: number;
+        };
+        Insert: {
+          id: string;
+          label_ko: string;
+          category: "common" | "attack" | "defense" | "gk";
+          sort_order?: number;
+        };
+        Update: {
+          label_ko?: string;
+          category?: "common" | "attack" | "defense" | "gk";
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      bgm_tracks: {
+        Row: {
+          id: string;
+          title: string;
+          artist: string | null;
+          category: "epic" | "chill" | "hype" | "cinematic";
+          r2_key: string;
+          duration_sec: number;
+          bpm: number | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          artist?: string | null;
+          category: "epic" | "chill" | "hype" | "cinematic";
+          r2_key: string;
+          duration_sec: number;
+          bpm?: number | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          artist?: string | null;
+          category?: "epic" | "chill" | "hype" | "cinematic";
+          r2_key?: string;
+          duration_sec?: number;
+          bpm?: number | null;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
+      highlights: {
+        Row: {
+          id: string;
+          owner_id: string;
+          title: string | null;
+          clip_ids: string[];
+          render_job_id: string | null;
+          rendered_url: string | null;
+          thumbnail_url: string | null;
+          duration_sec: number | null;
+          status: "draft" | "rendering" | "done" | "failed";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          title?: string | null;
+          clip_ids?: string[];
+          render_job_id?: string | null;
+          rendered_url?: string | null;
+          thumbnail_url?: string | null;
+          duration_sec?: number | null;
+          status?: "draft" | "rendering" | "done" | "failed";
+          created_at?: string;
+        };
+        Update: {
+          title?: string | null;
+          clip_ids?: string[];
+          render_job_id?: string | null;
+          rendered_url?: string | null;
+          thumbnail_url?: string | null;
+          duration_sec?: number | null;
+          status?: "draft" | "rendering" | "done" | "failed";
         };
         Relationships: [];
       };

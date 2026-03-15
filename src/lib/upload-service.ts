@@ -219,3 +219,145 @@ export async function startUpload() {
     store.setStatus("error");
   }
 }
+
+/**
+ * v1.3 서버 렌더 파이프라인 업로드
+ * 원본 영상 R2 업로드 → 메타데이터 DB 저장 → /api/render 호출 → Realtime 완료 대기
+ */
+export async function startRenderUpload() {
+  const store = useUploadStore.getState();
+  if (!store.file || store.status !== "idle") return;
+
+  try {
+    store.setStatus("uploading_raw");
+    store.setProgress(0);
+
+    const fileContentType = resolveContentType(store.file);
+
+    // 1. presigned URL 가져오기
+    const presignRes = await fetch("/api/upload/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentType: fileContentType }),
+    });
+    if (!presignRes.ok) {
+      const errBody = await presignRes.json().catch(() => ({}));
+      throw new Error(errBody.error ?? `Presign 요청 실패 (${presignRes.status})`);
+    }
+    const { url, key, clipId } = await presignRes.json();
+    store.setClipId(clipId);
+
+    // 2. 원본 영상 R2 업로드
+    await uploadToR2(url, store.file, key, fileContentType, (pct) =>
+      store.setProgress(pct)
+    );
+    store.setProgress(90);
+
+    // 3. 썸네일 생성 + 업로드
+    store.setStatus("thumbnail");
+    store.setProgress(92);
+
+    const duration = await getFileDuration(store.file);
+    let thumbnailUrl: string | null = null;
+
+    const thumbBlob = await captureVideoThumbnail(store.file);
+    if (thumbBlob) {
+      const thumbPresign = await fetch("/api/upload/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "thumbnail", clipId }),
+      });
+      if (thumbPresign.ok) {
+        const { url: thumbUrl, key: thumbKey } = await thumbPresign.json();
+        try {
+          const thumbRes = await fetch(thumbUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
+            body: thumbBlob,
+          });
+          if (!thumbRes.ok) throw new Error("thumb presign fail");
+        } catch {
+          await uploadViaProxy(thumbBlob, thumbKey, "image/jpeg");
+        }
+        thumbnailUrl = getPublicVideoUrl(thumbKey);
+      }
+    }
+
+    // 4. 클립 메타데이터 저장
+    store.setStatus("saving");
+    store.setProgress(95);
+
+    const videoUrl = getPublicVideoUrl(key);
+    const clipRes = await fetch("/api/clips", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clip_id: clipId,
+        video_url: videoUrl,
+        duration_seconds: duration || null,
+        file_size_bytes: store.file.size,
+        memo: store.memo || null,
+        tags: store.tags,
+        thumbnail_url: thumbnailUrl,
+        highlight_start: store.trimStart,
+        highlight_end: store.trimEnd ?? Math.min(duration || 30, 30),
+        skill_labels: store.skillLabels,
+        custom_labels: store.customLabels,
+        trim_start: store.trimStart,
+        trim_end: store.trimEnd,
+        spotlight_x: store.spotlightX,
+        spotlight_y: store.spotlightY,
+        slowmo_start: store.slowmoStart,
+        slowmo_end: store.slowmoEnd,
+        slowmo_speed: store.slowmoSpeed,
+        bgm_id: store.bgmId,
+        effects: store.effects,
+      }),
+    });
+
+    if (!clipRes.ok) {
+      const errBody = await clipRes.json().catch(() => ({}));
+      throw new Error(errBody.error ?? `클립 저장 실패 (${clipRes.status})`);
+    }
+
+    // 5. 렌더 API 호출 → Container FFmpeg 렌더 시작
+    store.setStatus("rendering");
+    store.setProgress(0);
+
+    const renderRes = await fetch("/api/render", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clipId,
+        inputKey: key,
+        params: {
+          trimStart: store.trimStart,
+          trimEnd: store.trimEnd,
+          spotlightX: store.spotlightX,
+          spotlightY: store.spotlightY,
+          skillLabels: store.skillLabels,
+          customLabels: store.customLabels,
+          slowmoStart: store.slowmoStart,
+          slowmoEnd: store.slowmoEnd,
+          slowmoSpeed: store.slowmoSpeed,
+          bgmId: store.bgmId,
+          effects: store.effects,
+        },
+      }),
+    });
+
+    if (!renderRes.ok) {
+      const errBody = await renderRes.json().catch(() => ({}));
+      throw new Error(errBody.error ?? `렌더 요청 실패 (${renderRes.status})`);
+    }
+
+    const { job } = await renderRes.json();
+    store.setRenderJobId(job.id);
+
+    // Realtime 구독으로 진행률 추적 → upload/page.tsx의 RenderProgress가 처리
+    // rendering 상태로 유지 (done 전환은 RenderProgress onComplete에서)
+  } catch (e) {
+    store.setError(e instanceof Error ? e.message : "업로드 실패");
+    store.setStatus("error");
+  }
+}

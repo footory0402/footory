@@ -1,0 +1,45 @@
+{
+  "name": "footory-render",
+  "account_id": "b90125488ac07b9df2e55208ae4d7499",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // R2 바인딩
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "footory-videos"
+    }
+  ],
+
+  // Container (Durable Object) 바인딩
+  "containers": [
+    {
+      "class_name": "RenderContainer",
+      "image": "./src/container/Dockerfile",
+      "max_instances": 3
+    }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RENDER_CONTAINER",
+        "class_name": "RenderContainer"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RenderContainer"]
+    }
+  ],
+
+  // 환경변수 (wrangler secret으로 설정)
+  "vars": {
+    "ENVIRONMENT": "production"
+  }
+}
