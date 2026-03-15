@@ -99,7 +99,7 @@ const initial = {
   slowmoEnd: null as number | null,
   slowmoSpeed: 0.5,
   bgmId: null as string | null,
-  effects: { color: true, cinematic: true, eafc: true, intro: true },
+  effects: { color: false, cinematic: false, eafc: false, intro: false },
   renderJobId: null as string | null,
 };
 

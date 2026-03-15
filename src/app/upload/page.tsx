@@ -18,9 +18,9 @@ import BgmPicker from "@/components/video/BgmPicker";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const STEPS = [
-  { id: 1, label: "트리밍" },
-  { id: 2, label: "주인공" },
-  { id: 3, label: "슬로모" },
+  { id: 1, label: "구간 자르기" },
+  { id: 2, label: "나 찾기" },
+  { id: 3, label: "느린 재생" },
   { id: 4, label: "태그" },
   { id: 5, label: "확인" },
 ];
@@ -112,6 +112,19 @@ export default function UploadPage() {
         jobId={store.renderJobId}
         onComplete={handleRenderComplete}
         onError={handleRenderError}
+        onRetry={() => {
+          store.setStatus("idle");
+          store.setError(null);
+          store.setProgress(0);
+          store.setRenderJobId(null);
+          startRenderUpload();
+        }}
+        onBackToEdit={() => {
+          store.setStatus("idle");
+          store.setError(null);
+          store.setProgress(0);
+          store.setRenderJobId(null);
+        }}
       />
     );
   }
@@ -131,7 +144,7 @@ export default function UploadPage() {
             {store.status === "uploading_raw" || store.status === "uploading"
               ? "영상 업로드 중..."
               : store.status === "thumbnail"
-                ? "썸네일 생성 중..."
+                ? "대표 이미지 만드는 중..."
                 : "저장 중..."}
           </p>
           <div className="w-full">
@@ -157,7 +170,7 @@ export default function UploadPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => (step > 0 ? handleBack() : router.back())}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
             <svg
               width="20"
@@ -248,7 +261,7 @@ export default function UploadPage() {
         {step === 2 && store.file && (
           <div className="animate-fade-up">
             <h2 className="mb-3 text-[15px] font-semibold text-text-1">
-              주인공 표시
+              나 찾기
             </h2>
             <SpotlightPicker
               file={store.file}
@@ -263,7 +276,7 @@ export default function UploadPage() {
         {step === 3 && (
           <div className="animate-fade-up">
             <h2 className="mb-3 text-[15px] font-semibold text-text-1">
-              슬로모션 리플레이
+              느린 재생
             </h2>
             <SlowmoPicker
               trimStart={store.trimStart}
@@ -334,21 +347,45 @@ export default function UploadPage() {
 
         {/* Error state */}
         {store.status === "error" && (
-          <div className="flex flex-col items-center gap-3 rounded-xl bg-red/10 px-4 py-4">
-            <p className="text-sm text-red">
-              {store.error ?? "업로드에 실패했습니다."}
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-red-400/20 bg-red-400/5 px-5 py-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-400/10">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <p className="text-center text-[14px] font-medium text-text-1">
+              {getErrorMessage(store.error)}
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                store.setStatus("idle");
-                store.setError(null);
-                store.setProgress(0);
-              }}
-              className="rounded-lg bg-accent px-5 py-2 text-[13px] font-semibold text-bg"
-            >
-              다시 시도
-            </button>
+            <p className="text-center text-[12px] text-text-3">
+              {getErrorHint(store.error)}
+            </p>
+            <div className="flex w-full gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  store.setStatus("idle");
+                  store.setError(null);
+                  store.setProgress(0);
+                  store.setStep(store.step > 0 ? store.step : 0);
+                }}
+                className="flex-1 rounded-xl border border-white/[0.08] bg-card py-3 text-[13px] font-semibold text-text-2 active:scale-[0.99]"
+              >
+                편집으로 돌아가기
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  store.setStatus("idle");
+                  store.setError(null);
+                  store.setProgress(0);
+                }}
+                className="flex-1 rounded-xl bg-accent py-3 text-[13px] font-bold text-bg active:scale-[0.99]"
+              >
+                다시 시도
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -393,11 +430,11 @@ function UploadSummary() {
     <div className="flex flex-col gap-3">
       <SummaryRow label="구간" value={`${formatTime(store.trimStart)} ~ ${formatTime(store.trimEnd ?? 0)}`} />
       <SummaryRow
-        label="주인공"
+        label="나 찾기"
         value={store.spotlightX !== null ? "설정됨" : "건너뜀"}
       />
       <SummaryRow
-        label="슬로모"
+        label="느린 재생"
         value={store.slowmoStart !== null ? "설정됨" : "건너뜀"}
       />
       <SummaryRow
@@ -418,8 +455,8 @@ function UploadSummary() {
 
 const EFFECT_LABELS: Record<string, string> = {
   color: "색보정",
-  cinematic: "시네마틱 바",
-  eafc: "EA FC 카드",
+  cinematic: "영화 느낌 바",
+  eafc: "선수 카드 효과",
   intro: "인트로",
 };
 
@@ -436,6 +473,29 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/* ── Error message helpers ── */
+function getErrorMessage(error: string | null): string {
+  if (!error) return "업로드에 실패했어요.";
+  if (error.includes("네트워크") || error.includes("network"))
+    return "인터넷 연결이 불안정해요.";
+  if (error.includes("Presign") || error.includes("CORS") || error.includes("R2"))
+    return "서버 연결에 문제가 있어요.";
+  if (error.includes("클립 저장") || error.includes("렌더"))
+    return "영상 처리에 실패했어요.";
+  return error;
+}
+
+function getErrorHint(error: string | null): string {
+  if (!error) return "잠시 후 다시 시도해주세요.";
+  if (error.includes("네트워크") || error.includes("network"))
+    return "Wi-Fi 또는 데이터 연결을 확인해주세요.";
+  if (error.includes("CORS") || error.includes("R2"))
+    return "관리자에게 문의해주세요.";
+  if (error.includes("렌더"))
+    return "편집으로 돌아가서 설정을 변경해보세요.";
+  return "잠시 후 다시 시도해주세요.";
 }
 
 /* ── Upload Usage Guide Banner ── */

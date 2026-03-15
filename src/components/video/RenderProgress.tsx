@@ -7,19 +7,23 @@ interface RenderProgressProps {
   jobId: string | null;
   onComplete?: (outputKey: string) => void;
   onError?: (error: string) => void;
+  onRetry?: () => void;
+  onBackToEdit?: () => void;
 }
 
 const STATUS_TEXT: Record<RenderJobStatus, string> = {
   queued: "대기 중...",
-  processing: "영상을 렌더링하고 있어요",
+  processing: "영상을 처리하고 있어요",
   done: "완료!",
-  failed: "렌더링 실패",
+  failed: "영상 처리에 실패했어요",
 };
 
 export default function RenderProgress({
   jobId,
   onComplete,
   onError,
+  onRetry,
+  onBackToEdit,
 }: RenderProgressProps) {
   const { job } = useRenderJob(jobId);
   const calledRef = useRef(false);
@@ -98,9 +102,36 @@ export default function RenderProgress({
           </div>
         )}
 
-        {/* 실패 시 에러 메시지 */}
-        {isFailed && job.error && (
-          <p className="text-center text-[12px] text-red-400">{job.error}</p>
+        {/* 실패 시 에러 메시지 + 액션 버튼 */}
+        {isFailed && (
+          <>
+            {job.error && (
+              <p className="text-center text-[12px] text-red-400">{job.error}</p>
+            )}
+            <p className="text-center text-[11px] text-text-3">
+              잠시 후 다시 시도하거나, 편집 설정을 변경해보세요
+            </p>
+            <div className="flex w-full gap-2">
+              {onBackToEdit && (
+                <button
+                  type="button"
+                  onClick={onBackToEdit}
+                  className="flex-1 rounded-xl border border-white/[0.08] bg-[#1E1E22] py-2.5 text-[13px] font-semibold text-text-2 active:scale-[0.99]"
+                >
+                  편집으로 돌아가기
+                </button>
+              )}
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="flex-1 rounded-xl bg-accent py-2.5 text-[13px] font-bold text-bg active:scale-[0.99]"
+                >
+                  다시 시도
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useProfileContext } from "@/providers/ProfileProvider";
+import { useUploadStore } from "@/stores/upload-store";
 
 interface SpotlightPickerProps {
   file: File;
@@ -17,6 +18,8 @@ export default function SpotlightPicker({
   onSpotlightChange,
 }: SpotlightPickerProps) {
   const { profile } = useProfileContext();
+  const isParent = useUploadStore((s) => s.context === "parent");
+  const childName = useUploadStore((s) => s.childName);
   const containerRef = useRef<HTMLDivElement>(null);
   const [frameUrl, setFrameUrl] = useState<string>("");
   const [point, setPoint] = useState<{ x: number; y: number } | null>(
@@ -123,8 +126,12 @@ export default function SpotlightPicker({
       <div className="flex items-center justify-between px-1">
         <p className="text-[12px] text-text-3">
           {point
-            ? "영상 속 내 위치가 표시됩니다"
-            : "영상에서 나를 터치해주세요"}
+            ? isParent
+              ? `영상 속 ${childName ?? "아이"}의 위치가 표시됩니다`
+              : "영상 속 내 위치가 표시됩니다"
+            : isParent
+              ? `영상에서 ${childName ?? "아이"}를 터치해주세요`
+              : "영상에서 나를 터치해주세요"}
         </p>
         {point && (
           <button

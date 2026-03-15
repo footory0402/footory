@@ -18,9 +18,9 @@ interface SlowmoPickerProps {
 const MIN_SLOWMO = 2;
 const MAX_SLOWMO = 10;
 const SPEEDS = [
-  { value: 0.5, label: "0.5x" },
-  { value: 0.3, label: "0.3x" },
-  { value: 0.25, label: "0.25x" },
+  { value: 0.5, label: "0.5x", displayLabel: "느리게" },
+  { value: 0.3, label: "0.3x", displayLabel: "더 느리게" },
+  { value: 0.25, label: "0.25x", displayLabel: "초슬로" },
 ];
 
 export default function SlowmoPicker({
@@ -126,20 +126,26 @@ export default function SlowmoPicker({
 
           {/* 왼쪽 핸들 */}
           <div
-            className="absolute inset-y-0 w-5 -translate-x-1/2 cursor-ew-resize touch-none"
+            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none"
             style={{ left: `${startPct}%` }}
             onPointerDown={handlePointerDown("start")}
           >
-            <div className="mx-auto h-full w-1 rounded-full bg-[#7F77DD]" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="h-6 w-6 rounded-full border-2 border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)] transition-transform active:scale-125" />
+            </div>
+            <div className="mx-auto h-full w-0.5 rounded-full bg-[#7F77DD]" />
           </div>
 
           {/* 오른쪽 핸들 */}
           <div
-            className="absolute inset-y-0 w-5 -translate-x-1/2 cursor-ew-resize touch-none"
+            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none"
             style={{ left: `${endPct}%` }}
             onPointerDown={handlePointerDown("end")}
           >
-            <div className="mx-auto h-full w-1 rounded-full bg-[#7F77DD]" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="h-6 w-6 rounded-full border-2 border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)] transition-transform active:scale-125" />
+            </div>
+            <div className="mx-auto h-full w-0.5 rounded-full bg-[#7F77DD]" />
           </div>
         </div>
 
@@ -168,7 +174,8 @@ export default function SlowmoPicker({
                   : "border-[#2a2a2e] bg-[#161618] text-text-2"
               }`}
             >
-              {s.label}
+              <span className="block text-[14px]">{s.displayLabel}</span>
+              <span className="block text-[11px] opacity-60">{s.label}</span>
             </button>
           ))}
         </div>
@@ -177,7 +184,7 @@ export default function SlowmoPicker({
       {/* 안내 + 초기화 */}
       <div className="flex items-center justify-between px-1">
         <p className="text-[12px] text-text-3">
-          슬로모션 구간: 2초~10초
+          느린 재생 구간: 2초~10초
         </p>
         <button
           type="button"

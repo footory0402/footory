@@ -163,20 +163,26 @@ export default function VideoTrimmer({
 
           {/* 왼쪽 핸들 */}
           <div
-            className="absolute inset-y-0 w-5 -translate-x-1/2 cursor-ew-resize touch-none"
+            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none"
             style={{ left: `${startPct}%` }}
             onPointerDown={handlePointerDown("start")}
           >
-            <div className="mx-auto h-full w-1 rounded-full bg-accent" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="h-6 w-6 rounded-full border-2 border-accent bg-accent/20 shadow-[0_0_8px_rgba(212,168,83,0.3)] transition-transform active:scale-125" />
+            </div>
+            <div className="mx-auto h-full w-0.5 rounded-full bg-accent" />
           </div>
 
           {/* 오른쪽 핸들 */}
           <div
-            className="absolute inset-y-0 w-5 -translate-x-1/2 cursor-ew-resize touch-none"
+            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none"
             style={{ left: `${endPct}%` }}
             onPointerDown={handlePointerDown("end")}
           >
-            <div className="mx-auto h-full w-1 rounded-full bg-accent" />
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="h-6 w-6 rounded-full border-2 border-accent bg-accent/20 shadow-[0_0_8px_rgba(212,168,83,0.3)] transition-transform active:scale-125" />
+            </div>
+            <div className="mx-auto h-full w-0.5 rounded-full bg-accent" />
           </div>
         </div>
 
@@ -190,9 +196,47 @@ export default function VideoTrimmer({
         </div>
       </div>
 
+      {/* 미세 조정 버튼 */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setTrimStart(Math.max(0, trimStart - 1))}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-card text-[12px] font-semibold text-text-2 active:bg-card-alt"
+          >
+            -1s
+          </button>
+          <span className="px-1 text-[11px] text-text-3">시작</span>
+          <button
+            type="button"
+            onClick={() => setTrimStart(Math.min(trimEnd - 3, trimStart + 1))}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-card text-[12px] font-semibold text-text-2 active:bg-card-alt"
+          >
+            +1s
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setTrimEnd(Math.max(trimStart + 3, trimEnd - 1))}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-card text-[12px] font-semibold text-text-2 active:bg-card-alt"
+          >
+            -1s
+          </button>
+          <span className="px-1 text-[11px] text-text-3">끝</span>
+          <button
+            type="button"
+            onClick={() => setTrimEnd(Math.min(duration, trimEnd + 1))}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-card text-[12px] font-semibold text-text-2 active:bg-card-alt"
+          >
+            +1s
+          </button>
+        </div>
+      </div>
+
       {/* 가이드 */}
       <p className="text-center text-[12px] text-text-3">
-        양쪽 핸들을 드래그하여 구간을 선택하세요 (3초~60초)
+        핸들을 드래그하거나 버튼으로 구간을 조정하세요 (3초~60초)
       </p>
     </div>
   );
