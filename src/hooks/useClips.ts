@@ -76,7 +76,36 @@ export function useClips() {
     return res.ok;
   }, []);
 
-  return { clips, loading, error, fetchClips, deleteClip };
+  const updateClip = useCallback(
+    async (
+      clipId: string,
+      updates: { tags?: string[]; memo?: string | null; skill_labels?: string[]; custom_labels?: string[] }
+    ) => {
+      const res = await fetch(`/api/clips/${clipId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        // Optimistic update for memo
+        if ("memo" in updates) {
+          setClips((prev) =>
+            prev.map((c) => (c.id === clipId ? { ...c, memo: updates.memo ?? null } : c))
+          );
+        }
+        // Optimistic update for tags
+        if ("tags" in updates && updates.tags) {
+          setClips((prev) =>
+            prev.map((c) => (c.id === clipId ? { ...c, tags: updates.tags! } : c))
+          );
+        }
+      }
+      return res.ok;
+    },
+    []
+  );
+
+  return { clips, loading, error, fetchClips, deleteClip, updateClip };
 }
 
 interface FeaturedClip {

@@ -47,23 +47,55 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const tags: string[] = (body.tags ?? []).filter((t: string) => VALID_TAGS.includes(t));
 
-  // Delete existing tags
-  await supabase.from("clip_tags").delete().eq("clip_id", id);
-
-  // Insert new tags
-  if (tags.length > 0) {
-    const tagRows = tags.map((tag_name: string, i: number) => ({
-      clip_id: id,
-      tag_name,
-      is_top: i === 0,
-    }));
-    const { error } = await supabase.from("clip_tags").insert(tagRows);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Update memo if provided
+  if ("memo" in body) {
+    const memo = typeof body.memo === "string" ? body.memo.slice(0, 200) : null;
+    const { error: memoErr } = await supabase
+      .from("clips")
+      .update({ memo })
+      .eq("id", id);
+    if (memoErr) return NextResponse.json({ error: memoErr.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, tags });
+  // Update skill_labels / custom_labels if provided
+  if ("skill_labels" in body || "custom_labels" in body) {
+    const updates: Record<string, unknown> = {};
+    if ("skill_labels" in body) {
+      updates.skill_labels = Array.isArray(body.skill_labels)
+        ? body.skill_labels.slice(0, 3)
+        : [];
+    }
+    if ("custom_labels" in body) {
+      updates.custom_labels = Array.isArray(body.custom_labels)
+        ? body.custom_labels.slice(0, 2).map((l: string) => String(l).slice(0, 10))
+        : [];
+    }
+    if (Object.keys(updates).length > 0) {
+      await supabase.from("clips").update(updates).eq("id", id);
+    }
+  }
+
+  // Update tags if provided
+  if ("tags" in body) {
+    const tags: string[] = (body.tags ?? []).filter((t: string) => VALID_TAGS.includes(t));
+
+    // Delete existing tags
+    await supabase.from("clip_tags").delete().eq("clip_id", id);
+
+    // Insert new tags
+    if (tags.length > 0) {
+      const tagRows = tags.map((tag_name: string, i: number) => ({
+        clip_id: id,
+        tag_name,
+        is_top: i === 0,
+      }));
+      const { error } = await supabase.from("clip_tags").insert(tagRows);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ success: true });
 }
 
 export async function DELETE(

@@ -176,6 +176,24 @@ export default function UploadComplete() {
             >
               하나 더 올리기
             </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                const clipId = useUploadStore.getState().clipId;
+                if (!clipId) return;
+                const ok = confirm("이 영상을 삭제할까요? 삭제하면 복구할 수 없습니다.");
+                if (!ok) return;
+                const res = await fetch(`/api/clips/${clipId}`, { method: "DELETE" });
+                if (res.ok) {
+                  reset();
+                  router.push("/profile");
+                }
+              }}
+              className="py-1 text-[12px] text-red-400/60 transition-colors active:text-red-400"
+            >
+              이 영상 삭제하기
+            </button>
           </div>
         </div>
       </div>
