@@ -2,21 +2,32 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isPocAdminUser } from "@/lib/poc-admin";
+import { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } from "@/lib/server/feed";
+import { fetchLinkedChildren, fetchParentDashboard } from "@/lib/server/parent-home";
+import { fetchScoutHomeData } from "@/lib/server/scout-home";
 import ChildDashboard from "@/components/parent/ChildDashboard";
 import ScoutHome from "@/components/scout/ScoutHome";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import HomePlayerView from "@/components/home/HomePlayerView";
+import ProfileHydrator from "@/components/layout/ProfileHydrator";
+
+/* ── Full profile select (same as /api/profile — fetched once, shared) ── */
+const PROFILE_SELECT =
+  "id, handle, name, position, birth_year, city, bio, avatar_url, role, followers_count, following_count, views_count, public_email, public_phone, show_email, show_phone, created_at, mvp_count, mvp_tier, is_verified, height_cm, weight_kg, preferred_foot" as const;
 
 /* ── Async server components (heavy data fetch, streamed via Suspense) ── */
 
-async function PlayerHome({ userId }: { userId: string }) {
-  const { fetchFeedPage, fetchMvpLeader, hasUserUploadedClips } = await import(
-    "@/lib/server/feed"
-  );
-
-  const supabase = await createClient();
+async function PlayerHome({
+  supabase,
+  userId,
+  profileHint,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+  profileHint: { city: string | null; birth_year: number | null; position: string | null };
+}) {
   const [feedData, hasClips, mvpLeader] = await Promise.all([
-    fetchFeedPage(supabase, userId),
+    fetchFeedPage(supabase, userId, null, profileHint),
     hasUserUploadedClips(supabase, userId),
     fetchMvpLeader(supabase),
   ]);
@@ -34,12 +45,15 @@ async function PlayerHome({ userId }: { userId: string }) {
   );
 }
 
-async function ParentDashboardServer({ userId, name }: { userId: string; name: string }) {
-  const { fetchLinkedChildren, fetchParentDashboard } = await import(
-    "@/lib/server/parent-home"
-  );
-
-  const supabase = await createClient();
+async function ParentDashboardServer({
+  supabase,
+  userId,
+  name,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+  name: string;
+}) {
   const initialChildren = await fetchLinkedChildren(supabase, userId);
   const initialSelectedChildId = initialChildren[0]?.childId ?? null;
   const initialDashboard = initialSelectedChildId
@@ -56,16 +70,16 @@ async function ParentDashboardServer({ userId, name }: { userId: string; name: s
   );
 }
 
-async function ScoutHomeServer({ userId, isVerified }: { userId: string; isVerified: boolean }) {
-  const { fetchScoutHomeData } = await import("@/lib/server/scout-home");
-
-  const supabase = await createClient();
-  const initialData = await fetchScoutHomeData(
-    supabase,
-    userId,
-    isVerified // scout role already confirmed by caller
-  );
-
+async function ScoutHomeServer({
+  supabase,
+  userId,
+  isVerified,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+  isVerified: boolean;
+}) {
+  const initialData = await fetchScoutHomeData(supabase, userId, isVerified);
   return <ScoutHome initialData={initialData} />;
 }
 
@@ -108,20 +122,6 @@ function PlayerFeedSkeleton() {
   );
 }
 
-function DashboardSkeleton() {
-  return (
-    <div className="px-4 pt-4 animate-pulse">
-      <div className="h-10 w-40 rounded bg-card-alt mb-4" />
-      <div className="rounded-xl bg-card p-4 mb-4">
-        <div className="h-20 rounded bg-card-alt" />
-      </div>
-      <div className="rounded-xl bg-card p-4">
-        <div className="h-32 rounded bg-card-alt" />
-      </div>
-    </div>
-  );
-}
-
 /* ── Role resolver (runs inside Suspense → skeleton shows instantly) ── */
 
 async function HomeContent() {
@@ -134,25 +134,77 @@ async function HomeContent() {
   const user = session.user;
   if (isPocAdminUser(user)) redirect("/admin/video-lab");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, name, is_verified")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Full profile + team 동시 조회 (클라이언트 /api/profile 호출 제거)
+  const [profileResult, teamResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(PROFILE_SELECT)
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("team_members")
+      .select("team_id, teams(name)")
+      .eq("profile_id", user.id)
+      .neq("role", "alumni")
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (!profile) redirect("/onboarding");
+  if (!profileResult.data) redirect("/onboarding");
+  const profile = profileResult.data;
+  const role = profile.role as string;
 
-  const role = profile?.role;
+  const teamData = teamResult.data as unknown as {
+    team_id: string;
+    teams: { name: string };
+  } | null;
+  const profilePayload = {
+    ...profile,
+    teamName: teamData?.teams?.name ?? null,
+    teamId: teamData?.team_id ?? null,
+  };
 
   if (role === "parent") {
-    return <ParentDashboardServer userId={user.id} name={profile?.name ?? "보호자"} />;
+    return (
+      <>
+        <ProfileHydrator data={profilePayload} />
+        <ParentDashboardServer
+          supabase={supabase}
+          userId={user.id}
+          name={profile.name ?? "보호자"}
+        />
+      </>
+    );
   }
 
   if (role === "scout") {
-    return <ScoutHomeServer userId={user.id} isVerified={profile?.is_verified ?? false} />;
+    return (
+      <>
+        <ProfileHydrator data={profilePayload} />
+        <ScoutHomeServer
+          supabase={supabase}
+          userId={user.id}
+          isVerified={profile.is_verified ?? false}
+        />
+      </>
+    );
   }
 
-  return <PlayerHome userId={user.id} />;
+  return (
+    <>
+      <ProfileHydrator data={profilePayload} />
+      <WelcomeModal />
+      <PlayerHome
+        supabase={supabase}
+        userId={user.id}
+        profileHint={{
+          city: profile.city ?? null,
+          birth_year: profile.birth_year ?? null,
+          position: profile.position ?? null,
+        }}
+      />
+    </>
+  );
 }
 
 /* ── Page (instant skeleton → stream content) ── */

@@ -33,14 +33,16 @@ interface FeedRow {
 
 /**
  * Fetch a page of feed items with recommendation algorithm.
+ * profileHint: 이미 가져온 프로필 데이터가 있으면 전달 → profiles 중복 쿼리 제거
  */
 export async function fetchFeedPage(
   supabase: SupabaseClient,
   userId: string,
-  cursor?: string | null
+  cursor?: string | null,
+  profileHint?: { city: string | null; birth_year: number | null; position: string | null }
 ): Promise<{ items: FeedItemEnriched[]; nextCursor: string | null }> {
   // 1. Build user context
-  const ctx = await buildUserContext(supabase, userId);
+  const ctx = await buildUserContext(supabase, userId, profileHint);
   const { followLimit, recommendLimit } = computeFeedSplit(
     FEED_PAGE_SIZE,
     ctx.followingIds.length
@@ -84,31 +86,41 @@ export async function fetchFeedPage(
 
 /**
  * Build user context for recommendation scoring.
+ * profileHint가 있으면 profiles 쿼리를 생략 (이미 HomeContent에서 가져온 데이터 재사용)
  */
 async function buildUserContext(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  profileHint?: { city: string | null; birth_year: number | null; position: string | null }
 ): Promise<UserContext> {
-  const [profileRes, followsRes, teamsRes, blocksRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("city, birth_year, position")
-      .eq("id", userId)
-      .single(),
-    supabase
-      .from("follows")
-      .select("following_id")
-      .eq("follower_id", userId),
-    supabase
-      .from("team_members")
-      .select("team_id")
-      .eq("profile_id", userId)
-      .in("role", ["admin", "member"]),
-    // G3: 차단 목록 조회 (내가 차단하거나 나를 차단한 사람)
-    supabase
-      .from("blocks")
-      .select("blocker_id, blocked_id")
-      .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`),
+  const followsQuery = supabase
+    .from("follows")
+    .select("following_id")
+    .eq("follower_id", userId);
+  const teamsQuery = supabase
+    .from("team_members")
+    .select("team_id")
+    .eq("profile_id", userId)
+    .in("role", ["admin", "member"]);
+  const blocksQuery = supabase
+    .from("blocks")
+    .select("blocker_id, blocked_id")
+    .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`);
+
+  // profileHint가 있으면 profiles 쿼리 생략 (4→3 쿼리)
+  const profileQuery = profileHint
+    ? null
+    : supabase
+        .from("profiles")
+        .select("city, birth_year, position")
+        .eq("id", userId)
+        .single();
+
+  const [followsRes, teamsRes, blocksRes, profileRes] = await Promise.all([
+    followsQuery,
+    teamsQuery,
+    blocksQuery,
+    profileQuery ?? Promise.resolve({ data: null }),
   ]);
 
   const blockedIds = new Set<string>();
@@ -116,13 +128,18 @@ async function buildUserContext(
     blockedIds.add(row.blocker_id === userId ? row.blocked_id : row.blocker_id);
   }
 
+  const pData = profileRes.data as { city: string | null; birth_year: number | null; position: string | null } | null;
+  const city = profileHint?.city ?? pData?.city ?? null;
+  const birthYear = profileHint?.birth_year ?? pData?.birth_year ?? null;
+  const position = profileHint?.position ?? pData?.position ?? null;
+
   return {
     userId,
     followingIds: (followsRes.data ?? []).map((f) => (f as { following_id: string }).following_id),
     teamIds: (teamsRes.data ?? []).map((t) => (t as { team_id: string }).team_id),
-    city: (profileRes.data as { city: string | null } | null)?.city ?? null,
-    birthYear: (profileRes.data as { birth_year: number | null } | null)?.birth_year ?? null,
-    position: (profileRes.data as { position: string | null } | null)?.position ?? null,
+    city,
+    birthYear,
+    position,
     blockedIds: [...blockedIds],
   };
 }

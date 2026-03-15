@@ -68,6 +68,7 @@ interface ProfileContextValue {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  hydrateProfile: (data: Record<string, unknown>) => void;
 }
 
 const ProfileContext = createContext<ProfileContextValue>({
@@ -75,12 +76,14 @@ const ProfileContext = createContext<ProfileContextValue>({
   loading: true,
   error: null,
   refetch: async () => {},
+  hydrateProfile: () => {},
 });
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hydratedRef = useRef(false);
   const fetchedRef = useRef(false);
 
   const fetchProfile = useCallback(async () => {
@@ -89,7 +92,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/profile");
       if (!res.ok) {
         if (res.status === 401) {
-          // 캐시된 HTML에서 로드됐지만 세션 만료 → 로그인으로 리다이렉트
           window.location.href = "/login";
           return;
         }
@@ -105,15 +107,31 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // 서버에서 가져온 프로필 데이터 주입 (ProfileHydrator에서 호출)
+  const hydrateProfile = useCallback((data: Record<string, unknown>) => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+    fetchedRef.current = true; // auto-fetch 방지
+    setProfile(toProfile(data as unknown as ProfileApiResponse));
+    setLoading(false);
+    setError(null);
+  }, []);
+
+  // 서버 hydration이 없는 페이지에서만 자동 fetch (예: /mvp, /discover)
   useEffect(() => {
     if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    void fetchProfile();
+    // 짧은 딜레이로 ProfileHydrator가 먼저 실행될 기회 부여
+    const timer = setTimeout(() => {
+      if (fetchedRef.current) return;
+      fetchedRef.current = true;
+      void fetchProfile();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchProfile]);
 
   const value = useMemo(
-    () => ({ profile, loading, error, refetch: fetchProfile }),
-    [profile, loading, error, fetchProfile]
+    () => ({ profile, loading, error, refetch: fetchProfile, hydrateProfile }),
+    [profile, loading, error, fetchProfile, hydrateProfile]
   );
 
   return (
