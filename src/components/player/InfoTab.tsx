@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
+
 import GrowthCard from "./GrowthCard";
 import RadarChart from "./RadarChart";
 import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId } from "@/lib/constants";
@@ -10,12 +10,11 @@ import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId } from "@/lib/
 const VIDEO_BASED_AXES = new Set<RadarStatId>(["passing", "defense"]);
 import { EMPTY_RADAR_STATS, calcRadarStatsFromFirstValues, type ClipTagCount } from "@/lib/radar-calc";
 import type { Stat } from "@/lib/types";
-import type { Profile, Season } from "@/lib/types";
+import type { Season } from "@/lib/types";
 
 interface InfoTabProps {
   stats: Stat[];
   seasons: Season[];
-  profile: Profile;
   percentiles?: Record<string, number>;
   radarStats?: Record<RadarStatId, number>;
   clipTagCounts?: ClipTagCount[];
@@ -28,7 +27,6 @@ interface InfoTabProps {
 export default function InfoTab({
   stats,
   seasons,
-  profile,
   percentiles,
   radarStats,
   clipTagCounts,
@@ -55,7 +53,7 @@ export default function InfoTab({
       <RadarSection radarStats={radar} hasData={hasRadarData} pastRadar={pastRadar} />
       <GrowthSection stats={stats} percentiles={percentiles} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
       {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
-      <TeamSection profile={profile} seasons={seasons} onAddSeason={onAddSeason} />
+      <PrevSeasonsSection seasons={seasons} onAddSeason={onAddSeason} />
     </div>
   );
 }
@@ -384,37 +382,28 @@ function fmtTimeSec(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-/* ── 소속 팀 섹션 ── */
-function TeamSection({
-  profile,
+/* ── 이전 소속 타임라인 섹션 ── */
+function PrevSeasonsSection({
   seasons,
   onAddSeason,
 }: {
-  profile: Profile;
   seasons: Season[];
   onAddSeason?: () => void;
 }) {
-  const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
   const prevSeasons = seasons.filter((s) => !s.isCurrent);
-
-  useEffect(() => {
-    if (!profile.teamId) return;
-    fetch(`/api/teams/${profile.teamId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data?.team?.logo_url) setTeamLogoUrl(data.team.logo_url); })
-      .catch(() => {});
-  }, [profile.teamId]);
+  if (prevSeasons.length === 0) return null;
 
   return (
-    <div>
+    <div id="prev-seasons">
       <SectionHeader
         icon={
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
             <circle cx="12" cy="12" r="10" />
-            <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
+            <polyline points="12 6 12 12 16 14" />
           </svg>
         }
-        title="소속 팀"
+        title="이전 소속"
+        count={prevSeasons.length}
         action={
           onAddSeason && (
             <button
@@ -430,116 +419,36 @@ function TeamSection({
         }
       />
 
-      {profile.teamName ? (
-        <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden">
-          {/* Current team */}
-          <div className="flex items-center gap-3 p-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 shrink-0 overflow-hidden">
-              {teamLogoUrl ? (
-                <img src={teamLogoUrl} alt={profile.teamName} className="h-full w-full object-cover rounded-xl" />
-              ) : (
-                <span className="text-[22px]">⚽</span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold text-text-1 truncate">{profile.teamName}</p>
-              <p className="text-[11px] text-accent font-semibold mt-0.5">현재 소속</p>
-            </div>
-            {profile.teamId && (
-              <Link
-                href={`/team/${profile.teamId}`}
-                className="shrink-0 rounded-lg bg-accent/10 px-3 py-1.5 text-[11px] font-bold text-accent transition-colors hover:bg-accent/20"
-              >
-                팀 보기
-              </Link>
-            )}
-          </div>
-
-          {/* Team actions: 내 팀 관리 + 새 팀으로 이동 */}
-          <div className="mx-4 h-px bg-white/[0.05]" />
-          <div className="flex gap-2 px-4 py-3">
-            <Link
-              href="/team"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/[0.05] py-2.5 text-[11px] font-bold text-text-2 transition-colors active:bg-white/[0.08]"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                <path d="M16 3.13a4 4 0 010 7.75" />
-              </svg>
-              내 팀 관리
-            </Link>
-            <Link
-              href="/team"
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/[0.05] py-2.5 text-[11px] font-bold text-text-2 transition-colors active:bg-white/[0.08]"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8l4 4-4 4" />
-                <path d="M2 12h20" />
-              </svg>
-              새 팀으로 이동
-            </Link>
-          </div>
-
-          {/* Previous seasons */}
-          {prevSeasons.length > 0 && (
-            <>
-              <div className="mx-4 h-px bg-white/[0.05]" />
-              <div className="px-4 py-3">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-text-3">이전 소속</p>
-                <div className="flex flex-col gap-0">
-                  {prevSeasons.map((s, i) => (
-                    <div key={s.id} className="relative flex items-start gap-3 pb-3">
-                      {/* Timeline dot + line */}
-                      <div className="flex flex-col items-center shrink-0 mt-1">
-                        <div className="h-2 w-2 rounded-full bg-white/20" />
-                        {i < prevSeasons.length - 1 && (
-                          <div className="w-px flex-1 bg-white/[0.06] mt-1" style={{ minHeight: 16 }} />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-[12px] font-semibold text-text-2 truncate">{s.teamName}</span>
-                          <span className="shrink-0 text-[11px] text-text-3 tabular-nums">{s.year}</span>
-                        </div>
-                        {(s.gamesPlayed != null || s.goals != null) && (
-                          <p className="mt-0.5 text-[11px] text-text-3">
-                            {s.gamesPlayed != null ? `${s.gamesPlayed}경기` : ""}
-                            {s.goals ? ` · ${s.goals}골` : ""}
-                            {s.assists ? ` · ${s.assists}어시` : ""}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+      <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden">
+        <div className="px-4 py-3">
+          <div className="flex flex-col gap-0">
+            {prevSeasons.map((s, i) => (
+              <div key={s.id} className="relative flex items-start gap-3 pb-3">
+                {/* Timeline dot + line */}
+                <div className="flex flex-col items-center shrink-0 mt-1">
+                  <div className="h-2 w-2 rounded-full bg-white/20" />
+                  {i < prevSeasons.length - 1 && (
+                    <div className="w-px flex-1 bg-white/[0.06] mt-1" style={{ minHeight: 16 }} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[12px] font-semibold text-text-2 truncate">{s.teamName}</span>
+                    <span className="shrink-0 text-[11px] text-text-3 tabular-nums">{s.year}</span>
+                  </div>
+                  {(s.gamesPlayed != null || s.goals != null) && (
+                    <p className="mt-0.5 text-[11px] text-text-3">
+                      {s.gamesPlayed != null ? `${s.gamesPlayed}경기` : ""}
+                      {s.goals ? ` · ${s.goals}골` : ""}
+                      {s.assists ? ` · ${s.assists}어시` : ""}
+                    </p>
+                  )}
                 </div>
               </div>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/[0.06] bg-card py-8 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.05]">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 00-3-3.87" />
-              <path d="M16 3.13a4 4 0 010 7.75" />
-            </svg>
+            ))}
           </div>
-          <div>
-            <p className="text-[13px] font-bold text-text-1 mb-1">아직 소속 팀이 없어요</p>
-            <p className="text-[11px] text-text-3 leading-relaxed">팀을 만들거나 초대코드로 가입해보세요</p>
-          </div>
-          <Link
-            href="/team"
-            className="mt-1 rounded-full bg-accent px-5 py-2 text-[12px] font-bold text-bg transition-colors hover:bg-accent/90 active:scale-95"
-          >
-            팀 만들기 · 가입하기
-          </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 }

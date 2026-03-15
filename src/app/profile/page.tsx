@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
+import TeamBanner from "@/components/player/TeamBanner";
 import HighlightsTab from "@/components/player/HighlightsTab";
 import ProfileSkeleton from "@/components/player/ProfileSkeleton";
 
@@ -55,6 +56,19 @@ export default function ProfilePage() {
       .then((d) => setPercentiles(d.percentiles ?? {}))
       .catch(() => {});
   }, [shouldLoadData]);
+
+  const clipTagCounts: ClipTagCount[] = useMemo(() => {
+    return Object.entries(tagClips)
+      .map(([, clips]) => {
+        const tagName = clips[0]?.tag ?? "";
+        return { tagName, count: clips.length };
+      })
+      .filter((tag) => tag.tagName);
+  }, [tagClips]);
+
+  const radarStats = useMemo(() => {
+    return calcRadarStats(stats, clipTagCounts, percentiles);
+  }, [stats, clipTagCounts, percentiles]);
 
   if (loading && !profile) return <ProfileSkeleton />;
 
@@ -146,23 +160,25 @@ export default function ProfilePage() {
     }));
   }
 
-  // Compute clip tag counts (shared between radar and InfoTab)
-  const clipTagCounts: ClipTagCount[] = useMemo(() => {
-    return Object.entries(tagClips).map(([, clips]) => {
-      const tagName = clips[0]?.tag ?? "";
-      return { tagName, count: clips.length };
-    }).filter((t) => t.tagName);
-  }, [tagClips]);
-
-  // Compute radar stats from measurements + clip tags + percentiles
-  const radarStats = useMemo(() => {
-    return calcRadarStats(stats, clipTagCounts, percentiles);
-  }, [stats, clipTagCounts, percentiles]);
-
   return (
     <div className="px-4 pt-4">
       {/* 프로필 카드 */}
       <ProfileCard profile={profile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
+
+      {/* 소속 팀 배너 */}
+      {!isScoutProfile && (
+        <TeamBanner
+          profile={profile}
+          seasons={seasons}
+          onAddSeason={() => setSeasonAddOpen(true)}
+          onScrollToSeasons={() => {
+            setActiveTab("stat");
+            setTimeout(() => {
+              document.getElementById("prev-seasons")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+          }}
+        />
+      )}
 
       {/* 액션 행 */}
       <div className="mt-3 flex items-center justify-between">
@@ -174,14 +190,14 @@ export default function ProfilePage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleShareProfile} className="action-btn">
+          <button onClick={handleShareProfile} className="action-btn" aria-label="프로필 링크 공유">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
             공유
           </button>
-          <button onClick={() => setPdfExportOpen(true)} className="action-btn">
+          <button onClick={() => setPdfExportOpen(true)} className="action-btn" aria-label="PDF 내보내기">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><polyline points="9 15 12 18 15 15" />
@@ -262,7 +278,6 @@ export default function ProfilePage() {
               <InfoTab
                 stats={stats}
                 seasons={seasons}
-                profile={profile}
                 percentiles={percentiles}
                 radarStats={radarStats}
                 clipTagCounts={clipTagCounts}
