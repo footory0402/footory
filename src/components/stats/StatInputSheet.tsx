@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { MEASUREMENTS, getStatMeta } from "@/lib/constants";
+import { useState, useMemo } from "react";
+import { MEASUREMENTS, getStatMeta, getStatWarning } from "@/lib/constants";
+import { useProfile } from "@/hooks/useProfile";
 
 interface StatInputSheetProps {
   open: boolean;
@@ -27,9 +28,25 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
   const [minutes, setMinutes] = useState("");
   const [seconds, setSeconds] = useState("");
   const [saving, setSaving] = useState(false);
+  const { profile } = useProfile();
 
   const measurement = selectedType ? getStatMeta(selectedType) : null;
   const isTimeInput = measurement?.unit === "분:초";
+
+  // 실시간 범위 경고 계산
+  const warning = useMemo(() => {
+    if (!selectedType) return null;
+    let num: number;
+    if (isTimeInput) {
+      const m = parseInt(minutes) || 0;
+      const s = parseInt(seconds) || 0;
+      num = m * 60 + s;
+    } else {
+      num = parseFloat(value);
+    }
+    if (isNaN(num) || num <= 0) return null;
+    return getStatWarning(selectedType, num, profile?.birthYear);
+  }, [selectedType, value, minutes, seconds, isTimeInput, profile?.birthYear]);
 
   const reset = () => {
     setStep(resolveInitialStep(initialStatType));
@@ -61,6 +78,10 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
       num = parseFloat(value);
       if (isNaN(num) || num <= 0) return;
     }
+
+    // 범위 초과 시 차단
+    if (warning?.type === "blocked") return;
+
     setSaving(true);
     try {
       await onSave(selectedType, num);
@@ -73,6 +94,8 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
   const isTimeValid = isTimeInput
     ? (parseInt(minutes) || 0) * 60 + (parseInt(seconds) || 0) > 0
     : false;
+
+  const isBlocked = warning?.type === "blocked";
 
   if (!open) return null;
 
@@ -122,7 +145,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
               </h2>
               <p className="mb-5 text-xs text-text-3">기록 값을 입력하세요</p>
 
-              <div className="relative mb-6">
+              <div className="relative mb-3">
                 {isTimeInput ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="relative flex-1">
@@ -175,6 +198,24 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
                 )}
               </div>
 
+              {/* 어뷰징 경고 메시지 */}
+              {warning && (
+                <div
+                  className={`mb-4 flex items-start gap-2 rounded-xl px-3.5 py-2.5 text-[12px] leading-relaxed ${
+                    warning.type === "blocked"
+                      ? "bg-red-500/10 text-red-400"
+                      : "bg-amber-500/10 text-amber-400"
+                  }`}
+                >
+                  <span className="shrink-0 mt-0.5">
+                    {warning.type === "blocked" ? "🚫" : "⚠️"}
+                  </span>
+                  <span>{warning.message}</span>
+                </div>
+              )}
+
+              {!warning && <div className="mb-3" />}
+
               <div className="flex gap-3">
                 <button
                   onClick={handleClose}
@@ -184,7 +225,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={saving || (isTimeInput ? !isTimeValid : !value || parseFloat(value) <= 0)}
+                  disabled={saving || isBlocked || (isTimeInput ? !isTimeValid : !value || parseFloat(value) <= 0)}
                   className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-bg disabled:opacity-50"
                 >
                   {saving ? "저장 중..." : "저장"}

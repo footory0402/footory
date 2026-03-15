@@ -71,6 +71,87 @@ export const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
   run_1000m: { min: 180, max: 600 },
 } as const;
 
+// 연령별 스탯 범위 (어뷰징 방지)
+// age group key: "u10" = ~9세, "u12" = 10~11세, "u15" = 12~14세, "u18" = 15~17세, "adult" = 18+
+export type AgeGroup = "u10" | "u12" | "u15" | "u18" | "adult";
+
+export const AGE_STAT_BOUNDS: Record<string, Record<AgeGroup, { min: number; max: number; warn: number }>> = {
+  sprint_50m: {
+    u10:   { min: 6.5, max: 15, warn: 7.5 },
+    u12:   { min: 6.0, max: 15, warn: 7.0 },
+    u15:   { min: 5.5, max: 15, warn: 6.5 },
+    u18:   { min: 5.0, max: 15, warn: 6.0 },
+    adult: { min: 5.0, max: 15, warn: 5.5 },
+  },
+  juggling: {
+    u10:   { min: 1, max: 3000, warn: 500 },
+    u12:   { min: 1, max: 5000, warn: 1000 },
+    u15:   { min: 1, max: 10000, warn: 3000 },
+    u18:   { min: 1, max: 15000, warn: 5000 },
+    adult: { min: 1, max: 20000, warn: 10000 },
+  },
+  kick_power: {
+    u10:   { min: 10, max: 80, warn: 50 },
+    u12:   { min: 10, max: 100, warn: 70 },
+    u15:   { min: 10, max: 130, warn: 100 },
+    u18:   { min: 10, max: 150, warn: 120 },
+    adult: { min: 10, max: 170, warn: 140 },
+  },
+  run_1000m: {
+    u10:   { min: 200, max: 600, warn: 240 },
+    u12:   { min: 190, max: 600, warn: 220 },
+    u15:   { min: 180, max: 600, warn: 210 },
+    u18:   { min: 170, max: 600, warn: 195 },
+    adult: { min: 160, max: 600, warn: 180 },
+  },
+} as const;
+
+/** 생년으로 연령 그룹 결정 */
+export function getAgeGroup(birthYear: number | null | undefined): AgeGroup {
+  if (!birthYear) return "u15"; // 기본값: 중간 범위
+  const age = new Date().getFullYear() - birthYear;
+  if (age < 10) return "u10";
+  if (age < 12) return "u12";
+  if (age < 15) return "u15";
+  if (age < 18) return "u18";
+  return "adult";
+}
+
+/** 연령별 범위 경고 메시지 반환 (null = 정상) */
+export function getStatWarning(
+  statType: string,
+  value: number,
+  birthYear: number | null | undefined
+): { type: "blocked" | "warning"; message: string } | null {
+  const ageBounds = AGE_STAT_BOUNDS[statType];
+  if (!ageBounds) return null;
+
+  const group = getAgeGroup(birthYear);
+  const bounds = ageBounds[group];
+
+  // 범위 초과 → 차단
+  if (value < bounds.min || value > bounds.max) {
+    return {
+      type: "blocked",
+      message: `이 연령대(${group.toUpperCase()})에서 입력 가능한 범위를 벗어났습니다`,
+    };
+  }
+
+  // 경고 범위 (lowerIsBetter 종목은 warn 이하, 아니면 warn 이상)
+  const measurement = MEASUREMENTS.find((m) => m.id === statType);
+  const lowerIsBetter = measurement?.lowerIsBetter ?? false;
+  const isExceptional = lowerIsBetter ? value <= bounds.warn : value >= bounds.warn;
+
+  if (isExceptional) {
+    return {
+      type: "warning",
+      message: `이 기록은 해당 연령대에서 매우 뛰어난 수준입니다. 정확한 기록인지 확인해주세요.`,
+    };
+  }
+
+  return null;
+}
+
 // MVP Tiers
 export const MVP_TIERS = [
   { tier: "rookie", name: "루키", icon: "⭐", minCount: 1, color: "#A1A1AA" },

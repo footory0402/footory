@@ -236,7 +236,7 @@ export interface Block {
   createdAt: string;
 }
 
-export type ReportCategory = "harassment" | "spam" | "inappropriate" | "other";
+export type ReportCategory = "harassment" | "spam" | "inappropriate" | "fake_record" | "other";
 
 export interface Report {
   id: string;
@@ -245,6 +245,7 @@ export interface Report {
   messageId?: string;
   commentId?: string;
   clipId?: string;
+  statId?: string;
   category: ReportCategory;
   description?: string;
   status: string;

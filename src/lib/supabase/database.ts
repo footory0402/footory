@@ -903,6 +903,7 @@ export interface Database {
           message_id: string | null;
           comment_id: string | null;
           clip_id: string | null;
+          stat_id: string | null;
           category: string;
           description: string | null;
           status: string;
@@ -915,6 +916,7 @@ export interface Database {
           message_id?: string | null;
           comment_id?: string | null;
           clip_id?: string | null;
+          stat_id?: string | null;
           category: string;
           description?: string | null;
           status?: string;
@@ -923,6 +925,30 @@ export interface Database {
         Update: {
           status?: string;
         };
+        Relationships: [];
+      };
+      stat_audit_log: {
+        Row: {
+          id: string;
+          stat_id: string;
+          profile_id: string;
+          action: string;
+          stat_type: string;
+          old_value: number | null;
+          new_value: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          stat_id: string;
+          profile_id: string;
+          action: string;
+          stat_type: string;
+          old_value?: number | null;
+          new_value?: number | null;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
         Relationships: [];
       };
       dm_requests: {

@@ -21,6 +21,7 @@ const AddToWatchlistButton = dynamic(
 );
 
 const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
+const StatReportSheet = dynamic(() => import("@/components/stats/StatReportSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
@@ -223,6 +224,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [dmModalOpen, setDmModalOpen] = useState(false);
   const [dmMsg, setDmMsg] = useState("");
   const [dmSending, setDmSending] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ statId: string; profileId: string } | null>(null);
 
   const profile = toProfile(data);
   const stats = mapStats(data.stats);
@@ -499,6 +501,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                               previousValue={stat.previousValue}
                               verified={stat.verified}
                               lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
+                              statId={!data.isOwnProfile ? stat.id : undefined}
+                              profileId={!data.isOwnProfile ? profile.id : undefined}
+                              onReport={!data.isOwnProfile ? (sid, pid) => setReportTarget({ statId: sid, profileId: pid }) : undefined}
                             />
                           </div>
                         );
@@ -553,6 +558,16 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         title={`${profile.name} — Footory`}
         text={`${profile.name}${profile.position ? ` | ${POSITION_LABELS[profile.position] ?? profile.position}` : ""} | Footory 선수 프로필`}
       />
+
+      {/* 기록 신고 시트 */}
+      {reportTarget && (
+        <StatReportSheet
+          open={!!reportTarget}
+          statId={reportTarget.statId}
+          reportedId={reportTarget.profileId}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
 
       {/* DM 요청 모달 */}
       {dmModalOpen && (

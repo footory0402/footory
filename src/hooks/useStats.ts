@@ -143,7 +143,7 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
       statType: string,
       value: number,
       evidenceClipId?: string
-    ): Promise<AwardedMedal[]> => {
+    ): Promise<{ medals: AwardedMedal[]; warning: string | null }> => {
       const res = await fetch("/api/stats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -155,9 +155,9 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
         throw new Error(error || "Failed to add stat");
       }
 
-      const { newMedals } = await res.json();
+      const { newMedals, warning } = await res.json();
       await fetchStats();
-      return newMedals ?? [];
+      return { medals: newMedals ?? [], warning: warning ?? null };
     },
     [fetchStats]
   );

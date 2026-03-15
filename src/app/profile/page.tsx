@@ -90,7 +90,10 @@ export default function ProfilePage() {
   };
 
   const handleAddStat = async (statType: string, value: number, evidenceClipId?: string) => {
-    await addStat(statType, value, evidenceClipId);
+    const result = await addStat(statType, value, evidenceClipId);
+    if (result.warning) {
+      toast.warning(result.warning, { duration: 5000 });
+    }
     toast.success("기록이 저장되었습니다.");
   };
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkAndAwardMedals } from "@/lib/medals";
-import { MEASUREMENTS, STAT_BOUNDS } from "@/lib/constants";
+import { MEASUREMENTS, AGE_STAT_BOUNDS, getAgeGroup, getStatWarning } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { notifyLinkedParents } from "@/lib/notifications";
 
@@ -63,10 +63,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid value" }, { status: 400 });
   }
 
-  const bounds = STAT_BOUNDS[statType];
-  if (bounds && (value < bounds.min || value > bounds.max)) {
-    return NextResponse.json({ error: `값은 ${bounds.min}~${bounds.max} 범위여야 합니다` }, { status: 400 });
+  // 연령별 범위 검증
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("birth_year")
+    .eq("id", user.id)
+    .single();
+
+  const birthYear = profile?.birth_year as number | null;
+  const ageBounds = AGE_STAT_BOUNDS[statType];
+  const ageGroup = getAgeGroup(birthYear);
+
+  if (ageBounds) {
+    const bounds = ageBounds[ageGroup];
+    if (value < bounds.min || value > bounds.max) {
+      return NextResponse.json({
+        error: `이 연령대(${ageGroup.toUpperCase()})에서 입력 가능한 범위를 벗어났습니다 (${bounds.min}~${bounds.max})`,
+      }, { status: 400 });
+    }
   }
+
+  // 경고 메시지 생성 (차단하지는 않음)
+  const warning = getStatWarning(statType, value, birthYear);
 
   // Insert stat
   const { data: stat, error } = await supabase
@@ -145,5 +163,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ stat, newMedals });
+  return NextResponse.json({
+    stat,
+    newMedals,
+    warning: warning?.type === "warning" ? warning.message : null,
+  });
 }
