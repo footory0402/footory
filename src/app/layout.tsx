@@ -71,9 +71,10 @@ export default function RootLayout({
           <AppShell>{children}</AppShell>
         </div>
         <Toaster
-          position="bottom-center"
+          position="top-center"
           toastOptions={{
             className: "!bg-card !text-text-1 !border-border !rounded-xl !text-[13px] !font-medium !shadow-lg",
+            style: { zIndex: 200 },
           }}
         />
       </body>

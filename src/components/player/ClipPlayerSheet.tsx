@@ -19,7 +19,7 @@ interface ClipPlayerSheetProps {
 }
 
 export default function ClipPlayerSheet({
-  clips,
+  clips: clipsProp,
   initialIndex = 0,
   onClose,
   onDelete,
@@ -27,7 +27,10 @@ export default function ClipPlayerSheet({
 }: ClipPlayerSheetProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Local copy so we can remove deleted clips without waiting for parent re-render
+  const [localClips, setLocalClips] = useState(clipsProp);
   const [index, setIndex] = useState(initialIndex);
+  const clips = localClips;
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -215,8 +218,14 @@ export default function ClipPlayerSheet({
     const ok = await onDelete(clip.id);
     setDeleting(false);
     if (ok) {
-      if (clips.length <= 1) onClose();
-      else if (index >= clips.length - 1) setIndex(index - 1);
+      const remaining = localClips.filter((c) => c.id !== clip.id);
+      if (remaining.length === 0) {
+        onClose();
+      } else {
+        const nextIndex = index >= remaining.length ? remaining.length - 1 : index;
+        setLocalClips(remaining);
+        setIndex(nextIndex);
+      }
       setConfirmDelete(false);
     }
   };
