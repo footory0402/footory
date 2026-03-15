@@ -75,7 +75,7 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
                 className="text-[10px] font-bold uppercase tracking-wide"
                 style={{ color: "var(--color-accent)" }}
               >
-                🏆 주간 MVP 1위
+                🏆 월간 MVP 1위
               </span>
               <div className="h-2.5 w-px bg-border" />
               {votingOpen && timeLeft ? (

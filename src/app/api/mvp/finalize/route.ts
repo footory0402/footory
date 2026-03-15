@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getWeekStart, rankCandidates, getMvpTier } from "@/lib/mvp-scoring";
+import { getMonthStart, rankCandidates, getMvpTier } from "@/lib/mvp-scoring";
 
 export async function POST(request: NextRequest) {
   // Authenticate via CRON_SECRET
@@ -13,33 +13,34 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createClient();
 
-  // Calculate last week's start (current week start - 7 days)
+  // Calculate last month's start
   const now = new Date();
-  const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const weekStart = getWeekStart(lastWeek);
-  const weekStartDate = new Date(`${weekStart}T00:00:00Z`);
-  const weekEndDate = new Date(weekStartDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const monthStart = getMonthStart(lastMonth);
+  const monthStartDate = new Date(`${monthStart}T00:00:00Z`);
+  // End of last month = start of current month
+  const monthEndDate = new Date(now.getFullYear(), now.getMonth(), 1);
 
   // Check if already finalized
   const { data: existing } = await supabase
     .from("weekly_mvp_results")
     .select("id")
-    .eq("week_start", weekStart)
+    .eq("week_start", monthStart)
     .limit(1);
 
   if (existing && existing.length > 0) {
-    return NextResponse.json({ message: "Already finalized", weekStart });
+    return NextResponse.json({ message: "Already finalized", monthStart });
   }
 
   // Fetch clips from that week
   const { data: clips } = await supabase
     .from("clips")
     .select("id, owner_id, video_url, thumbnail_url, created_at")
-    .gte("created_at", weekStartDate.toISOString())
-    .lt("created_at", weekEndDate.toISOString());
+    .gte("created_at", monthStartDate.toISOString())
+    .lt("created_at", monthEndDate.toISOString());
 
   if (!clips?.length) {
-    return NextResponse.json({ message: "No clips for week", weekStart });
+    return NextResponse.json({ message: "No clips for month", monthStart });
   }
 
   const clipIds = clips.map((c) => c.id);
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     supabase
       .from("weekly_votes")
       .select("clip_id")
-      .eq("week_start", weekStart)
+      .eq("week_start", monthStart)
       .in("clip_id", clipIds),
     supabase
       .from("feed_items")
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
 
   // Insert weekly_mvp_results
   const results = top10.map((r, i) => ({
-    week_start: weekStart,
+    week_start: monthStart,
     rank: i + 1,
     clip_id: r.clipId,
     profile_id: r.ownerId,
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
       type: "mvp_win" as never,
       reference_id: winner.clipId,
       metadata: {
-        week_start: weekStart,
+        week_start: monthStart,
         rank: 1,
         total_score: winner.totalScore,
       },
@@ -150,15 +151,15 @@ export async function POST(request: NextRequest) {
     await supabase.from("notifications").insert({
       user_id: winner.ownerId,
       type: "mvp_win",
-      title: "이번 주 MVP로 선정되었습니다!",
-      body: `축하합니다! ${weekStart} 주간 MVP 1위를 차지했습니다.`,
+      title: "이번 달 MVP로 선정되었습니다!",
+      body: `축하합니다! ${monthStart} 월간 MVP 1위를 차지했습니다.`,
       action_url: "/mvp",
     });
   }
 
   return NextResponse.json({
     message: "Finalized",
-    weekStart,
+    monthStart,
     resultsCount: top10.length,
     winner: top10[0]?.ownerId ?? null,
   });

@@ -2,11 +2,13 @@
 
 import React, { useState } from "react";
 import type { Stat } from "@/lib/types";
+import { getPercentileTier } from "@/lib/constants";
 
 interface GrowthCardProps {
   label: string;
   stat: Stat;
   lowerIsBetter?: boolean;
+  percentile?: number;
   onUpdate?: () => void;
   onDelete?: () => void;
 }
@@ -27,24 +29,25 @@ function fmtTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function GrowthCard({ label, stat, lowerIsBetter = false, onUpdate, onDelete }: GrowthCardProps) {
+function GrowthCard({ label, stat, lowerIsBetter = false, percentile, onUpdate, onDelete }: GrowthCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { value, previousValue, unit, isPR, bestValue, firstValue, firstMeasuredAt, measureCount, measuredAt } = stat;
   const isTimeUnit = unit === "분:초";
 
   const diff = previousValue != null ? value - previousValue : null;
   const improved = diff != null && diff !== 0 && (lowerIsBetter ? diff < 0 : diff > 0);
-  const worsened = diff != null && diff !== 0 && !improved;
-
-  let progressPercent = 0;
-  if (firstValue != null && bestValue != null && firstValue !== bestValue) {
-    progressPercent = Math.min(100, Math.max(5, (Math.abs(value - firstValue) / Math.abs(bestValue - firstValue)) * 100));
-  } else if ((measureCount ?? 0) <= 1) {
-    progressPercent = 100;
-  }
 
   const hasPR = isPR && (measureCount ?? 1) > 1;
   const isFirst = (measureCount ?? 0) <= 1;
+
+  // 등급 or 성장 메시지
+  const tier = percentile != null ? getPercentileTier(percentile) : null;
+  const growthFromFirst = firstValue != null && (measureCount ?? 0) > 1
+    ? Math.abs(value - firstValue)
+    : null;
+  const grewFromFirst = firstValue != null && (measureCount ?? 0) > 1
+    ? (lowerIsBetter ? value < firstValue : value > firstValue)
+    : false;
 
   return (
     <div
@@ -109,17 +112,70 @@ function GrowthCard({ label, stat, lowerIsBetter = false, onUpdate, onDelete }: 
 
             {hasPR && (
               <span
-                className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide"
-                style={{ background: "rgba(212,168,83,0.15)", color: "#D4A853" }}
+                className="inline-flex items-center gap-0.5 rounded-full px-2 py-[3px] text-[10px] font-black uppercase tracking-wide"
+                style={{
+                  background: "linear-gradient(135deg, rgba(212,168,83,0.25), rgba(245,197,66,0.18))",
+                  color: "#F5C542",
+                  border: "1px solid rgba(212,168,83,0.3)",
+                  textShadow: "0 0 8px rgba(212,168,83,0.4)",
+                }}
               >
                 🏅 PR
               </span>
             )}
           </div>
         </div>
+
+        {/* 등급 or 성장 메시지 */}
+        <div className="mt-2.5">
+          {tier ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-[7px] rounded-full bg-white/[0.10] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${percentile}%`,
+                    background: tier.color === "#D4A853"
+                      ? "linear-gradient(90deg, #D4A853, #F5C542)"
+                      : "linear-gradient(90deg, rgba(161,161,170,0.5), rgba(161,161,170,0.7))",
+                    boxShadow: tier.color === "#D4A853"
+                      ? "0 0 8px rgba(212,168,83,0.4)"
+                      : "none",
+                  }}
+                />
+              </div>
+              <span
+                className="shrink-0 rounded-full px-2 py-[3px] text-[10px] font-extrabold"
+                style={{
+                  background: tier.color === "#D4A853"
+                    ? "linear-gradient(135deg, rgba(212,168,83,0.25), rgba(245,197,66,0.18))"
+                    : tier.bg,
+                  color: tier.color,
+                  border: tier.color === "#D4A853" ? "1px solid rgba(212,168,83,0.25)" : "1px solid transparent",
+                }}
+              >
+                {tier.emoji} {tier.label}
+              </span>
+            </div>
+          ) : growthFromFirst != null && growthFromFirst > 0 ? (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px]">🌱</span>
+              <span className="text-[10px] font-medium text-green-400">
+                첫 기록보다 {grewFromFirst ? "+" : "-"}
+                {isTimeUnit ? fmtTime(growthFromFirst) : growthFromFirst.toFixed(1)}
+                {!isTimeUnit && unit}
+              </span>
+            </div>
+          ) : percentile != null && !tier ? (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px]">🌱</span>
+              <span className="text-[10px] font-medium text-text-3">성장 중</span>
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      {/* Expanded detail — 고정 높이로 밀림 없음 */}
+      {/* Expanded detail */}
       {expanded && (
         <div
           className="border-t px-3 py-2.5 space-y-1.5"
@@ -139,10 +195,27 @@ function GrowthCard({ label, stat, lowerIsBetter = false, onUpdate, onDelete }: 
               <span className="font-stat text-[11px] text-text-3">{isTimeUnit ? fmtTime(firstValue) : `${firstValue} ${unit}`}</span>
             </div>
           )}
+          {growthFromFirst != null && growthFromFirst > 0 && firstValue != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-text-3">총 성장</span>
+              <span className={`font-stat text-[11px] font-bold ${grewFromFirst ? "text-green-400" : "text-red-400"}`}>
+                {grewFromFirst ? (lowerIsBetter ? "↓" : "↑") : (lowerIsBetter ? "↑" : "↓")}
+                {isTimeUnit ? fmtTime(growthFromFirst) : `${growthFromFirst.toFixed(1)} ${unit}`}
+              </span>
+            </div>
+          )}
           {(measureCount ?? 0) > 1 && (
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-text-3">측정 횟수</span>
               <span className="text-[11px] font-bold text-text-2">{measureCount}회</span>
+            </div>
+          )}
+          {percentile != null && tier && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-text-3">전체 선수 중</span>
+              <span className="text-[11px] font-bold" style={{ color: tier.color }}>
+                상위 {Math.max(1, 100 - percentile)}%
+              </span>
             </div>
           )}
 

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database";
-import { getWeekStart, isVotingOpen, rankCandidates } from "@/lib/mvp-scoring";
-import { MAX_WEEKLY_VOTES } from "@/lib/constants";
+import { getMonthStart, isVotingOpen, rankCandidates } from "@/lib/mvp-scoring";
+import { MAX_MONTHLY_VOTES } from "@/lib/constants";
 import type { MvpTierKey, Position } from "@/lib/constants";
 import { normalizeMediaUrl } from "@/lib/media-url";
 
@@ -15,11 +15,14 @@ interface FeedItemStatsRow {
   comments: { count: number }[];
 }
 
-export interface MvpWeeklyStats {
+export interface MvpMonthlyStats {
   clipCount: number;
   totalVotes: number;
   newPlayers: number;
 }
+
+/** @deprecated Use MvpMonthlyStats instead */
+export type MvpWeeklyStats = MvpMonthlyStats;
 
 export interface MvpCandidateData {
   clipId: string;
@@ -50,16 +53,20 @@ export interface MvpCandidatesPayload {
   myVotes: string[];
   votesRemaining: number;
   votingOpen: boolean;
+  monthStart: string;
+  monthlyStats: MvpMonthlyStats;
+  /** @deprecated Use monthStart instead */
   weekStart: string;
-  weeklyStats: MvpWeeklyStats;
+  /** @deprecated Use monthlyStats instead */
+  weeklyStats: MvpMonthlyStats;
 }
 
 export async function fetchMvpCandidatesData(
   supabase: ServerSupabase,
   userId: string
 ): Promise<MvpCandidatesPayload> {
-  const weekStart = getWeekStart();
-  const weekStartDate = new Date(`${weekStart}T00:00:00Z`);
+  const monthStart = getMonthStart();
+  const monthStartDate = new Date(`${monthStart}T00:00:00Z`);
   const votingOpen = isVotingOpen();
 
   const [
@@ -71,25 +78,25 @@ export async function fetchMvpCandidatesData(
     supabase
       .from("clips")
       .select("id, owner_id, video_url, thumbnail_url, created_at")
-      .gte("created_at", weekStartDate.toISOString())
+      .gte("created_at", monthStartDate.toISOString())
       .order("created_at", { ascending: false }),
     supabase
       .from("weekly_votes")
       .select("clip_id")
       .eq("voter_id", userId)
-      .eq("week_start", weekStart),
+      .eq("week_start", monthStart),
     supabase
       .from("weekly_votes")
       .select("id", { count: "exact", head: true })
-      .eq("week_start", weekStart),
+      .eq("week_start", monthStart),
     supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
-      .gte("created_at", weekStartDate.toISOString()),
+      .gte("created_at", monthStartDate.toISOString()),
   ]);
 
   const myVotedClipIds = (myVotes ?? []).map((vote) => vote.clip_id);
-  const votesRemaining = MAX_WEEKLY_VOTES - myVotedClipIds.length;
+  const votesRemaining = MAX_MONTHLY_VOTES - myVotedClipIds.length;
 
   if (!clips?.length) {
     return {
@@ -97,7 +104,13 @@ export async function fetchMvpCandidatesData(
       myVotes: myVotedClipIds,
       votesRemaining,
       votingOpen,
-      weekStart,
+      monthStart,
+      monthlyStats: {
+        clipCount: 0,
+        totalVotes: totalVoteCount ?? 0,
+        newPlayers: newPlayerCount ?? 0,
+      },
+      weekStart: monthStart,
       weeklyStats: {
         clipCount: 0,
         totalVotes: totalVoteCount ?? 0,
@@ -120,7 +133,7 @@ export async function fetchMvpCandidatesData(
     supabase
       .from("weekly_votes")
       .select("clip_id")
-      .eq("week_start", weekStart)
+      .eq("week_start", monthStart)
       .in("clip_id", clipIds),
     (supabase
       .from("feed_items")
@@ -251,16 +264,20 @@ export async function fetchMvpCandidatesData(
     };
   });
 
+  const monthlyStats: MvpMonthlyStats = {
+    clipCount: clips.length,
+    totalVotes: totalVoteCount ?? 0,
+    newPlayers: newPlayerCount ?? 0,
+  };
+
   return {
     candidates,
     myVotes: myVotedClipIds,
     votesRemaining,
     votingOpen,
-    weekStart,
-    weeklyStats: {
-      clipCount: clips.length,
-      totalVotes: totalVoteCount ?? 0,
-      newPlayers: newPlayerCount ?? 0,
-    },
+    monthStart,
+    monthlyStats,
+    weekStart: monthStart,
+    weeklyStats: monthlyStats,
   };
 }

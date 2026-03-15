@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
     const rows = (players ?? []).map((p) => ({
       user_id: p.id,
       type: "vote_open" as const,
-      title: "이번 주 MVP 투표가 시작됐어요! 🏆",
-      body: "토요일~일요일 사이에 투표하세요",
+      title: "이번 달 MVP 투표가 시작됐어요! 🏆",
+      body: "매월 24일~말일 사이에 투표하세요",
     }));
 
     if (rows.length > 0) {
@@ -62,14 +62,14 @@ export async function POST(req: NextRequest) {
     const rows = (players ?? []).map((p) => ({
       user_id: p.id,
       type: "mvp_result" as const,
-      title: `이번 주 MVP: ${winnerName} 🏆`,
+      title: `이번 달 MVP: ${winnerName} 🏆`,
       body: "MVP 탭에서 결과를 확인하세요",
     }));
 
     const winnerRow = {
       user_id: winner.profile_id,
       type: "mvp_win" as const,
-      title: "축하해요! 이번 주 MVP에 선정됐어요! 🥇",
+      title: "축하해요! 이번 달 MVP에 선정됐어요! 🥇",
       body: "프로필에 MVP 뱃지가 표시됩니다",
     };
 

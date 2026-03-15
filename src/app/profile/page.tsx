@@ -39,11 +39,21 @@ export default function ProfilePage() {
     }
   }, [profile?.role, router]);
 
+  const [percentiles, setPercentiles] = useState<Record<string, number>>({});
+
   const shouldLoadData = !!profile && !isScoutProfile;
   const { stats, medals, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
   const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
+
+  useEffect(() => {
+    if (!shouldLoadData) return;
+    fetch("/api/stats/percentile")
+      .then((r) => (r.ok ? r.json() : { percentiles: {} }))
+      .then((d) => setPercentiles(d.percentiles ?? {}))
+      .catch(() => {});
+  }, [shouldLoadData]);
 
   if (loading && !profile) return <ProfileSkeleton />;
 
@@ -239,6 +249,7 @@ export default function ProfilePage() {
                 stats={stats}
                 seasons={seasons}
                 profile={profile}
+                percentiles={percentiles}
                 onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
                 onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
                 onDeleteStat={handleDeleteStat}

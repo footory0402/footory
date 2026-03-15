@@ -113,41 +113,47 @@ export function getMvpTierInfo(tier: MvpTierKey | null) {
   return MVP_TIERS.find((t) => t.tier === tier) ?? null;
 }
 
-// ── Week Helpers ──────────────────────────────────────────
+// ── Month Helpers ─────────────────────────────────────────
 
 /**
- * Get the Monday (week start) of the given date in KST.
+ * Get the 1st day of the month for the given date in KST.
  * Returns YYYY-MM-DD string.
  */
-export function getWeekStart(date: Date = new Date()): string {
+export function getMonthStart(date: Date = new Date()): string {
   // Convert to KST (UTC+9)
   const kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  const day = kst.getUTCDay(); // 0=Sun, 1=Mon, ...
-  const diff = day === 0 ? 6 : day - 1; // days since Monday
-  const monday = new Date(kst);
-  monday.setUTCDate(kst.getUTCDate() - diff);
-  const y = monday.getUTCFullYear();
-  const m = String(monday.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(monday.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  return `${y}-${m}-01`;
+}
+
+/** @deprecated Use getMonthStart instead */
+export function getWeekStart(date: Date = new Date()): string {
+  return getMonthStart(date);
 }
 
 /**
  * Check if current time (KST) is within voting window.
- * 월요일 00:00~06:00 KST는 집계 시간으로 투표 불가.
+ * 월말 마지막 7일간(24일~말일) 투표 가능.
+ * 1일 00:00~05:59 KST는 집계 시간으로 투표 불가.
  */
 export function isVotingOpen(): boolean {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const day = kst.getUTCDay(); // 0=Sun, 1=Mon
+  const day = kst.getUTCDate();
   const hour = kst.getUTCHours();
-  // Monday 00:00~05:59 KST = aggregation window
+
+  // 1일 00:00~05:59 KST = aggregation window
   if (day === 1 && hour < 6) return false;
-  return true;
+
+  // 24일~말일 투표 가능
+  if (day >= 24) return true;
+
+  return false;
 }
 
 /**
- * Get remaining time until voting window closes (Sunday 23:59:59 KST).
+ * Get remaining time until voting window closes (month end 23:59:59 KST).
  * Returns { hours, minutes, seconds } or null if not in voting window.
  */
 export function getVotingTimeRemaining(now: Date = new Date()): {
@@ -158,13 +164,14 @@ export function getVotingTimeRemaining(now: Date = new Date()): {
   if (!isVotingOpen()) return null;
 
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const day = kst.getUTCDay();
 
-  // Calculate end of Sunday 23:59:59 KST
-  const daysUntilSundayEnd = day === 6 ? 1 : 0;
-  const end = new Date(kst);
-  end.setUTCDate(kst.getUTCDate() + daysUntilSundayEnd);
-  end.setUTCHours(23, 59, 59, 999);
+  // Calculate end of month 23:59:59 KST
+  const year = kst.getUTCFullYear();
+  const month = kst.getUTCMonth();
+  // Last day of current month
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+
+  const end = new Date(Date.UTC(year, month, lastDay, 23, 59, 59, 999));
 
   const diffMs = end.getTime() - kst.getTime();
   if (diffMs <= 0) return null;
@@ -177,17 +184,15 @@ export function getVotingTimeRemaining(now: Date = new Date()): {
 }
 
 /**
- * Format a week range string: "M.DD ~ M.DD"
+ * Format a month range string: "3월"
  */
+export function formatMonthRange(monthStart: string): string {
+  const start = new Date(monthStart + "T00:00:00");
+  const m = start.getMonth() + 1;
+  return `${m}월`;
+}
+
+/** @deprecated Use formatMonthRange instead */
 export function formatWeekRange(weekStart: string): string {
-  const start = new Date(weekStart + "T00:00:00");
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-
-  const sm = start.getMonth() + 1;
-  const sd = start.getDate();
-  const em = end.getMonth() + 1;
-  const ed = end.getDate();
-
-  return `${sm}.${String(sd).padStart(2, "0")} ~ ${em}.${String(ed).padStart(2, "0")}`;
+  return formatMonthRange(weekStart);
 }

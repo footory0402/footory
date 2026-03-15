@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import GrowthCard from "./GrowthCard";
-import { MEASUREMENTS, getStatMeta } from "@/lib/constants";
+import RadarChart from "./RadarChart";
+import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId } from "@/lib/constants";
+import { EMPTY_RADAR_STATS } from "@/lib/radar-calc";
 import type { Stat } from "@/lib/types";
 import type { Profile, Season } from "@/lib/types";
 
@@ -11,6 +13,8 @@ interface InfoTabProps {
   stats: Stat[];
   seasons: Season[];
   profile: Profile;
+  percentiles?: Record<string, number>;
+  radarStats?: Record<RadarStatId, number>;
   onAddStat?: () => void;
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
@@ -21,15 +25,108 @@ export default function InfoTab({
   stats,
   seasons,
   profile,
+  percentiles,
+  radarStats,
   onAddStat,
   onUpdateStat,
   onDeleteStat,
   onAddSeason,
 }: InfoTabProps) {
+  const growthStats = stats.filter((s) => (s.measureCount ?? 0) > 1);
+  const radar = radarStats ?? EMPTY_RADAR_STATS;
+  const hasRadarData = useMemo(
+    () => Object.values(radar).some((v) => v > 0),
+    [radar]
+  );
+
   return (
     <div className="flex flex-col gap-5">
-      <GrowthSection stats={stats} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
+      <RadarSection radarStats={radar} hasData={hasRadarData} />
+      <GrowthSection stats={stats} percentiles={percentiles} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
+      {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
       <TeamSection profile={profile} seasons={seasons} onAddSeason={onAddSeason} />
+    </div>
+  );
+}
+
+/* ── 능력치 레이더 섹션 ── */
+function RadarSection({
+  radarStats,
+  hasData,
+}: {
+  radarStats: Record<RadarStatId, number>;
+  hasData: boolean;
+}) {
+  return (
+    <div>
+      <SectionHeader
+        icon={
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" className="text-accent">
+            <path d="M12 2l8.66 5v10L12 22l-8.66-5V7z" />
+          </svg>
+        }
+        title="능력치"
+      />
+
+      {hasData ? (
+        <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden">
+          {/* Radar chart */}
+          <div className="px-4 pt-4 pb-2">
+            <RadarChart stats={radarStats} showOverall size={280} />
+          </div>
+
+          {/* Stat bars */}
+          <div className="px-4 pb-4 flex flex-col gap-2">
+            {RADAR_STATS.map((s) => {
+              const val = radarStats[s.id] ?? 0;
+              return (
+                <div key={s.id} className="flex items-center gap-2">
+                  <span className="w-7 text-[10px] font-bold text-text-3 tracking-wide shrink-0">
+                    {s.shortLabel}
+                  </span>
+                  <div className="flex-1 h-[6px] rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      className="h-full rounded-full animate-grow-w"
+                      style={{
+                        width: `${(val / 99) * 100}%`,
+                        background:
+                          val >= 80
+                            ? "linear-gradient(90deg, #D4A853, #F5D78E)"
+                            : val >= 50
+                            ? "rgba(212,168,83,0.6)"
+                            : "rgba(212,168,83,0.3)",
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="w-6 text-right text-[12px] font-bold tabular-nums shrink-0"
+                    style={{
+                      fontFamily: "var(--font-stat)",
+                      color: val >= 80 ? "#D4A853" : val >= 50 ? "#A1A1AA" : "#71717A",
+                    }}
+                  >
+                    {val}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/[0.06] bg-card py-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.05]">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="text-text-3">
+              <path d="M12 2l8.66 5v10L12 22l-8.66-5V7z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-text-1 mb-1">아직 능력치 데이터가 없어요</p>
+            <p className="text-[11px] text-text-3 leading-relaxed">
+              기록을 추가하면 능력치가<br />자동으로 계산됩니다
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -64,11 +161,13 @@ function SectionHeader({ icon, title, count, action }: {
 /* ── 성장 기록 섹션 ── */
 function GrowthSection({
   stats,
+  percentiles,
   onAddStat,
   onUpdateStat,
   onDeleteStat,
 }: {
   stats: Stat[];
+  percentiles?: Record<string, number>;
   onAddStat?: () => void;
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
@@ -109,6 +208,7 @@ function GrowthSection({
                 label={m.label}
                 stat={stat}
                 lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
+                percentile={percentiles?.[stat.type]}
                 onUpdate={onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
                 onDelete={onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
               />
@@ -148,6 +248,77 @@ function GrowthSection({
       )}
     </div>
   );
+}
+
+/* ── 성장 추이 섹션 ── */
+function GrowthTrendSection({ stats }: { stats: Stat[] }) {
+  return (
+    <div>
+      <SectionHeader
+        icon={
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+        }
+        title="성장 추이"
+      />
+
+      <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden divide-y divide-white/[0.05]">
+        {stats.map((stat) => {
+          const meta = getStatMeta(stat.type);
+          const isTime = stat.unit === "분:초";
+          const diff = stat.firstValue != null ? Math.abs(stat.value - stat.firstValue) : 0;
+          const improved = stat.firstValue != null
+            ? (meta.lowerIsBetter ? stat.value < stat.firstValue : stat.value > stat.firstValue)
+            : false;
+
+          return (
+            <div key={stat.id} className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{meta.icon}</span>
+                <span className="text-[12px] font-medium text-text-2">{meta.label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-text-3 font-stat tabular-nums">
+                  {isTime ? fmtTimeSec(stat.firstValue ?? 0) : stat.firstValue}
+                  {!isTime && meta.unit}
+                </span>
+                <svg width="12" height="8" viewBox="0 0 12 8" className="text-text-3 shrink-0">
+                  <path d="M0 4h10M8 1l3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="font-stat text-[14px] font-bold text-text-1 tabular-nums">
+                  {isTime ? fmtTimeSec(stat.value) : stat.value}
+                  {!isTime && meta.unit}
+                </span>
+                {diff > 0 && (
+                  <span
+                    className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                    style={{
+                      background: improved ? "rgba(74,222,128,0.12)" : "rgba(248,113,113,0.12)",
+                      color: improved ? "#4ADE80" : "#F87171",
+                    }}
+                  >
+                    {improved ? "▲" : "▼"}{isTime ? fmtTimeSec(diff) : diff.toFixed(1)}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <div className="px-4 py-2 bg-white/[0.02]">
+          <p className="text-center text-[10px] text-text-3">
+            첫 기록 대비 변화량
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function fmtTimeSec(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /* ── 소속 팀 섹션 ── */

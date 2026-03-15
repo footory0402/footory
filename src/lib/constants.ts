@@ -152,18 +152,35 @@ export function getStatWarning(
   return null;
 }
 
-// MVP Tiers
+// Percentile → 유소년 친화 등급
+export const PERCENTILE_TIERS = [
+  { min: 90, label: "최상위", emoji: "💎", color: "#D4A853", bg: "rgba(212,168,83,0.15)" },
+  { min: 75, label: "뛰어남", emoji: "🥇", color: "#D4A853", bg: "rgba(212,168,83,0.10)" },
+  { min: 50, label: "우수",   emoji: "🥈", color: "#A1A1AA", bg: "rgba(161,161,170,0.10)" },
+] as const;
+
+/** 백분위 → 등급 변환 (하위 50%는 null → 성장 메시지로 대체) */
+export function getPercentileTier(percentile: number) {
+  for (const tier of PERCENTILE_TIERS) {
+    if (percentile >= tier.min) return tier;
+  }
+  return null; // 하위 50% → 순위 숨김, 성장 포커스
+}
+
+// MVP Tiers (monthly 기준)
 export const MVP_TIERS = [
   { tier: "rookie", name: "루키", icon: "⭐", minCount: 1, color: "#A1A1AA" },
-  { tier: "ace", name: "에이스", icon: "🌟", minCount: 3, color: "#D4A853" },
-  { tier: "allstar", name: "올스타", icon: "👑", minCount: 5, color: "#F5C542" },
-  { tier: "legend", name: "레전드", icon: "💎", minCount: 10, color: "#F5D78E" },
+  { tier: "ace", name: "에이스", icon: "🌟", minCount: 2, color: "#D4A853" },
+  { tier: "allstar", name: "올스타", icon: "👑", minCount: 4, color: "#F5C542" },
+  { tier: "legend", name: "레전드", icon: "💎", minCount: 8, color: "#F5D78E" },
 ] as const;
 
 export type MvpTierKey = (typeof MVP_TIERS)[number]["tier"];
 
-// Weekly MVP Voting
-export const MAX_WEEKLY_VOTES = 3;
+// Monthly MVP Voting
+export const MAX_MONTHLY_VOTES = 5;
+/** @deprecated Use MAX_MONTHLY_VOTES instead */
+export const MAX_WEEKLY_VOTES = MAX_MONTHLY_VOTES;
 export const MVP_AUTO_WEIGHT = 0.4;
 export const MVP_VOTE_WEIGHT = 0.6;
 
@@ -173,3 +190,15 @@ export const MAX_FEATURED_SLOTS = 3;
 export const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;
 export const NOTIFICATION_POLL_MS = 30_000;
 export const APP_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://footory.app";
+
+// FIFA-style Radar Stat Categories
+export const RADAR_STATS = [
+  { id: "pace", label: "스피드", shortLabel: "SPD", icon: "⚡", color: "#4ADE80" },
+  { id: "shooting", label: "슈팅", shortLabel: "SHO", icon: "🦵", color: "#F87171" },
+  { id: "passing", label: "패스", shortLabel: "PAS", icon: "🏐", color: "#60A5FA" },
+  { id: "dribbling", label: "드리블", shortLabel: "DRI", icon: "⚽", color: "#FBBF24" },
+  { id: "defense", label: "수비", shortLabel: "DEF", icon: "🛡️", color: "#A78BFA" },
+  { id: "physical", label: "체력", shortLabel: "PHY", icon: "💪", color: "#F472B6" },
+] as const;
+
+export type RadarStatId = (typeof RADAR_STATS)[number]["id"];

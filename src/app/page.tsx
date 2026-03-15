@@ -128,10 +128,10 @@ async function HomeContent() {
   const supabase = await createClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.user) redirect("/login");
-  const user = session.user;
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) redirect("/login");
   if (isPocAdminUser(user)) redirect("/admin/video-lab");
 
   // Full profile + team 동시 조회 (클라이언트 /api/profile 호출 제거)

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PositionBadge } from "@/components/ui/Badge";
-import { formatWeekRange, getMvpTierInfo } from "@/lib/mvp-scoring";
+import { formatMonthRange, getMvpTierInfo } from "@/lib/mvp-scoring";
 import type { Position, MvpTierKey } from "@/lib/constants";
 import MvpThumbnail from "./MvpThumbnail";
 
@@ -56,7 +56,7 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
         <span className="text-[28px]">📜</span>
         <p className="text-[13px] text-text-2">아직 MVP 기록이 없어요</p>
         <p className="text-[11px] text-text-3">
-          첫 번째 주간 MVP 결과를 기다려주세요
+          첫 번째 월간 MVP 결과를 기다려주세요
         </p>
       </div>
     );
@@ -83,7 +83,7 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
               <span className="text-[14px]">🏆</span>
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-bold text-text-1">
-                  {formatWeekRange(week.weekStart)} 주차
+                  {formatMonthRange(week.weekStart)}
                 </p>
                 {winner && (
                   <p className="text-[11px]">

@@ -49,7 +49,7 @@ export default function LoginPage() {
         style={{ animation: "fadeUp 0.4s var(--ease-out) 0.4s both" }}
       >
         <span>⚽ 하이라이트 업로드</span>
-        <span>🏆 주간 MVP 투표</span>
+        <span>🏆 월간 MVP 투표</span>
         <span>📊 스킬 포트폴리오</span>
       </div>
 

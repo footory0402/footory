@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getWeekStart, isVotingOpen } from "@/lib/mvp-scoring";
-import { MAX_WEEKLY_VOTES } from "@/lib/constants";
+import { getMonthStart, isVotingOpen } from "@/lib/mvp-scoring";
+import { MAX_MONTHLY_VOTES } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createNotification } from "@/lib/notifications";
 
@@ -38,15 +38,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Check voting window (Saturday 09:00 ~ Sunday 23:59 KST)
+  // Check voting window (24일~말일 KST)
   if (!isVotingOpen()) {
     return NextResponse.json(
-      { error: "투표는 토요일 09:00 ~ 일요일 23:59에만 가능합니다" },
+      { error: "투표는 매월 24일부터 말일까지만 가능합니다" },
       { status: 403 }
     );
   }
 
-  const weekStart = getWeekStart();
+  const monthStart = getMonthStart();
 
   // Check: clip exists
   const { data: clip } = await supabase
@@ -70,17 +70,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Check: max 3 votes per week
+  // Check: max votes per month
   const { data: existingVotes } = await supabase
     .from("weekly_votes")
     .select("id, clip_id")
     .eq("voter_id", user.id)
-    .eq("week_start", weekStart);
+    .eq("week_start", monthStart);
 
   const currentVoteCount = existingVotes?.length ?? 0;
-  if (currentVoteCount >= MAX_WEEKLY_VOTES) {
+  if (currentVoteCount >= MAX_MONTHLY_VOTES) {
     return NextResponse.json(
-      { error: `이번 주 투표를 모두 사용했습니다 (${MAX_WEEKLY_VOTES}표)` },
+      { error: `이번 달 투표를 모두 사용했습니다 (${MAX_MONTHLY_VOTES}표)` },
       { status: 403 }
     );
   }
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
   const { error: voteError } = await supabase.from("weekly_votes").insert({
     voter_id: user.id,
     clip_id: clipId,
-    week_start: weekStart,
+    week_start: monthStart,
     message: message ?? null,
   });
 
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(
     {
       success: true,
-      votesRemaining: MAX_WEEKLY_VOTES - (currentVoteCount + 1),
+      votesRemaining: MAX_MONTHLY_VOTES - (currentVoteCount + 1),
     },
     { status: 201 }
   );
@@ -178,14 +178,14 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  const weekStart = getWeekStart();
+  const monthStart = getMonthStart();
 
   const { error: deleteError } = await supabase
     .from("weekly_votes")
     .delete()
     .eq("voter_id", user.id)
     .eq("clip_id", clipId)
-    .eq("week_start", weekStart);
+    .eq("week_start", monthStart);
 
   if (deleteError) {
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
@@ -213,10 +213,10 @@ export async function DELETE(req: NextRequest) {
     .from("weekly_votes")
     .select("id")
     .eq("voter_id", user.id)
-    .eq("week_start", weekStart);
+    .eq("week_start", monthStart);
 
   return NextResponse.json({
     success: true,
-    votesRemaining: MAX_WEEKLY_VOTES - (remainingVotes?.length ?? 0),
+    votesRemaining: MAX_MONTHLY_VOTES - (remainingVotes?.length ?? 0),
   });
 }

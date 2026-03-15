@@ -14,9 +14,9 @@ import {
   canVoteMvp as canVoteMvpForRole,
   type UserRole,
 } from "@/lib/permissions";
-import { MAX_WEEKLY_VOTES } from "@/lib/constants";
+import { MAX_MONTHLY_VOTES } from "@/lib/constants";
 import {
-  formatWeekRange,
+  formatMonthRange,
   getVotingTimeRemaining,
 } from "@/lib/mvp-scoring";
 import type { ArchiveWeek } from "@/components/mvp/MvpArchive";
@@ -193,10 +193,10 @@ export default function MvpPageClient({
     <div className="space-y-6 px-4 py-4 pb-24">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-text-1">🏆 주간 MVP</h1>
-          {initialData.weekStart && (
+          <h1 className="text-xl font-bold text-text-1">🏆 월간 MVP</h1>
+          {initialData.monthStart && (
             <p className="mt-0.5 text-[12px] text-text-3">
-              {formatWeekRange(initialData.weekStart)} 주차
+              {formatMonthRange(initialData.monthStart)}
             </p>
           )}
         </div>
@@ -215,17 +215,17 @@ export default function MvpPageClient({
           <span className="text-sm font-semibold text-text-1">🗳 내 투표</span>
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
-              {Array.from({ length: MAX_WEEKLY_VOTES }).map((_, i) => (
+              {Array.from({ length: MAX_MONTHLY_VOTES }).map((_, i) => (
                 <div
                   key={i}
                   className="h-2.5 w-2.5 rounded-full"
                   style={{
                     background:
-                      i < MAX_WEEKLY_VOTES - votesRemaining
+                      i < MAX_MONTHLY_VOTES - votesRemaining
                         ? "var(--color-accent)"
                         : "var(--color-card-alt)",
                     border:
-                      i < MAX_WEEKLY_VOTES - votesRemaining
+                      i < MAX_MONTHLY_VOTES - votesRemaining
                         ? "none"
                         : "1px solid var(--color-border)",
                   }}
@@ -233,7 +233,7 @@ export default function MvpPageClient({
               ))}
             </div>
             <span className="text-[12px] text-text-2">
-              {MAX_WEEKLY_VOTES - votesRemaining}/{MAX_WEEKLY_VOTES} 사용
+              {MAX_MONTHLY_VOTES - votesRemaining}/{MAX_MONTHLY_VOTES} 사용
             </span>
           </div>
         </div>
@@ -250,7 +250,7 @@ export default function MvpPageClient({
           <span className="text-[16px]">🎉</span>
           <div>
             <p className="text-sm font-semibold text-accent">
-              이번 주 투표를 모두 사용했어요!
+              이번 달 투표를 모두 사용했어요!
             </p>
             <p className="text-xs text-text-3">
               투표한 클립에 다시 투표하면 취소할 수 있어요
@@ -260,7 +260,7 @@ export default function MvpPageClient({
       )}
 
       {candidates.length === 0 ? (
-        <SectionCard title="이번 주 MVP" icon="🏆">
+        <SectionCard title="이번 달 MVP" icon="🏆">
           {viewerRole === "scout" ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <span className="text-4xl">🏆</span>
@@ -278,7 +278,7 @@ export default function MvpPageClient({
           ) : (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <span className="text-4xl">🏆</span>
-              <p className="text-xs text-text-2">아직 이번 주 후보가 없어요</p>
+              <p className="text-xs text-text-2">아직 이번 달 후보가 없어요</p>
               <p className="text-[10px] text-text-3">
                 클립을 업로드하면 자동으로 MVP 후보에 올라갑니다
               </p>
@@ -373,18 +373,18 @@ export default function MvpPageClient({
         }`}
       >
         <StatBox
-          label="이번 주 클립"
-          value={initialData.weeklyStats.clipCount}
+          label="이번 달 클립"
+          value={initialData.monthlyStats.clipCount}
           icon="🎬"
         />
         <StatBox
           label="총 투표"
-          value={initialData.weeklyStats.totalVotes}
+          value={initialData.monthlyStats.totalVotes}
           icon="🗳"
         />
         <StatBox
           label="신규 선수"
-          value={initialData.weeklyStats.newPlayers}
+          value={initialData.monthlyStats.newPlayers}
           icon="👤"
         />
       </div>
@@ -392,7 +392,7 @@ export default function MvpPageClient({
       <div className="flex gap-1 card-elevated p-1">
         {(
           [
-            { key: "ranking", label: "📊 이번 주" },
+            { key: "ranking", label: "📊 이번 달" },
             { key: "archive", label: "📜 아카이브" },
             { key: "hallOfFame", label: "🏅 명예의 전당" },
           ] as const

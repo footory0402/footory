@@ -3,12 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  if (!session?.user) {
+  if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const user = session.user;
 
   const [profileResult, teamResult] = await Promise.all([
     supabase.from("profiles").select("id, handle, name, position, birth_year, city, bio, avatar_url, role, followers_count, following_count, views_count, public_email, public_phone, show_email, show_phone, created_at, mvp_count, mvp_tier, is_verified, height_cm, weight_kg, preferred_foot").eq("id", user.id).single(),

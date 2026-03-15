@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FeedItemEnriched } from "@/hooks/useFeed";
-import { getWeekStart } from "@/lib/mvp-scoring";
+import { getMonthStart } from "@/lib/mvp-scoring";
 import { normalizeMediaUrl } from "@/lib/media-url";
 import {
   computeFeedSplit,
@@ -478,13 +478,13 @@ export interface MvpLeaderData {
 }
 
 export async function fetchMvpLeader(supabase: SupabaseClient): Promise<MvpLeaderData | null> {
-  const weekStart = getWeekStart();
+  const monthStart = getMonthStart();
 
-  // 1. Get vote counts for this week (one fast query)
+  // 1. Get vote counts for this month (one fast query)
   const { data: votes } = await supabase
     .from("weekly_votes")
     .select("clip_id")
-    .eq("week_start", weekStart);
+    .eq("week_start", monthStart);
 
   if (!votes || votes.length === 0) return null;
 

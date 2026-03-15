@@ -154,9 +154,9 @@ export default function ChildDashboard({
             </div>
             <div>
               <p className="text-[15px] font-bold text-accent">
-                이번 주 MVP <span className="font-oswald text-[20px]">{dashboard.weeklyStats.mvpRank}</span>위
+                이번 달 MVP <span className="font-oswald text-[20px]">{dashboard.weeklyStats.mvpRank}</span>위
               </p>
-              <p className="text-[12px] text-text-3">주간 MVP 랭킹</p>
+              <p className="text-[12px] text-text-3">월간 MVP 랭킹</p>
             </div>
           </div>
         </div>

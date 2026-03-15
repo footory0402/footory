@@ -20,7 +20,7 @@ export const TIMELINE_EVENT_CONFIG: Record<TimelineEventType, TimelineEventConfi
   mvp_win: {
     icon: "🏆",
     label: "MVP",
-    getTitle: (data) => `주간 MVP ${data.rank === 1 ? "1위" : `${data.rank}위`} 달성!`,
+    getTitle: (data) => `월간 MVP ${data.rank === 1 ? "1위" : `${data.rank}위`} 달성!`,
   },
   team_join: {
     icon: "👥",
