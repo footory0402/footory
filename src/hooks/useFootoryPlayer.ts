@@ -46,8 +46,11 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
     clip.effects?.intro && !compact ? "intro" : "main"
   );
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [showSpotlight, setShowSpotlight] = useState(false);
+  const [showControls, setShowControls] = useState(true);
 
   const trimStart = clip.trim_start ?? 0;
   const trimEnd = clip.trim_end ?? null;
@@ -57,6 +60,28 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
     clip.slowmo_start < (clip.slowmo_end ?? 0);
 
   const videoSrc = clip.rendered_url ?? clip.video_url;
+
+  // Effective duration for seekbar
+  const effectiveDuration = trimEnd != null ? trimEnd - trimStart : duration - trimStart;
+  const relativeTime = currentTime - trimStart;
+  const progress = effectiveDuration > 0 ? Math.max(0, Math.min(1, relativeTime / effectiveDuration)) : 0;
+
+  // --- Controls auto-hide ---
+  const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetControlsTimer = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    controlsTimer.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    };
+  }, []);
 
   // --- Intro phase timer ---
   useEffect(() => {
@@ -77,6 +102,7 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
       video.play().catch(() => {});
       setIsPlaying(true);
       setShowSpotlight(true);
+      resetControlsTimer();
 
       // Hide spotlight after 2 seconds
       const spotTimer = setTimeout(() => setShowSpotlight(false), 2000);
@@ -111,6 +137,20 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
       bgm.pause();
     }
   }, [isPlaying, phase]);
+
+  // Sync mute with BGM
+  useEffect(() => {
+    const bgm = bgmRef.current;
+    if (bgm) bgm.muted = isMuted;
+    const video = videoRef.current;
+    if (video) video.muted = isMuted;
+  }, [isMuted]);
+
+  // --- Duration from video metadata ---
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (video) setDuration(video.duration);
+  }, []);
 
   // --- Time update handler ---
   const handleTimeUpdate = useCallback(() => {
@@ -153,6 +193,8 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
     const video = videoRef.current;
     if (!video) return;
 
+    resetControlsTimer();
+
     if (phase === "ended") {
       // Restart from beginning
       setPhase(clip.effects?.intro && !compact ? "intro" : "main");
@@ -174,7 +216,70 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
       video.pause();
       setIsPlaying(false);
     }
-  }, [phase, trimStart, clip.effects?.intro, compact]);
+  }, [phase, trimStart, clip.effects?.intro, compact, resetControlsTimer]);
+
+  // --- Seek to a specific time (relative to trimStart) ---
+  const seek = useCallback(
+    (relTime: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+      const targetTime = trimStart + Math.max(0, Math.min(effectiveDuration, relTime));
+      video.currentTime = targetTime;
+      setCurrentTime(targetTime);
+      if (phase === "ended") {
+        setPhase("main");
+        video.playbackRate = 1;
+      }
+      resetControlsTimer();
+    },
+    [trimStart, effectiveDuration, phase, resetControlsTimer]
+  );
+
+  // --- Seek by progress (0~1) ---
+  const seekByProgress = useCallback(
+    (pct: number) => {
+      seek(pct * effectiveDuration);
+    },
+    [seek, effectiveDuration]
+  );
+
+  // --- Skip forward/backward ---
+  const skip = useCallback(
+    (seconds: number) => {
+      const video = videoRef.current;
+      if (!video || phase === "intro") return;
+      const newRel = relativeTime + seconds;
+      seek(newRel);
+      resetControlsTimer();
+    },
+    [relativeTime, seek, phase, resetControlsTimer]
+  );
+
+  // --- Toggle mute ---
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => !prev);
+    resetControlsTimer();
+  }, [resetControlsTimer]);
+
+  // --- Toggle fullscreen ---
+  const toggleFullscreen = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const container = video.closest("[data-footory-player]") as HTMLElement | null;
+    const el = container ?? video;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      el.requestFullscreen().catch(() => {
+        // iOS Safari fallback
+        if ("webkitEnterFullscreen" in video) {
+          (video as HTMLVideoElement & { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
+        }
+      });
+    }
+    resetControlsTimer();
+  }, [resetControlsTimer]);
 
   // --- Video volume (50% when BGM active) ---
   useEffect(() => {
@@ -190,20 +295,33 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
     video.currentTime = trimStart;
   }, [trimStart]);
 
-  const formattedTime = formatMMSS(currentTime);
-  const relativeTime = currentTime - trimStart;
+  const formattedTime = formatMMSS(relativeTime);
+  const formattedDuration = formatMMSS(effectiveDuration);
 
   return {
     videoRef,
     videoSrc,
     phase,
     currentTime,
+    duration,
     relativeTime,
+    progress,
+    effectiveDuration,
     formattedTime,
+    formattedDuration,
     isPlaying,
+    isMuted,
     showSpotlight,
+    showControls,
     handleTimeUpdate,
+    handleLoadedMetadata,
     togglePlay,
+    seek,
+    seekByProgress,
+    skip,
+    toggleMute,
+    toggleFullscreen,
+    resetControlsTimer,
     trimStart,
     trimEnd,
     hasSlowmo,
@@ -211,7 +329,7 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
 }
 
 function formatMMSS(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
+  const m = Math.floor(Math.max(0, seconds) / 60);
+  const s = Math.floor(Math.max(0, seconds) % 60);
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
