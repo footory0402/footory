@@ -20,10 +20,10 @@ describe("Upload Store v1.3", () => {
     expect(state.slowmoSpeed).toBe(0.5);
     expect(state.bgmId).toBeNull();
     expect(state.effects).toEqual({
-      color: true,
-      cinematic: true,
-      eafc: true,
-      intro: true,
+      color: false,
+      cinematic: false,
+      eafc: false,
+      intro: false,
     });
     expect(state.renderJobId).toBeNull();
   });
@@ -90,11 +90,11 @@ describe("Upload Store v1.3", () => {
 
   it("sets effects partially", () => {
     const store = useUploadStore.getState();
-    store.setEffects({ color: false, eafc: false });
+    store.setEffects({ color: true, intro: true });
     const state = useUploadStore.getState();
     expect(state.effects).toEqual({
-      color: false,
-      cinematic: true,
+      color: true,
+      cinematic: false,
       eafc: false,
       intro: true,
     });
@@ -138,7 +138,7 @@ describe("Upload Store v1.3", () => {
     expect(state.skillLabels).toEqual([]);
     expect(state.slowmoStart).toBeNull();
     expect(state.bgmId).toBeNull();
-    expect(state.effects.color).toBe(true);
+    expect(state.effects.color).toBe(false);
     expect(state.renderJobId).toBeNull();
   });
 });

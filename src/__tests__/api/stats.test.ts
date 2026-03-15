@@ -31,35 +31,35 @@ describe("Stats STAT_BOUNDS validation", () => {
     expect(result.valid).toBe(true);
   });
 
-  it("rejects sprint_50m below minimum (4)", () => {
+  it("rejects sprint_50m below minimum (5.5)", () => {
     const result = validateStatValue("sprint_50m", 3);
     expect(result.valid).toBe(false);
-    expect(result.error).toContain("4~20");
+    expect(result.error).toContain("5.5~12");
   });
 
-  it("rejects sprint_50m above maximum (20)", () => {
+  it("rejects sprint_50m above maximum (12)", () => {
     const result = validateStatValue("sprint_50m", 25);
     expect(result.valid).toBe(false);
-    expect(result.error).toContain("4~20");
+    expect(result.error).toContain("5.5~12");
   });
 
   it("accepts kick_power at boundary values", () => {
-    expect(validateStatValue("kick_power", 1).valid).toBe(true);
-    expect(validateStatValue("kick_power", 200).valid).toBe(true);
+    expect(validateStatValue("kick_power", 20).valid).toBe(true);
+    expect(validateStatValue("kick_power", 150).valid).toBe(true);
   });
 
-  it("rejects kick_power above maximum (200)", () => {
+  it("rejects kick_power above maximum (150)", () => {
     const result = validateStatValue("kick_power", 250);
     expect(result.valid).toBe(false);
-    expect(result.error).toContain("1~200");
+    expect(result.error).toContain("20~150");
   });
 
-  it("accepts vertical_jump within bounds", () => {
-    expect(validateStatValue("vertical_jump", 45).valid).toBe(true);
+  it("accepts juggling within bounds", () => {
+    expect(validateStatValue("juggling", 100).valid).toBe(true);
   });
 
-  it("rejects vertical_jump above maximum (150)", () => {
-    const result = validateStatValue("vertical_jump", 200);
+  it("rejects run_1000m above maximum (600)", () => {
+    const result = validateStatValue("run_1000m", 700);
     expect(result.valid).toBe(false);
   });
 
