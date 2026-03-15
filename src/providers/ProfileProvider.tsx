@@ -89,7 +89,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/profile");
       if (!res.ok) {
         if (res.status === 401) {
-          setError("not_authenticated");
+          // 캐시된 HTML에서 로드됐지만 세션 만료 → 로그인으로 리다이렉트
+          window.location.href = "/login";
           return;
         }
         throw new Error("Failed to fetch profile");
