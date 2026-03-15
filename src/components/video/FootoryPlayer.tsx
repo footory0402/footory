@@ -63,53 +63,38 @@ export default function FootoryPlayer({
     tapFeedbackTimer.current = setTimeout(() => setTapFeedback(null), 600);
   }, []);
 
-  // --- Double-tap skip ---
-  const lastTapTime = useRef(0);
-  const lastTapSide = useRef<"left" | "right" | null>(null);
-  const singleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // --- Skip animation state ---
   const [skipAnimation, setSkipAnimation] = useState<{ side: "left" | "right"; key: number } | null>(null);
   const skipKeyRef = useRef(0);
 
-  const handleTap = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (phase === "intro") return;
+  // 중앙 탭 — 즉시 재생/일시정지 (딜레이 없음)
+  const handleCenterTap = useCallback(() => {
+    if (phase === "intro") return;
+    const wasPlaying = isPlaying;
+    togglePlay();
+    showTapFeedback(wasPlaying ? "pause" : "play");
+    resetControlsTimer();
+  }, [phase, isPlaying, togglePlay, showTapFeedback, resetControlsTimer]);
 
-      const rect = e.currentTarget.getBoundingClientRect();
-      const tapX = e.clientX - rect.left;
-      const side: "left" | "right" = tapX < rect.width / 2 ? "left" : "right";
-      const now = Date.now();
-      const timeSinceLastTap = now - lastTapTime.current;
+  // 좌측 더블탭 — 5초 뒤로
+  const handleLeftDoubleTap = useCallback(() => {
+    if (phase === "intro") return;
+    skip(-5);
+    skipKeyRef.current += 1;
+    setSkipAnimation({ side: "left", key: skipKeyRef.current });
+    setTimeout(() => setSkipAnimation(null), 600);
+    resetControlsTimer();
+  }, [phase, skip, resetControlsTimer]);
 
-      if (timeSinceLastTap < 300 && lastTapSide.current === side) {
-        // Double-tap → skip
-        if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
-        lastTapTime.current = 0;
-        lastTapSide.current = null;
-
-        const skipSeconds = side === "left" ? -5 : 5;
-        skip(skipSeconds);
-
-        skipKeyRef.current += 1;
-        setSkipAnimation({ side, key: skipKeyRef.current });
-        setTimeout(() => setSkipAnimation(null), 600);
-      } else {
-        // Potential single tap — wait for double-tap
-        lastTapTime.current = now;
-        lastTapSide.current = side;
-
-        if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
-        singleTapTimer.current = setTimeout(() => {
-          // Single tap → toggle play
-          const wasPlaying = isPlaying;
-          togglePlay();
-          showTapFeedback(wasPlaying ? "pause" : "play");
-          lastTapTime.current = 0;
-          lastTapSide.current = null;
-        }, 300);
-      }
-    },
-    [phase, isPlaying, togglePlay, skip, showTapFeedback]
-  );
+  // 우측 더블탭 — 5초 앞으로
+  const handleRightDoubleTap = useCallback(() => {
+    if (phase === "intro") return;
+    skip(5);
+    skipKeyRef.current += 1;
+    setSkipAnimation({ side: "right", key: skipKeyRef.current });
+    setTimeout(() => setSkipAnimation(null), 600);
+    resetControlsTimer();
+  }, [phase, skip, resetControlsTimer]);
 
   // --- Seekbar drag ---
   const seekbarRef = useRef<HTMLDivElement>(null);
@@ -249,9 +234,12 @@ export default function FootoryPlayer({
 
       {/* Timestamp — top right */}
       <div className="pointer-events-none absolute right-3 top-3 z-10">
-        <span className="font-stat text-[13px] tracking-wider text-text-1/80">
-          {formattedTime}
-        </span>
+        <div className="rounded-full bg-black/60 px-2.5 py-1 backdrop-blur-sm">
+          <span className="font-stat text-[14px] tracking-wider text-white">
+            {formattedTime}
+            <span className="text-white/50"> / {formattedDuration}</span>
+          </span>
+        </div>
       </div>
 
       {/* Slowmo REPLAY badge — top right (below timestamp) */}
@@ -267,13 +255,30 @@ export default function FootoryPlayer({
         </div>
       )}
 
-      {/* ─── Transparent tap target (separated from overlays) ─── */}
-      <button
-        type="button"
-        onClick={handleTap}
-        className="absolute inset-0 z-20 cursor-pointer"
-        aria-label={isPlaying ? "일시정지" : "재생"}
-      />
+      {/* ─── 3분할 터치 영역 (딜레이 없는 즉시 반응) ─── */}
+      <div className="absolute inset-0 z-20 flex">
+        {/* 좌 1/3: 더블탭 = 5초 뒤로 */}
+        <button
+          type="button"
+          className="flex-1 cursor-pointer"
+          onDoubleClick={handleLeftDoubleTap}
+          aria-label="5초 뒤로"
+        />
+        {/* 중앙 1/3: 싱글탭 = 즉시 재생/일시정지 */}
+        <button
+          type="button"
+          className="flex-1 cursor-pointer"
+          onClick={handleCenterTap}
+          aria-label={isPlaying ? "일시정지" : "재생"}
+        />
+        {/* 우 1/3: 더블탭 = 5초 앞으로 */}
+        <button
+          type="button"
+          className="flex-1 cursor-pointer"
+          onDoubleClick={handleRightDoubleTap}
+          aria-label="5초 앞으로"
+        />
+      </div>
 
       {/* ─── Tap feedback icon (center, fading) ─── */}
       {tapFeedback && (
@@ -321,8 +326,8 @@ export default function FootoryPlayer({
       {/* ─── Paused state — persistent play icon ─── */}
       {!isPlaying && phase !== "intro" && phase !== "ended" && !tapFeedback && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0C0C0E]/60 backdrop-blur-sm">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#FAFAFA">
+          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-black/50 backdrop-blur-sm ring-2 ring-accent/30">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="#FAFAFA">
               <polygon points="6,3 20,12 6,21" />
             </svg>
           </div>
@@ -390,16 +395,16 @@ export default function FootoryPlayer({
             aria-valuenow={Math.round(progress * 100)}
           >
             {/* Track background */}
-            <div className="w-full h-1 rounded-full bg-white/20 group-active:h-1.5 transition-all">
+            <div className="w-full h-1.5 rounded-full bg-white/20 group-active:h-2.5 transition-all">
               {/* Progress fill */}
               <div
                 className="h-full rounded-full bg-accent transition-[width] duration-75"
                 style={{ width: `${progress * 100}%` }}
               />
             </div>
-            {/* Thumb */}
+            {/* Thumb — 항상 표시 */}
             <div
-              className="absolute bottom-0 -translate-x-1/2 h-3 w-3 rounded-full bg-accent shadow-[0_0_6px_rgba(212,168,83,0.5)] opacity-0 group-active:opacity-100 transition-opacity"
+              className="absolute bottom-0 -translate-x-1/2 h-4 w-4 rounded-full bg-accent shadow-[0_0_8px_rgba(212,168,83,0.6)] opacity-100 transition-opacity"
               style={{ left: `${progress * 100}%` }}
             />
           </div>

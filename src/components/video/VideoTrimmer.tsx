@@ -92,6 +92,10 @@ export default function VideoTrimmer({
       } else {
         setTrimEnd(time);
       }
+      // 드래그 중 비디오 프리뷰를 해당 시점으로 동기화
+      if (videoRef.current) {
+        videoRef.current.currentTime = time;
+      }
     },
     [getTimeFromPosition, setTrimStart, setTrimEnd]
   );

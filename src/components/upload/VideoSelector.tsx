@@ -4,8 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { useUploadStore } from "@/stores/upload-store";
 
-const MAX_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_DURATION = 90; // 90초 (1분 30초)
+const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_DURATION = 120; // 120초 (2분)
 
 export default function VideoSelector() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +75,7 @@ export default function VideoSelector() {
     const sizeMB = (selected.size / 1024 / 1024).toFixed(0);
     if (selected.size > MAX_SIZE) {
       setError(
-        `영상이 ${sizeMB}MB예요. 50MB 이내의 영상을 선택해주세요.\n촬영 시 해상도를 1080p로 설정하면 용량을 줄일 수 있어요.`
+        `영상이 ${sizeMB}MB예요. 100MB 이내의 영상을 선택해주세요.\n촬영 시 해상도를 1080p로 설정하면 용량을 줄일 수 있어요.`
       );
       return;
     }
@@ -85,7 +85,7 @@ export default function VideoSelector() {
       const m = Math.floor(dur / 60);
       const s = Math.round(dur % 60);
       setError(
-        `영상이 ${m}분 ${s}초예요. 하이라이트는 1분 30초 이내가 좋아요.\n갤러리에서 영상을 잘라서 다시 선택해주세요.`
+        `영상이 ${m}분 ${s}초예요. 하이라이트는 2분 이내가 좋아요.\n갤러리에서 영상을 잘라서 다시 선택해주세요.`
       );
       return;
     }
@@ -159,7 +159,7 @@ export default function VideoSelector() {
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] text-text-3">용량</span>
-                  <span className="text-[11px] text-text-3 font-stat">{sizeMB} / 50MB</span>
+                  <span className="text-[11px] text-text-3 font-stat">{sizeMB} / 100MB</span>
                 </div>
                 <div className="h-1 rounded-full bg-white/10">
                   <div
@@ -175,7 +175,7 @@ export default function VideoSelector() {
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] text-text-3">길이</span>
-                  <span className="text-[11px] text-text-3 font-stat">{formatDuration(duration)} / 1:30</span>
+                  <span className="text-[11px] text-text-3 font-stat">{formatDuration(duration)} / 2:00</span>
                 </div>
                 <div className="h-1 rounded-full bg-white/10">
                   <div
@@ -211,12 +211,12 @@ export default function VideoSelector() {
             <div className="flex items-center gap-2 text-[11px] text-text-3">
               <span className="flex items-center gap-1">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                1분 30초 이내
+                2분 이내
               </span>
               <span className="text-border">|</span>
               <span className="flex items-center gap-1">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                50MB 이내
+                100MB 이내
               </span>
             </div>
           </div>

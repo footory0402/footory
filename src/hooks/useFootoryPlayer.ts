@@ -74,7 +74,7 @@ export function useFootoryPlayer({ clip, autoPlay = false, compact = false }: Us
     if (controlsTimer.current) clearTimeout(controlsTimer.current);
     controlsTimer.current = setTimeout(() => {
       setShowControls(false);
-    }, 3000);
+    }, 5000);
   }, []);
 
   useEffect(() => {
