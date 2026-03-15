@@ -158,8 +158,8 @@ async function fetchFollowFeed(
   const profileIds = [userId, ...followingIds];
   if (profileIds.length === 0) return [];
 
-  // 시스템 이벤트 노이즈 제거
-  const EXCLUDED_FEED_TYPES = ["top_clip", "season", "featured_change"];
+  // 시스템 이벤트 + 스탯/메달 노이즈 제거 — 피드는 영상 중심
+  const EXCLUDED_FEED_TYPES = ["top_clip", "season", "featured_change", "stat", "medal"];
 
   let query = supabase
     .from("feed_items")
@@ -217,8 +217,8 @@ async function fetchRecommendedFeed(
 
   const excludeIds = [userId, ...ctx.followingIds];
 
-  // 시스템 이벤트 노이즈 제거
-  const EXCLUDED_FEED_TYPES = ["top_clip", "season", "featured_change"];
+  // 시스템 이벤트 + 스탯/메달 노이즈 제거 — 피드는 영상 중심
+  const EXCLUDED_FEED_TYPES = ["top_clip", "season", "featured_change", "stat", "medal"];
 
   let query = supabase
     .from("feed_items")

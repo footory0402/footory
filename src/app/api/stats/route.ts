@@ -83,6 +83,22 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // 같은 종목 하루 1회 제한
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const { count: todayCount } = await supabase
+    .from("stats")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", user.id)
+    .eq("stat_type", statType)
+    .gte("recorded_at", todayStart.toISOString());
+
+  if (todayCount && todayCount >= 1) {
+    return NextResponse.json({
+      error: "같은 종목은 하루에 1회만 기록할 수 있습니다",
+    }, { status: 429 });
+  }
+
   // 경고 메시지 생성 (차단하지는 않음)
   const warning = getStatWarning(statType, value, birthYear);
 
@@ -112,36 +128,8 @@ export async function POST(request: NextRequest) {
     stat.id
   );
 
-  // Auto-create feed item for stat
-  await supabase.from("feed_items").insert({
-    profile_id: user.id,
-    type: "stat" as const,
-    reference_id: stat.id,
-    metadata: {
-      stat_type: statType,
-      stat_label: measurement.label,
-      value,
-      unit: measurement.unit,
-    },
-  });
-
-  // Auto-create feed items for new medals
-  if (newMedals && newMedals.length > 0) {
-    for (const medal of newMedals) {
-      await supabase.from("feed_items").insert({
-        profile_id: user.id,
-        type: "medal" as const,
-        reference_id: medal.id,
-        metadata: {
-          icon: medal.icon ?? "🏅",
-          label: medal.label ?? "메달 획득",
-          stat_type: measurement.label,
-          value,
-          unit: measurement.unit,
-        },
-      });
-    }
-  }
+  // 스탯/메달은 피드에 자동 게시하지 않음 — 피드는 영상 중심
+  // 기록은 프로필 기록 탭에서만 확인 가능
 
   // 연동된 부모에게 메달 획득 알림
   if (newMedals && newMedals.length > 0) {

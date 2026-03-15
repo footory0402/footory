@@ -24,12 +24,23 @@ export async function GET() {
     return NextResponse.json({ percentiles: {} });
   }
 
-  // Deduplicate — keep latest per stat_type
-  const latestByType = new Map<string, number>();
+  // Representative value per stat_type: median of recent 3 records (or latest if < 3)
+  const recordsByType = new Map<string, number[]>();
   for (const s of myStats) {
-    if (!latestByType.has(s.stat_type)) {
-      latestByType.set(s.stat_type, Number(s.value));
-    }
+    const arr = recordsByType.get(s.stat_type) ?? [];
+    if (arr.length < 3) arr.push(Number(s.value));
+    recordsByType.set(s.stat_type, arr);
+  }
+
+  function median(arr: number[]): number {
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  const latestByType = new Map<string, number>();
+  for (const [type, values] of recordsByType.entries()) {
+    latestByType.set(type, median(values));
   }
 
   const percentiles: Record<string, number> = {};
@@ -63,15 +74,15 @@ export async function GET() {
 
     if (!allOfType) continue;
 
-    // Deduplicate: keep latest per player
-    const playerLatest = new Map<string, number>();
+    // Representative value per player: median of recent 3
+    const playerRecords = new Map<string, number[]>();
     for (const row of allOfType) {
-      if (!playerLatest.has(row.profile_id)) {
-        playerLatest.set(row.profile_id, Number(row.value));
-      }
+      const arr = playerRecords.get(row.profile_id) ?? [];
+      if (arr.length < 3) arr.push(Number(row.value));
+      playerRecords.set(row.profile_id, arr);
     }
 
-    const values = Array.from(playerLatest.values());
+    const values = Array.from(playerRecords.values()).map(median);
     const total = values.length;
 
     let betterCount: number;

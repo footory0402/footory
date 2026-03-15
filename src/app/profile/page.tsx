@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import ProfileCard from "@/components/player/ProfileCard";
@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useStats } from "@/hooks/useStats";
 import { useClips, useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
+import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
 type ProfileTab = "highlight" | "stat";
 
 export default function ProfilePage() {
@@ -145,6 +146,15 @@ export default function ProfilePage() {
     }));
   }
 
+  // Compute radar stats from measurements + clip tags + percentiles
+  const radarStats = useMemo(() => {
+    const clipTagCounts: ClipTagCount[] = Object.entries(tagClips).map(([, clips]) => {
+      const tagName = clips[0]?.tag ?? "";
+      return { tagName, count: clips.length };
+    }).filter((t) => t.tagName);
+    return calcRadarStats(stats, clipTagCounts, percentiles);
+  }, [stats, tagClips, percentiles]);
+
   return (
     <div className="px-4 pt-4">
       {/* 프로필 카드 */}
@@ -250,6 +260,7 @@ export default function ProfilePage() {
                 seasons={seasons}
                 profile={profile}
                 percentiles={percentiles}
+                radarStats={radarStats}
                 onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
                 onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
                 onDeleteStat={handleDeleteStat}

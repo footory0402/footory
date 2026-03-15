@@ -5,6 +5,9 @@ import Link from "next/link";
 import GrowthCard from "./GrowthCard";
 import RadarChart from "./RadarChart";
 import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId } from "@/lib/constants";
+
+/** Axes that are derived from video tags, not physical measurements */
+const VIDEO_BASED_AXES = new Set<RadarStatId>(["passing", "defense"]);
 import { EMPTY_RADAR_STATS } from "@/lib/radar-calc";
 import type { Stat } from "@/lib/types";
 import type { Profile, Season } from "@/lib/types";
@@ -79,18 +82,25 @@ function RadarSection({
           <div className="px-4 pb-4 flex flex-col gap-2">
             {RADAR_STATS.map((s) => {
               const val = radarStats[s.id] ?? 0;
+              const isVideoBased = VIDEO_BASED_AXES.has(s.id);
               return (
                 <div key={s.id} className="flex items-center gap-2">
                   <span className="w-7 text-[10px] font-bold text-text-3 tracking-wide shrink-0">
                     {s.shortLabel}
                   </span>
+                  {isVideoBased && (
+                    <span className="text-[9px] shrink-0" title="영상 기반 추정치">📹</span>
+                  )}
                   <div className="flex-1 h-[6px] rounded-full bg-white/[0.06] overflow-hidden">
                     <div
                       className="h-full rounded-full animate-grow-w"
                       style={{
                         width: `${(val / 99) * 100}%`,
-                        background:
-                          val >= 80
+                        background: isVideoBased
+                          ? val >= 50
+                            ? "rgba(160,160,180,0.5)"
+                            : "rgba(160,160,180,0.25)"
+                          : val >= 80
                             ? "linear-gradient(90deg, #D4A853, #F5D78E)"
                             : val >= 50
                             ? "rgba(212,168,83,0.6)"
@@ -102,7 +112,9 @@ function RadarSection({
                     className="w-6 text-right text-[12px] font-bold tabular-nums shrink-0"
                     style={{
                       fontFamily: "var(--font-stat)",
-                      color: val >= 80 ? "#D4A853" : val >= 50 ? "#A1A1AA" : "#71717A",
+                      color: isVideoBased
+                        ? "#9E9EA8"
+                        : val >= 80 ? "#D4A853" : val >= 50 ? "#A1A1AA" : "#71717A",
                     }}
                   >
                     {val}
@@ -110,6 +122,10 @@ function RadarSection({
                 </div>
               );
             })}
+            {/* 영상 기반 범례 */}
+            <p className="text-[9px] text-text-3 mt-1 flex items-center gap-1">
+              <span>📹</span> 영상 태그 기반 추정치 · 측정 종목 추가 시 정확도 향상
+            </p>
           </div>
         </div>
       ) : (

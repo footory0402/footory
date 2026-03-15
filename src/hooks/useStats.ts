@@ -37,6 +37,12 @@ interface StatsApiMedal {
   } | null;
 }
 
+function median(arr: number[]): number {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 function toStat(s: StatsApiStat, allStats: StatsApiStat[], lowerIsBetter: boolean): Stat {
   // Find all records for same stat type, sorted newest first
   const sameType = allStats
@@ -51,11 +57,15 @@ function toStat(s: StatsApiStat, allStats: StatsApiStat[], lowerIsBetter: boolea
   const bestValue = lowerIsBetter ? Math.min(...allValues) : Math.max(...allValues);
   const isPR = s.value === bestValue;
 
+  // Representative value: median of recent 3 records (or latest if < 3)
+  const recent3 = sameType.slice(0, 3).map((x) => x.value);
+  const representativeValue = recent3.length >= 3 ? median(recent3) : s.value;
+
   return {
     id: s.id,
     playerId: s.profile_id,
     type: s.stat_type,
-    value: s.value,
+    value: representativeValue,
     previousValue: previous?.value,
     unit: s.unit,
     measuredAt: s.recorded_at,

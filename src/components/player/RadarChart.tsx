@@ -5,6 +5,8 @@ import { RADAR_STATS, type RadarStatId } from "@/lib/constants";
 
 interface RadarChartProps {
   stats: Record<RadarStatId, number>; // 각 축 0~99
+  compareStats?: Record<RadarStatId, number> | null; // 비교 데이터 (과거의 나 or 상대)
+  compareLabel?: string; // 비교 레이블 (예: "3개월 전")
   size?: number; // 기본값 280
   showOverall?: boolean; // OVR 평균 표시 여부
   className?: string;
@@ -26,7 +28,7 @@ function hexPath(cx: number, cy: number, radius: number): string {
     .join(" ") + " Z";
 }
 
-function RadarChartInner({ stats, size = 280, showOverall = true, className }: RadarChartProps) {
+function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOverall = true, className }: RadarChartProps) {
   const cx = size / 2;
   const cy = size / 2;
   // Leave space for labels around the hexagon
@@ -45,6 +47,24 @@ function RadarChartInner({ stats, size = 280, showOverall = true, className }: R
       }).join(" ") + " Z"
     );
   }, [stats, cx, cy, maxRadius]);
+
+  const comparePath = useMemo(() => {
+    if (!compareStats) return null;
+    return (
+      RADAR_STATS.map((s, i) => {
+        const val = Math.max(0, Math.min(99, compareStats[s.id] ?? 0));
+        const r = (val / 99) * maxRadius;
+        const [x, y] = hexPoint(cx, cy, r, i);
+        return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+      }).join(" ") + " Z"
+    );
+  }, [compareStats, cx, cy, maxRadius]);
+
+  const compareOverall = useMemo(() => {
+    if (!compareStats) return 0;
+    const values = RADAR_STATS.map((s) => compareStats[s.id] ?? 0);
+    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  }, [compareStats]);
 
   const overall = useMemo(() => {
     const values = RADAR_STATS.map((s) => stats[s.id] ?? 0);
@@ -103,6 +123,25 @@ function RadarChartInner({ stats, size = 280, showOverall = true, className }: R
             strokeWidth="0.6"
           />
         ))}
+
+        {/* Compare polygon (past/opponent) — rendered behind current */}
+        {comparePath && (
+          <>
+            <path
+              d={comparePath}
+              fill="rgba(255,255,255,0.04)"
+              stroke="none"
+            />
+            <path
+              d={comparePath}
+              fill="none"
+              stroke="rgba(255,255,255,0.20)"
+              strokeWidth="1"
+              strokeLinejoin="round"
+              strokeDasharray="4 3"
+            />
+          </>
+        )}
 
         {/* Data polygon fill */}
         <path
