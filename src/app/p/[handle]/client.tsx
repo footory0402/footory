@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
@@ -22,11 +22,13 @@ const AddToWatchlistButton = dynamic(
 
 const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
 const StatReportSheet = dynamic(() => import("@/components/stats/StatReportSheet"), { ssr: false });
+const CompareSheet = dynamic(() => import("@/components/player/CompareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import { APP_URL, POSITION_LABELS, SKILL_TAGS, getStatMeta } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS, SKILL_TAGS, getStatMeta, type RadarStatId } from "@/lib/constants";
+import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
 import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
@@ -225,6 +227,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [dmMsg, setDmMsg] = useState("");
   const [dmSending, setDmSending] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ statId: string; profileId: string } | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const profile = toProfile(data);
   const stats = mapStats(data.stats);
@@ -234,6 +237,15 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const timelineEvents = mapTimelineEvents(data.timelineEvents ?? []);
   const featured = data.featured;
   const tagClips = data.tagClips ?? {};
+
+  // Compute target radar stats for comparison
+  const targetRadarStats = useMemo(() => {
+    const clipTagCounts: ClipTagCount[] = Object.entries(tagClips).map(([, clips]) => {
+      const tagName = clips[0]?.tag ?? "";
+      return { tagName, count: clips.length };
+    }).filter((t) => t.tagName);
+    return calcRadarStats(stats, clipTagCounts);
+  }, [stats, tagClips]);
 
   const shareUrl = typeof window !== "undefined"
     ? window.location.href
@@ -296,6 +308,20 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         <div className="mt-3 flex gap-2">
           {viewerAccess?.canFollow && (
             <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
+          )}
+          {/* 나와 비교 버튼 */}
+          {viewerAccess?.role === "player" && profile.role === "player" && (
+            <button
+              onClick={() => setCompareOpen(true)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/30 py-2.5 text-[13px] font-semibold text-accent transition-colors active:bg-accent/[0.08]"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="8.5" cy="7" r="4" />
+                <path d="M20 8v6M23 11h-6" />
+              </svg>
+              나와 비교
+            </button>
           )}
           {showWatchlistAction && viewerAccess?.watchlist.enabled && (
             <AddToWatchlistButton playerId={profile.id} />
@@ -566,6 +592,19 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           statId={reportTarget.statId}
           reportedId={reportTarget.profileId}
           onClose={() => setReportTarget(null)}
+        />
+      )}
+
+      {/* 비교 시트 */}
+      {compareOpen && (
+        <CompareSheet
+          open={compareOpen}
+          onClose={() => setCompareOpen(false)}
+          target={{
+            profile,
+            stats,
+            radarStats: targetRadarStats,
+          }}
         />
       )}
 

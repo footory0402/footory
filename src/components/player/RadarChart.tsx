@@ -78,7 +78,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
   });
 
   return (
-    <div className={`relative w-full flex items-center justify-center ${className ?? ""}`}>
+    <div className={`relative w-full flex flex-col items-center justify-center ${className ?? ""}`}>
       <svg
         viewBox={`0 0 ${size} ${size}`}
         width="100%"
@@ -224,38 +224,106 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
         {/* Central OVR */}
         {showOverall && (
           <g>
-            <text
-              x={cx}
-              y={cy - 4}
-              textAnchor="middle"
-              dominantBaseline="auto"
-              style={{
-                fontSize: "26px",
-                fontWeight: 700,
-                fill: "#D4A853",
-                fontFamily: "var(--font-stat)",
-              }}
-            >
-              {overall}
-            </text>
-            <text
-              x={cx}
-              y={cy + 12}
-              textAnchor="middle"
-              dominantBaseline="auto"
-              style={{
-                fontSize: "8px",
-                fontWeight: 700,
-                fill: "#9E9EA8",
-                fontFamily: "var(--font-body)",
-                letterSpacing: "1.5px",
-              }}
-            >
-              OVR
-            </text>
+            {compareStats ? (
+              <>
+                {/* Compare mode: show both OVRs */}
+                <text
+                  x={cx}
+                  y={cy - 8}
+                  textAnchor="middle"
+                  dominantBaseline="auto"
+                  style={{
+                    fontSize: "22px",
+                    fontWeight: 700,
+                    fill: "#D4A853",
+                    fontFamily: "var(--font-stat)",
+                  }}
+                >
+                  {overall}
+                </text>
+                <text
+                  x={cx}
+                  y={cy + 8}
+                  textAnchor="middle"
+                  dominantBaseline="auto"
+                  style={{
+                    fontSize: "8px",
+                    fontWeight: 700,
+                    fill: "#9E9EA8",
+                    fontFamily: "var(--font-body)",
+                    letterSpacing: "1px",
+                  }}
+                >
+                  OVR
+                </text>
+                {/* Delta badge */}
+                {overall !== compareOverall && (
+                  <text
+                    x={cx}
+                    y={cy + 20}
+                    textAnchor="middle"
+                    dominantBaseline="auto"
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      fill: overall > compareOverall ? "#4ADE80" : "#F87171",
+                      fontFamily: "var(--font-stat)",
+                    }}
+                  >
+                    {overall > compareOverall ? "+" : ""}{overall - compareOverall}
+                  </text>
+                )}
+              </>
+            ) : (
+              <>
+                <text
+                  x={cx}
+                  y={cy - 4}
+                  textAnchor="middle"
+                  dominantBaseline="auto"
+                  style={{
+                    fontSize: "26px",
+                    fontWeight: 700,
+                    fill: "#D4A853",
+                    fontFamily: "var(--font-stat)",
+                  }}
+                >
+                  {overall}
+                </text>
+                <text
+                  x={cx}
+                  y={cy + 12}
+                  textAnchor="middle"
+                  dominantBaseline="auto"
+                  style={{
+                    fontSize: "8px",
+                    fontWeight: 700,
+                    fill: "#9E9EA8",
+                    fontFamily: "var(--font-body)",
+                    letterSpacing: "1.5px",
+                  }}
+                >
+                  OVR
+                </text>
+              </>
+            )}
           </g>
         )}
       </svg>
+
+      {/* Legend when comparing */}
+      {compareStats && (
+        <div className="flex items-center justify-center gap-4 mt-1">
+          <div className="flex items-center gap-1.5">
+            <div className="h-[2px] w-4 rounded-full bg-[#D4A853]" />
+            <span className="text-[10px] font-semibold text-text-2">현재</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-[2px] w-4 rounded-full bg-white/20" style={{ backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.2) 0, rgba(255,255,255,0.2) 4px, transparent 4px, transparent 7px)" }} />
+            <span className="text-[10px] font-semibold text-text-3">{compareLabel ?? "이전"}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId } from "@/lib/
 
 /** Axes that are derived from video tags, not physical measurements */
 const VIDEO_BASED_AXES = new Set<RadarStatId>(["passing", "defense"]);
-import { EMPTY_RADAR_STATS } from "@/lib/radar-calc";
+import { EMPTY_RADAR_STATS, calcRadarStatsFromFirstValues, type ClipTagCount } from "@/lib/radar-calc";
 import type { Stat } from "@/lib/types";
 import type { Profile, Season } from "@/lib/types";
 
@@ -18,6 +18,7 @@ interface InfoTabProps {
   profile: Profile;
   percentiles?: Record<string, number>;
   radarStats?: Record<RadarStatId, number>;
+  clipTagCounts?: ClipTagCount[];
   onAddStat?: () => void;
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
@@ -30,6 +31,7 @@ export default function InfoTab({
   profile,
   percentiles,
   radarStats,
+  clipTagCounts,
   onAddStat,
   onUpdateStat,
   onDeleteStat,
@@ -42,9 +44,15 @@ export default function InfoTab({
     [radar]
   );
 
+  // 과거의 나 레이더 데이터 (firstValue 기반)
+  const pastRadar = useMemo(
+    () => calcRadarStatsFromFirstValues(stats, clipTagCounts ?? []),
+    [stats, clipTagCounts]
+  );
+
   return (
     <div className="flex flex-col gap-5">
-      <RadarSection radarStats={radar} hasData={hasRadarData} />
+      <RadarSection radarStats={radar} hasData={hasRadarData} pastRadar={pastRadar} />
       <GrowthSection stats={stats} percentiles={percentiles} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
       {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
       <TeamSection profile={profile} seasons={seasons} onAddSeason={onAddSeason} />
@@ -56,10 +64,14 @@ export default function InfoTab({
 function RadarSection({
   radarStats,
   hasData,
+  pastRadar,
 }: {
   radarStats: Record<RadarStatId, number>;
   hasData: boolean;
+  pastRadar?: Record<RadarStatId, number> | null;
 }) {
+  const [showPast, setShowPast] = useState(false);
+
   return (
     <div>
       <SectionHeader
@@ -69,13 +81,37 @@ function RadarSection({
           </svg>
         }
         title="능력치"
+        action={
+          hasData && pastRadar ? (
+            <button
+              onClick={() => setShowPast((p) => !p)}
+              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all active:scale-95 ${
+                showPast
+                  ? "bg-accent/15 text-accent border border-accent/30"
+                  : "bg-white/[0.07] text-text-3 hover:bg-white/[0.12]"
+              }`}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              </svg>
+              성장 비교
+            </button>
+          ) : undefined
+        }
       />
 
       {hasData ? (
         <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden">
           {/* Radar chart */}
           <div className="px-4 pt-4 pb-2">
-            <RadarChart stats={radarStats} showOverall size={280} />
+            <RadarChart
+              stats={radarStats}
+              compareStats={showPast ? pastRadar : undefined}
+              compareLabel="첫 기록"
+              showOverall
+              size={280}
+            />
           </div>
 
           {/* Stat bars */}
@@ -188,6 +224,16 @@ function GrowthSection({
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
 }) {
+  // 팀 내 순위 로드 (비공개, 나만 볼 수 있음)
+  const [teamRanks, setTeamRanks] = useState<Record<string, { rank: number; total: number }>>({});
+
+  useEffect(() => {
+    fetch("/api/stats/team-rank")
+      .then((r) => (r.ok ? r.json() : { ranks: {} }))
+      .then((data) => setTeamRanks(data.ranks ?? {}))
+      .catch(() => {});
+  }, []);
+
   return (
     <div>
       <SectionHeader
@@ -225,6 +271,7 @@ function GrowthSection({
                 stat={stat}
                 lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
                 percentile={percentiles?.[stat.type]}
+                teamRank={teamRanks[stat.type]}
                 onUpdate={onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
                 onDelete={onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
               />

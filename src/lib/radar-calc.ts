@@ -119,6 +119,25 @@ export function calcRadarStats(
   };
 }
 
+/**
+ * Calculate radar stats using firstValue (earliest recorded) instead of current.
+ * Used for "과거의 나 vs 현재의 나" overlay comparison.
+ * Returns null if no first values exist (no growth data).
+ */
+export function calcRadarStatsFromFirstValues(
+  stats: Stat[],
+  clipTags: ClipTagCount[],
+): Record<RadarStatId, number> | null {
+  // Only include stats that have a firstValue different from current
+  const pastStats: Stat[] = stats
+    .filter((s) => s.firstValue != null && s.firstValue !== s.value)
+    .map((s) => ({ ...s, value: s.firstValue! }));
+
+  if (pastStats.length === 0) return null;
+
+  return calcRadarStats(pastStats, clipTags);
+}
+
 /** Default empty radar stats (all zeros) */
 export const EMPTY_RADAR_STATS: Record<RadarStatId, number> = {
   pace: 0,

@@ -146,14 +146,18 @@ export default function ProfilePage() {
     }));
   }
 
-  // Compute radar stats from measurements + clip tags + percentiles
-  const radarStats = useMemo(() => {
-    const clipTagCounts: ClipTagCount[] = Object.entries(tagClips).map(([, clips]) => {
+  // Compute clip tag counts (shared between radar and InfoTab)
+  const clipTagCounts: ClipTagCount[] = useMemo(() => {
+    return Object.entries(tagClips).map(([, clips]) => {
       const tagName = clips[0]?.tag ?? "";
       return { tagName, count: clips.length };
     }).filter((t) => t.tagName);
+  }, [tagClips]);
+
+  // Compute radar stats from measurements + clip tags + percentiles
+  const radarStats = useMemo(() => {
     return calcRadarStats(stats, clipTagCounts, percentiles);
-  }, [stats, tagClips, percentiles]);
+  }, [stats, clipTagCounts, percentiles]);
 
   return (
     <div className="px-4 pt-4">
@@ -261,6 +265,7 @@ export default function ProfilePage() {
                 profile={profile}
                 percentiles={percentiles}
                 radarStats={radarStats}
+                clipTagCounts={clipTagCounts}
                 onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
                 onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
                 onDeleteStat={handleDeleteStat}

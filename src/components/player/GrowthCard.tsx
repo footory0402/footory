@@ -9,6 +9,8 @@ interface GrowthCardProps {
   stat: Stat;
   lowerIsBetter?: boolean;
   percentile?: number;
+  /** 팀 내 순위 (예: { rank: 2, total: 12 }) — 비공개, 나만 볼 수 있음 */
+  teamRank?: { rank: number; total: number } | null;
   onUpdate?: () => void;
   onDelete?: () => void;
 }
@@ -29,7 +31,7 @@ function fmtTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function GrowthCard({ label, stat, lowerIsBetter = false, percentile, onUpdate, onDelete }: GrowthCardProps) {
+function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, onUpdate, onDelete }: GrowthCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { value, previousValue, unit, isPR, bestValue, firstValue, firstMeasuredAt, measureCount, measuredAt } = stat;
   const isTimeUnit = unit === "분:초";
@@ -172,6 +174,23 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, onUpdate, 
               <span className="text-[10px] font-medium text-text-3">성장 중</span>
             </div>
           ) : null}
+
+          {/* 팀 내 순위 (비공개, 나만 볼 수 있음) */}
+          {teamRank && teamRank.total >= 3 && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-bold"
+                style={{
+                  background: teamRank.rank === 1
+                    ? "rgba(212,168,83,0.12)"
+                    : "rgba(96,165,250,0.10)",
+                  color: teamRank.rank === 1 ? "#D4A853" : "#60A5FA",
+                }}
+              >
+                {teamRank.rank === 1 ? "🥇" : "👥"} 팀 {teamRank.rank}위/{teamRank.total}명
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
