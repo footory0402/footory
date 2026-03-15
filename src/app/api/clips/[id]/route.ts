@@ -127,6 +127,18 @@ export async function DELETE(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase.from("messages") as any).update({ shared_clip_id: null }).eq("shared_clip_id", id);
 
+  // Delete feed items referencing this clip (and their kudos/comments)
+  const { data: feedItems } = await supabase
+    .from("feed_items")
+    .select("id")
+    .eq("reference_id", id);
+  if (feedItems && feedItems.length > 0) {
+    const feedIds = feedItems.map((f: { id: string }) => f.id);
+    await supabase.from("kudos").delete().in("feed_item_id", feedIds);
+    await supabase.from("comments").delete().in("feed_item_id", feedIds);
+    await supabase.from("feed_items").delete().eq("reference_id", id);
+  }
+
   const { error } = await supabase.from("clips").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
