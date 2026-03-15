@@ -1,5 +1,6 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { OUTPUT_W, OUTPUT_H, CODEC, PRESET, CRF, AUDIO_CODEC, AUDIO_BITRATE, LETTERBOX_H } from "./config";
 
 const exec = promisify(execFile);
 
@@ -12,7 +13,7 @@ interface ColorParams {
 
 /**
  * Pass 1: 색보정 + 스케일 + 시네마틱 레터박스
- * 입력: raw 영상 → 출력: 1920x1080 색보정 영상
+ * 입력: raw 영상 → 출력: 1280x720 색보정 영상
  */
 export async function passColor(
   inputPath: string,
@@ -29,8 +30,8 @@ export async function passColor(
   }
 
   const filters: string[] = [
-    "scale=1920:1080:force_original_aspect_ratio=decrease",
-    "pad=1920:1080:(1920-iw)/2:(1080-ih)/2:color=0x0C0C0E",
+    `scale=${OUTPUT_W}:${OUTPUT_H}:force_original_aspect_ratio=decrease`,
+    `pad=${OUTPUT_W}:${OUTPUT_H}:(${OUTPUT_W}-iw)/2:(${OUTPUT_H}-ih)/2:color=0x0C0C0E`,
   ];
 
   if (params.colorEnabled !== false) {
@@ -42,15 +43,15 @@ export async function passColor(
 
   if (params.cinematicEnabled !== false) {
     filters.push(
-      "drawbox=x=0:y=0:w=1920:h=60:color=0x000000:t=fill",
-      "drawbox=x=0:y=1020:w=1920:h=60:color=0x000000:t=fill"
+      `drawbox=x=0:y=0:w=${OUTPUT_W}:h=${LETTERBOX_H}:color=0x000000:t=fill`,
+      `drawbox=x=0:y=${OUTPUT_H - LETTERBOX_H}:w=${OUTPUT_W}:h=${LETTERBOX_H}:color=0x000000:t=fill`
     );
   }
 
   args.push(
     "-vf", filters.join(","),
-    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-    "-c:a", "aac", "-b:a", "128k",
+    "-c:v", CODEC, "-preset", PRESET, "-crf", CRF,
+    "-c:a", AUDIO_CODEC, "-b:a", AUDIO_BITRATE,
     "-movflags", "+faststart",
     outputPath
   );

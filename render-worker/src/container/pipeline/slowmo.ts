@@ -1,5 +1,6 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { OUTPUT_W, CODEC, PRESET, CRF, AUDIO_CODEC, AUDIO_BITRATE } from "./config";
 
 const exec = promisify(execFile);
 
@@ -37,7 +38,7 @@ export async function passSlowmo(
     `setpts=${ptsFactor}*PTS`,
     // REPLAY 뱃지 (우상단)
     `drawtext=fontfile='${FONT}':text='REPLAY':` +
-      `fontcolor=0x7F77DD:fontsize=24:x=1920-tw-40:y=80:` +
+      `fontcolor=0x7F77DD:fontsize=20:x=${OUTPUT_W}-tw-30:y=55:` +
       `borderw=2:bordercolor=0x000000`,
   ].join(",");
 
@@ -48,8 +49,8 @@ export async function passSlowmo(
     "-to", String(slowmoEnd),
     "-vf", videoFilter,
     "-af", atempoFilters,
-    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-    "-c:a", "aac", "-b:a", "128k",
+    "-c:v", CODEC, "-preset", PRESET, "-crf", CRF,
+    "-c:a", AUDIO_CODEC, "-b:a", AUDIO_BITRATE,
     "-movflags", "+faststart",
     outputPath,
   ];

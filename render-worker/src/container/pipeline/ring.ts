@@ -1,6 +1,7 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { existsSync } from "fs";
+import { OUTPUT_W, OUTPUT_H, CODEC, PRESET, CRF } from "./config";
 
 const exec = promisify(execFile);
 
@@ -31,18 +32,19 @@ export async function passRing(
     return;
   }
 
-  // 1920x1080 기준 절대 좌표 계산
-  const x = Math.round(params.spotlightX * 1920) - 60; // 링 크기 120px 기준 중앙
-  const y = Math.round(params.spotlightY * 1080) - 60;
+  // 출력 해상도 기준 절대 좌표 계산
+  const ringSize = 80; // 720p 비례 축소 (1080p: 120px)
+  const x = Math.round(params.spotlightX * OUTPUT_W) - ringSize / 2;
+  const y = Math.round(params.spotlightY * OUTPUT_H) - ringSize / 2;
 
   const args = [
     "-y",
     "-i", inputPath,
     "-i", RING_IMAGE,
     "-filter_complex",
-    `[1:v]scale=120:120[ring];` +
+    `[1:v]scale=${ringSize}:${ringSize}[ring];` +
       `[0:v][ring]overlay=x=${x}:y=${y}:enable='between(t\\,0\\,2)'`,
-    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+    "-c:v", CODEC, "-preset", PRESET, "-crf", CRF,
     "-c:a", "copy",
     "-movflags", "+faststart",
     outputPath,

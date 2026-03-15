@@ -1,5 +1,6 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
+import { OUTPUT_W, OUTPUT_H, CODEC, PRESET, CRF } from "./config";
 
 const exec = promisify(execFile);
 
@@ -38,7 +39,7 @@ export async function passText(
     const labelText = labels.join(" / ");
     filters.push(
       `drawtext=fontfile='${FONT}':text='${escapeFfmpeg(labelText)}':` +
-        `fontcolor=${GOLD}:fontsize=28:x=40:y=80:` +
+        `fontcolor=${GOLD}:fontsize=22:x=30:y=55:` +
         `enable='between(t\\,0.3\\,2.5)'`
     );
   }
@@ -46,27 +47,27 @@ export async function passText(
   // 타임스탬프 (우하단)
   filters.push(
     `drawtext=fontfile='${FONT}':text='%{pts\\:hms}':` +
-      `fontcolor=0xFFFFFF@0.6:fontsize=20:x=1920-tw-40:y=1080-80`
+      `fontcolor=0xFFFFFF@0.6:fontsize=16:x=${OUTPUT_W}-tw-30:y=${OUTPUT_H}-60`
   );
 
   // EA FC 스타일 카드 (좌하단)
   if (params.eafcEnabled !== false && params.playerName) {
     // 배경 박스
     filters.push(
-      `drawbox=x=30:y=920:w=300:h=90:color=0x0C0C0E:t=fill:` +
+      `drawbox=x=20:y=${OUTPUT_H - 110}:w=240:h=70:color=0x0C0C0E:t=fill:` +
         `enable='between(t\\,0\\,3)'`
     );
     // 이름
     filters.push(
       `drawtext=fontfile='${FONT}':text='${escapeFfmpeg(params.playerName)}':` +
-        `fontcolor=0xFFFFFF:fontsize=26:x=50:y=935:` +
+        `fontcolor=0xFFFFFF:fontsize=20:x=35:y=${OUTPUT_H - 100}:` +
         `enable='between(t\\,0\\,3)'`
     );
     // 포지션
     if (params.playerPosition) {
       filters.push(
         `drawtext=fontfile='${FONT}':text='${params.playerPosition}':` +
-          `fontcolor=${GOLD}:fontsize=18:x=50:y=975:` +
+          `fontcolor=${GOLD}:fontsize=14:x=35:y=${OUTPUT_H - 70}:` +
           `enable='between(t\\,0\\,3)'`
       );
     }
@@ -82,7 +83,7 @@ export async function passText(
   const args = [
     "-y", "-i", inputPath,
     "-vf", filters.join(","),
-    "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+    "-c:v", CODEC, "-preset", PRESET, "-crf", CRF,
     "-c:a", "copy",
     "-movflags", "+faststart",
     outputPath,
