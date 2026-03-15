@@ -87,8 +87,11 @@ export default function SpotlightPicker({
       {/* 프레임 + 터치 영역 */}
       <div
         ref={containerRef}
-        className="relative overflow-hidden rounded-xl bg-black touch-none cursor-crosshair"
+        className="relative overflow-hidden rounded-xl bg-black touch-none cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         onPointerDown={handleTap}
+        role="application"
+        aria-label={isParent ? "영상에서 아이 위치 선택" : "영상에서 선수 위치 선택"}
+        tabIndex={0}
       >
         {frameUrl ? (
           <img src={frameUrl} alt="프레임" className="w-full" />

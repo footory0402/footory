@@ -163,9 +163,19 @@ export default function VideoTrimmer({
 
           {/* 왼쪽 핸들 */}
           <div
-            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none"
+            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded"
             style={{ left: `${startPct}%` }}
             onPointerDown={handlePointerDown("start")}
+            tabIndex={0}
+            role="slider"
+            aria-label="구간 시작 지점"
+            aria-valuemin={0}
+            aria-valuemax={Math.floor(duration)}
+            aria-valuenow={Math.floor(trimStart)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") { e.preventDefault(); setTrimStart(Math.max(0, trimStart - 1)); }
+              if (e.key === "ArrowRight") { e.preventDefault(); setTrimStart(Math.min(trimEnd - 3, trimStart + 1)); }
+            }}
           >
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <div className="h-6 w-6 rounded-full border-2 border-accent bg-accent/20 shadow-[0_0_8px_rgba(212,168,83,0.3)] transition-transform active:scale-125" />
@@ -175,9 +185,19 @@ export default function VideoTrimmer({
 
           {/* 오른쪽 핸들 */}
           <div
-            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none"
+            className="absolute inset-y-0 w-11 -translate-x-1/2 cursor-ew-resize touch-none outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded"
             style={{ left: `${endPct}%` }}
             onPointerDown={handlePointerDown("end")}
+            tabIndex={0}
+            role="slider"
+            aria-label="구간 종료 지점"
+            aria-valuemin={0}
+            aria-valuemax={Math.floor(duration)}
+            aria-valuenow={Math.floor(trimEnd)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") { e.preventDefault(); setTrimEnd(Math.max(trimStart + 3, trimEnd - 1)); }
+              if (e.key === "ArrowRight") { e.preventDefault(); setTrimEnd(Math.min(duration, trimEnd + 1)); }
+            }}
           >
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <div className="h-6 w-6 rounded-full border-2 border-accent bg-accent/20 shadow-[0_0_8px_rgba(212,168,83,0.3)] transition-transform active:scale-125" />

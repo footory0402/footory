@@ -16,6 +16,7 @@ import EffectsToggle from "@/components/video/EffectsToggle";
 import SlowmoPicker from "@/components/video/SlowmoPicker";
 import BgmPicker from "@/components/video/BgmPicker";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { ClipVisibility } from "@/stores/upload-store";
 
 /*
  * 3단계 위저드 (v1.4 개편)
@@ -397,6 +398,17 @@ export default function UploadPage() {
               <TagMemoForm />
             </div>
 
+            {/* 공개 범위 */}
+            <div>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
+                공개 범위
+              </h2>
+              <VisibilitySelector
+                value={store.visibility}
+                onChange={(v) => store.setVisibility(v)}
+              />
+            </div>
+
             {/* 설정 요약 카드 */}
             <div>
               <h2 className="mb-3 text-[15px] font-semibold text-text-1">
@@ -535,6 +547,66 @@ function CompactVideoPreview({ file }: { file: File }) {
         playsInline
         muted
       />
+    </div>
+  );
+}
+
+/* ── Visibility Selector ── */
+const VISIBILITY_OPTIONS: { value: ClipVisibility; label: string; icon: string; desc: string }[] = [
+  { value: "public", label: "전체 공개", icon: "🌍", desc: "누구나 볼 수 있어요" },
+  { value: "followers", label: "팔로워만", icon: "👥", desc: "나를 팔로우하는 사람만" },
+  { value: "team", label: "팀원만", icon: "⚽", desc: "같은 팀 멤버만 볼 수 있어요" },
+  { value: "private", label: "나만 보기", icon: "🔒", desc: "나만 볼 수 있어요" },
+];
+
+function VisibilitySelector({
+  value,
+  onChange,
+}: {
+  value: ClipVisibility;
+  onChange: (v: ClipVisibility) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      {VISIBILITY_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
+            value === opt.value
+              ? "border border-accent/30 bg-accent/8"
+              : "border border-transparent bg-card"
+          }`}
+        >
+          <span className="text-[16px]">{opt.icon}</span>
+          <div className="flex flex-col items-start">
+            <span
+              className={`text-[13px] font-semibold ${
+                value === opt.value ? "text-accent" : "text-text-1"
+              }`}
+            >
+              {opt.label}
+            </span>
+            <span className="text-[11px] text-text-3">{opt.desc}</span>
+          </div>
+          {value === opt.value && (
+            <svg
+              className="ml-auto text-accent"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </button>
+      ))}
     </div>
   );
 }

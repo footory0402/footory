@@ -48,8 +48,22 @@ export default function ChildSelector() {
 
   if (children.length === 0) {
     return (
-      <div className="rounded-xl bg-card px-4 py-3">
-        <p className="text-sm text-text-3">연동된 아이가 없습니다. 먼저 아이를 연동해주세요.</p>
+      <div className="flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-card px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
+            <span className="text-lg">👶</span>
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold text-text-1">연동된 아이가 없어요</p>
+            <p className="text-[12px] text-text-3">설정에서 아이의 계정을 연동해주세요</p>
+          </div>
+        </div>
+        <a
+          href="/settings/children"
+          className="flex items-center justify-center rounded-xl bg-accent py-3 text-[13px] font-bold text-bg active:scale-[0.99]"
+        >
+          아이 연동하러 가기
+        </a>
       </div>
     );
   }

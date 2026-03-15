@@ -13,6 +13,7 @@ export type UploadStatus =
   | "creating_job"
   | "rendering";
 export type UploadContext = "general" | "challenge" | "parent";
+export type ClipVisibility = "public" | "followers" | "team" | "private";
 
 interface UploadState {
   file: File | null;
@@ -42,6 +43,7 @@ interface UploadState {
   slowmoSpeed: number;
   bgmId: string | null;
   effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
+  visibility: ClipVisibility;
   renderJobId: string | null;
 
   setFile: (file: File | null) => void;
@@ -67,6 +69,7 @@ interface UploadState {
   setSlowmo: (start: number | null, end: number | null, speed?: number) => void;
   setBgmId: (id: string | null) => void;
   setEffects: (effects: Partial<UploadState["effects"]>) => void;
+  setVisibility: (v: ClipVisibility) => void;
   setRenderJobId: (id: string | null) => void;
 
   reset: () => void;
@@ -100,6 +103,7 @@ const initial = {
   slowmoSpeed: 0.5,
   bgmId: null as string | null,
   effects: { color: false, cinematic: false, eafc: false, intro: false },
+  visibility: "followers" as ClipVisibility,
   renderJobId: null as string | null,
 };
 
@@ -134,6 +138,7 @@ export const useUploadStore = create<UploadState>((set) => ({
   setEffects: (partial) => set((state) => ({
     effects: { ...state.effects, ...partial },
   })),
+  setVisibility: (visibility) => set({ visibility }),
   setRenderJobId: (renderJobId) => set({ renderJobId }),
 
   reset: () => set(initial),
