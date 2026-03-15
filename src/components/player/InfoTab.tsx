@@ -392,6 +392,33 @@ function TeamSection({
             )}
           </div>
 
+          {/* Team actions: 내 팀 관리 + 새 팀으로 이동 */}
+          <div className="mx-4 h-px bg-white/[0.05]" />
+          <div className="flex gap-2 px-4 py-3">
+            <Link
+              href="/team"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/[0.05] py-2.5 text-[11px] font-bold text-text-2 transition-colors active:bg-white/[0.08]"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                <path d="M16 3.13a4 4 0 010 7.75" />
+              </svg>
+              내 팀 관리
+            </Link>
+            <Link
+              href="/team"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-white/[0.05] py-2.5 text-[11px] font-bold text-text-2 transition-colors active:bg-white/[0.08]"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8l4 4-4 4" />
+                <path d="M2 12h20" />
+              </svg>
+              새 팀으로 이동
+            </Link>
+          </div>
+
           {/* Previous seasons */}
           {prevSeasons.length > 0 && (
             <>
@@ -432,13 +459,22 @@ function TeamSection({
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/[0.06] bg-card py-8 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.05]">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
-              <circle cx="12" cy="12" r="10" />
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
             </svg>
           </div>
           <div>
             <p className="text-[13px] font-bold text-text-1 mb-1">아직 소속 팀이 없어요</p>
-            <p className="text-[11px] text-text-3">팀을 등록하면 프로필에 표시돼요</p>
+            <p className="text-[11px] text-text-3 leading-relaxed">팀을 만들거나 초대코드로 가입해보세요</p>
           </div>
+          <Link
+            href="/team"
+            className="mt-1 rounded-full bg-accent px-5 py-2 text-[12px] font-bold text-bg transition-colors hover:bg-accent/90 active:scale-95"
+          >
+            팀 만들기 · 가입하기
+          </Link>
         </div>
       )}
     </div>

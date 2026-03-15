@@ -24,7 +24,7 @@ const playerTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
   { href: "/upload", label: "업로드", icon: PlusIcon, isCenter: true },
-  { href: "/team", label: "팀", icon: TeamIcon },
+  { href: "/discover", label: "탐색", icon: SearchIcon },
   { href: "/profile", label: "내 프로필", icon: UserIcon },
 ];
 
@@ -32,7 +32,7 @@ const parentTabs: Tab[] = [
   { href: "/", label: "홈", icon: HomeIcon },
   { href: "/mvp", label: "MVP", icon: MvpIcon },
   { href: "/upload", label: "영상 올려주기", icon: PlusIcon, isCenter: true },
-  { href: "/team", label: "팀", icon: TeamIcon },
+  { href: "/discover", label: "탐색", icon: SearchIcon },
   { href: "/profile/settings", label: "내 계정", icon: UserIcon },
 ];
 

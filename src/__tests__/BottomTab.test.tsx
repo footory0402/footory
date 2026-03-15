@@ -46,7 +46,7 @@ describe("BottomTab", () => {
     expect(screen.getByText("홈")).toBeInTheDocument();
     expect(screen.getByText("탐색")).toBeInTheDocument();
     expect(screen.getByText("MVP")).toBeInTheDocument();
-    expect(screen.getByText("프로필")).toBeInTheDocument();
+    expect(screen.getByText("내 프로필")).toBeInTheDocument();
     expect(screen.getByRole("button")).toBeInTheDocument();
   });
 
@@ -62,7 +62,7 @@ describe("BottomTab", () => {
     mockUsePathname.mockReturnValue("/profile");
     render(<BottomTab />);
 
-    const profileLabel = screen.getByText("프로필");
+    const profileLabel = screen.getByText("내 프로필");
     expect(profileLabel.className).toContain("text-accent");
 
     const homeLabel = screen.getByText("홈");

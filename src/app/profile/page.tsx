@@ -209,7 +209,7 @@ export default function ProfilePage() {
         /* 선수: 2탭 구조 */
         <>
           {/* 탭 바 — 세그먼트 컨트롤 */}
-          <div className="sticky top-[70px] z-30 -mx-4 mt-4 px-4 py-2.5 bg-bg/95 backdrop-blur-sm border-b border-white/[0.05]">
+          <div className="-mx-4 mt-4 px-4 py-2.5 border-b border-white/[0.05]">
             <div className="flex rounded-xl bg-white/[0.06] p-1 gap-1">
               {(["highlight", "stat"] as const).map((tab) => {
                 const label = tab === "highlight" ? "하이라이트" : "기록";
