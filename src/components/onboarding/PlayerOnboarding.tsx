@@ -42,21 +42,38 @@ export default function PlayerOnboarding({ onBack }: Props) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // localStorage 복원
+  // localStorage 복원 + OAuth 메타데이터 자동 채우기
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
-      if (!raw) return;
-      const d = JSON.parse(raw);
-      if (d.name) setName(d.name);
-      if (d.handle) setHandle(d.handle);
-      if (d.position) setPosition(d.position);
-      if (d.birthYear) setBirthYear(d.birthYear);
-      if (d.heightCm) setHeightCm(d.heightCm);
-      if (d.weightKg) setWeightKg(d.weightKg);
-      if (d.preferredFoot) setPreferredFoot(d.preferredFoot);
-      if (d.step && d.step > 1) setStep(d.step);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d.name) setName(d.name);
+        if (d.handle) setHandle(d.handle);
+        if (d.position) setPosition(d.position);
+        if (d.birthYear) setBirthYear(d.birthYear);
+        if (d.heightCm) setHeightCm(d.heightCm);
+        if (d.weightKg) setWeightKg(d.weightKg);
+        if (d.preferredFoot) setPreferredFoot(d.preferredFoot);
+        if (d.step && d.step > 1) setStep(d.step);
+        return;
+      }
     } catch {}
+
+    // OAuth 메타데이터에서 이름/아바타 자동 채우기 (카카오 등)
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return;
+        const meta = user.user_metadata;
+        if (meta?.full_name && !name) setName(meta.full_name);
+        else if (meta?.name && !name) setName(meta.name);
+        if (meta?.avatar_url && !avatarPreview) {
+          setAvatarPreview(meta.avatar_url);
+        }
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // localStorage 저장

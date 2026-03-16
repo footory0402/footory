@@ -186,8 +186,6 @@ export default function VoteCard({
             </div>
             <div className="flex items-center gap-2 text-xs text-text-3">
               {candidate.teamName && <span className="truncate font-medium text-accent">{candidate.teamName}</span>}
-              <span className="text-text-3/50">⚡</span><span className="font-stat font-bold text-accent">{candidate.totalScore}</span>
-              <span className="text-text-3/50">🗳</span> <span className="font-semibold text-accent">{candidate.voteCount}</span>
             </div>
           </div>
         </Link>
@@ -316,12 +314,11 @@ export function VoteCardCompact({
                 {candidate.teamName}
               </p>
             )}
-            <div className="mt-0.5 flex items-center gap-1.5 sm:mt-1">
-              <span className="text-text-3/50">⚡</span> <span className="font-stat text-xs font-bold text-accent">{candidate.totalScore}</span>
-              <span className="text-[10px] text-text-3">
-                <span className="text-text-3/50">🗳</span> <span className="font-semibold text-accent">{candidate.voteCount}</span>
-              </span>
-            </div>
+            {candidate.tags.length > 0 && (
+              <div className="mt-0.5 flex items-center gap-1 sm:mt-1">
+                <span className="rounded-sm bg-accent/10 px-1.5 py-0.5 text-[9px] font-bold text-accent">{candidate.tags[0]}</span>
+              </div>
+            )}
           </div>
         </Link>
 

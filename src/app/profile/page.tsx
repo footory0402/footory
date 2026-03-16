@@ -277,6 +277,7 @@ export default function ProfilePage() {
             ) : (
               <InfoTab
                 stats={stats}
+                medals={medals}
                 seasons={seasons}
                 percentiles={percentiles}
                 radarStats={radarStats}

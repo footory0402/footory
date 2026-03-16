@@ -10,10 +10,10 @@ import { getPositionBadgeStyle } from "@/components/ui/Badge";
 import { usePlayerRanking, type PlayerSortKey } from "@/hooks/useDiscover";
 import { useProfileContext } from "@/providers/ProfileProvider";
 
-const SORT_OPTIONS: { key: PlayerSortKey; label: string }[] = [
-  { key: "popularity", label: "인기순" },
-  { key: "followers", label: "팔로워순" },
-  { key: "mvp", label: "MVP횟수순" },
+const SORT_OPTIONS: { key: PlayerSortKey; label: string; desc: string }[] = [
+  { key: "popularity", label: "인기순", desc: "좋아요·조회수·팔로워·MVP 종합" },
+  { key: "followers", label: "팔로워순", desc: "팔로워 수 기준" },
+  { key: "mvp", label: "MVP횟수순", desc: "MVP 선정 횟수 기준" },
 ];
 
 const POSITION_LABELS_SHORT: Record<Position, string> = {
@@ -86,6 +86,9 @@ export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
               {opt.label}
             </button>
           ))}
+          <p className="text-[10px] text-text-3 mt-1">
+            {SORT_OPTIONS.find((o) => o.key === sort)?.desc}
+          </p>
         </div>
       )}
 

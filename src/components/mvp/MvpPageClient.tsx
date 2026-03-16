@@ -367,28 +367,6 @@ export default function MvpPageClient({
         </>
       )}
 
-      <div
-        className={`grid grid-cols-3 gap-2 transition-opacity ${
-          candidates.length === 0 ? "opacity-40" : ""
-        }`}
-      >
-        <StatBox
-          label="이번 달 클립"
-          value={initialData.monthlyStats.clipCount}
-          icon="🎬"
-        />
-        <StatBox
-          label="총 투표"
-          value={initialData.monthlyStats.totalVotes}
-          icon="🗳"
-        />
-        <StatBox
-          label="신규 선수"
-          value={initialData.monthlyStats.newPlayers}
-          icon="👤"
-        />
-      </div>
-
       <div className="flex gap-1 card-elevated p-1">
         {(
           [
@@ -441,38 +419,38 @@ export default function MvpPageClient({
   );
 }
 
+function getDaysUntilVoting(): number {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const day = kst.getUTCDate();
+  if (day >= 24) return 0;
+  return 24 - day;
+}
+
 function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
   const [timeRemaining, setTimeRemaining] = useState<{
     hours: number;
     minutes: number;
     seconds: number;
   } | null>(() => (votingOpen ? getVotingTimeRemaining() : null));
+  const [daysUntil, setDaysUntil] = useState(() => getDaysUntilVoting());
 
   useEffect(() => {
-    if (!votingOpen) {
-      return;
-    }
-
     const update = () => {
       if (document.visibilityState === "visible") {
         setTimeRemaining(getVotingTimeRemaining());
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        setTimeRemaining(getVotingTimeRemaining());
+        setDaysUntil(getDaysUntilVoting());
       }
     };
 
     const interval = setInterval(update, 1000);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("visibilitychange", update);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", update);
     };
-  }, [votingOpen]);
+  }, []);
 
   return (
     <div className="text-right">
@@ -488,7 +466,7 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
           >
             투표 진행중
           </span>
-          {votingOpen && timeRemaining && (
+          {timeRemaining && (
             <p className="mt-0.5 font-stat text-xl font-bold text-accent">
               {String(timeRemaining.hours).padStart(2, "0")}:
               {String(timeRemaining.minutes).padStart(2, "0")}:
@@ -497,16 +475,23 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
           )}
         </div>
       ) : (
-        <span
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-          style={{
-            background: "rgba(113,113,122,0.12)",
-            color: "var(--color-text-3)",
-            border: "1px solid rgba(113,113,122,0.3)",
-          }}
-        >
-          집계중
-        </span>
+        <div>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
+            style={{
+              background: "rgba(212,168,83,0.12)",
+              color: "var(--color-accent)",
+              border: "1px solid rgba(212,168,83,0.3)",
+            }}
+          >
+            클립 수집중
+          </span>
+          {daysUntil > 0 && (
+            <p className="mt-0.5 text-[11px] text-text-3">
+              투표까지 <span className="font-stat font-bold text-accent">D-{daysUntil}</span>
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

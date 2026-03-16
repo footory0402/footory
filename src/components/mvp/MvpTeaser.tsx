@@ -102,7 +102,11 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
             </div>
             <div className="mt-0.5 flex items-center gap-2 text-[10px] text-text-3">
               {leader.teamName && <span className="truncate text-text-2">{leader.teamName}</span>}
-              <span>🗳 <span className="font-stat font-bold text-text-1">{leader.voteCount}</span>표</span>
+              {leader.voteCount > 0 ? (
+                <span>🗳 <span className="font-stat font-bold text-text-1">{leader.voteCount}</span>표</span>
+              ) : (
+                <span className="text-text-3">투표 참여하기</span>
+              )}
             </div>
           </div>
 

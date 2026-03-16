@@ -81,9 +81,11 @@ function FeedBody({
                   </div>
                 </div>
                 {/* Duration */}
-                {duration !== null && (
-                  <span className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                    {Math.floor(duration)}초
+                {duration !== null && duration > 0 && (
+                  <span className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white font-stat">
+                    {duration >= 60
+                      ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, "0")}`
+                      : `${Math.floor(duration)}초`}
                   </span>
                 )}
               </button>

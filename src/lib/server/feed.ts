@@ -66,12 +66,30 @@ export async function fetchFeedPage(
   // 4. Deduplicate by id + G3: 차단 사용자 콘텐츠 제외
   const blockedSet = new Set(ctx.blockedIds ?? []);
   const seen = new Set<string>();
-  const unique = merged.filter((item) => {
+  let unique = merged.filter((item) => {
     if (seen.has(item.id)) return false;
     if (blockedSet.has(item.profile_id)) return false;
     seen.add(item.id);
     return true;
   });
+
+  // 4.5. 삭제된 클립 참조하는 feed_items 필터링
+  const highlightRefs = unique
+    .filter((i) => i.type === "highlight" && i.reference_id)
+    .map((i) => i.reference_id!);
+  if (highlightRefs.length > 0) {
+    const { data: existingClips } = await supabase
+      .from("clips")
+      .select("id")
+      .in("id", highlightRefs);
+    const existingClipIds = new Set((existingClips ?? []).map((c) => c.id));
+    unique = unique.filter((i) => {
+      if (i.type === "highlight" && i.reference_id) {
+        return existingClipIds.has(i.reference_id);
+      }
+      return true;
+    });
+  }
 
   // 5. Check kudos status for current user
   const items = await attachKudosStatus(supabase, userId, unique);
@@ -479,22 +497,36 @@ export interface MvpLeaderData {
 
 export async function fetchMvpLeader(supabase: SupabaseClient): Promise<MvpLeaderData | null> {
   const monthStart = getMonthStart();
+  const monthStartDate = new Date(`${monthStart}T00:00:00Z`);
 
-  // 1. Get vote counts for this month (one fast query)
+  // 1. Get vote counts for this month
   const { data: votes } = await supabase
     .from("weekly_votes")
     .select("clip_id")
     .eq("week_start", monthStart);
 
-  if (!votes || votes.length === 0) return null;
-
-  // Tally votes and find top clip_id
+  // Tally votes
   const tally: Record<string, number> = {};
-  for (const v of votes) tally[v.clip_id] = (tally[v.clip_id] ?? 0) + 1;
-  const topClipId = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0];
+  for (const v of votes ?? []) tally[v.clip_id] = (tally[v.clip_id] ?? 0) + 1;
+  const topVotedClipId = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  // 2. If no votes, find the latest clip of this month as leader
+  let topClipId = topVotedClipId;
+  if (!topClipId) {
+    const { data: latestClip } = await supabase
+      .from("clips")
+      .select("id")
+      .gte("created_at", monthStartDate.toISOString())
+      .eq("visibility", "public")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    topClipId = latestClip?.id ?? null;
+  }
+
   if (!topClipId) return null;
 
-  // 2. Fetch clip + tags in parallel
+  // 3. Fetch clip + tags in parallel
   const [clipRes, tagsRes] = await Promise.all([
     supabase
       .from("clips")
@@ -520,7 +552,7 @@ export async function fetchMvpLeader(supabase: SupabaseClient): Promise<MvpLeade
     playerAvatarUrl: profile?.avatar_url ?? null,
     teamName: null,
     thumbnailUrl: normalizeMediaUrl(clipRes.data.thumbnail_url),
-    voteCount: tally[topClipId],
+    voteCount: tally[topClipId] ?? 0,
     tags: (tagsRes.data ?? []).map((t) => t.tag_name),
   };
 }

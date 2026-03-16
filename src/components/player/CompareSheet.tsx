@@ -24,6 +24,7 @@ interface MyData {
   stats: Stat[];
   radarStats: Record<RadarStatId, number>;
   loading: boolean;
+  error?: "login_required" | "fetch_failed";
 }
 
 export default function CompareSheet({ open, onClose, target }: CompareSheetProps) {
@@ -46,7 +47,12 @@ export default function CompareSheet({ open, onClose, target }: CompareSheetProp
         ]);
 
         if (!profileRes.ok || !statsRes.ok) {
-          setMyData((prev) => ({ ...prev, loading: false }));
+          const isUnauth = profileRes.status === 401 || statsRes.status === 401;
+          setMyData((prev) => ({
+            ...prev,
+            loading: false,
+            error: isUnauth ? "login_required" : "fetch_failed",
+          } as MyData));
           return;
         }
 

@@ -69,5 +69,20 @@ export async function signOut() {
   const supabase = createClient();
   // signOut can fail if refresh token is already invalid — ignore the error
   await supabase.auth.signOut().catch(() => {});
-  window.location.href = "/login";
+  // Replace history to prevent back-button returning to authenticated pages
+  window.location.replace("/login");
+}
+
+/**
+ * bfcache 무효화: 로그아웃 후 뒤로가기로 돌아오면 강제 새로고침
+ * 앱 최상위 레이아웃에서 호출
+ */
+export function setupBfCacheGuard() {
+  if (typeof window === "undefined") return;
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+      // bfcache에서 복원됨 → 세션 확인 후 리로드
+      window.location.reload();
+    }
+  });
 }

@@ -170,9 +170,19 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
               </span>
             </div>
           ) : percentile != null && !tier ? (
-            <div className="flex items-center gap-1">
-              <span className="text-[10px]">🌱</span>
-              <span className="text-[10px] font-medium text-text-3">성장 중</span>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-[7px] rounded-full bg-white/[0.10] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${percentile}%`,
+                    background: "linear-gradient(90deg, rgba(74,222,128,0.3), rgba(74,222,128,0.5))",
+                  }}
+                />
+              </div>
+              <span className="shrink-0 text-[10px] font-bold text-text-3">
+                🌱 상위 {Math.max(1, 100 - percentile)}%
+              </span>
             </div>
           ) : null}
 

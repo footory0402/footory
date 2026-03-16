@@ -79,6 +79,7 @@ export async function fetchMvpCandidatesData(
       .from("clips")
       .select("id, owner_id, video_url, thumbnail_url, created_at")
       .gte("created_at", monthStartDate.toISOString())
+      .eq("visibility", "public")
       .order("created_at", { ascending: false }),
     supabase
       .from("weekly_votes")

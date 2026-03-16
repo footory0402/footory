@@ -10,11 +10,13 @@ import { formatStatDelta, formatStatValue, isTimeStatUnit, normalizeStatUnit } f
 /** Axes that are derived from video tags, not physical measurements */
 const VIDEO_BASED_AXES = new Set<RadarStatId>(["passing", "defense"]);
 import { EMPTY_RADAR_STATS, calcRadarStatsFromFirstValues, type ClipTagCount } from "@/lib/radar-calc";
-import type { Stat } from "@/lib/types";
+import type { Stat, Medal } from "@/lib/types";
 import type { Season } from "@/lib/types";
+import MedalBadge from "./MedalBadge";
 
 interface InfoTabProps {
   stats: Stat[];
+  medals?: Medal[];
   seasons: Season[];
   percentiles?: Record<string, number>;
   radarStats?: Record<RadarStatId, number>;
@@ -27,6 +29,7 @@ interface InfoTabProps {
 
 export default function InfoTab({
   stats,
+  medals,
   seasons,
   percentiles,
   radarStats,
@@ -54,6 +57,7 @@ export default function InfoTab({
       <RadarSection radarStats={radar} hasData={hasRadarData} pastRadar={pastRadar} />
       <GrowthSection stats={stats} percentiles={percentiles} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
       {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
+      {medals && medals.length > 0 && <MedalsSection medals={medals} />}
       <PrevSeasonsSection seasons={seasons} onAddSeason={onAddSeason} />
     </div>
   );
@@ -159,7 +163,7 @@ function RadarSection({
             })}
             {/* 영상 기반 범례 */}
             <p className="text-[9px] text-text-3 mt-1 flex items-center gap-1">
-              <span>📹</span> 영상 태그 기반 추정치 · 측정 종목 추가 시 정확도 향상
+              <span>📹</span> 패스·수비는 영상 태그 기반 추정치 · 체력측정 기록을 추가하면 더 정확해져요
             </p>
           </div>
         </div>
@@ -373,6 +377,36 @@ function GrowthTrendSection({ stats }: { stats: Stat[] }) {
             첫 기록 대비 변화량
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 달성 기록(메달) 섹션 ── */
+function MedalsSection({ medals }: { medals: Medal[] }) {
+  return (
+    <div>
+      <SectionHeader
+        icon={
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+            <circle cx="12" cy="8" r="7" />
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+          </svg>
+        }
+        title="달성 기록"
+        count={medals.length}
+      />
+      <div className="flex flex-col gap-1.5">
+        {medals.map((medal) => (
+          <MedalBadge
+            key={medal.id}
+            label={medal.label}
+            value={medal.value}
+            unit={medal.unit}
+            difficultyTier={medal.difficultyTier}
+            verified={medal.verified}
+          />
+        ))}
       </div>
     </div>
   );

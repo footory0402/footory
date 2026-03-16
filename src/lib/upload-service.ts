@@ -3,7 +3,7 @@ import { captureVideoThumbnail } from "@/lib/thumbnail";
 import { getFileDuration } from "@/lib/video";
 import { useUploadStore } from "@/stores/upload-store";
 
-const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB — Vercel body limit
+const SERVER_PROXY_LIMIT = 100 * 1024 * 1024; // 100MB — Vercel Pro body limit
 
 /**
  * iOS Safari often reports empty or wrong MIME types for video files.
@@ -95,7 +95,7 @@ async function uploadToR2(
     console.warn("[Upload] Fetch failed:", fetchErr);
   }
 
-  // 3차: 서버 프록시 (4MB 이하만)
+  // 3차: 서버 프록시 (모바일 CORS 우회)
   if (file.size <= SERVER_PROXY_LIMIT) {
     await uploadViaProxy(file, key, contentType);
     onProgress(90);
@@ -104,9 +104,9 @@ async function uploadToR2(
 
   // 모두 실패
   throw new Error(
-    "영상을 R2에 업로드할 수 없습니다.\n" +
-    "Cloudflare Dashboard → R2 → 버킷 설정에서\n" +
-    "CORS 정책을 확인해주세요."
+    "영상 업로드에 실패했어요.\n" +
+    "Wi-Fi 환경에서 다시 시도하거나,\n" +
+    "영상 용량을 줄여보세요."
   );
 }
 

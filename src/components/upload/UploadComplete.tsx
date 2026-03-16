@@ -29,7 +29,7 @@ export default function UploadComplete() {
   const goToProfile = (href: string) => {
     reset();
     router.refresh();
-    router.push(href);
+    router.replace(href);
   };
   const [showPush, setShowPush] = useState(false);
   const [confettiVisible, setConfettiVisible] = useState(false);
