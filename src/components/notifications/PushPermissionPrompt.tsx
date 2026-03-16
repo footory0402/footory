@@ -32,7 +32,7 @@ export default function PushPermissionPrompt({ onClose }: { onClose: () => void 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 pb-8">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 px-4 pb-8">
       <div className="w-full max-w-[400px] animate-slide-up rounded-[14px] bg-card p-5">
         <p className="text-center text-lg font-bold text-text-1">
           영상이 업로드됐어요!

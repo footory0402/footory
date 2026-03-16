@@ -55,8 +55,8 @@ export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
 
   const filtered = posFilter ? items.filter((item) => item.position === posFilter) : items;
   const rankedItems = filtered
-    .map((item, index) => ({ item, rank: index + 1 }))
-    .filter(({ item }) => item.profile_id !== profile?.id);
+    .filter((item) => item.profile_id !== profile?.id)
+    .map((item, index) => ({ item, rank: index + 1 }));
   const displayed = compact ? rankedItems.slice(0, 5) : rankedItems;
 
   if (displayed.length === 0) {
