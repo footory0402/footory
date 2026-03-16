@@ -33,7 +33,7 @@ export default function ChallengeBanner() {
     const supabase = createClient();
 
     async function load() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("challenges")
         .select("id, title, description, skill_tag, week_start, is_active")
         .eq("is_active", true)
@@ -41,7 +41,7 @@ export default function ChallengeBanner() {
         .limit(1)
         .single();
 
-      if (!data) return;
+      if (error || !data) return;
       setChallenge(data as Challenge);
 
       // 참여자 수: skill_tag가 있는 clip_tags 개수 (병렬 아닌 단독이지만 challenge 존재 시에만)
