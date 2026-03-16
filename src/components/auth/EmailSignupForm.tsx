@@ -1,7 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signUpWithEmail } from "@/lib/auth";
+import Link from "next/link";
+import { resendSignupConfirmation, signUpWithEmail } from "@/lib/auth";
+
+type AuthLikeError = Error & {
+  code?: string;
+  status?: number;
+};
+
+function getSignupErrorMessage(error: unknown) {
+  const authError = error as AuthLikeError | null;
+  const message = authError?.message ?? "";
+  const code = authError?.code ?? "";
+  const status = authError?.status;
+
+  if (message.includes("already registered")) {
+    return "이미 가입된 이메일이에요.";
+  }
+
+  if (code === "over_email_send_rate_limit" || status === 429) {
+    return "인증 메일 발송 한도에 도달했어요. 잠시 후 다시 시도해주세요.";
+  }
+
+  return "가입에 실패했어요. 다시 시도해주세요.";
+}
 
 export default function EmailSignupForm() {
   const [email, setEmail] = useState("");
@@ -31,9 +54,12 @@ export default function EmailSignupForm() {
     if (!canResend) return;
     setCanResend(false);
     setResendCooldown(60);
+    setError("");
     try {
-      await signUpWithEmail(email, password);
-    } catch {}
+      await resendSignupConfirmation(email);
+    } catch (err) {
+      setError(getSignupErrorMessage(err));
+    }
     const id = setInterval(() => {
       setResendCooldown((c) => {
         if (c <= 1) { clearInterval(id); setCanResend(true); return 0; }
@@ -57,12 +83,7 @@ export default function EmailSignupForm() {
       await signUpWithEmail(email, password);
       setSuccess(true);
     } catch (err) {
-      const message = (err as Error).message;
-      if (message.includes("already registered")) {
-        setError("이미 가입된 이메일이에요.");
-      } else {
-        setError("가입에 실패했어요. 다시 시도해주세요.");
-      }
+      setError(getSignupErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -91,6 +112,7 @@ export default function EmailSignupForm() {
         ) : (
           <p className="mt-1 text-xs text-text-3">{resendCooldown}초 후 재전송 가능</p>
         )}
+        {error && <p className="text-xs text-red">{error}</p>}
       </div>
     );
   }
@@ -144,8 +166,14 @@ export default function EmailSignupForm() {
           className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
         />
         <span>
-          <span className="text-text-3">이용약관</span> 및{" "}
-          <span className="text-text-3">개인정보처리방침</span>에 동의합니다.
+          <Link href="/terms" className="text-text-3 underline underline-offset-2 transition-colors hover:text-text-2">
+            이용약관
+          </Link>
+          {" "}및{" "}
+          <Link href="/privacy" className="text-text-3 underline underline-offset-2 transition-colors hover:text-text-2">
+            개인정보처리방침
+          </Link>
+          에 동의합니다.
           <br />
           <span className="text-xs text-text-3">
             만 14세 미만은 법정대리인의 동의가 필요합니다.

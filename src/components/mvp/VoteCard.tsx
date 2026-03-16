@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
-import { PositionBadge, getPositionBadgeStyle } from "@/components/ui/Badge";
+import { PositionBadge } from "@/components/ui/Badge";
 import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
 import type { Position } from "@/lib/constants";
 import MvpThumbnail from "./MvpThumbnail";
@@ -164,27 +165,32 @@ export default function VoteCard({
 
       {/* Info section — compact single row */}
       <div className={`flex items-center gap-2 px-3.5 sm:gap-2.5 sm:px-4 ${isFirst ? "py-3 sm:py-4" : "py-2.5 sm:py-3"}`}>
-        <Avatar
-          name={candidate.playerName}
-          size="sm"
-          
-          imageUrl={candidate.playerAvatarUrl}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-bold text-text-1" style={{ letterSpacing: "-0.3px" }}>
-              {candidate.playerName}
-            </span>
-            {candidate.playerPosition && (
-              <PositionBadge position={candidate.playerPosition} size="sm" />
-            )}
+        <Link
+          href={`/p/${candidate.playerHandle}`}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          aria-label={`${candidate.playerName} 프로필 보기`}
+        >
+          <Avatar
+            name={candidate.playerName}
+            size="sm"
+            imageUrl={candidate.playerAvatarUrl}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[15px] font-bold text-text-1" style={{ letterSpacing: "-0.3px" }}>
+                {candidate.playerName}
+              </span>
+              {candidate.playerPosition && (
+                <PositionBadge position={candidate.playerPosition} size="sm" />
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-text-3">
+              {candidate.teamName && <span className="truncate font-medium text-accent">{candidate.teamName}</span>}
+              <span className="text-text-3/50">⚡</span><span className="font-stat font-bold text-accent">{candidate.totalScore}</span>
+              <span className="text-text-3/50">🗳</span> <span className="font-semibold text-accent">{candidate.voteCount}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-text-3">
-            {candidate.teamName && <span className="truncate text-accent font-medium">{candidate.teamName}</span>}
-            <span className="text-text-3/50">⚡</span><span className="font-stat font-bold text-accent">{candidate.totalScore}</span>
-            <span className="text-text-3/50">🗳</span> <span className="text-accent font-semibold">{candidate.voteCount}</span>
-          </div>
-        </div>
+        </Link>
 
         {/* Vote button */}
         <button
@@ -296,22 +302,28 @@ export function VoteCardCompact({
 
       {/* Info + Vote */}
       <div className="flex flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-3">
-        <div className="min-w-0 w-full">
-          <span className="block max-w-full truncate text-[14px] font-bold text-text-1 sm:text-[15px]" style={{ letterSpacing: "-0.3px" }}>
-            {candidate.playerName}
-          </span>
-          {candidate.teamName && (
-            <p className="truncate text-[10px] font-medium text-accent sm:text-[11px]">
-              {candidate.teamName}
-            </p>
-          )}
-          <div className="mt-0.5 flex items-center gap-1.5 sm:mt-1">
-            <span className="text-text-3/50">⚡</span> <span className="font-stat text-xs font-bold text-accent">{candidate.totalScore}</span>
-            <span className="text-[10px] text-text-3">
-              <span className="text-text-3/50">🗳</span> <span className="text-accent font-semibold">{candidate.voteCount}</span>
+        <Link
+          href={`/p/${candidate.playerHandle}`}
+          className="min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          aria-label={`${candidate.playerName} 프로필 보기`}
+        >
+          <div className="min-w-0 w-full">
+            <span className="block max-w-full truncate text-[14px] font-bold text-text-1 sm:text-[15px]" style={{ letterSpacing: "-0.3px" }}>
+              {candidate.playerName}
             </span>
+            {candidate.teamName && (
+              <p className="truncate text-[10px] font-medium text-accent sm:text-[11px]">
+                {candidate.teamName}
+              </p>
+            )}
+            <div className="mt-0.5 flex items-center gap-1.5 sm:mt-1">
+              <span className="text-text-3/50">⚡</span> <span className="font-stat text-xs font-bold text-accent">{candidate.totalScore}</span>
+              <span className="text-[10px] text-text-3">
+                <span className="text-text-3/50">🗳</span> <span className="font-semibold text-accent">{candidate.voteCount}</span>
+              </span>
+            </div>
           </div>
-        </div>
+        </Link>
 
         <button
           onClick={hasVoted ? handleUnvote : handleVote}

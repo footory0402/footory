@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +14,30 @@ interface ContactSettings {
   show_phone: boolean;
 }
 
+function getProviderLabel(appMetadata: Record<string, unknown> | undefined) {
+  const providers = new Set<string>();
+  if (typeof appMetadata?.provider === "string") {
+    providers.add(appMetadata.provider);
+  }
+  if (Array.isArray(appMetadata?.providers)) {
+    for (const value of appMetadata.providers) {
+      if (typeof value === "string") {
+        providers.add(value);
+      }
+    }
+  }
+
+  if (providers.has("email")) {
+    return "이메일 로그인 계정";
+  }
+
+  if (providers.has("kakao")) {
+    return "카카오 연동 이메일";
+  }
+
+  return "로그인 이메일";
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<ContactSettings>({
@@ -23,6 +48,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<string | null>(null);
+  const [providerLabel, setProviderLabel] = useState("로그인 이메일");
   const [linkedParents, setLinkedParents] = useState<{ linkId: string; parentId: string; name: string; handle: string; avatarUrl: string | null; linkedAt: string }[]>([]);
   const { permission: pushPermission, loading: pushLoading, requestPermission } = usePushNotification();
 
@@ -31,6 +57,7 @@ export default function SettingsPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setProviderLabel(getProviderLabel(user.app_metadata));
 
       // Profile query + linked-parents fetch in parallel
       const [profileResult, parentsRes] = await Promise.all([
@@ -111,7 +138,9 @@ export default function SettingsPage() {
       {/* Back + Title */}
       <div className="mb-6 flex items-center gap-3">
         <button
+          type="button"
           onClick={() => router.back()}
+          aria-label="설정 뒤로가기"
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -125,7 +154,7 @@ export default function SettingsPage() {
       <SettingsGroup title="계정">
         <SettingsRow
           icon={<MailIcon />}
-          label="카카오 연동 이메일"
+          label={providerLabel}
           value={settings.email ?? "미등록"}
         />
       </SettingsGroup>
@@ -246,9 +275,9 @@ export default function SettingsPage() {
 
       {/* 그룹 5: 기타 */}
       <SettingsGroup title="기타">
-        <SettingsLinkRow label="이용약관" />
+        <SettingsLinkRow href="/terms" label="이용약관" />
         <div className="mx-4 border-t border-white/[0.06]" />
-        <SettingsLinkRow label="개인정보처리방침" />
+        <SettingsLinkRow href="/privacy" label="개인정보처리방침" />
         <div className="mx-4 border-t border-white/[0.06]" />
         <a href="mailto:support@footory.app" className="block px-4 py-3">
           <span className="text-sm text-accent">고객지원</span>
@@ -329,8 +358,10 @@ function ToggleRow({
         </div>
       </div>
       <button
+        type="button"
         onClick={onChange}
         disabled={disabled}
+        aria-label={label}
         className={`relative h-6 w-11 rounded-full transition-colors ${
           checked ? "bg-accent" : "bg-elevated"
         }`}
@@ -345,14 +376,19 @@ function ToggleRow({
   );
 }
 
-function SettingsLinkRow({ label }: { label: string }) {
+function SettingsLinkRow({ href, label }: { href: string; label: string }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
+    <Link
+      href={href}
+      aria-label={label}
+      title={label}
+      className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-white/[0.02]"
+    >
       <span className="text-sm text-text-1">{label}</span>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
         <path d="M9 18l6-6-6-6" />
       </svg>
-    </div>
+    </Link>
   );
 }
 
@@ -393,4 +429,3 @@ function BellIcon() {
     </svg>
   );
 }
-

@@ -92,7 +92,15 @@ export default function LoginPage() {
           showContent ? "opacity-100" : "opacity-0"
         }`}
       >
-        로그인 시 이용약관 및 개인정보처리방침에 동의합니다
+        로그인 시{" "}
+        <Link href="/terms" className="underline underline-offset-2 transition-colors hover:text-text-2">
+          이용약관
+        </Link>
+        {" "}및{" "}
+        <Link href="/privacy" className="underline underline-offset-2 transition-colors hover:text-text-2">
+          개인정보처리방침
+        </Link>
+        에 동의합니다
       </p>
     </div>
   );

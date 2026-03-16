@@ -127,32 +127,32 @@ function RankingRow({
           </div>
         </button>
 
-        {/* Avatar */}
-        <Link href={`/p/${c.playerHandle}`} className="shrink-0">
+        <Link
+          href={`/p/${c.playerHandle}`}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          aria-label={`${c.playerName} 프로필 보기`}
+        >
           <Avatar
             name={c.playerName}
             size="sm"
-            
             imageUrl={c.playerAvatarUrl}
           />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[15px] font-bold text-text-1">
+                {c.playerName}
+              </span>
+              {c.playerPosition && (
+                <PositionBadge position={c.playerPosition} size="sm" />
+              )}
+            </div>
+            <div className="mt-0.5 flex items-center gap-2 text-xs text-text-3">
+              {c.teamName && <span className="text-text-2">{c.teamName}</span>}
+              <span>⚡ <span className="text-text-1 font-medium">{c.totalScore}</span></span>
+              <span>🗳 <span className="text-text-1 font-medium">{c.voteCount}</span></span>
+            </div>
+          </div>
         </Link>
-
-        {/* Info */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-bold text-text-1">
-              {c.playerName}
-            </span>
-            {c.playerPosition && (
-              <PositionBadge position={c.playerPosition} size="sm" />
-            )}
-          </div>
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-text-3">
-            {c.teamName && <span className="text-text-2">{c.teamName}</span>}
-            <span>⚡ <span className="text-text-1 font-medium">{c.totalScore}</span></span>
-            <span>🗳 <span className="text-text-1 font-medium">{c.voteCount}</span></span>
-          </div>
-        </div>
 
         {/* Vote button */}
         {votingOpen && (

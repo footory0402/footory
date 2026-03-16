@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Avatar from "@/components/ui/Avatar";
 import RadarChart from "./RadarChart";
-import { MEASUREMENTS, getStatMeta, RADAR_STATS, POSITION_COLORS, type RadarStatId, type Position } from "@/lib/constants";
-import { calcRadarStats, EMPTY_RADAR_STATS, type ClipTagCount } from "@/lib/radar-calc";
+import { MEASUREMENTS, POSITION_COLORS, type RadarStatId, type Position } from "@/lib/constants";
+import { calcRadarStats, EMPTY_RADAR_STATS } from "@/lib/radar-calc";
 import type { Profile, Stat } from "@/lib/types";
 import { formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
@@ -125,7 +125,7 @@ export default function CompareSheet({ open, onClose, target }: CompareSheetProp
     }
 
     return shared;
-  }, [myData.stats, target.stats]);
+  }, [myData.profile, myData.stats, target.stats]);
 
   // Count advantages
   const { myAdvantages, targetAdvantages } = useMemo(() => {
