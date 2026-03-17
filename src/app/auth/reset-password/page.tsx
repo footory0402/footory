@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
     try {
       await updatePassword(password);
       setSuccess(true);
-      setTimeout(() => router.push("/login"), 2000);
+      setTimeout(() => router.replace("/login"), 2000);
     } catch {
       setError("비밀번호 변경에 실패했어요. 다시 시도해주세요.");
     } finally {

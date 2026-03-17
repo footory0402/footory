@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { POSITIONS, POSITION_LABELS, HANDLE_REGEX } from "@/lib/constants";
+import { POSITIONS, POSITION_LABELS, HANDLE_REGEX, type PlayStyleType, type StyleTraitKey } from "@/lib/constants";
+import PlayStyleTest from "@/components/player/PlayStyleTest";
 import { toast } from "sonner";
 
 const DRAFT_KEY = "footory_onboarding_player_draft";
@@ -20,7 +21,7 @@ interface Props {
 
 export default function PlayerOnboarding({ onBack }: Props) {
   const router = useRouter();
-  const [step, setStep] = useState(1); // 1: 기본정보, 2: 추가정보, 3: 프사
+  const [step, setStep] = useState(1); // 1: 기본정보, 2: 추가정보, 3: 플레이스타일, 4: 프사
   const [submitting, setSubmitting] = useState(false);
 
   // Step 1
@@ -37,7 +38,14 @@ export default function PlayerOnboarding({ onBack }: Props) {
   const [weightKg, setWeightKg] = useState("");
   const [preferredFoot, setPreferredFoot] = useState("");
 
-  // Step 3 — avatar
+  // Step 3 — play style
+  const [playStyleResult, setPlayStyleResult] = useState<{
+    styleType: PlayStyleType;
+    traits: Record<StyleTraitKey, number>;
+    answers: number[];
+  } | null>(null);
+
+  // Step 4 — avatar
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,9 +184,21 @@ export default function PlayerOnboarding({ onBack }: Props) {
       });
 
       if (res.ok) {
+        // Save play style if completed
+        if (playStyleResult) {
+          try {
+            await fetch("/api/play-style", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(playStyleResult),
+            });
+          } catch {
+            // Non-critical — can be retested later
+          }
+        }
         try { localStorage.removeItem(DRAFT_KEY); } catch {}
         localStorage.setItem("footory_show_welcome", "1");
-        router.push("/");
+        router.replace("/");
       } else {
         const data = await res.json();
         toast.error(data.error || "프로필 생성에 실패했어요");
@@ -188,13 +208,13 @@ export default function PlayerOnboarding({ onBack }: Props) {
       toast.error("네트워크 오류가 발생했어요");
       setSubmitting(false);
     }
-  }, [submitting, name, handle, position, birthYear, heightCm, weightKg, preferredFoot, avatarFile, router]);
+  }, [submitting, name, handle, position, birthYear, heightCm, weightKg, preferredFoot, avatarFile, playStyleResult, router]);
 
   return (
     <div className="flex-1">
       {/* Progress */}
       <div className="mb-8 flex items-center gap-2">
-        {[1, 2, 3].map((s) => (
+        {[1, 2, 3, 4].map((s) => (
           <div
             key={s}
             className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
@@ -400,8 +420,23 @@ export default function PlayerOnboarding({ onBack }: Props) {
         </div>
       )}
 
-      {/* Step 3: 프로필 사진 */}
+      {/* Step 3: 플레이 스타일 테스트 */}
       {step === 3 && (
+        <div className="animate-fade-up flex-1 flex flex-col">
+          <h1 className="text-xl font-bold text-text-1 mb-1">너의 플레이 스타일을 찾아보자! ⚡</h1>
+          <p className="text-sm text-text-3 mb-6">경기 상황에서 나라면 어떻게 할지 골라봐</p>
+          <PlayStyleTest
+            onComplete={(result) => {
+              setPlayStyleResult(result);
+              setStep(4);
+            }}
+            onSkip={() => setStep(4)}
+          />
+        </div>
+      )}
+
+      {/* Step 4: 프로필 사진 */}
+      {step === 4 && (
         <div className="animate-fade-up flex flex-1 flex-col items-center justify-center text-center">
           <input
             ref={fileInputRef}
@@ -448,7 +483,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
             >
               {submitting ? "프로필 생성 중..." : "시작하기"}
             </button>
-            <button onClick={() => setStep(2)} className="text-sm text-text-3">
+            <button onClick={() => setStep(3)} className="text-sm text-text-3">
               이전으로
             </button>
           </div>

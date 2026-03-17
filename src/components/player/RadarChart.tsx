@@ -208,11 +208,11 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                 textAnchor="middle"
                 dominantBaseline="auto"
                 style={{
-                  fontSize: "9px",
+                  fontSize: "8px",
                   fontWeight: 600,
                   fill: "#9E9EA8",
                   fontFamily: "var(--font-body)",
-                  letterSpacing: "0.5px",
+                  letterSpacing: "0.3px",
                 }}
               >
                 {s.shortLabel}

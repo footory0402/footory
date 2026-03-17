@@ -1,5 +1,5 @@
-const CACHE_NAME = "footory-v4";
-const NAV_CACHE = "footory-nav-v1";
+const CACHE_NAME = "footory-v5";
+const NAV_CACHE = "footory-nav-v2";
 
 // App shell: 오프라인에서도 빠르게 로드할 핵심 자원
 const APP_SHELL = [
@@ -42,11 +42,13 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (!url.protocol.startsWith("http")) return;
 
-  // API, auth 요청은 캐시하지 않음
+  // non-GET, API, auth, cross-origin 요청은 절대 가로채지 않음
+  // 모바일에서 SW가 POST/PUT을 intercept하면 "Failed to fetch" 발생 가능
+  if (request.method !== "GET") return;
+  if (url.origin !== self.location.origin) return;
   if (
     url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/auth/") ||
-    request.method !== "GET"
+    url.pathname.startsWith("/auth/")
   ) {
     return;
   }

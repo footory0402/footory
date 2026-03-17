@@ -433,7 +433,7 @@ export async function fetchWeeklyBest(
   const { data, error } = await supabase
     .from("feed_items")
     .select(
-      `id, profile_id, metadata, created_at,
+      `id, profile_id, reference_id, metadata, created_at,
        profiles!feed_items_profile_id_fkey(name, handle, avatar_url),
        kudos(count)`
     )
@@ -447,6 +447,7 @@ export async function fetchWeeklyBest(
   type BestRow = {
     id: string;
     profile_id: string;
+    reference_id: string | null;
     metadata: Record<string, unknown> | null;
     created_at: string;
     profiles: { name: string; handle: string; avatar_url: string | null } | null;
@@ -455,8 +456,20 @@ export async function fetchWeeklyBest(
 
   const rows = data as unknown as BestRow[];
 
+  // Filter out feed items referencing deleted clips
+  const clipRefs = rows.filter((r) => r.reference_id).map((r) => r.reference_id!);
+  let validRows = rows;
+  if (clipRefs.length > 0) {
+    const { data: existingClips } = await supabase
+      .from("clips")
+      .select("id")
+      .in("id", clipRefs);
+    const existingIds = new Set((existingClips ?? []).map((c) => c.id));
+    validRows = rows.filter((r) => !r.reference_id || existingIds.has(r.reference_id));
+  }
+
   // Sort by kudos count desc
-  const sorted = rows
+  const sorted = validRows
     .map((row) => ({
       row,
       kudosCount: row.kudos?.[0]?.count ?? 0,

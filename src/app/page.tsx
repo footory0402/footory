@@ -10,6 +10,7 @@ import ScoutHome from "@/components/scout/ScoutHome";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import HomePlayerView from "@/components/home/HomePlayerView";
 import ProfileHydrator from "@/components/layout/ProfileHydrator";
+import FeedListClient from "@/components/feed/FeedList";
 
 /* ── Full profile select (same as /api/profile — fetched once, shared) ── */
 const PROFILE_SELECT =
@@ -17,7 +18,8 @@ const PROFILE_SELECT =
 
 /* ── Async server components (heavy data fetch, streamed via Suspense) ── */
 
-async function PlayerHome({
+/** Feed section — heavy, streamed separately so MVP shows instantly */
+async function PlayerFeedSection({
   supabase,
   userId,
   profileHint,
@@ -26,22 +28,17 @@ async function PlayerHome({
   userId: string;
   profileHint: { city: string | null; birth_year: number | null; position: string | null };
 }) {
-  const [feedData, hasClips, mvpLeader] = await Promise.all([
+  const [feedData, hasClips] = await Promise.all([
     fetchFeedPage(supabase, userId, null, profileHint),
     hasUserUploadedClips(supabase, userId),
-    fetchMvpLeader(supabase),
   ]);
 
   return (
-    <>
-      <WelcomeModal />
-      <HomePlayerView
-        mvpLeader={mvpLeader}
-        initialFeedItems={feedData.items}
-        initialNextCursor={feedData.nextCursor}
-        showNudge={!hasClips}
-      />
-    </>
+    <FeedListClient
+      initialItems={feedData.items}
+      initialNextCursor={feedData.nextCursor}
+      showNudge={!hasClips}
+    />
   );
 }
 
@@ -122,6 +119,26 @@ function PlayerFeedSkeleton() {
   );
 }
 
+/** Feed-only skeleton (MVP is already rendered above) */
+function FeedSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="mb-3 rounded-xl bg-card p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-9 w-9 rounded-full bg-card-alt" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 w-24 rounded bg-card-alt" />
+              <div className="h-2.5 w-16 rounded bg-card-alt" />
+            </div>
+          </div>
+          <div className="aspect-video w-full rounded-xl bg-card-alt" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ── Role resolver (runs inside Suspense → skeleton shows instantly) ── */
 
 async function HomeContent() {
@@ -190,19 +207,30 @@ async function HomeContent() {
     );
   }
 
+  // MVP leader is a fast query — fetch it here so it renders with HomeContent (no extra wait for feed)
+  const mvpLeader = await fetchMvpLeader(supabase);
+  const profileHint = {
+    city: profile.city ?? null,
+    birth_year: profile.birth_year ?? null,
+    position: profile.position ?? null,
+  };
+
   return (
     <>
       <ProfileHydrator data={profilePayload} />
       <WelcomeModal />
-      <PlayerHome
-        supabase={supabase}
-        userId={user.id}
-        profileHint={{
-          city: profile.city ?? null,
-          birth_year: profile.birth_year ?? null,
-          position: profile.position ?? null,
-        }}
-      />
+      <div className="px-4 pt-2">
+        {/* MVP teaser renders immediately — no feed dependency */}
+        <HomePlayerView mvpLeader={mvpLeader} />
+        {/* Feed streams in separately — won't block MVP from showing */}
+        <Suspense fallback={<FeedSkeleton />}>
+          <PlayerFeedSection
+            supabase={supabase}
+            userId={user.id}
+            profileHint={profileHint}
+          />
+        </Suspense>
+      </div>
     </>
   );
 }

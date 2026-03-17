@@ -4,13 +4,12 @@ import { useState, useEffect, useMemo } from "react";
 
 import GrowthCard from "./GrowthCard";
 import RadarChart from "./RadarChart";
-import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId } from "@/lib/constants";
+import PlayStyleCard from "./PlayStyleCard";
+import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId, type PlayStyleType, type StyleTraitKey } from "@/lib/constants";
 import { formatStatDelta, formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
-/** Axes that are derived from video tags, not physical measurements */
-const VIDEO_BASED_AXES = new Set<RadarStatId>(["passing", "defense"]);
 import { EMPTY_RADAR_STATS, calcRadarStatsFromFirstValues, type ClipTagCount } from "@/lib/radar-calc";
-import type { Stat } from "@/lib/types";
+import type { Stat, PlayStyle } from "@/lib/types";
 import type { Season } from "@/lib/types";
 
 interface InfoTabProps {
@@ -19,10 +18,12 @@ interface InfoTabProps {
   percentiles?: Record<string, number>;
   radarStats?: Record<RadarStatId, number>;
   clipTagCounts?: ClipTagCount[];
+  playStyle?: PlayStyle | null;
   onAddStat?: () => void;
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
   onAddSeason?: () => void;
+  onPlayStyleTest?: () => void;
 }
 
 export default function InfoTab({
@@ -31,10 +32,12 @@ export default function InfoTab({
   percentiles,
   radarStats,
   clipTagCounts,
+  playStyle,
   onAddStat,
   onUpdateStat,
   onDeleteStat,
   onAddSeason,
+  onPlayStyleTest,
 }: InfoTabProps) {
   const growthStats = stats.filter((s) => (s.measureCount ?? 0) > 1);
   const radar = radarStats ?? EMPTY_RADAR_STATS;
@@ -52,6 +55,7 @@ export default function InfoTab({
   return (
     <div className="flex flex-col gap-5">
       <RadarSection radarStats={radar} hasData={hasRadarData} pastRadar={pastRadar} />
+      <PlayStyleSection playStyle={playStyle} onTest={onPlayStyleTest} />
       <GrowthSection stats={stats} percentiles={percentiles} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
       {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
       <PrevSeasonsSection seasons={seasons} onAddSeason={onAddSeason} />
@@ -117,29 +121,22 @@ function RadarSection({
           <div className="px-4 pb-4 flex flex-col gap-2">
             {RADAR_STATS.map((s) => {
               const val = radarStats[s.id] ?? 0;
-              const isVideoBased = VIDEO_BASED_AXES.has(s.id);
               return (
                 <div key={s.id} className="flex items-center gap-2">
-                  <span className="w-7 text-[10px] font-bold text-text-3 tracking-wide shrink-0">
+                  <span className="w-10 text-[10px] font-bold text-text-3 shrink-0">
                     {s.shortLabel}
                   </span>
-                  {isVideoBased && (
-                    <span className="text-[9px] shrink-0" title="영상 기반 추정치">📹</span>
-                  )}
                   <div className="flex-1 h-[6px] rounded-full bg-white/[0.06] overflow-hidden">
                     <div
                       className="h-full rounded-full animate-grow-w"
                       style={{
                         width: `${(val / 99) * 100}%`,
-                        background: isVideoBased
-                          ? val >= 50
-                            ? "rgba(160,160,180,0.5)"
-                            : "rgba(160,160,180,0.25)"
-                          : val >= 80
+                        background:
+                          val >= 80
                             ? "linear-gradient(90deg, #D4A853, #F5D78E)"
                             : val >= 50
-                            ? "rgba(212,168,83,0.6)"
-                            : "rgba(212,168,83,0.3)",
+                              ? "rgba(212,168,83,0.6)"
+                              : "rgba(212,168,83,0.3)",
                       }}
                     />
                   </div>
@@ -147,9 +144,7 @@ function RadarSection({
                     className="w-6 text-right text-[12px] font-bold tabular-nums shrink-0"
                     style={{
                       fontFamily: "var(--font-stat)",
-                      color: isVideoBased
-                        ? "#9E9EA8"
-                        : val >= 80 ? "#D4A853" : val >= 50 ? "#A1A1AA" : "#71717A",
+                      color: val >= 80 ? "#D4A853" : val >= 50 ? "#A1A1AA" : "#71717A",
                     }}
                   >
                     {val}
@@ -157,10 +152,6 @@ function RadarSection({
                 </div>
               );
             })}
-            {/* 영상 기반 범례 */}
-            <p className="text-[9px] text-text-3 mt-1 flex items-center gap-1">
-              <span>📹</span> 패스·수비는 영상 태그 기반 추정치 · 체력측정 기록을 추가하면 더 정확해져요
-            </p>
           </div>
         </div>
       ) : (
@@ -176,6 +167,61 @@ function RadarSection({
               기록을 추가하면 능력치가<br />자동으로 계산됩니다
             </p>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 플레이 스타일 섹션 ── */
+function PlayStyleSection({
+  playStyle,
+  onTest,
+}: {
+  playStyle?: PlayStyle | null;
+  onTest?: () => void;
+}) {
+  return (
+    <div>
+      <SectionHeader
+        icon={
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        }
+        title="나의 플레이 스타일"
+      />
+
+      {playStyle ? (
+        <PlayStyleCard
+          styleType={playStyle.styleType as PlayStyleType}
+          traits={{
+            breakthrough: playStyle.traitBreakthrough,
+            creativity: playStyle.traitCreativity,
+            finishing: playStyle.traitFinishing,
+            tenacity: playStyle.traitTenacity,
+          }}
+          onRetest={onTest}
+        />
+      ) : (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/[0.06] bg-card py-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10">
+            <span className="text-2xl">⚡</span>
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-text-1 mb-1">플레이 스타일을 찾아보세요</p>
+            <p className="text-[11px] text-text-3 leading-relaxed">
+              간단한 질문 5개로<br />나만의 플레이 스타일을 알아볼 수 있어요
+            </p>
+          </div>
+          {onTest && (
+            <button
+              onClick={onTest}
+              className="mt-1 rounded-full bg-accent px-5 py-2 text-[12px] font-bold text-bg transition-colors hover:bg-accent/90 active:scale-95"
+            >
+              테스트 시작하기
+            </button>
+          )}
         </div>
       )}
     </div>

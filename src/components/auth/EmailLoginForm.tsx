@@ -21,7 +21,7 @@ export default function EmailLoginForm() {
     try {
       const { session } = await signInWithEmail(email, password);
       if (session) {
-        router.push("/");
+        router.replace("/");
         router.refresh();
       }
     } catch (err) {

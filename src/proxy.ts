@@ -63,6 +63,13 @@ export async function proxy(request: NextRequest) {
   }
 
   // Profile check는 page.tsx에서 처리 (middleware에서 DB 쿼리 제거 → 로딩 속도 개선)
+
+  // 인증 페이지 브라우저 캐시 방지 → 로그아웃 후 뒤로가기로 이전 계정 페이지 노출 차단
+  supabaseResponse.headers.set(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate"
+  );
+
   return supabaseResponse;
 }
 

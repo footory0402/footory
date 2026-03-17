@@ -161,7 +161,7 @@ export default function UploadPage() {
           </div>
           <button
             type="button"
-            onClick={() => router.push("/")}
+            onClick={() => router.replace("/")}
             className="w-full rounded-xl bg-accent py-3 text-sm font-bold text-bg active:scale-[0.99]"
           >
             홈으로 돌아가기

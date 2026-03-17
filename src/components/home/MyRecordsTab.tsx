@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useStats } from "@/hooks/useStats";
-import { getStatMeta } from "@/lib/constants";
+import { getStatMeta, PLAY_STYLES, type PlayStyleType } from "@/lib/constants";
 import Link from "next/link";
 import { formatStatDelta, formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
@@ -10,6 +10,7 @@ export default function MyRecordsTab() {
   const { stats, loading } = useStats();
   const [percentiles, setPercentiles] = useState<Record<string, number>>({});
   const [percLoading, setPercLoading] = useState(true);
+  const [playStyleType, setPlayStyleType] = useState<PlayStyleType | null>(null);
 
   useEffect(() => {
     fetch("/api/stats/percentile")
@@ -17,6 +18,13 @@ export default function MyRecordsTab() {
       .then((d) => setPercentiles(d.percentiles ?? {}))
       .catch(() => {})
       .finally(() => setPercLoading(false));
+
+    fetch("/api/play-style")
+      .then((r) => (r.ok ? r.json() : { playStyle: null }))
+      .then((d) => {
+        if (d.playStyle?.styleType) setPlayStyleType(d.playStyle.styleType);
+      })
+      .catch(() => {});
   }, []);
 
   if (loading) {
@@ -71,6 +79,22 @@ export default function MyRecordsTab() {
 
   return (
     <div className="space-y-6 pb-4">
+      {/* 플레이 스타일 요약 */}
+      {playStyleType && PLAY_STYLES[playStyleType] && (
+        <Link href="/profile?tab=기록" className="block">
+          <div className="card-elevated flex items-center gap-3 p-4">
+            <span className="text-2xl">{PLAY_STYLES[playStyleType].icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-text-1">{PLAY_STYLES[playStyleType].label}</p>
+              <p className="text-[11px] text-text-3 truncate">{PLAY_STYLES[playStyleType].description}</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-3 shrink-0">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </div>
+        </Link>
+      )}
+
       {/* 내 기록 요약 카드 */}
       <section>
         <h3 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-text-2">

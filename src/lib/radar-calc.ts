@@ -1,7 +1,8 @@
 import type { Stat } from "@/lib/types";
 import type { RadarStatId } from "@/lib/constants";
-import { STAT_BOUNDS } from "@/lib/constants";
+import { STAT_BOUNDS, RADAR_STATS } from "@/lib/constants";
 
+/** @deprecated Kept for backward compatibility but no longer used in radar calculation */
 export interface ClipTagCount {
   tagName: string;
   count: number;
@@ -29,7 +30,6 @@ function normalizeStatValue(
 
   let ratio: number;
   if (lowerIsBetter) {
-    // Lower value = better → higher score
     ratio = (max - value) / (max - min);
   } else {
     ratio = (value - min) / (max - min);
@@ -39,84 +39,58 @@ function normalizeStatValue(
 }
 
 /**
- * Get bonus points from clip tags.
- * Each matching clip tag adds 3 points, capped at +15.
+ * Resolve a single radar axis from measurement data.
+ * Supports composite axes (e.g. "standing_jump,sit_ups" → average).
  */
-function tagBonus(clipTags: ClipTagCount[], ...tagNames: string[]): number {
-  const total = tagNames.reduce((sum, name) => {
-    const found = clipTags.find(
-      (t) => t.tagName === name || t.tagName.includes(name)
-    );
-    return sum + (found?.count ?? 0);
-  }, 0);
-  return Math.min(total * 3, 15);
+function resolveAxis(
+  statTypes: string,
+  lowerIsBetter: boolean,
+  statMap: Map<string, Stat>,
+  percentiles?: Record<string, number>,
+): number {
+  const types = statTypes.split(",");
+  const scores: number[] = [];
+
+  for (const statType of types) {
+    // Priority 1: percentile
+    if (percentiles?.[statType] != null) {
+      scores.push(clamp99(percentiles[statType]));
+    }
+    // Priority 2: raw measurement → normalize
+    else if (statMap.has(statType)) {
+      const stat = statMap.get(statType)!;
+      scores.push(normalizeStatValue(statType, stat.value, lowerIsBetter));
+    }
+  }
+
+  if (scores.length === 0) return 0;
+  return clamp99(scores.reduce((a, b) => a + b, 0) / scores.length);
 }
 
 /**
- * Calculate radar stats from measurement data + clip tag counts.
+ * Calculate radar stats from measurement data only (no video tag dependency).
  *
- * - pace: sprint_50m percentile/normalized value
- * - shooting: kick_power percentile/normalized + shooting tag bonus
- * - passing: forward-pass tag clips (scaled 0~99)
- * - dribbling: juggling percentile/normalized + 1v1 dribble tag bonus
- * - defense: 1v1 defense + heading contest tag clips
- * - physical: run_1000m percentile/normalized value
+ * 6축:
+ * - speed: 50m 달리기 백분위
+ * - endurance: 1000m 달리기 백분위
+ * - agility: 왕복달리기 백분위
+ * - power: 제자리멀리뛰기 + 윗몸일으키기 평균
+ * - flexibility: 앉아윗몸앞으로굽히기 백분위
+ * - control: 리프팅 백분위
  */
 export function calcRadarStats(
   stats: Stat[],
-  clipTags: ClipTagCount[],
+  _clipTags?: ClipTagCount[],
   percentiles?: Record<string, number>
 ): Record<RadarStatId, number> {
   const statMap = new Map(stats.map((s) => [s.type, s]));
 
-  function resolveAxis(
-    statType: string,
-    lowerIsBetter: boolean,
-    bonusTags: string[]
-  ): number {
-    let base = 0;
-    let hasData = false;
-
-    // Priority 1: percentile
-    if (percentiles?.[statType] != null) {
-      base = clamp99(percentiles[statType]);
-      hasData = true;
-    }
-    // Priority 2: raw measurement value → normalize
-    else if (statMap.has(statType)) {
-      const stat = statMap.get(statType)!;
-      base = normalizeStatValue(statType, stat.value, lowerIsBetter);
-      hasData = true;
-    }
-
-    // Clip tag bonus
-    const bonus = tagBonus(clipTags, ...bonusTags);
-    if (bonus > 0) hasData = true;
-
-    return hasData ? clamp99(base + bonus) : 0;
+  const result: Record<string, number> = {};
+  for (const axis of RADAR_STATS) {
+    result[axis.id] = resolveAxis(axis.statType, axis.lowerIsBetter, statMap, percentiles);
   }
 
-  // For pure tag-based axes (no direct measurement mapping)
-  function tagOnlyAxis(...tagNames: string[]): number {
-    const total = tagNames.reduce((sum, name) => {
-      const found = clipTags.find(
-        (t) => t.tagName === name || t.tagName.includes(name)
-      );
-      return sum + (found?.count ?? 0);
-    }, 0);
-    if (total === 0) return 0;
-    // Scale: 1 clip = 15, 3 clips = 40, 6 clips = 65, 10+ = 85~99
-    return clamp99(Math.min(15 + total * 9, 99));
-  }
-
-  return {
-    pace: resolveAxis("sprint_50m", true, []),
-    shooting: resolveAxis("kick_power", false, ["슈팅"]),
-    passing: tagOnlyAxis("전진패스"),
-    dribbling: resolveAxis("juggling", false, ["1v1 돌파"]),
-    defense: tagOnlyAxis("1v1 수비", "헤딩경합"),
-    physical: resolveAxis("run_1000m", true, []),
-  };
+  return result as Record<RadarStatId, number>;
 }
 
 /**
@@ -126,24 +100,23 @@ export function calcRadarStats(
  */
 export function calcRadarStatsFromFirstValues(
   stats: Stat[],
-  clipTags: ClipTagCount[],
+  _clipTags?: ClipTagCount[],
 ): Record<RadarStatId, number> | null {
-  // Only include stats that have a firstValue different from current
   const pastStats: Stat[] = stats
     .filter((s) => s.firstValue != null && s.firstValue !== s.value)
     .map((s) => ({ ...s, value: s.firstValue! }));
 
   if (pastStats.length === 0) return null;
 
-  return calcRadarStats(pastStats, clipTags);
+  return calcRadarStats(pastStats);
 }
 
 /** Default empty radar stats (all zeros) */
 export const EMPTY_RADAR_STATS: Record<RadarStatId, number> = {
-  pace: 0,
-  shooting: 0,
-  passing: 0,
-  dribbling: 0,
-  defense: 0,
-  physical: 0,
+  speed: 0,
+  endurance: 0,
+  agility: 0,
+  power: 0,
+  flexibility: 0,
+  control: 0,
 };

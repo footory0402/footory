@@ -207,14 +207,133 @@ export const HANDLE_REGEX = /^[a-z0-9_]{3,20}$/;
 export const NOTIFICATION_POLL_MS = 30_000;
 export const APP_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://footory.app";
 
-// FIFA-style Radar Stat Categories
+// 체력 레이더 6축 (순수 측정 기반)
 export const RADAR_STATS = [
-  { id: "pace", label: "스피드", shortLabel: "SPD", icon: "⚡", color: "#4ADE80" },
-  { id: "shooting", label: "슈팅", shortLabel: "SHO", icon: "🦵", color: "#F87171" },
-  { id: "passing", label: "패스", shortLabel: "PAS", icon: "🏐", color: "#60A5FA" },
-  { id: "dribbling", label: "드리블", shortLabel: "DRI", icon: "⚽", color: "#FBBF24" },
-  { id: "defense", label: "수비", shortLabel: "DEF", icon: "🛡️", color: "#A78BFA" },
-  { id: "physical", label: "체력", shortLabel: "PHY", icon: "💪", color: "#F472B6" },
+  { id: "speed", label: "속도", shortLabel: "속도", icon: "⚡", color: "#4ADE80", statType: "sprint_50m", lowerIsBetter: true },
+  { id: "endurance", label: "지구력", shortLabel: "지구력", icon: "🏃‍♂️", color: "#60A5FA", statType: "run_1000m", lowerIsBetter: true },
+  { id: "agility", label: "순발력", shortLabel: "순발력", icon: "🔄", color: "#A78BFA", statType: "shuttle_run", lowerIsBetter: false },
+  { id: "power", label: "근력", shortLabel: "근력", icon: "💪", color: "#F87171", statType: "standing_jump,sit_ups", lowerIsBetter: false },
+  { id: "flexibility", label: "유연성", shortLabel: "유연성", icon: "🧘", color: "#F472B6", statType: "flexibility", lowerIsBetter: false },
+  { id: "control", label: "볼컨트롤", shortLabel: "컨트롤", icon: "⚽", color: "#FBBF24", statType: "juggling", lowerIsBetter: false },
 ] as const;
 
 export type RadarStatId = (typeof RADAR_STATS)[number]["id"];
+
+// ── 플레이 스타일 시스템 ──
+
+export type PlayStyleType =
+  | "aggressive_dribbler"
+  | "game_maker"
+  | "goal_scorer"
+  | "box_to_box"
+  | "defensive_warrior"
+  | "speedster"
+  | "controller"
+  | "all_rounder";
+
+export const PLAY_STYLES: Record<PlayStyleType, {
+  label: string;
+  icon: string;
+  description: string;
+}> = {
+  aggressive_dribbler: { label: "공격형 드리블러", icon: "⚡", description: "공을 잡으면 돌파부터" },
+  game_maker:          { label: "게임메이커", icon: "🎯", description: "패스 한 번으로 판을 바꾼다" },
+  goal_scorer:         { label: "골잡이", icon: "🔥", description: "골 앞에서 가장 빛난다" },
+  box_to_box:          { label: "박스투박스", icon: "🔋", description: "공격도 수비도 내 몫" },
+  defensive_warrior:   { label: "수비형 전사", icon: "🛡️", description: "상대를 절대 못 지나가게" },
+  speedster:           { label: "스피드스터", icon: "💨", description: "빈 공간이 보이면 달린다" },
+  controller:          { label: "컨트롤러", icon: "🧤", description: "공은 내 발에 붙어있다" },
+  all_rounder:         { label: "올라운더", icon: "⭐", description: "못하는 게 없다" },
+};
+
+export const STYLE_TRAIT_LABELS = {
+  breakthrough: "돌파",
+  creativity: "창의",
+  finishing: "결정",
+  tenacity: "투지",
+} as const;
+
+export type StyleTraitKey = keyof typeof STYLE_TRAIT_LABELS;
+
+export interface StyleQuestion {
+  question: string;
+  answers: { text: string; scores: Partial<Record<StyleTraitKey, number>> }[];
+}
+
+export const STYLE_QUESTIONS: StyleQuestion[] = [
+  {
+    question: "우리 팀이 상대 진영에서 공을 뺏었다. 나는?",
+    answers: [
+      { text: "바로 공을 달라고 소리친다", scores: { breakthrough: 3, finishing: 1 } },
+      { text: "빈 공간으로 달려간다", scores: { finishing: 2, tenacity: 1 } },
+      { text: "좋은 위치의 동료를 찾아본다", scores: { creativity: 3 } },
+      { text: "뒤를 봐주며 안전하게", scores: { tenacity: 3 } },
+    ],
+  },
+  {
+    question: "1대1 상황. 상대 수비수가 앞에 있다.",
+    answers: [
+      { text: "페인트 넣고 돌파한다", scores: { breakthrough: 3, creativity: 1 } },
+      { text: "슛이 가능하면 바로 슛", scores: { finishing: 3 } },
+      { text: "동료에게 벽패스를 시도한다", scores: { creativity: 3, breakthrough: 1 } },
+      { text: "공을 지키며 지원을 기다린다", scores: { tenacity: 2, creativity: 1 } },
+    ],
+  },
+  {
+    question: "경기 중 내가 가장 신나는 순간은?",
+    answers: [
+      { text: "상대를 제치고 돌파할 때", scores: { breakthrough: 3 } },
+      { text: "골을 넣었을 때", scores: { finishing: 3 } },
+      { text: "내 패스로 동료가 골 넣었을 때", scores: { creativity: 3 } },
+      { text: "상대의 결정적 공격을 막았을 때", scores: { tenacity: 3 } },
+    ],
+  },
+  {
+    question: "우리 팀이 1점 지고 있다. 후반 10분.",
+    answers: [
+      { text: "최전방으로 올라가서 찬스를 만든다", scores: { finishing: 2, breakthrough: 2 } },
+      { text: "중앙에서 템포를 올려 동료들을 움직인다", scores: { creativity: 3, tenacity: 1 } },
+      { text: "공을 잡으면 무조건 상대를 돌파한다", scores: { breakthrough: 3, finishing: 1 } },
+      { text: "내 위치를 지키면서 균형을 맞춘다", scores: { tenacity: 3, creativity: 1 } },
+    ],
+  },
+  {
+    question: "코치님이 나에게 기대하는 건?",
+    answers: [
+      { text: "드리블로 상대를 뚫는 것", scores: { breakthrough: 3 } },
+      { text: "골을 넣는 것", scores: { finishing: 3 } },
+      { text: "동료를 살리는 패스", scores: { creativity: 3 } },
+      { text: "끝까지 뛰며 수비하는 것", scores: { tenacity: 3 } },
+    ],
+  },
+];
+
+/** 특성 점수로 스타일 타입 결정 */
+export function determinePlayStyle(traits: Record<StyleTraitKey, number>): PlayStyleType {
+  const entries = Object.entries(traits) as [StyleTraitKey, number][];
+  const sorted = entries.sort((a, b) => b[1] - a[1]);
+
+  // 편차 체크: 올라운더
+  const values = entries.map(([, v]) => v);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  if (max - min < 3) return "all_rounder";
+
+  const [first] = sorted[0];
+  const [second] = sorted[1];
+
+  if (first === "breakthrough" && second === "creativity") return "aggressive_dribbler";
+  if (first === "breakthrough" && second === "tenacity") return "speedster";
+  if (first === "breakthrough" && second === "finishing") return "aggressive_dribbler";
+  if (first === "creativity" && second === "breakthrough") return "game_maker";
+  if (first === "creativity" && second === "finishing") return "game_maker";
+  if (first === "creativity" && second === "tenacity") return "controller";
+  if (first === "finishing" && second === "breakthrough") return "goal_scorer";
+  if (first === "finishing" && second === "creativity") return "goal_scorer";
+  if (first === "finishing" && second === "tenacity") return "goal_scorer";
+  if (first === "tenacity" && second === "creativity") return "box_to_box";
+  if (first === "tenacity" && second === "breakthrough") return "defensive_warrior";
+  if (first === "tenacity" && second === "finishing") return "defensive_warrior";
+
+  return "all_rounder";
+}

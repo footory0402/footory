@@ -40,7 +40,7 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
-  const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
+  const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData, playStyleData] = await Promise.all([
     supabase
       .from("featured_clips")
       .select("id, clip_id, sort_order")
@@ -78,6 +78,11 @@ const getProfile = cache(async (handle: string) => {
       .from("clips")
       .select("id, video_url, thumbnail_url, duration_seconds, clip_tags(tag_name, is_top)")
       .eq("owner_id", profile.id),
+    supabase
+      .from("play_styles")
+      .select("*")
+      .eq("profile_id", profile.id)
+      .maybeSingle(),
   ]);
 
   // Filter contact
@@ -235,6 +240,7 @@ const getProfile = cache(async (handle: string) => {
     achievements: achievements.data ?? [],
     timelineEvents: timelineEvents.data ?? [],
     tagClips: tagClipsMap,
+    playStyle: playStyleData.data ?? null,
     isFollowing,
     isOwnProfile: currentUser?.id === profile.id,
     viewerAccess,

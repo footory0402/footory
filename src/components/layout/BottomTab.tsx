@@ -50,17 +50,11 @@ function getTabsForRole(role: string): Tab[] {
   return playerTabs;
 }
 
-// TODO: Replace with real challenge API when available
-function useActiveChallenge(): { tag: string; title: string } | null {
-  return null;
-}
-
 export default function BottomTab() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, loading, error } = useProfileContext();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const activeChallenge = useActiveChallenge();
 
   const role = profile?.role ?? "player";
   const isGuest = error === "not_authenticated";
@@ -77,17 +71,20 @@ export default function BottomTab() {
     });
   }, [tabs, router]);
 
+  // 패턴 B (카카오/네이버/당근): 뒤로가기 → 홈 → 종료
+  // 홈에서 다른 탭 = push (홈이 히스토리에 남음)
+  // 탭에서 탭 = replace (탭끼리는 교체)
+  // 홈 탭 = replace (항상)
+  const isOnHome = pathname === "/";
+
   const handleCenterTap = (tab: Tab) => {
     if (tab.href === "/upload" && (role === "player" || role === "parent")) {
-      // 활성 챌린지가 있을 때만 시트로 선택지 제공
-      if (activeChallenge) {
-        setSheetOpen(true);
-        return;
-      }
-      router.push("/upload");
+      router.push("/upload"); // upload은 depth 진입이므로 push 유지
       return;
     }
-    router.push(tab.href);
+    // 센터 탭 전환 (watchlist 등)
+    if (isOnHome) router.push(tab.href);
+    else router.replace(tab.href);
   };
 
   return (
@@ -96,8 +93,6 @@ export default function BottomTab() {
         <UploadBottomSheet
           open={sheetOpen}
           onClose={() => setSheetOpen(false)}
-          challengeTag={activeChallenge?.tag}
-          challengeTitle={activeChallenge?.title}
         />
       )}
 
@@ -132,10 +127,14 @@ export default function BottomTab() {
             }
 
             /* ── Normal tab ── */
+            // 홈 탭 or 탭→탭 = replace, 홈→다른탭 = push
+            const shouldReplace = tab.href === "/" || !isOnHome;
+
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
+                replace={shouldReplace}
                 aria-current={active ? "page" : undefined}
                 prefetch={true}
                 className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"

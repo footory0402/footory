@@ -25,7 +25,56 @@ export default function MvpTeaser({ leader }: MvpTeaserProps) {
     return () => clearInterval(timer);
   }, []);
 
-  if (!leader) return null;
+  // No leader yet — show MVP voting CTA anyway
+  if (!leader) {
+    return (
+      <Link href="/mvp" className="mb-4 block">
+        <div
+          className="overflow-hidden rounded-[12px] transition-opacity active:opacity-80"
+          style={{
+            background: "var(--color-card)",
+            border: "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)",
+          }}
+        >
+          <div className="h-[2px]" style={{ background: "var(--accent-gradient)" }} />
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-[22px]"
+              style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)" }}
+            >
+              🏆
+            </div>
+            <div className="min-w-0 flex-1">
+              <span
+                className="text-[10px] font-bold uppercase tracking-wide"
+                style={{ color: "var(--color-accent)" }}
+              >
+                월간 MVP 투표
+              </span>
+              <div className="mt-0.5 text-[13px] font-bold text-text-1">
+                이번 달 MVP에 투표하세요!
+              </div>
+              <div className="mt-0.5 text-[10px] text-text-3">
+                {votingOpen ? "투표 진행중" : "집계중"}
+              </div>
+            </div>
+            <div
+              className="shrink-0 flex items-center gap-1 rounded-full px-3 py-2 text-xs font-bold"
+              style={{ background: "var(--accent-gradient)", color: "var(--color-bg)" }}
+            >
+              투표
+              <svg
+                width="10" height="10" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+              >
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   const pad = (n: number) => String(n).padStart(2, "0");
 

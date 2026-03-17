@@ -26,9 +26,10 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import { APP_URL, POSITION_LABELS, SKILL_TAGS, getStatMeta, type RadarStatId } from "@/lib/constants";
+import PlayStyleCard from "@/components/player/PlayStyleCard";
+import { APP_URL, POSITION_LABELS, SKILL_TAGS, getStatMeta, type RadarStatId, type PlayStyleType, type StyleTraitKey } from "@/lib/constants";
 import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
-import type { Profile, Stat, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
+import type { Profile, Stat, Season, Achievement, TimelineEvent, TimelineEventType, PlayStyle } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
 interface FeaturedClip {
@@ -77,6 +78,7 @@ interface PublicProfileData {
   achievements: Record<string, unknown>[];
   timelineEvents: Record<string, unknown>[];
   tagClips: Record<string, TagClip[]>;
+  playStyle?: Record<string, unknown> | null;
   isFollowing?: boolean;
   isOwnProfile?: boolean;
   viewerAccess?: {
@@ -462,6 +464,23 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
         {activeTab === "records" && (
           <div className="flex flex-col gap-5">
+            {/* Play Style */}
+            {data.playStyle ? (
+              <PlayStyleCard
+                styleType={data.playStyle.style_type as PlayStyleType}
+                traits={{
+                  breakthrough: data.playStyle.trait_breakthrough as number,
+                  creativity: data.playStyle.trait_creativity as number,
+                  finishing: data.playStyle.trait_finishing as number,
+                  tenacity: data.playStyle.trait_tenacity as number,
+                }}
+              />
+            ) : (
+              <div className="rounded-2xl border border-white/[0.06] bg-card py-6 text-center">
+                <p className="text-[12px] text-text-3">아직 플레이 스타일을 테스트하지 않았어요</p>
+              </div>
+            )}
+
             {/* Physical + Stats */}
             {(hasPhysical || stats.length > 0) && (
               <div className="flex flex-col gap-4">

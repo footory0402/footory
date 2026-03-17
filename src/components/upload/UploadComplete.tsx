@@ -151,7 +151,7 @@ export default function UploadComplete() {
             {isChallenge && (
               <button
                 type="button"
-                onClick={() => { reset(); router.push("/mvp"); }}
+                onClick={() => { reset(); router.replace("/mvp"); }}
                 className="flex w-full items-center justify-center rounded-xl border border-accent/30 py-3 text-sm font-medium text-accent transition-opacity active:opacity-80"
               >
                 챌린지 순위 확인하기
@@ -187,7 +187,7 @@ export default function UploadComplete() {
                 const res = await fetch(`/api/clips/${clipId}`, { method: "DELETE" });
                 if (res.ok) {
                   reset();
-                  router.push("/profile");
+                  router.replace("/profile");
                 }
               }}
               className="py-1 text-[12px] text-red-400/60 transition-colors active:text-red-400"

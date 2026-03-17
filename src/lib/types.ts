@@ -1,4 +1,4 @@
-import type { Position } from "./constants";
+import type { Position, PlayStyleType, StyleTraitKey } from "./constants";
 
 export interface Profile {
   id: string;
@@ -266,6 +266,25 @@ export interface TimelineEvent {
   eventData: Record<string, unknown>;
   clipId?: string;
   createdAt: string;
+}
+
+export interface PlayStyle {
+  id: string;
+  profileId: string;
+  styleType: PlayStyleType;
+  traitBreakthrough: number; // 돌파 (0~15 raw)
+  traitCreativity: number;   // 창의
+  traitFinishing: number;    // 결정
+  traitTenacity: number;     // 투지
+  answers?: number[];        // 원본 응답 인덱스
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 특성 값을 0~10 스케일로 정규화 */
+export function normalizeTraitTo10(rawValue: number): number {
+  // raw 범위 0~15 → 0~10
+  return Math.round((rawValue / 15) * 10);
 }
 
 export interface DmRequest {

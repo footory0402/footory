@@ -73,7 +73,7 @@ export default function HighlightBuilder() {
         throw new Error(data.error ?? "릴 생성 실패");
       }
 
-      router.push("/profile");
+      router.replace("/profile");
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류가 발생했습니다");
     } finally {

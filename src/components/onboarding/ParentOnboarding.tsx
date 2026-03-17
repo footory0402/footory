@@ -92,7 +92,7 @@ export default function ParentOnboarding({ onBack }: Props) {
           });
         }
 
-        router.push("/");
+        router.replace("/");
       } catch {
         toast.error("네트워크 오류가 발생했어요");
         setSubmitting(false);

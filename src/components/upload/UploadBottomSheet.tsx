@@ -6,11 +6,9 @@ import { useRouter } from "next/navigation";
 interface Props {
   open: boolean;
   onClose: () => void;
-  challengeTag?: string;
-  challengeTitle?: string;
 }
 
-export default function UploadBottomSheet({ open, onClose, challengeTag, challengeTitle }: Props) {
+export default function UploadBottomSheet({ open, onClose }: Props) {
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -74,27 +72,6 @@ export default function UploadBottomSheet({ open, onClose, challengeTag, challen
               </div>
             </button>
 
-            {/* Challenge upload */}
-            {challengeTag && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  router.push(`/upload?challenge_tag=${encodeURIComponent(challengeTag)}`);
-                }}
-                className="flex items-center gap-3.5 rounded-xl bg-surface px-4 py-3.5 text-left transition-colors active:bg-elevated"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow/15">
-                  <span className="text-lg">🏆</span>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-text-1">챌린지 참여하기</p>
-                  <p className="text-[12px] text-accent">
-                    {challengeTitle ?? `${challengeTag} 챌린지`}
-                  </p>
-                </div>
-              </button>
-            )}
           </div>
 
           {/* Cancel */}
