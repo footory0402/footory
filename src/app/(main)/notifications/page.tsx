@@ -11,7 +11,6 @@ const TYPE_CONFIG: Record<string, { icon: string; fallbackUrl?: (refId: string |
   comment: { icon: "💬", fallbackUrl: (id) => id ? `/feed#${id}` : "/" },
   follow: { icon: "👤", fallbackUrl: (id) => id ? `/p/${id}` : "/" },
   highlight_ready: { icon: "🎬", fallbackUrl: () => "/clips" },
-  medal: { icon: "🏅", fallbackUrl: () => "/profile" },
   verified: { icon: "✅", fallbackUrl: () => "/profile" },
   verify_request: { icon: "📋", fallbackUrl: () => "/team" },
   team_album: { icon: "📸", fallbackUrl: () => "/team" },

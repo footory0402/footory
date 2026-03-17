@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { generateProfilePdf, DEFAULT_PDF_OPTIONS, type PdfOptions } from "@/lib/pdf-generator";
 import { toast } from "@/components/ui/Toast";
-import type { Profile, Stat, Medal, Season, Achievement } from "@/lib/types";
+import type { Profile, Stat, Season, Achievement } from "@/lib/types";
 
 interface ProfilePdfExportProps {
   open: boolean;
@@ -11,7 +11,6 @@ interface ProfilePdfExportProps {
   loading?: boolean;
   profile: Profile;
   stats: Stat[];
-  medals: Medal[];
   seasons: Season[];
   achievements: Achievement[];
 }
@@ -58,7 +57,6 @@ export default function ProfilePdfExport({
   loading = false,
   profile,
   stats,
-  medals,
   seasons,
   achievements,
 }: ProfilePdfExportProps) {
@@ -74,7 +72,7 @@ export default function ProfilePdfExport({
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const blob = await generateProfilePdf(profile, stats, medals, seasons, achievements, options);
+      const blob = await generateProfilePdf(profile, stats, [], seasons, achievements, options);
       const fileName = `${profile.handle}_profile.pdf`;
 
       // Try sharing, fallback to download

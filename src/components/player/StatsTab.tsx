@@ -2,17 +2,15 @@
 
 import { useState } from "react";
 import StatRow from "./StatRow";
-import MedalBadge from "./MedalBadge";
 import { MEASUREMENTS } from "@/lib/constants";
-import type { Stat, Medal } from "@/lib/types";
+import type { Stat } from "@/lib/types";
 
 interface StatsCollapsibleProps {
   stats: Stat[];
-  medals: Medal[];
   onAddStat?: () => void;
 }
 
-export default function StatsCollapsible({ stats, medals, onAddStat }: StatsCollapsibleProps) {
+export default function StatsCollapsible({ stats, onAddStat }: StatsCollapsibleProps) {
   const [open, setOpen] = useState(stats.length > 0);
 
   return (
@@ -77,24 +75,6 @@ export default function StatsCollapsible({ stats, medals, onAddStat }: StatsColl
             </button>
           )}
 
-          {/* Medals inline */}
-          {medals.length > 0 && (
-            <div className="mt-2 border-t border-white/[0.04] pt-3">
-              <p className="mb-2 text-[12px] font-bold uppercase tracking-wider text-text-3">달성 기록</p>
-              <div className="flex flex-col gap-1">
-                {medals.map((medal) => (
-                  <MedalBadge
-                    key={medal.id}
-                    label={medal.label}
-                    value={medal.value}
-                    unit={medal.unit}
-                    difficultyTier={medal.difficultyTier}
-                    verified={medal.verified}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

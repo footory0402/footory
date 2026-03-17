@@ -5,7 +5,7 @@ import { useState, useCallback, useRef } from "react";
 export interface FeedItemEnriched {
   id: string;
   profile_id: string;
-  type: "highlight" | "featured_change" | "medal" | "stat" | "season" | "top_clip";
+  type: "highlight" | "featured_change" | "stat" | "season" | "top_clip";
   reference_id: string | null;
   metadata: Record<string, unknown>;
   created_at: string;

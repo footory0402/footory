@@ -329,7 +329,6 @@ function getActivityIconBg(type: string): string {
     highlight: "bg-accent/20",
     featured_change: "bg-accent/20",
     top_clip: "bg-accent/20",
-    medal: "bg-yellow-500/20",
     stat: "bg-blue-500/20",
   };
   return map[type] ?? "bg-card-alt";
@@ -338,7 +337,6 @@ function getActivityIconBg(type: string): string {
 function getActivityIcon(type: string): string {
   const map: Record<string, string> = {
     highlight: "📹",
-    medal: "🏅",
     stat: "📏",
     season: "📋",
     featured_change: "⭐",
@@ -358,8 +356,6 @@ function getActivityLabel(type: string, metadata: Record<string, unknown>): stri
       return uploadedByParent
         ? `보호자님이 영상을 올려줬어요${tagStr ? ` (${tagStr})` : ""}`
         : `영상 업로드${tagStr ? ` — ${tagStr}` : ""}`;
-    case "medal":
-      return "메달 획득";
     case "stat":
       return "측정 기록 등록";
     case "featured_change":

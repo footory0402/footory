@@ -8,7 +8,6 @@ export type NotificationType =
   | "comment"
   | "follow"
   | "follow_back"
-  | "medal"
   | "verified"
   | "verify_request"
   | "team_album"
@@ -22,7 +21,6 @@ export type NotificationType =
   | "mention"
   | "dm_request"
   | "child_clip"
-  | "child_medal"
   | "child_level_up";
 
 // NotificationType → notification_preferences 컬럼 매핑

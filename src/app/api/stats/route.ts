@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { checkAndAwardMedals } from "@/lib/medals";
 import { MEASUREMENTS, AGE_STAT_BOUNDS, getAgeGroup, getStatWarning } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { notifyLinkedParents } from "@/lib/notifications";
@@ -24,14 +23,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Fetch medals with criteria info
-  const { data: medals } = await supabase
-    .from("medals")
-    .select("*, medal_criteria(*)")
-    .eq("profile_id", user.id)
-    .order("achieved_at", { ascending: false });
-
-  return NextResponse.json({ stats: stats ?? [], medals: medals ?? [] });
+  return NextResponse.json({ stats: stats ?? [] });
 }
 
 export async function POST(request: NextRequest) {
@@ -119,41 +111,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
   }
 
-  // Check for new medals
-  const newMedals = await checkAndAwardMedals(
-    supabase,
-    user.id,
-    statType,
-    value,
-    stat.id
-  );
-
-  // 스탯/메달은 피드에 자동 게시하지 않음 — 피드는 영상 중심
-  // 기록은 프로필 기록 탭에서만 확인 가능
-
-  // 연동된 부모에게 메달 획득 알림
-  if (newMedals && newMedals.length > 0) {
-    const { data: player } = await supabase
-      .from("profiles")
-      .select("name, handle")
-      .eq("id", user.id)
-      .single();
-
-    if (player) {
-      const medalLabels = newMedals.map((m) => m.label).join(", ");
-      notifyLinkedParents(supabase, {
-        childId: user.id,
-        type: "child_medal",
-        title: `${player.name}님이 메달을 획득했어요!`,
-        body: medalLabels,
-        actionUrl: `/p/${player.handle}`,
-      }).catch(() => {});
-    }
-  }
-
   return NextResponse.json({
     stat,
-    newMedals,
     warning: warning?.type === "warning" ? warning.message : null,
   });
 }

@@ -4,17 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   const supabase = await createClient();
 
-  const [highlightsRes, medalsRes, playersRes, teamsRes] = await Promise.all([
+  const [highlightsRes, playersRes, teamsRes] = await Promise.all([
     supabase
       .from("feed_items")
       .select("*, profiles!feed_items_profile_id_fkey(id, handle, name, avatar_url, position, level)")
       .eq("type", "highlight")
       .order("created_at", { ascending: false })
-      .limit(10),
-    supabase
-      .from("medals")
-      .select("*, profiles!medals_profile_id_fkey(id, handle, name, avatar_url, position, level)")
-      .order("achieved_at", { ascending: false })
       .limit(10),
     supabase
       .from("profiles")
@@ -34,10 +29,9 @@ export async function GET() {
     return { ...rest, member_count: members?.[0]?.count ?? 0 };
   });
 
-  if (highlightsRes.error || medalsRes.error || playersRes.error || teamsRes.error) {
+  if (highlightsRes.error || playersRes.error || teamsRes.error) {
     const error =
       highlightsRes.error ??
-      medalsRes.error ??
       playersRes.error ??
       teamsRes.error;
     return NextResponse.json({ error: error?.message ?? "Failed to fetch discover data" }, { status: 500 });
@@ -46,7 +40,6 @@ export async function GET() {
   return NextResponse.json(
     {
       highlights: highlightsRes.data ?? [],
-      medals: medalsRes.data ?? [],
       players: playersRes.data ?? [],
       teams,
     },

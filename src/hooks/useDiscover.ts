@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   DiscoverHighlight,
-  DiscoverMedal,
   DiscoverPlayer,
   DiscoverTeam,
   PlayerRankingItem,
@@ -14,7 +13,6 @@ import type {
 
 interface DiscoverHomeData {
   highlights: DiscoverHighlight[];
-  medals: DiscoverMedal[];
   players: DiscoverPlayer[];
   teams: DiscoverTeam[];
 }
@@ -97,7 +95,6 @@ export function useDiscoverHome() {
   const [data, setData] = useState<DiscoverHomeData>(
     cached ?? {
       highlights: [],
-      medals: [],
       players: [],
       teams: [],
     }
@@ -119,7 +116,6 @@ export function useDiscoverHome() {
     if (next) {
       setData({
         highlights: next.highlights ?? [],
-        medals: next.medals ?? [],
         players: next.players ?? [],
         teams: next.teams ?? [],
       });
@@ -219,27 +215,6 @@ export function useHotHighlights() {
   return { items, loading, refresh: fetch_ };
 }
 
-// --- Recent Medals ---
-export function useRecentMedals() {
-  const [medals, setMedals] = useState<DiscoverMedal[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetch_ = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/discover/medals?limit=10");
-      if (res.ok) {
-        const data = await res.json();
-        setMedals(data.medals ?? []);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetch_(); }, [fetch_]);
-  return { medals, loading, refresh: fetch_ };
-}
 
 // --- Recommended Players ---
 export function useRecommendedPlayers() {

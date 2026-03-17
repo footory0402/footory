@@ -44,7 +44,7 @@ export default function ProfilePage() {
   const [percentiles, setPercentiles] = useState<Record<string, number>>({});
 
   const shouldLoadData = !!profile && !isScoutProfile;
-  const { stats, medals, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
+  const { stats, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
   const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
@@ -277,7 +277,6 @@ export default function ProfilePage() {
             ) : (
               <InfoTab
                 stats={stats}
-                medals={medals}
                 seasons={seasons}
                 percentiles={percentiles}
                 radarStats={radarStats}
@@ -325,7 +324,6 @@ export default function ProfilePage() {
           loading={statsLoading || seasonsLoading}
           profile={profile}
           stats={stats}
-          medals={medals}
           seasons={seasons}
           achievements={[]}
         />

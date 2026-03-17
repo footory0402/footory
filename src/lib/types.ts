@@ -81,19 +81,6 @@ export interface Stat {
   measureCount?: number;
 }
 
-export interface Medal {
-  id: string;
-  playerId: string;
-  type: string;
-  label: string;
-  value: number;
-  unit: string;
-  difficultyTier: number;
-  evidenceClipId?: string;
-  verified: boolean;
-  awardedAt: string;
-}
-
 export interface Team {
   id: string;
   handle: string;
@@ -136,7 +123,7 @@ export interface TeamAlbumItem {
 
 export interface FeedItem {
   id: string;
-  type: "highlight" | "medal" | "stat" | "team_join" | "season" | "featured_change" | "top_clip";
+  type: "highlight" | "stat" | "team_join" | "season" | "featured_change" | "top_clip";
   playerId: string;
   playerName: string;
   playerHandle: string;

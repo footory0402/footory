@@ -168,17 +168,6 @@ function FeedBody({
       );
     }
 
-    case "medal":
-      return (
-        <div className="flex items-center gap-3 rounded-xl bg-card-alt p-3">
-          <span className="text-[28px]">{(meta.icon as string) ?? "🏅"}</span>
-          <div>
-            <p className="text-[14px] font-semibold text-accent">{(meta.label as string) ?? "메달 획득!"}</p>
-            <p className="text-[12px] text-text-3">{meta.stat_type as string} {meta.value as number}{meta.unit as string}</p>
-          </div>
-        </div>
-      );
-
     case "stat":
       return (
         <div className="rounded-xl bg-card-alt p-3">

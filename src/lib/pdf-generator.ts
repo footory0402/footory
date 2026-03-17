@@ -1,4 +1,4 @@
-import type { Profile, Stat, Medal, Season, Achievement } from "@/lib/types";
+import type { Profile, Stat, Season, Achievement } from "@/lib/types";
 import { MEASUREMENTS } from "@/lib/constants";
 
 export interface PdfOptions {
@@ -24,7 +24,7 @@ export const DEFAULT_PDF_OPTIONS: PdfOptions = {
 export async function generateProfilePdf(
   profile: Profile,
   stats: Stat[],
-  medals: Medal[],
+  _medals: unknown[],
   seasons: Season[],
   achievements: Achievement[],
   options: PdfOptions
@@ -122,19 +122,6 @@ export async function generateProfilePdf(
     </div>`;
   }
 
-  // Medals
-  if (medals.length > 0) {
-    html += `<div style="margin-bottom:20px;">
-      <div style="font-size:10px;font-weight:700;color:#71717A;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">🏅 메달</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        ${medals.map((m) => `
-          <div style="background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.2);border-radius:16px;padding:4px 10px;font-size:11px;color:#D4A853;">
-            ${m.label}
-          </div>
-        `).join("")}
-      </div>
-    </div>`;
-  }
 
   // MVP
   if (options.includeMvp && profile.mvpCount > 0) {

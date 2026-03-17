@@ -40,7 +40,7 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
-  const [featured, stats, medals, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
+  const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData] = await Promise.all([
     supabase
       .from("featured_clips")
       .select("id, clip_id, sort_order")
@@ -51,11 +51,6 @@ const getProfile = cache(async (handle: string) => {
       .select("*")
       .eq("profile_id", profile.id)
       .order("recorded_at", { ascending: false }),
-    supabase
-      .from("medals")
-      .select("*, medal_criteria(*)")
-      .eq("profile_id", profile.id)
-      .order("achieved_at", { ascending: false }),
     supabase
       .from("seasons")
       .select("*")
@@ -236,7 +231,6 @@ const getProfile = cache(async (handle: string) => {
     teamId: teamData?.team_id ?? null,
     featured: enrichedFeatured,
     stats: stats.data ?? [],
-    medals: medals.data ?? [],
     seasons: seasons.data ?? [],
     achievements: achievements.data ?? [],
     timelineEvents: timelineEvents.data ?? [],

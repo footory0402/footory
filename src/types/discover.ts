@@ -16,19 +16,6 @@ export interface DiscoverTeam {
   member_count: number;
 }
 
-export interface DiscoverMedal {
-  id: string;
-  icon: string | null;
-  label: string | null;
-  stat_type: string;
-  profiles: {
-    handle: string;
-    name: string;
-    level: number;
-    avatar_url: string | null;
-  } | null;
-}
-
 export interface DiscoverHighlight {
   id: string;
   metadata: {

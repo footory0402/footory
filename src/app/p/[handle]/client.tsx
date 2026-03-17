@@ -7,7 +7,6 @@ import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
 import SeasonTimeline from "@/components/player/SeasonTimeline";
 import FeaturedSlot from "@/components/player/FeaturedSlot";
 import StatRow from "@/components/player/StatRow";
-import MedalBadge from "@/components/player/MedalBadge";
 import TagAccordion from "@/components/player/TagAccordion";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
@@ -29,7 +28,7 @@ import AchievementList from "@/components/portfolio/AchievementList";
 import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
 import { APP_URL, POSITION_LABELS, SKILL_TAGS, getStatMeta, type RadarStatId } from "@/lib/constants";
 import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
-import type { Profile, Stat, Medal, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
+import type { Profile, Stat, Season, Achievement, TimelineEvent, TimelineEventType } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
 interface FeaturedClip {
@@ -74,7 +73,6 @@ interface PublicProfileData {
   teamId?: string | null;
   featured: FeaturedClip[];
   stats: Record<string, unknown>[];
-  medals: Record<string, unknown>[];
   seasons: Record<string, unknown>[];
   achievements: Record<string, unknown>[];
   timelineEvents: Record<string, unknown>[];
@@ -167,24 +165,6 @@ function mapStats(rows: Record<string, unknown>[]): Stat[] {
   }));
 }
 
-// Map DB medal rows (DB uses medal_code + medal_criteria JOIN, not medal_type/label/value)
-function mapMedals(rows: Record<string, unknown>[]): Medal[] {
-  return rows.map((r) => {
-    const c = r.medal_criteria as { stat_type?: string; label?: string; threshold?: number; code?: string; difficulty_tier?: number; unit?: string } | null;
-    return {
-      id: r.id as string,
-      playerId: r.profile_id as string,
-      type: c?.stat_type ?? "",
-      label: c?.label ?? (r.medal_code as string),
-      value: c?.threshold ?? 0,
-      unit: c?.unit ?? "",
-      difficultyTier: c?.difficulty_tier ?? 1,
-      verified: false,
-      awardedAt: r.achieved_at as string,
-    };
-  });
-}
-
 // Map DB season rows (DB has year, team_name, league, highlight_clip_id only)
 function mapSeasons(rows: Record<string, unknown>[]): Season[] {
   return rows.map((r) => ({
@@ -231,7 +211,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
   const profile = toProfile(data);
   const stats = mapStats(data.stats);
-  const medals = mapMedals(data.medals);
   const seasons = mapSeasons(data.seasons);
   const achievements = mapAchievements(data.achievements ?? []);
   const timelineEvents = mapTimelineEvents(data.timelineEvents ?? []);
@@ -484,7 +463,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         {activeTab === "records" && (
           <div className="flex flex-col gap-5">
             {/* Physical + Stats */}
-            {(hasPhysical || stats.length > 0 || medals.length > 0) && (
+            {(hasPhysical || stats.length > 0) && (
               <div className="flex flex-col gap-4">
                 {hasPhysical && (
                   <div className="flex flex-wrap gap-2">
@@ -537,18 +516,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                     </div>
                   </div>
                 )}
-                {medals.length > 0 && (
-                  <div>
-                    <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-text-3">달성 기록</h3>
-                    <div className="flex flex-col gap-1.5">
-                      {medals.map((medal, i) => (
-                        <div key={medal.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
-                          <MedalBadge label={medal.label} value={medal.value} unit={medal.unit} difficultyTier={medal.difficultyTier} verified={medal.verified} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -566,7 +533,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                 <GrowthTimeline events={timelineEvents} />
               </SectionCard>
             )}
-            {!hasPhysical && stats.length === 0 && medals.length === 0 && seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && (
+            {!hasPhysical && stats.length === 0 && seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && (
               <div className="py-12 text-center text-[13px] text-text-3">
                 아직 등록된 기록이 없습니다
               </div>

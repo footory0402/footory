@@ -37,10 +37,7 @@ export async function GET() {
         avatar_url: string | null; position: string | null; level: number;
       };
 
-      const [medals, clips] = await Promise.all([
-        supabase.from("medals").select("id", { count: "exact", head: true }).eq("profile_id", child.id),
-        supabase.from("clips").select("id", { count: "exact", head: true }).eq("owner_id", child.id),
-      ]);
+      const clips = await supabase.from("clips").select("id", { count: "exact", head: true }).eq("owner_id", child.id);
 
       return {
         linkId: link.id,
@@ -50,7 +47,7 @@ export async function GET() {
         avatarUrl: child.avatar_url,
         position: child.position,
         level: child.level,
-        medalCount: medals.count ?? 0,
+        medalCount: 0,
         clipCount: clips.count ?? 0,
         linkedAt: link.created_at,
       };

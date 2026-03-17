@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Stat, Medal } from "@/lib/types";
-import type { AwardedMedal } from "@/lib/medals";
+import type { Stat } from "@/lib/types";
 import { MEASUREMENTS } from "@/lib/constants";
 
 interface StatsApiStat {
@@ -17,24 +16,6 @@ interface StatsApiStat {
   verified_at: string | null;
   recorded_at: string;
   created_at: string;
-}
-
-interface StatsApiMedal {
-  id: string;
-  profile_id: string;
-  medal_code: string;
-  stat_id: string | null;
-  achieved_at: string;
-  medal_criteria: {
-    code: string;
-    stat_type: string;
-    threshold: number;
-    comparison: "lte" | "gte";
-    icon: string;
-    label: string;
-    difficulty_tier: number;
-    unit: string;
-  } | null;
 }
 
 function median(arr: number[]): number {
@@ -79,28 +60,12 @@ function toStat(s: StatsApiStat, allStats: StatsApiStat[], lowerIsBetter: boolea
   };
 }
 
-function toMedal(m: StatsApiMedal): Medal {
-  const c = m.medal_criteria;
-  return {
-    id: m.id,
-    playerId: m.profile_id,
-    type: c?.stat_type ?? "",
-    label: c?.label ?? m.medal_code,
-    value: c?.threshold ?? 0,
-    unit: c?.unit ?? "",
-    difficultyTier: c?.difficulty_tier ?? 1,
-    verified: false,
-    awardedAt: m.achieved_at,
-  };
-}
-
 interface UseStatsOptions {
   enabled?: boolean;
 }
 
 export function useStats({ enabled = true }: UseStatsOptions = {}) {
   const [stats, setStats] = useState<Stat[]>([]);
-  const [medals, setMedals] = useState<Medal[]>([]);
   const [loading, setLoading] = useState(enabled);
   const hasFetchedRef = useRef(false);
 
@@ -112,7 +77,6 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
       if (!res.ok) return;
       const data = await res.json();
       const apiStats: StatsApiStat[] = data.stats;
-      const apiMedals: StatsApiMedal[] = data.medals;
 
       // Deduplicate stats: keep latest per stat_type
       const latestByType = new Map<string, StatsApiStat>();
@@ -132,7 +96,6 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
         const m = MEASUREMENTS.find((m) => m.id === s.stat_type);
         return toStat(s, apiStats, m?.lowerIsBetter ?? false);
       }));
-      setMedals(apiMedals.map(toMedal));
     } finally {
       setLoading(false);
     }
@@ -153,7 +116,7 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
       statType: string,
       value: number,
       evidenceClipId?: string
-    ): Promise<{ medals: AwardedMedal[]; warning: string | null }> => {
+    ): Promise<{ warning: string | null }> => {
       const res = await fetch("/api/stats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -165,9 +128,9 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
         throw new Error(error || "Failed to add stat");
       }
 
-      const { newMedals, warning } = await res.json();
+      const { warning } = await res.json();
       await fetchStats();
-      return { medals: newMedals ?? [], warning: warning ?? null };
+      return { warning: warning ?? null };
     },
     [fetchStats]
   );
@@ -181,5 +144,5 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
     [fetchStats]
   );
 
-  return { stats, medals, loading, addStat, deleteStat, refetch: fetchStats };
+  return { stats, loading, addStat, deleteStat, refetch: fetchStats };
 }
