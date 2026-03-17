@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single();
 
     if (!profile) return NextResponse.json({ playStyle: null });
@@ -60,7 +60,7 @@ export async function PUT(req: NextRequest) {
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });

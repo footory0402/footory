@@ -23,17 +23,17 @@ CREATE POLICY "play_styles_select" ON play_styles
 -- 본인만 쓰기
 CREATE POLICY "play_styles_insert" ON play_styles
   FOR INSERT WITH CHECK (
-    profile_id IN (SELECT id FROM profiles WHERE user_id = auth.uid())
+    profile_id IN (SELECT id FROM profiles WHERE id = auth.uid())
   );
 
 CREATE POLICY "play_styles_update" ON play_styles
   FOR UPDATE USING (
-    profile_id IN (SELECT id FROM profiles WHERE user_id = auth.uid())
+    profile_id IN (SELECT id FROM profiles WHERE id = auth.uid())
   );
 
 CREATE POLICY "play_styles_delete" ON play_styles
   FOR DELETE USING (
-    profile_id IN (SELECT id FROM profiles WHERE user_id = auth.uid())
+    profile_id IN (SELECT id FROM profiles WHERE id = auth.uid())
   );
 
 -- 인덱스
