@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
   );
 
   // Insert clip — owner_id is the child, uploaded_by is the parent
-  const highlightEnd = Math.min(duration_seconds ?? 30, 30);
+  const highlightEnd = Math.round(Math.min(duration_seconds ?? 30, 30));
   const isRenderPipeline = !!raw_key;
 
   const { data: clip, error } = await supabase
@@ -101,12 +101,12 @@ export async function POST(req: NextRequest) {
       owner_id: child_id,
       uploaded_by: user.id,
       video_url,
-      duration_seconds: duration_seconds ?? null,
+      duration_seconds: duration_seconds != null ? Math.round(duration_seconds) : null,
       file_size_bytes: file_size_bytes ?? null,
       memo: memo ?? null,
       thumbnail_url: thumbnail_url ?? null,
-      highlight_start: highlight_start ?? 0,
-      highlight_end: highlight_end ?? highlightEnd,
+      highlight_start: Math.round(highlight_start ?? 0),
+      highlight_end: Math.round(highlight_end ?? highlightEnd),
       highlight_status: isRenderPipeline ? "processing" : "done",
       ...(raw_key && { raw_key }),
       ...(skill_labels && { skill_labels }),
