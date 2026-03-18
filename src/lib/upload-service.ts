@@ -4,7 +4,14 @@ import { getFileDuration } from "@/lib/video";
 import { useUploadStore } from "@/stores/upload-store";
 
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB
-const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분
+const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
+
+/** 파일 크기 기반 동적 타임아웃 (50KB/s 기준, 최소 3분) */
+function calcUploadTimeout(fileSize: number): number {
+  const minTimeout = 3 * 60 * 1000; // 3분
+  const estimatedMs = (fileSize / (50 * 1024)) * 1000; // 50KB/s 기준
+  return Math.max(minTimeout, Math.min(estimatedMs, UPLOAD_TIMEOUT_MS));
+}
 const API_TIMEOUT_MS = 30_000; // API 호출 30초
 
 // ─── 유틸 ───
@@ -133,9 +140,11 @@ async function uploadToR2(
   file: File,
   key: string,
   contentType: string,
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  getNewPresignedUrl?: () => Promise<string>
 ): Promise<void> {
   const safeBlob = toSafeBlob(file, contentType);
+  const timeout = calcUploadTimeout(file.size);
 
   // 1차: XHR (progress 지원)
   try {
@@ -151,7 +160,7 @@ async function uploadToR2(
       xhr.onerror = () =>
         reject(new Error("R2 네트워크 오류 (XHR)"));
       xhr.ontimeout = () => reject(new Error("R2 업로드 시간 초과 (XHR)"));
-      xhr.timeout = UPLOAD_TIMEOUT_MS;
+      xhr.timeout = timeout;
       xhr.open("PUT", url);
       xhr.setRequestHeader("Content-Type", contentType);
       xhr.send(safeBlob);
@@ -161,15 +170,19 @@ async function uploadToR2(
     console.warn("[Upload] XHR failed:", (xhrErr as Error).message);
   }
 
-  // 2차: fetch + AbortController
+  // 재시도 시 새 presigned URL 발급 (부분 업로드된 URL 재사용 방지)
+  const retryUrl = getNewPresignedUrl ? await getNewPresignedUrl() : url;
+  const retryBlob = toSafeBlob(file, contentType);
+
+  // 2차: fetch + AbortController (새 URL로 재시도)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     try {
-      const res = await fetch(url, {
+      const res = await fetch(retryUrl, {
         method: "PUT",
         headers: { "Content-Type": contentType },
-        body: safeBlob,
+        body: retryBlob,
         signal: controller.signal,
       });
       if (res.ok) {
@@ -187,7 +200,7 @@ async function uploadToR2(
   // 3차: 서버 프록시 (소용량만)
   if (file.size <= SERVER_PROXY_LIMIT) {
     console.log("[Upload] Falling back to server proxy:", file.size, "bytes");
-    await uploadViaProxy(safeBlob, key, contentType);
+    await uploadViaProxy(retryBlob, key, contentType);
     onProgress(90);
     return;
   }
@@ -217,7 +230,11 @@ export async function startUpload() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: fileContentType }),
+        body: JSON.stringify({
+          contentType: fileContentType,
+          fileName: store.file!.name,
+          fileSize: store.file!.size,
+        }),
       },
       "Presign URL 요청"
     );
@@ -228,9 +245,28 @@ export async function startUpload() {
     const { url, key, clipId } = await presignRes.json();
     store.setClipId(clipId);
 
-    // 2. R2 업로드
+    // 2. R2 업로드 (재시도 시 새 presigned URL 발급)
+    const getNewUrl = async () => {
+      const res = await apiFetch(
+        "/api/upload/presign",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contentType: fileContentType,
+            fileName: store.file!.name,
+            fileSize: store.file!.size,
+            clipId,
+          }),
+        },
+        "Presign URL 재발급"
+      );
+      if (!res.ok) throw new Error("Presign 재발급 실패");
+      const data = await res.json();
+      return data.url as string;
+    };
     await uploadToR2(url, store.file!, key, fileContentType, (pct) =>
-      store.setProgress(pct)
+      store.setProgress(pct), getNewUrl
     );
     store.setProgress(90);
 
@@ -347,7 +383,12 @@ export async function startRenderUpload() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: fileContentType, prefix: "raw" }),
+        body: JSON.stringify({
+          contentType: fileContentType,
+          prefix: "raw",
+          fileName: store.file.name,
+          fileSize: store.file.size,
+        }),
       },
       "Presign URL 요청"
     );
@@ -358,9 +399,29 @@ export async function startRenderUpload() {
     const { url, key, clipId } = await presignRes.json();
     store.setClipId(clipId);
 
-    // 2. R2 업로드
+    // 2. R2 업로드 (재시도 시 새 presigned URL 발급)
+    const getNewUrl = async () => {
+      const res = await apiFetch(
+        "/api/upload/presign",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contentType: fileContentType,
+            prefix: "raw",
+            fileName: store.file!.name,
+            fileSize: store.file!.size,
+            clipId,
+          }),
+        },
+        "Presign URL 재발급"
+      );
+      if (!res.ok) throw new Error("Presign 재발급 실패");
+      const data = await res.json();
+      return data.url as string;
+    };
     await uploadToR2(url, store.file, key, fileContentType, (pct) =>
-      store.setProgress(pct)
+      store.setProgress(pct), getNewUrl
     );
     store.setProgress(90);
 

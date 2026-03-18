@@ -26,7 +26,8 @@ export async function getPresignedUploadUrl(
   userId: string,
   clipId: string,
   contentType: string = "video/mp4",
-  prefix: string = "originals"
+  prefix: string = "originals",
+  fileSize?: number
 ): Promise<{ url: string; key: string }> {
   const ext = contentType === "video/quicktime" ? "mov" : "mp4";
   const key = `${prefix}/${userId}/${clipId}.${ext}`;
@@ -37,6 +38,7 @@ export async function getPresignedUploadUrl(
     Bucket: bucket,
     Key: key,
     ContentType: contentType,
+    ...(fileSize ? { ContentLength: fileSize } : {}),
   });
 
   const url = await getSignedUrl(client, command, { expiresIn: 600 });

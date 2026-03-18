@@ -226,7 +226,8 @@ export default function VideoSelector() {
       <input
         ref={inputRef}
         type="file"
-        accept="video/*,video/mp4,video/quicktime,.mp4,.mov"
+        accept="video/*,video/mp4,video/quicktime,.mp4,.mov,.m4v,.webm,.avi"
+        capture="environment"
         className="hidden"
         onChange={handleSelect}
       />
@@ -257,11 +258,22 @@ function getVideoDuration(file: File): Promise<number> {
     video.preload = "metadata";
     video.muted = true;
     video.playsInline = true;
+
+    // 메타데이터 로딩 타임아웃 (10초)
+    const timeoutId = setTimeout(() => {
+      URL.revokeObjectURL(video.src);
+      resolve(0);
+    }, 10_000);
+
     video.onloadedmetadata = () => {
+      clearTimeout(timeoutId);
       URL.revokeObjectURL(video.src);
       resolve(video.duration);
     };
-    video.onerror = () => resolve(0);
+    video.onerror = () => {
+      clearTimeout(timeoutId);
+      resolve(0);
+    };
     video.src = URL.createObjectURL(file);
   });
 }

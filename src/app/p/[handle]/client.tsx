@@ -481,62 +481,78 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
               </div>
             )}
 
-            {/* Physical + Stats */}
-            {(hasPhysical || stats.length > 0) && (
-              <div className="flex flex-col gap-4">
-                {hasPhysical && (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.heightCm && (
-                      <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                        <span className="text-[10px] text-text-3">키</span>
-                        <span className="font-stat text-sm font-bold text-text-1">{profile.heightCm}</span>
-                        <span className="text-[10px] text-text-3">cm</span>
-                      </div>
-                    )}
-                    {profile.weightKg && (
-                      <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                        <span className="text-[10px] text-text-3">몸무게</span>
-                        <span className="font-stat text-sm font-bold text-text-1">{profile.weightKg}</span>
-                        <span className="text-[10px] text-text-3">kg</span>
-                      </div>
-                    )}
-                    {profile.preferredFoot && (
-                      <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                        <span className="text-[10px] text-text-3">주발</span>
-                        <span className="text-sm font-medium text-text-1">{footLabel(profile.preferredFoot)}</span>
-                      </div>
-                    )}
+            {/* Physical */}
+            {hasPhysical && (
+              <div className="flex flex-wrap gap-2">
+                {profile.heightCm && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                    <span className="text-[10px] text-text-3">키</span>
+                    <span className="font-stat text-sm font-bold text-text-1">{profile.heightCm}</span>
+                    <span className="text-[10px] text-text-3">cm</span>
                   </div>
                 )}
-                {stats.length > 0 && (
-                  <div>
-                    <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-text-3">성장 기록</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {stats.map((stat, i) => {
-                        const m = getStatMeta(stat.type);
-                        return (
-                          <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
-                            <StatRow
-                              icon={m.icon}
-                              label={m.label}
-                              value={stat.value}
-                              unit={stat.unit}
-                              type={stat.type}
-                              previousValue={stat.previousValue}
-                              verified={stat.verified}
-                              lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
-                              statId={!data.isOwnProfile ? stat.id : undefined}
-                              profileId={!data.isOwnProfile ? profile.id : undefined}
-                              onReport={!data.isOwnProfile ? (sid, pid) => setReportTarget({ statId: sid, profileId: pid }) : undefined}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
+                {profile.weightKg && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                    <span className="text-[10px] text-text-3">몸무게</span>
+                    <span className="font-stat text-sm font-bold text-text-1">{profile.weightKg}</span>
+                    <span className="text-[10px] text-text-3">kg</span>
+                  </div>
+                )}
+                {profile.preferredFoot && (
+                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
+                    <span className="text-[10px] text-text-3">주발</span>
+                    <span className="text-sm font-medium text-text-1">{footLabel(profile.preferredFoot)}</span>
                   </div>
                 )}
               </div>
             )}
+
+            {/* Stats (성장 기록) */}
+            <div>
+              <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-text-3">성장 기록</h3>
+              {stats.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {stats.map((stat, i) => {
+                    const m = getStatMeta(stat.type);
+                    return (
+                      <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                        <StatRow
+                          icon={m.icon}
+                          label={m.label}
+                          value={stat.value}
+                          unit={stat.unit}
+                          type={stat.type}
+                          previousValue={stat.previousValue}
+                          verified={stat.verified}
+                          lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
+                          statId={!data.isOwnProfile ? stat.id : undefined}
+                          profileId={!data.isOwnProfile ? profile.id : undefined}
+                          onReport={!data.isOwnProfile ? (sid, pid) => setReportTarget({ statId: sid, profileId: pid }) : undefined}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/[0.06] bg-card py-8 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.05]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                      <polyline points="17 6 23 6 23 12" />
+                    </svg>
+                  </div>
+                  <p className="text-[12px] text-text-3">아직 등록된 측정 기록이 없어요</p>
+                  {data.isOwnProfile && (
+                    <button
+                      onClick={() => router.push("/profile?tab=records")}
+                      className="mt-1 rounded-full bg-accent/10 px-4 py-1.5 text-[11px] font-bold text-accent active:scale-95"
+                    >
+                      측정 기록 추가
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Season records */}
             {seasons.length > 0 && (
@@ -552,7 +568,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                 <GrowthTimeline events={timelineEvents} />
               </SectionCard>
             )}
-            {!hasPhysical && stats.length === 0 && seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && (
+            {!hasPhysical && stats.length === 0 && seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && !data.playStyle && (
               <div className="py-12 text-center text-[13px] text-text-3">
                 아직 등록된 기록이 없습니다
               </div>
