@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useId } from "react";
 import { RADAR_STATS } from "@/lib/constants";
 import type { RadarStatId } from "@/lib/constants";
 
@@ -16,6 +16,8 @@ function hexPoint(cx: number, cy: number, radius: number, index: number): [numbe
 }
 
 function ProfileRadarInner({ stats, className }: ProfileRadarProps) {
+  const uid = useId();
+  const gradientId = `profileRadarFill-${uid.replace(/:/g, "")}`;
   const size = 140;
   const cx = 70;
   const cy = 63;
@@ -50,7 +52,7 @@ function ProfileRadarInner({ stats, className }: ProfileRadarProps) {
         }}
       >
         <defs>
-          <radialGradient id="profileRadarFill" cx="50%" cy="50%">
+          <radialGradient id={gradientId} cx="50%" cy="50%">
             <stop offset="0%" stopColor="rgba(245,197,66,0.12)" />
             <stop offset="100%" stopColor="rgba(245,197,66,0.03)" />
           </radialGradient>
@@ -80,7 +82,7 @@ function ProfileRadarInner({ stats, className }: ProfileRadarProps) {
         {/* Data polygon */}
         {hasData && (
           <>
-            <path d={dataPath} fill="url(#profileRadarFill)" stroke="none" />
+            <path d={dataPath} fill={`url(#${gradientId})`} stroke="none" />
             <path d={dataPath} fill="none" stroke="rgba(245,197,66,0.65)" strokeWidth="1.3" strokeLinejoin="round" />
           </>
         )}

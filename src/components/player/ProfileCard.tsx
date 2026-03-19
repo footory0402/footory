@@ -60,6 +60,7 @@ function ProfileCard({
 
   const resolvedRadarStats = radarStats ?? EMPTY_RADAR_STATS;
   const hasAnyStats = Object.values(resolvedRadarStats).some((v) => v > 0);
+  const safeAvatarUrl = profile.avatarUrl?.startsWith("http") ? profile.avatarUrl : undefined;
 
   return (
     /* 외부 래퍼 — fade-up 애니메이션 */
@@ -107,10 +108,10 @@ function ProfileCard({
           />
 
           {/* 아바타 이미지 */}
-          {profile.avatarUrl ? (
+          {safeAvatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={profile.avatarUrl}
+              src={safeAvatarUrl}
               alt={`${profile.name} 프로필 사진`}
               className="absolute inset-0 h-full w-full object-cover object-top"
             />
@@ -382,7 +383,7 @@ function ProfileCard({
             <ProfileRadar stats={resolvedRadarStats} />
             <ProfileStatList stats={stats ?? []} />
           </div>
-        ) : (
+        ) : onAddStat ? (
           <div className="px-4 py-4 text-center">
             <button
               onClick={onAddStat}
@@ -396,7 +397,7 @@ function ProfileCard({
               📊 첫 기록을 측정해보세요
             </button>
           </div>
-        )}
+        ) : null}
 
         {/* ── 프로필 완성도 안내 ── */}
         {missingItems.length > 0 && (

@@ -58,7 +58,7 @@ function ProfileStatListInner({ stats, className }: ProfileStatListProps) {
                       style={{ color: isImproved ? "#4ADE80" : "#F87171", marginLeft: 3 }}
                     >
                       {isImproved ? "▲" : "▼"}
-                      {Math.abs(delta)}
+                      {parseFloat(Math.abs(delta).toFixed(2))}
                     </span>
                   )}
                 </>
