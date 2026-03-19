@@ -15,6 +15,7 @@ const SeasonAddSheet = dynamic(() => import("@/components/player/SeasonAddSheet"
 const ProfilePdfExport = dynamic(() => import("@/components/portfolio/ProfilePdfExport"), { ssr: false });
 const PlayStyleTest = dynamic(() => import("@/components/player/PlayStyleTest"), { ssr: false });
 
+import SocialCard from "@/components/player/SocialCard";
 import { useProfile } from "@/hooks/useProfile";
 import { usePlayStyle } from "@/hooks/usePlayStyle";
 import { toast } from "sonner";
@@ -177,7 +178,23 @@ export default function ProfilePage() {
   return (
     <div className="px-4 pt-4">
       {/* 프로필 카드 */}
-      <ProfileCard profile={profile} onEdit={() => setEditOpen(true)} onAvatarUpload={uploadAvatar} />
+      <ProfileCard
+        profile={profile}
+        radarStats={radarStats}
+        stats={stats}
+        onEdit={() => setEditOpen(true)}
+        onAvatarUpload={uploadAvatar}
+        onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
+      />
+
+      {/* 소셜 지표 카드 */}
+      <SocialCard
+        followers={profile.followers}
+        following={profile.following}
+        views={profile.views}
+        followsHref="/profile/follows"
+        className="mt-2.5"
+      />
 
       {/* 소속 팀 배너 */}
       {!isScoutProfile && (
