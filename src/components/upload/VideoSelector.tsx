@@ -227,7 +227,6 @@ export default function VideoSelector() {
         ref={inputRef}
         type="file"
         accept="video/*,video/mp4,video/quicktime,.mp4,.mov,.m4v,.webm,.avi"
-        capture="environment"
         className="hidden"
         onChange={handleSelect}
       />

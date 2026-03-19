@@ -48,6 +48,14 @@ export async function PATCH(
 
   const body = await req.json();
 
+  // Update thumbnail_url if provided (from parallel upload)
+  if ("thumbnail_url" in body && typeof body.thumbnail_url === "string") {
+    await supabase
+      .from("clips")
+      .update({ thumbnail_url: body.thumbnail_url })
+      .eq("id", id);
+  }
+
   // Update memo if provided
   if ("memo" in body) {
     const memo = typeof body.memo === "string" ? body.memo.slice(0, 200) : null;

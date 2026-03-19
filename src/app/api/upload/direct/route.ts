@@ -3,14 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { putObjectToR2 } from "@/lib/r2";
 
-// Server proxy fallback — only for small files (< 4MB)
-// Large videos should go through presigned URL directly to R2
-export const maxDuration = 120;
+// Server proxy fallback for when presigned URL upload fails on mobile
+// Supports up to ~50MB via streaming
+export const maxDuration = 300; // 5분
 export const dynamic = "force-dynamic";
 
 function isAllowedKey(userId: string, key: string) {
   return (
-    key.startsWith(`originals/${userId}/`) || key.startsWith(`thumbnails/${userId}/`)
+    key.startsWith(`originals/${userId}/`) ||
+    key.startsWith(`thumbnails/${userId}/`) ||
+    key.startsWith(`raw/${userId}/`)
   );
 }
 

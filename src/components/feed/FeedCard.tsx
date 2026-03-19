@@ -47,14 +47,16 @@ function FeedBody({
       const tags = (meta.tags as string[]) ?? [];
       const description = (meta.description as string) ?? (meta.memo as string) ?? null;
       const thumbnailUrl = typeof meta.thumbnail_url === "string" ? meta.thumbnail_url : null;
+      const videoUrl = typeof meta.video_url === "string" ? meta.video_url : null;
       const duration = typeof meta.duration === "number" ? meta.duration : null;
+      const hasMedia = thumbnailUrl || videoUrl;
 
       return (
         <div>
           {description && (
             <p className="mb-2 text-[14px] text-text-2">{description}</p>
           )}
-          {thumbnailUrl ? (
+          {hasMedia ? (
             <>
               <button
                 type="button"
@@ -62,16 +64,26 @@ function FeedBody({
                 disabled={!extras.onPlay}
                 className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#08080a] border border-white/[0.03] block"
               >
-                <Image
-                  src={thumbnailUrl}
-                  alt="Highlight thumbnail"
-                  fill
-                  quality={60}
-                  loading={eagerImage ? "eager" : "lazy"}
-                  fetchPriority={eagerImage ? "high" : "auto"}
-                  sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
-                  className="h-full w-full object-cover"
-                />
+                {thumbnailUrl ? (
+                  <Image
+                    src={thumbnailUrl}
+                    alt="Highlight thumbnail"
+                    fill
+                    quality={60}
+                    loading={eagerImage ? "eager" : "lazy"}
+                    fetchPriority={eagerImage ? "high" : "auto"}
+                    sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={videoUrl!}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    className="h-full w-full object-cover"
+                  />
+                )}
                 {/* Play button */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
@@ -124,7 +136,7 @@ function FeedBody({
               </div>
             </>
           ) : (
-            /* No thumbnail: show tags below text */
+            /* No media at all: show tags below text */
             <>
               {tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -235,7 +247,8 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, onPla
 
   const meta = item.metadata as Record<string, unknown>;
   const isHighlightWithVideo =
-    item.type === "highlight" && typeof meta.thumbnail_url === "string";
+    item.type === "highlight" &&
+    (typeof meta.thumbnail_url === "string" || typeof meta.video_url === "string");
 
   const extras: FeedBodyExtras = {
     kudosCount: item.kudosCount,

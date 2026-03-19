@@ -34,6 +34,7 @@ interface UploadState {
   step: number;
   trimStart: number;
   trimEnd: number | null;
+  duration: number | null; // 트리머에서 감지된 영상 길이 (초)
   spotlightX: number | null;
   spotlightY: number | null;
   skillLabels: string[];
@@ -63,6 +64,7 @@ interface UploadState {
   setStep: (s: number) => void;
   setTrimStart: (t: number) => void;
   setTrimEnd: (t: number | null) => void;
+  setDuration: (d: number | null) => void;
   setSpotlight: (x: number | null, y: number | null) => void;
   setSkillLabels: (labels: string[]) => void;
   setCustomLabels: (labels: string[]) => void;
@@ -94,6 +96,7 @@ const initial = {
   step: 0,
   trimStart: 0,
   trimEnd: null as number | null,
+  duration: null as number | null,
   spotlightX: null as number | null,
   spotlightY: null as number | null,
   skillLabels: [] as string[],
@@ -126,6 +129,7 @@ export const useUploadStore = create<UploadState>((set) => ({
   setStep: (step) => set({ step }),
   setTrimStart: (trimStart) => set({ trimStart }),
   setTrimEnd: (trimEnd) => set({ trimEnd }),
+  setDuration: (duration) => set({ duration }),
   setSpotlight: (x, y) => set({ spotlightX: x, spotlightY: y }),
   setSkillLabels: (skillLabels) => set({ skillLabels }),
   setCustomLabels: (customLabels) => set({ customLabels }),

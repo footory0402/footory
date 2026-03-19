@@ -7,7 +7,7 @@ interface VideoTrimmerProps {
   file: File;
   trimStart: number;
   trimEnd: number | null;
-  onTrimChange: (start: number, end: number) => void;
+  onTrimChange: (start: number, end: number, duration?: number) => void;
 }
 
 export default function VideoTrimmer({
@@ -32,6 +32,7 @@ export default function VideoTrimmer({
   const [videoUrl, setVideoUrl] = useState<string>("");
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef<"start" | "end" | null>(null);
+  const activePointerId = useRef<number | null>(null);
 
   // 비디오 URL 생성
   useEffect(() => {
@@ -57,9 +58,9 @@ export default function VideoTrimmer({
   useEffect(() => {
     if (prevTrimRef.current.start !== trimStart || prevTrimRef.current.end !== trimEnd) {
       prevTrimRef.current = { start: trimStart, end: trimEnd };
-      onTrimChangeRef.current(trimStart, trimEnd);
+      onTrimChangeRef.current(trimStart, trimEnd, duration);
     }
-  }, [trimStart, trimEnd]);
+  }, [trimStart, trimEnd, duration]);
 
   // 터치/마우스 드래그 핸들러
   const getTimeFromPosition = useCallback(
@@ -74,35 +75,49 @@ export default function VideoTrimmer({
     [duration]
   );
 
+  // document 레벨 리스너로 모바일 드래그 안정화
+  // (포인터가 트랙 밖으로 나가도 동작 유지)
   const handlePointerDown = useCallback(
     (type: "start" | "end") => (e: React.PointerEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       dragging.current = type;
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      activePointerId.current = e.pointerId;
     },
     []
   );
 
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!dragging.current) return;
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      if (!dragging.current || e.pointerId !== activePointerId.current) return;
+      e.preventDefault();
       const time = getTimeFromPosition(e.clientX);
       if (dragging.current === "start") {
         setTrimStart(time);
       } else {
         setTrimEnd(time);
       }
-      // 드래그 중 비디오 프리뷰를 해당 시점으로 동기화
       if (videoRef.current) {
         videoRef.current.currentTime = time;
       }
-    },
-    [getTimeFromPosition, setTrimStart, setTrimEnd]
-  );
+    };
 
-  const handlePointerUp = useCallback(() => {
-    dragging.current = null;
-  }, []);
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerId !== activePointerId.current) return;
+      dragging.current = null;
+      activePointerId.current = null;
+    };
+
+    document.addEventListener("pointermove", onMove, { passive: false });
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onUp);
+
+    return () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
+    };
+  }, [getTimeFromPosition, setTrimStart, setTrimEnd, videoRef]);
 
   if (duration <= 0) {
     return (
@@ -152,9 +167,7 @@ export default function VideoTrimmer({
       <div className="px-2">
         <div
           ref={trackRef}
-          className="relative h-12 rounded-lg bg-[#1E1E22]"
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
+          className="relative h-12 rounded-lg bg-[#1E1E22] touch-none"
         >
           {/* 선택 구간 하이라이트 */}
           <div

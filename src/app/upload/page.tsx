@@ -106,10 +106,13 @@ export default function UploadPage() {
     }
   }, []);
 
-  const handleTrimChange = useCallback((start: number, end: number) => {
+  const handleTrimChange = useCallback((start: number, end: number, duration?: number) => {
     const s = useUploadStore.getState();
     s.setTrimStart(start);
     s.setTrimEnd(end);
+    if (duration !== undefined && duration > 0) {
+      s.setDuration(duration);
+    }
   }, []);
 
   const handleUpload = useCallback(() => {
@@ -348,8 +351,16 @@ export default function UploadPage() {
         {/* ═══ Step 2: 꾸미기 (탭 UI) ═══ */}
         {step === 2 && (
           <div className="animate-fade-up flex flex-col gap-4">
-            {/* 축소 비디오 프리뷰 */}
-            {store.file && <CompactVideoPreview file={store.file} />}
+            {/* 축소 비디오 프리뷰 + 적용 효과 뱃지 */}
+            {store.file && (
+              <CompactVideoPreview
+                file={store.file}
+                spotlightSet={store.spotlightX !== null}
+                slowmoSet={store.slowmoStart !== null}
+                effectsActive={Object.values(store.effects).some(Boolean)}
+                bgmSet={!!store.bgmId}
+              />
+            )}
 
             {/* 4탭 네비게이션 */}
             <div className="flex gap-1 rounded-xl bg-card p-1">
@@ -358,9 +369,9 @@ export default function UploadPage() {
                   key={tab.key}
                   type="button"
                   onClick={() => setDecorateTab(tab.key)}
-                  className={`flex-1 rounded-lg py-2.5 text-[12px] font-semibold transition-colors ${
+                  className={`flex-1 rounded-lg py-2.5 text-[12px] font-semibold transition-all ${
                     decorateTab === tab.key
-                      ? "bg-accent/15 text-accent"
+                      ? "bg-accent/20 text-accent shadow-[inset_0_1px_0_rgba(212,168,83,0.15)]"
                       : "text-text-3 active:bg-card-alt"
                   }`}
                 >
@@ -570,8 +581,20 @@ export default function UploadPage() {
   );
 }
 
-/* ── Compact Video Preview (Step 2, 3) ── */
-function CompactVideoPreview({ file }: { file: File }) {
+/* ── Compact Video Preview (Step 2) ── */
+function CompactVideoPreview({
+  file,
+  spotlightSet,
+  slowmoSet,
+  effectsActive,
+  bgmSet,
+}: {
+  file: File;
+  spotlightSet?: boolean;
+  slowmoSet?: boolean;
+  effectsActive?: boolean;
+  bgmSet?: boolean;
+}) {
   const [videoUrl, setVideoUrl] = useState("");
 
   useEffect(() => {
@@ -582,14 +605,35 @@ function CompactVideoPreview({ file }: { file: File }) {
 
   if (!videoUrl) return null;
 
+  const badges = [
+    spotlightSet && { icon: "🎯", label: "나 찾기" },
+    slowmoSet && { icon: "🐢", label: "슬로모" },
+    effectsActive && { icon: "✨", label: "효과" },
+    bgmSet && { icon: "🎵", label: "BGM" },
+  ].filter(Boolean) as { icon: string; label: string }[];
+
   return (
-    <div className="overflow-hidden rounded-xl bg-black">
+    <div className="relative overflow-hidden rounded-xl bg-black">
       <video
         src={videoUrl}
         className="mx-auto h-[180px] w-auto object-contain"
         playsInline
         muted
+        autoPlay
+        loop
       />
+      {badges.length > 0 && (
+        <div className="absolute bottom-2 left-2 flex gap-1.5">
+          {badges.map((b) => (
+            <span
+              key={b.label}
+              className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-accent backdrop-blur-sm"
+            >
+              {b.icon} {b.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

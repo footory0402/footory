@@ -74,7 +74,22 @@ export async function POST(req: NextRequest) {
     })
     .eq("id", clipId);
 
-  // Container Worker 호출
+  // Container Worker 호출 (RENDER_WORKER_URL 미설정 시 원본 영상으로 완료 처리)
+  const workerUrl = process.env.RENDER_WORKER_URL;
+  if (!workerUrl) {
+    // 렌더 워커 미설정 → 원본 영상을 그대로 최종 영상으로 사용
+    console.warn("[render/route] RENDER_WORKER_URL not configured — using raw video as output");
+    await supabase
+      .from("render_jobs")
+      .update({ status: "done", output_key: inputKey })
+      .eq("id", job.id);
+    await supabase
+      .from("clips")
+      .update({ highlight_status: "done", render_job_id: job.id })
+      .eq("id", clipId);
+    return NextResponse.json({ job: { ...job, status: "done", output_key: inputKey } }, { status: 201 });
+  }
+
   try {
     await dispatchRender({
       jobId: job.id,

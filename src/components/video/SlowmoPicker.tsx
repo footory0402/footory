@@ -117,12 +117,22 @@ export default function SlowmoPicker({
         >
           {/* 슬로모 구간 */}
           <div
-            className="absolute inset-y-0 rounded border-x-2 border-[#7F77DD] bg-[#7F77DD]/20"
+            className={`absolute inset-y-0 rounded border-x-2 transition-colors ${
+              slowmoStart !== null
+                ? "border-[#7F77DD] bg-[#7F77DD]/20"
+                : "border-white/20 bg-white/5"
+            }`}
             style={{
               left: `${startPct}%`,
               width: `${endPct - startPct}%`,
             }}
           />
+          {/* 미설정 안내 오버레이 */}
+          {slowmoStart === null && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className="text-[11px] text-text-3">핸들을 드래그해서 구간을 선택하세요</span>
+            </div>
+          )}
 
           {/* 왼쪽 핸들 */}
           <div
@@ -131,9 +141,9 @@ export default function SlowmoPicker({
             onPointerDown={handlePointerDown("start")}
           >
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="h-6 w-6 rounded-full border-2 border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)] transition-transform active:scale-125" />
+              <div className={`h-6 w-6 rounded-full border-2 transition-colors ${slowmoStart !== null ? "border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)]" : "border-white/30 bg-white/10"} transition-transform active:scale-125`} />
             </div>
-            <div className="mx-auto h-full w-0.5 rounded-full bg-[#7F77DD]" />
+            <div className={`mx-auto h-full w-0.5 rounded-full ${slowmoStart !== null ? "bg-[#7F77DD]" : "bg-white/20"}`} />
           </div>
 
           {/* 오른쪽 핸들 */}
@@ -143,9 +153,9 @@ export default function SlowmoPicker({
             onPointerDown={handlePointerDown("end")}
           >
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="h-6 w-6 rounded-full border-2 border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)] transition-transform active:scale-125" />
+              <div className={`h-6 w-6 rounded-full border-2 transition-colors ${slowmoStart !== null ? "border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)]" : "border-white/30 bg-white/10"} transition-transform active:scale-125`} />
             </div>
-            <div className="mx-auto h-full w-0.5 rounded-full bg-[#7F77DD]" />
+            <div className={`mx-auto h-full w-0.5 rounded-full ${slowmoStart !== null ? "bg-[#7F77DD]" : "bg-white/20"}`} />
           </div>
         </div>
 
