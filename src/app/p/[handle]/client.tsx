@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ProfileCard from "@/components/player/ProfileCard";
+import SocialCard from "@/components/player/SocialCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
 import SeasonTimeline from "@/components/player/SeasonTimeline";
 import FollowButton from "@/components/social/FollowButton";
@@ -324,7 +325,19 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
       <div className="px-4 pt-3">
       {/* Profile card (read-only, no edit button) */}
-      <ProfileCard profile={profile} />
+      <ProfileCard
+        profile={profile}
+        radarStats={targetRadarStats}
+        stats={stats}
+      />
+
+      {/* 소셜 지표 카드 */}
+      <SocialCard
+        followers={profile.followers}
+        following={profile.following}
+        views={profile.views}
+        className="mt-2.5"
+      />
 
       {/* 액션 버튼 — 프로필 카드 바로 아래 */}
       {!data.isOwnProfile && (
