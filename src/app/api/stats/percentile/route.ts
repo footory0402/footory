@@ -1,99 +1,137 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
-import { MEASUREMENTS } from "@/lib/constants";
+import { MEASUREMENTS, MEASUREMENT_BENCHMARKS, getAgeGroup } from "@/lib/constants";
 
 export async function GET() {
   try {
-  const auth = await requireAuth();
-  if (auth instanceof NextResponse) return auth;
-  const { user, supabase } = auth;
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const { user, supabase } = auth;
 
-  // Get user's latest stats per type
-  const { data: myStats } = await supabase
-    .from("stats")
-    .select("stat_type, value")
-    .eq("profile_id", user.id)
-    .order("recorded_at", { ascending: false });
+    // 내 프로필에서 birth_year 조회
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("birth_year")
+      .eq("id", user.id)
+      .single();
 
-  if (!myStats || myStats.length === 0) {
-    return NextResponse.json({ percentiles: {} });
-  }
+    const ageGroup = getAgeGroup(myProfile?.birth_year ?? null);
 
-  // Representative value per stat_type: median of recent 3 records (or latest if < 3)
-  const recordsByType = new Map<string, number[]>();
-  for (const s of myStats) {
-    const arr = recordsByType.get(s.stat_type) ?? [];
-    if (arr.length < 3) arr.push(Number(s.value));
-    recordsByType.set(s.stat_type, arr);
-  }
-
-  function median(arr: number[]): number {
-    const sorted = [...arr].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-  }
-
-  const latestByType = new Map<string, number>();
-  for (const [type, values] of recordsByType.entries()) {
-    latestByType.set(type, median(values));
-  }
-
-  const percentiles: Record<string, number> = {};
-
-  for (const [statType, myValue] of latestByType.entries()) {
-    const measurement = MEASUREMENTS.find((m) => m.id === statType);
-    if (!measurement) continue;
-
-    // Count total players with this stat type (latest per player)
-    const { count: totalCount } = await supabase
+    // 내 최근 스탯 조회
+    const { data: myStats } = await supabase
       .from("stats")
-      .select("profile_id", { count: "exact", head: true })
-      .eq("stat_type", statType);
-
-    if (!totalCount || totalCount <= 1) {
-      percentiles[statType] = 50; // Only player — median
-      continue;
-    }
-
-    // For lowerIsBetter stats (sprint), count how many have HIGHER (worse) values
-    // For higherIsBetter stats (juggling), count how many have LOWER (worse) values
-    // This gives us the percentile (how many you beat)
-    //
-    // Since we can't easily do "latest per player" aggregation in a single query,
-    // we'll fetch all and compute in JS for now (acceptable for youth scale)
-    const { data: allOfType } = await supabase
-      .from("stats")
-      .select("profile_id, value, recorded_at")
-      .eq("stat_type", statType)
+      .select("stat_type, value")
+      .eq("profile_id", user.id)
       .order("recorded_at", { ascending: false });
 
-    if (!allOfType) continue;
-
-    // Representative value per player: median of recent 3
-    const playerRecords = new Map<string, number[]>();
-    for (const row of allOfType) {
-      const arr = playerRecords.get(row.profile_id) ?? [];
-      if (arr.length < 3) arr.push(Number(row.value));
-      playerRecords.set(row.profile_id, arr);
+    if (!myStats || myStats.length === 0) {
+      return NextResponse.json({ percentiles: {}, ageAvgs: {}, peerCounts: {}, ageGroup });
     }
 
-    const values = Array.from(playerRecords.values()).map(median);
-    const total = values.length;
-
-    let betterCount: number;
-    if (measurement.lowerIsBetter) {
-      // Lower is better: count how many have higher (worse) values
-      betterCount = values.filter((v) => v > myValue).length;
-    } else {
-      // Higher is better: count how many have lower (worse) values
-      betterCount = values.filter((v) => v < myValue).length;
+    // 종목별 내 대표값 (최근 3회 중앙값)
+    const recordsByType = new Map<string, number[]>();
+    for (const s of myStats) {
+      const arr = recordsByType.get(s.stat_type) ?? [];
+      if (arr.length < 3) arr.push(Number(s.value));
+      recordsByType.set(s.stat_type, arr);
     }
 
-    // Percentile = percentage of players you beat
-    percentiles[statType] = Math.round((betterCount / total) * 100);
-  }
+    function median(arr: number[]): number {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
 
-  return NextResponse.json({ percentiles });
+    const latestByType = new Map<string, number>();
+    for (const [type, values] of recordsByType.entries()) {
+      latestByType.set(type, median(values));
+    }
+
+    const percentiles: Record<string, number> = {};
+    const peerCounts: Record<string, number> = {};
+
+    // 동나이 선수 ID 목록 (birth_year 기반)
+    // AgeGroup 범위 계산: u10(<10), u12(10-11), u15(12-14), u18(15-17), adult(18+)
+    const currentYear = new Date().getFullYear();
+    const ageRanges: Record<string, { minAge: number; maxAge: number }> = {
+      u10:   { minAge: 0,  maxAge: 9  },
+      u12:   { minAge: 10, maxAge: 11 },
+      u15:   { minAge: 12, maxAge: 14 },
+      u18:   { minAge: 15, maxAge: 17 },
+      adult: { minAge: 18, maxAge: 99 },
+    };
+    const range = ageRanges[ageGroup];
+    const maxBirthYear = currentYear - range.minAge;
+    const minBirthYear = currentYear - range.maxAge;
+
+    // 같은 연령대 선수 ID 목록
+    const { data: peerProfiles } = await supabase
+      .from("profiles")
+      .select("id")
+      .gte("birth_year", minBirthYear)
+      .lte("birth_year", maxBirthYear);
+
+    const peerIds = (peerProfiles ?? []).map((p) => p.id);
+
+    for (const [statType, myValue] of latestByType.entries()) {
+      const measurement = MEASUREMENTS.find((m) => m.id === statType);
+      if (!measurement) continue;
+
+      if (peerIds.length <= 1) {
+        percentiles[statType] = 50;
+        peerCounts[statType] = peerIds.length;
+        continue;
+      }
+
+      // 같은 연령대 선수들의 해당 종목 기록
+      const { data: peerStats } = await supabase
+        .from("stats")
+        .select("profile_id, value, recorded_at")
+        .eq("stat_type", statType)
+        .in("profile_id", peerIds)
+        .order("recorded_at", { ascending: false });
+
+      if (!peerStats || peerStats.length === 0) {
+        percentiles[statType] = 50;
+        peerCounts[statType] = 0;
+        continue;
+      }
+
+      // 선수별 대표값 (최근 3회 중앙값)
+      const playerRecords = new Map<string, number[]>();
+      for (const row of peerStats) {
+        const arr = playerRecords.get(row.profile_id) ?? [];
+        if (arr.length < 3) arr.push(Number(row.value));
+        playerRecords.set(row.profile_id, arr);
+      }
+
+      const peerValues = Array.from(playerRecords.values()).map(median);
+      const total = peerValues.length;
+      peerCounts[statType] = total;
+
+      if (total <= 1) {
+        percentiles[statType] = 50;
+        continue;
+      }
+
+      let betterCount: number;
+      if (measurement.lowerIsBetter) {
+        betterCount = peerValues.filter((v) => v > myValue).length;
+      } else {
+        betterCount = peerValues.filter((v) => v < myValue).length;
+      }
+
+      percentiles[statType] = Math.round((betterCount / total) * 100);
+    }
+
+    // 연령대별 참고 평균값 (정적 기준값)
+    const ageAvgs: Record<string, number> = {};
+    for (const m of MEASUREMENTS) {
+      const benchmark = MEASUREMENT_BENCHMARKS[m.id]?.[ageGroup];
+      if (benchmark) ageAvgs[m.id] = benchmark.avg;
+    }
+
+    return NextResponse.json({ percentiles, ageAvgs, peerCounts, ageGroup });
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

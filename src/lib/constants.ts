@@ -45,14 +45,12 @@ export type SkillTagDbName = (typeof SKILL_TAGS)[number]["dbName"];
 
 // Measurement Types — 쉬운 이름, 전부 선택 (필수 없음)
 export const MEASUREMENTS = [
-  { id: "sprint_50m", label: "50m 달리기", unit: "초", icon: "🏃", lowerIsBetter: true },
-  { id: "juggling", label: "리프팅", unit: "회", icon: "⚽", lowerIsBetter: false },
-  { id: "kick_power", label: "슈팅 속도", unit: "km/h", icon: "🦵", lowerIsBetter: false },
-  { id: "run_1000m", label: "1000m 달리기", unit: "분:초", icon: "🏃‍♂️", lowerIsBetter: true },
-  { id: "shuttle_run", label: "왕복달리기", unit: "회", icon: "🔄", lowerIsBetter: false },
-  { id: "standing_jump", label: "제자리멀리뛰기", unit: "cm", icon: "🦘", lowerIsBetter: false },
-  { id: "sit_ups", label: "윗몸일으키기", unit: "회", icon: "💪", lowerIsBetter: false },
-  { id: "flexibility", label: "앉아윗몸앞으로굽히기", unit: "cm", icon: "🧘", lowerIsBetter: false },
+  { id: "sprint_50m",   label: "50m 달리기",   unit: "초",   icon: "🏃",  lowerIsBetter: true  },
+  { id: "juggling",     label: "리프팅",        unit: "회",   icon: "⚽",  lowerIsBetter: false },
+  { id: "kick_power",   label: "슈팅 속도",     unit: "km/h", icon: "🦵",  lowerIsBetter: false },
+  { id: "run_1000m",    label: "1000m 달리기",  unit: "분:초", icon: "🏃‍♂️", lowerIsBetter: true  },
+  { id: "push_ups",     label: "팔굽혀펴기",    unit: "회",   icon: "💪",  lowerIsBetter: false },
+  { id: "sargent_jump", label: "서전트 점프",   unit: "cm",   icon: "🦘",  lowerIsBetter: false },
 ] as const;
 
 // 구버전 stat_type → 한글 레이블 폴백 (DB에 옛 타입이 남아 있을 때)
@@ -64,10 +62,15 @@ export interface StatMeta {
 }
 
 export const STAT_TYPE_LABEL_FALLBACK: Record<string, StatMeta> = {
-  sprint_30m: { label: "30m 달리기", unit: "초", icon: "🏃", lowerIsBetter: true },
-  "30m_sprint": { label: "30m 달리기", unit: "초", icon: "🏃", lowerIsBetter: true },
-  "1000m_run": { label: "1000m 달리기", unit: "분:초", icon: "🏃‍♂️", lowerIsBetter: true },
-  shooting_accuracy: { label: "슈팅 정확도", unit: "개", icon: "📊", lowerIsBetter: false },
+  sprint_30m:       { label: "30m 달리기",           unit: "초",   icon: "🏃",  lowerIsBetter: true  },
+  "30m_sprint":     { label: "30m 달리기",           unit: "초",   icon: "🏃",  lowerIsBetter: true  },
+  "1000m_run":      { label: "1000m 달리기",         unit: "분:초", icon: "🏃‍♂️", lowerIsBetter: true  },
+  shooting_accuracy:{ label: "슈팅 정확도",           unit: "개",   icon: "📊",  lowerIsBetter: false },
+  // 제거된 항목 — 기존 DB 데이터 표시용
+  shuttle_run:      { label: "왕복달리기",            unit: "회",   icon: "🔄",  lowerIsBetter: false },
+  standing_jump:    { label: "제자리멀리뛰기",         unit: "cm",   icon: "🦘",  lowerIsBetter: false },
+  sit_ups:          { label: "윗몸일으키기",           unit: "회",   icon: "💪",  lowerIsBetter: false },
+  flexibility:      { label: "앉아윗몸앞으로굽히기",   unit: "cm",   icon: "🧘",  lowerIsBetter: false },
 };
 
 export function getStatMeta(statType: string): StatMeta {
@@ -77,14 +80,12 @@ export function getStatMeta(statType: string): StatMeta {
 }
 
 export const STAT_BOUNDS: Record<string, { min: number; max: number }> = {
-  sprint_50m: { min: 5.5, max: 12 },
-  juggling: { min: 1, max: 3000 },
-  kick_power: { min: 20, max: 150 },
-  run_1000m: { min: 180, max: 600 },
-  shuttle_run: { min: 1, max: 200 },
-  standing_jump: { min: 50, max: 300 },
-  sit_ups: { min: 1, max: 100 },
-  flexibility: { min: -20, max: 50 },
+  sprint_50m:   { min: 5.5, max: 12  },
+  juggling:     { min: 1,   max: 5000 },
+  kick_power:   { min: 20,  max: 150  },
+  run_1000m:    { min: 180, max: 600  },
+  push_ups:     { min: 1,   max: 100  },
+  sargent_jump: { min: 10,  max: 90   },
 } as const;
 
 // 연령별 스탯 범위 (어뷰징 방지)
@@ -93,22 +94,22 @@ export type AgeGroup = "u10" | "u12" | "u15" | "u18" | "adult";
 
 export const AGE_STAT_BOUNDS: Record<string, Record<AgeGroup, { min: number; max: number; warn: number }>> = {
   sprint_50m: {
-    u10:   { min: 6.5, max: 15, warn: 7.5 },
-    u12:   { min: 6.0, max: 15, warn: 7.0 },
-    u15:   { min: 5.5, max: 15, warn: 6.5 },
-    u18:   { min: 5.0, max: 15, warn: 6.0 },
-    adult: { min: 5.0, max: 15, warn: 5.5 },
+    u10:   { min: 6.5, max: 15,  warn: 7.5  },
+    u12:   { min: 6.0, max: 15,  warn: 7.0  },
+    u15:   { min: 5.5, max: 15,  warn: 6.5  },
+    u18:   { min: 5.0, max: 15,  warn: 6.0  },
+    adult: { min: 5.0, max: 15,  warn: 5.5  },
   },
   juggling: {
-    u10:   { min: 1, max: 3000, warn: 500 },
-    u12:   { min: 1, max: 5000, warn: 1000 },
-    u15:   { min: 1, max: 10000, warn: 3000 },
-    u18:   { min: 1, max: 15000, warn: 5000 },
+    u10:   { min: 1, max: 3000,  warn: 500   },
+    u12:   { min: 1, max: 5000,  warn: 1000  },
+    u15:   { min: 1, max: 10000, warn: 3000  },
+    u18:   { min: 1, max: 15000, warn: 5000  },
     adult: { min: 1, max: 20000, warn: 10000 },
   },
   kick_power: {
-    u10:   { min: 10, max: 80, warn: 50 },
-    u12:   { min: 10, max: 100, warn: 70 },
+    u10:   { min: 10, max: 80,  warn: 50  },
+    u12:   { min: 10, max: 100, warn: 70  },
     u15:   { min: 10, max: 130, warn: 100 },
     u18:   { min: 10, max: 150, warn: 120 },
     adult: { min: 10, max: 170, warn: 140 },
@@ -120,7 +121,34 @@ export const AGE_STAT_BOUNDS: Record<string, Record<AgeGroup, { min: number; max
     u18:   { min: 170, max: 600, warn: 195 },
     adult: { min: 160, max: 600, warn: 180 },
   },
+  push_ups: {
+    u10:   { min: 1, max: 50,  warn: 30 },
+    u12:   { min: 1, max: 60,  warn: 38 },
+    u15:   { min: 1, max: 75,  warn: 50 },
+    u18:   { min: 1, max: 90,  warn: 60 },
+    adult: { min: 1, max: 100, warn: 70 },
+  },
+  sargent_jump: {
+    u10:   { min: 10, max: 50, warn: 42 },
+    u12:   { min: 10, max: 58, warn: 50 },
+    u15:   { min: 15, max: 72, warn: 62 },
+    u18:   { min: 20, max: 85, warn: 72 },
+    adult: { min: 20, max: 90, warn: 78 },
+  },
 } as const;
+
+// 연령대별 참고 기준값 (현장 기반 추정치 — "참고 기준"으로만 사용)
+export const MEASUREMENT_BENCHMARKS: Record<
+  string,
+  Record<AgeGroup, { avg: number; top25: number }>
+> = {
+  sprint_50m:   { u10: { avg: 9.5, top25: 8.8 }, u12: { avg: 8.5, top25: 7.8 }, u15: { avg: 7.5, top25: 6.9 }, u18: { avg: 6.8, top25: 6.3 }, adult: { avg: 6.4, top25: 5.9 } },
+  juggling:     { u10: { avg: 15,  top25: 40  }, u12: { avg: 50,  top25: 150  }, u15: { avg: 100, top25: 300  }, u18: { avg: 200, top25: 500  }, adult: { avg: 300, top25: 800  } },
+  kick_power:   { u10: { avg: 45,  top25: 55  }, u12: { avg: 60,  top25: 72   }, u15: { avg: 78,  top25: 90   }, u18: { avg: 95,  top25: 110  }, adult: { avg: 105, top25: 120  } },
+  run_1000m:    { u10: { avg: 330, top25: 290 }, u12: { avg: 285, top25: 250  }, u15: { avg: 240, top25: 215  }, u18: { avg: 220, top25: 195  }, adult: { avg: 210, top25: 185  } },
+  push_ups:     { u10: { avg: 15,  top25: 25  }, u12: { avg: 20,  top25: 30   }, u15: { avg: 28,  top25: 40   }, u18: { avg: 35,  top25: 50   }, adult: { avg: 45,  top25: 60   } },
+  sargent_jump: { u10: { avg: 25,  top25: 35  }, u12: { avg: 30,  top25: 40   }, u15: { avg: 42,  top25: 55   }, u18: { avg: 52,  top25: 65   }, adult: { avg: 58,  top25: 72   } },
+};
 
 /** 생년으로 연령 그룹 결정 */
 export function getAgeGroup(birthYear: number | null | undefined): AgeGroup {
@@ -209,12 +237,12 @@ export const APP_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://footory.app"
 
 // 체력 레이더 6축 (순수 측정 기반)
 export const RADAR_STATS = [
-  { id: "speed", label: "속도", shortLabel: "속도", icon: "⚡", color: "#4ADE80", statType: "sprint_50m", lowerIsBetter: true },
-  { id: "endurance", label: "지구력", shortLabel: "지구력", icon: "🏃‍♂️", color: "#60A5FA", statType: "run_1000m", lowerIsBetter: true },
-  { id: "agility", label: "순발력", shortLabel: "순발력", icon: "🔄", color: "#A78BFA", statType: "shuttle_run", lowerIsBetter: false },
-  { id: "power", label: "근력", shortLabel: "근력", icon: "💪", color: "#F87171", statType: "standing_jump,sit_ups", lowerIsBetter: false },
-  { id: "flexibility", label: "유연성", shortLabel: "유연성", icon: "🧘", color: "#F472B6", statType: "flexibility", lowerIsBetter: false },
-  { id: "control", label: "볼컨트롤", shortLabel: "컨트롤", icon: "⚽", color: "#FBBF24", statType: "juggling", lowerIsBetter: false },
+  { id: "speed",       label: "속도",      shortLabel: "속도",    icon: "⚡",   color: "#4ADE80", statType: "sprint_50m",   lowerIsBetter: true  },
+  { id: "endurance",   label: "지구력",    shortLabel: "지구력",  icon: "🏃‍♂️", color: "#60A5FA", statType: "run_1000m",    lowerIsBetter: true  },
+  { id: "agility",     label: "폭발력",    shortLabel: "폭발력",  icon: "🦘",   color: "#A78BFA", statType: "sargent_jump", lowerIsBetter: false },
+  { id: "power",       label: "근력",      shortLabel: "근력",    icon: "💪",   color: "#F87171", statType: "push_ups",     lowerIsBetter: false },
+  { id: "flexibility", label: "킥력",      shortLabel: "킥력",    icon: "🦵",   color: "#F472B6", statType: "kick_power",   lowerIsBetter: false },
+  { id: "control",     label: "볼컨트롤",  shortLabel: "컨트롤",  icon: "⚽",   color: "#FBBF24", statType: "juggling",     lowerIsBetter: false },
 ] as const;
 
 export type RadarStatId = (typeof RADAR_STATS)[number]["id"];

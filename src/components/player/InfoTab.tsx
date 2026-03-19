@@ -10,33 +10,34 @@ import { formatStatDelta, formatStatValue, isTimeStatUnit, normalizeStatUnit } f
 
 import { EMPTY_RADAR_STATS, calcRadarStatsFromFirstValues, type ClipTagCount } from "@/lib/radar-calc";
 import type { Stat, PlayStyle } from "@/lib/types";
-import type { Season } from "@/lib/types";
 
 interface InfoTabProps {
   stats: Stat[];
-  seasons: Season[];
   percentiles?: Record<string, number>;
+  ageAvgs?: Record<string, number>;
+  peerCounts?: Record<string, number>;
+  ageGroup?: string;
   radarStats?: Record<RadarStatId, number>;
   clipTagCounts?: ClipTagCount[];
   playStyle?: PlayStyle | null;
   onAddStat?: () => void;
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
-  onAddSeason?: () => void;
   onPlayStyleTest?: () => void;
 }
 
 export default function InfoTab({
   stats,
-  seasons,
   percentiles,
+  ageAvgs,
+  peerCounts,
+  ageGroup,
   radarStats,
   clipTagCounts,
   playStyle,
   onAddStat,
   onUpdateStat,
   onDeleteStat,
-  onAddSeason,
   onPlayStyleTest,
 }: InfoTabProps) {
   const growthStats = stats.filter((s) => (s.measureCount ?? 0) > 1);
@@ -56,9 +57,8 @@ export default function InfoTab({
     <div className="flex flex-col gap-5">
       <RadarSection radarStats={radar} hasData={hasRadarData} pastRadar={pastRadar} />
       <PlayStyleSection playStyle={playStyle} onTest={onPlayStyleTest} />
-      <GrowthSection stats={stats} percentiles={percentiles} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
+      <GrowthSection stats={stats} percentiles={percentiles} ageAvgs={ageAvgs} peerCounts={peerCounts} ageGroup={ageGroup} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
       {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
-      <PrevSeasonsSection seasons={seasons} onAddSeason={onAddSeason} />
     </div>
   );
 }
@@ -259,12 +259,18 @@ function SectionHeader({ icon, title, count, action }: {
 function GrowthSection({
   stats,
   percentiles,
+  ageAvgs,
+  peerCounts,
+  ageGroup,
   onAddStat,
   onUpdateStat,
   onDeleteStat,
 }: {
   stats: Stat[];
   percentiles?: Record<string, number>;
+  ageAvgs?: Record<string, number>;
+  peerCounts?: Record<string, number>;
+  ageGroup?: string;
   onAddStat?: () => void;
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
@@ -316,6 +322,9 @@ function GrowthSection({
                 stat={stat}
                 lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
                 percentile={percentiles?.[stat.type]}
+                ageAvg={ageAvgs?.[stat.type]}
+                ageGroup={ageGroup ? ageGroup.toUpperCase().replace(/^U(\d+)$/, "U-$1") : undefined}
+                peerCount={peerCounts?.[stat.type]}
                 teamRank={teamRanks[stat.type]}
                 onUpdate={onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
                 onDelete={onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
@@ -424,73 +433,3 @@ function GrowthTrendSection({ stats }: { stats: Stat[] }) {
   );
 }
 
-/* ── 이전 소속 타임라인 섹션 ── */
-function PrevSeasonsSection({
-  seasons,
-  onAddSeason,
-}: {
-  seasons: Season[];
-  onAddSeason?: () => void;
-}) {
-  const prevSeasons = seasons.filter((s) => !s.isCurrent);
-  if (prevSeasons.length === 0) return null;
-
-  return (
-    <div id="prev-seasons">
-      <SectionHeader
-        icon={
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        }
-        title="이전 소속"
-        count={prevSeasons.length}
-        action={
-          onAddSeason && (
-            <button
-              onClick={onAddSeason}
-              className="flex items-center gap-1 rounded-full bg-white/[0.07] px-3 py-1.5 text-[11px] font-bold text-text-2 transition-colors hover:bg-white/[0.12] active:scale-95"
-            >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              팀 추가
-            </button>
-          )
-        }
-      />
-
-      <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden">
-        <div className="px-4 py-3">
-          <div className="flex flex-col gap-0">
-            {prevSeasons.map((s, i) => (
-              <div key={s.id} className="relative flex items-start gap-3 pb-3">
-                {/* Timeline dot + line */}
-                <div className="flex flex-col items-center shrink-0 mt-1">
-                  <div className="h-2 w-2 rounded-full bg-white/20" />
-                  {i < prevSeasons.length - 1 && (
-                    <div className="w-px flex-1 bg-white/[0.06] mt-1" style={{ minHeight: 16 }} />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[12px] font-semibold text-text-2 truncate">{s.teamName}</span>
-                    <span className="shrink-0 text-[11px] text-text-3 tabular-nums">{s.year}</span>
-                  </div>
-                  {(s.gamesPlayed != null || s.goals != null) && (
-                    <p className="mt-0.5 text-[11px] text-text-3">
-                      {s.gamesPlayed != null ? `${s.gamesPlayed}경기` : ""}
-                      {s.goals ? ` · ${s.goals}골` : ""}
-                      {s.assists ? ` · ${s.assists}어시` : ""}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

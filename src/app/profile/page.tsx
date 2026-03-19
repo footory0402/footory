@@ -46,6 +46,9 @@ export default function ProfilePage() {
   }, [profile?.role, router]);
 
   const [percentiles, setPercentiles] = useState<Record<string, number>>({});
+  const [ageAvgs, setAgeAvgs] = useState<Record<string, number>>({});
+  const [peerCounts, setPeerCounts] = useState<Record<string, number>>({});
+  const [ageGroup, setAgeGroup] = useState<string>("");
 
   const shouldLoadData = !!profile && !isScoutProfile;
   const { stats, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
@@ -56,8 +59,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!shouldLoadData) return;
     fetch("/api/stats/percentile")
-      .then((r) => (r.ok ? r.json() : { percentiles: {} }))
-      .then((d) => setPercentiles(d.percentiles ?? {}))
+      .then((r) => (r.ok ? r.json() : { percentiles: {}, ageAvgs: {}, peerCounts: {}, ageGroup: "" }))
+      .then((d) => {
+        setPercentiles(d.percentiles ?? {});
+        setAgeAvgs(d.ageAvgs ?? {});
+        setPeerCounts(d.peerCounts ?? {});
+        setAgeGroup(d.ageGroup ?? "");
+      })
       .catch(() => {});
   }, [shouldLoadData]);
 
@@ -175,12 +183,6 @@ export default function ProfilePage() {
           profile={profile}
           seasons={seasons}
           onAddSeason={() => setSeasonAddOpen(true)}
-          onScrollToSeasons={() => {
-            setActiveTab("stat");
-            setTimeout(() => {
-              document.getElementById("prev-seasons")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 100);
-          }}
         />
       )}
 
@@ -281,15 +283,16 @@ export default function ProfilePage() {
             ) : (
               <InfoTab
                 stats={stats}
-                seasons={seasons}
                 percentiles={percentiles}
+                ageAvgs={ageAvgs}
+                peerCounts={peerCounts}
+                ageGroup={ageGroup}
                 radarStats={radarStats}
                 clipTagCounts={clipTagCounts}
                 playStyle={playStyle}
                 onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
                 onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
                 onDeleteStat={handleDeleteStat}
-                onAddSeason={() => setSeasonAddOpen(true)}
                 onPlayStyleTest={() => setPlayStyleTestOpen(true)}
               />
             )}

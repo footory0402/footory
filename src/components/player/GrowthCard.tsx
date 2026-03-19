@@ -15,6 +15,12 @@ interface GrowthCardProps {
   stat: Stat;
   lowerIsBetter?: boolean;
   percentile?: number;
+  /** 동나이 참고 평균값 (절대값) */
+  ageAvg?: number;
+  /** 연령 그룹 레이블 (예: "U-13") */
+  ageGroup?: string;
+  /** 동나이 비교 선수 수 */
+  peerCount?: number;
   /** 팀 내 순위 (예: { rank: 2, total: 12 }) — 비공개, 나만 볼 수 있음 */
   teamRank?: { rank: number; total: number } | null;
   onUpdate?: () => void;
@@ -31,7 +37,18 @@ function fmtFull(dateStr: string): string {
   return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
 }
 
-function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, onUpdate, onDelete }: GrowthCardProps) {
+function GrowthCard({
+  label,
+  stat,
+  lowerIsBetter = false,
+  percentile,
+  ageAvg,
+  ageGroup,
+  peerCount,
+  teamRank,
+  onUpdate,
+  onDelete,
+}: GrowthCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { value, previousValue, unit, isPR, bestValue, firstValue, firstMeasuredAt, measureCount, measuredAt } = stat;
   const displayUnit = normalizeStatUnit(stat.type, unit);
@@ -43,7 +60,6 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
   const hasPR = isPR && (measureCount ?? 1) > 1;
   const isFirst = (measureCount ?? 0) <= 1;
 
-  // 등급 or 성장 메시지
   const tier = percentile != null ? getPercentileTier(percentile) : null;
   const growthFromFirst = firstValue != null && (measureCount ?? 0) > 1
     ? Math.abs(value - firstValue)
@@ -51,6 +67,24 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
   const grewFromFirst = firstValue != null && (measureCount ?? 0) > 1
     ? (lowerIsBetter ? value < firstValue : value > firstValue)
     : false;
+
+  // 하위 50% 메시지 계산
+  function getLowerMessage(): string | null {
+    if (percentile == null || tier != null) return null;
+    if (percentile >= 40) return "평균 근처 — 조금만 더!";
+    if (percentile >= 25 && ageAvg != null) {
+      const gap = Math.abs(ageAvg - value);
+      return `평균까지 ${formatStatDelta(gap, stat.type, unit)}${isTimeUnit ? "" : displayUnit} 남음`;
+    }
+    if (growthFromFirst != null && growthFromFirst > 0) {
+      return `꾸준히 성장 중 (+${formatStatDelta(growthFromFirst, stat.type, unit)}${isTimeUnit ? "" : displayUnit})`;
+    }
+    return "꾸준히 성장 중";
+  }
+
+  const lowerMessage = getLowerMessage();
+  // 하위 50%인데 성장 메시지 없이 percentile만 있는 경우
+  const showPercentileOnly = percentile != null && !tier && lowerMessage === null;
 
   return (
     <div
@@ -129,38 +163,71 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
           </div>
         </div>
 
-        {/* 등급 or 성장 메시지 */}
+        {/* 프로그레스바 + 등급/메시지 */}
         <div className="mt-2.5">
-          {tier ? (
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-[7px] rounded-full bg-white/[0.10] overflow-hidden">
+          {(tier || percentile != null) && (
+            <div className="flex items-center gap-2 mb-1">
+              {/* 프로그레스바 (평균 마커 포함) */}
+              <div className="relative flex-1 h-[7px] rounded-full bg-white/[0.10] overflow-visible">
+                {/* 내 값 바 */}
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
                     width: `${percentile}%`,
-                    background: tier.color === "#D4A853"
-                      ? "linear-gradient(90deg, var(--color-accent), #F5C542)"
-                      : "linear-gradient(90deg, rgba(161,161,170,0.5), rgba(161,161,170,0.7))",
-                    boxShadow: tier.color === "#D4A853"
+                    background: tier
+                      ? (tier.color === "#D4A853"
+                          ? "linear-gradient(90deg, var(--color-accent), #F5C542)"
+                          : "linear-gradient(90deg, rgba(161,161,170,0.5), rgba(161,161,170,0.7))")
+                      : "linear-gradient(90deg, var(--green-bg-20), rgba(74,222,128,0.5))",
+                    boxShadow: tier?.color === "#D4A853"
                       ? "0 0 8px rgba(212,168,83,0.4)"
                       : "none",
                   }}
                 />
+                {/* 평균 마커 (50% 위치) */}
+                <div
+                  className="absolute top-[-4px]"
+                  style={{ left: "50%", transform: "translateX(-50%)" }}
+                >
+                  <div
+                    style={{
+                      width: "1px",
+                      height: "15px",
+                      borderLeft: "1px dashed rgba(161,161,170,0.5)",
+                    }}
+                  />
+                </div>
               </div>
-              <span
-                className="shrink-0 rounded-full px-2 py-[3px] text-[10px] font-extrabold"
-                style={{
-                  background: tier.color === "#D4A853"
-                    ? "linear-gradient(135deg, var(--accent-bg-20), rgba(245,197,66,0.18))"
-                    : tier.bg,
-                  color: tier.color,
-                  border: tier.color === "#D4A853" ? "1px solid var(--border-accent)" : "1px solid transparent",
-                }}
-              >
-                {tier.emoji} {tier.label}
-              </span>
+
+              {/* 등급 뱃지 or 위치 텍스트 */}
+              {tier ? (
+                <span
+                  className="shrink-0 rounded-full px-2 py-[3px] text-[10px] font-extrabold"
+                  style={{
+                    background: tier.color === "#D4A853"
+                      ? "linear-gradient(135deg, var(--accent-bg-20), rgba(245,197,66,0.18))"
+                      : tier.bg,
+                    color: tier.color,
+                    border: tier.color === "#D4A853" ? "1px solid var(--border-accent)" : "1px solid transparent",
+                  }}
+                >
+                  {tier.emoji} {tier.label}
+                </span>
+              ) : percentile != null && percentile >= 40 ? (
+                <span className="shrink-0 text-[10px] font-medium text-text-3">평균 근처</span>
+              ) : percentile != null ? (
+                <span className="shrink-0 text-[10px] font-medium text-green-400">성장 중</span>
+              ) : null}
             </div>
-          ) : growthFromFirst != null && growthFromFirst > 0 ? (
+          )}
+
+          {/* 하위 50% 메시지 or 성장 from first */}
+          {lowerMessage ? (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px]">🌱</span>
+              <span className="text-[10px] font-medium text-green-400">{lowerMessage}</span>
+            </div>
+          ) : tier ? null : growthFromFirst != null && growthFromFirst > 0 && percentile == null ? (
             <div className="flex items-center gap-1">
               <span className="text-[10px]">🌱</span>
               <span className="text-[10px] font-medium text-green-400">
@@ -169,32 +236,21 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
                 {!isTimeUnit && displayUnit}
               </span>
             </div>
-          ) : percentile != null && !tier ? (
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-[7px] rounded-full bg-white/[0.10] overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${percentile}%`,
-                    background: "linear-gradient(90deg, var(--green-bg-20), rgba(74,222,128,0.5))",
-                  }}
-                />
-              </div>
-              <span className="shrink-0 text-[10px] font-bold text-text-3">
-                🌱 상위 {Math.max(1, 100 - percentile)}%
+          ) : showPercentileOnly ? (
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-text-3">
+                동나이 상위 {Math.max(1, 100 - percentile!)}%
               </span>
             </div>
           ) : null}
 
-          {/* 팀 내 순위 (비공개, 나만 볼 수 있음) */}
+          {/* 팀 내 순위 (비공개) */}
           {teamRank && teamRank.total >= 3 && (
             <div className="flex items-center gap-1 mt-1.5">
               <span
                 className="inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-bold"
                 style={{
-                  background: teamRank.rank === 1
-                    ? "var(--accent-bg-12)"
-                    : "var(--blue-bg-12)",
+                  background: teamRank.rank === 1 ? "var(--accent-bg-12)" : "var(--blue-bg-12)",
                   color: teamRank.rank === 1 ? "var(--color-accent)" : "var(--color-blue)",
                 }}
               >
@@ -245,13 +301,38 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
               <span className="text-[11px] font-bold text-text-2">{measureCount}회</span>
             </div>
           )}
-          {percentile != null && tier && (
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-text-3">전체 선수 중</span>
-              <span className="text-[11px] font-bold" style={{ color: tier.color }}>
-                상위 {Math.max(1, 100 - percentile)}%
-              </span>
-            </div>
+
+          {/* 동나이 비교 섹션 */}
+          {(ageAvg != null || percentile != null) && (
+            <>
+              <div className="h-px my-0.5" style={{ background: "var(--divider)" }} />
+              {ageAvg != null && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-3">
+                    동나이 평균{ageGroup ? ` (${ageGroup})` : ""}
+                  </span>
+                  <span className="font-stat text-[11px] text-text-3">
+                    {formatStatValue(ageAvg, stat.type, unit)}
+                    {!isTimeUnit && ` ${displayUnit}`}
+                  </span>
+                </div>
+              )}
+              {peerCount != null && peerCount >= 3 && percentile != null && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-3">동나이 선수 중</span>
+                  <span className="text-[11px] font-bold" style={{ color: tier ? tier.color : "var(--color-text-2)" }}>
+                    상위 {Math.max(1, 100 - percentile)}%
+                    <span className="text-[9px] font-normal text-text-3 ml-1">({peerCount}명 중)</span>
+                  </span>
+                </div>
+              )}
+              {peerCount != null && peerCount < 3 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-text-3">동나이 비교</span>
+                  <span className="text-[10px] text-text-3">데이터 수집 중</span>
+                </div>
+              )}
+            </>
           )}
 
           {(onUpdate || onDelete) && (
