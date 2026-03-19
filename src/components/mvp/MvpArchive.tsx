@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { PositionBadge } from "@/components/ui/Badge";
 import { formatMonthRange, getMvpTierInfo } from "@/lib/mvp-scoring";
 import type { ArchiveWeek } from "@/lib/types";
@@ -95,9 +96,10 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
                 {week.results.map((result) => {
                   const tierInfo = getMvpTierInfo(result.mvpTier);
                   return (
-                    <div
+                    <Link
                       key={`${week.weekStart}-${result.rank}`}
-                      className="flex items-center gap-3 border-b border-card-alt px-4 py-2.5 last:border-0"
+                      href={`/p/${result.playerHandle}`}
+                      className="flex items-center gap-3 border-b border-card-alt px-4 py-2.5 last:border-0 transition-colors hover:bg-card-alt active:bg-card-alt"
                     >
                       {/* Rank */}
                       <span
@@ -153,7 +155,7 @@ export default function MvpArchive({ weeks, loading = false }: MvpArchiveProps) 
                       <span className="shrink-0 font-stat text-[13px] font-bold text-text-1">
                         {result.totalScore}
                       </span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

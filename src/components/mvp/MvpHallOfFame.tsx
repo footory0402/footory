@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
 import { getMvpTierInfo } from "@/lib/mvp-scoring";
@@ -46,9 +47,10 @@ export default function MvpHallOfFame({
         const rank = idx + 1;
 
         return (
-          <div
+          <Link
             key={entry.profileId}
-            className="animate-fade-up flex items-center gap-3 border-b border-card-alt px-4 py-3"
+            href={`/p/${entry.playerHandle}`}
+            className="animate-fade-up flex items-center gap-3 border-b border-card-alt px-4 py-3 transition-colors hover:bg-card-alt active:bg-card-alt"
             style={{ animationDelay: `${idx * 0.05}s` }}
           >
             {/* Rank */}
@@ -64,7 +66,7 @@ export default function MvpHallOfFame({
             <Avatar
               name={entry.playerName}
               size="sm"
-              
+
               imageUrl={entry.playerAvatarUrl}
             />
 
@@ -108,7 +110,7 @@ export default function MvpHallOfFame({
               </div>
               <p className="text-[9px] text-text-3">회 선정</p>
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>
