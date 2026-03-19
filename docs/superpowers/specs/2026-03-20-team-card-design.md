@@ -40,6 +40,25 @@ OVR = round(ATK × 0.3 + MID × 0.3 + DEF × 0.25 + GK × 0.15)
 ```
 각 라인 평균 = 해당 포지션 선수들의 개인 레이더 스탯 평균.
 
+### 엣지 케이스
+- **포지션에 선수 0명**: 해당 라인 값 = 0, OVR 가중치 재분배 없음 (있는 그대로 계산)
+- **팀 멤버 0명**: 모든 스탯 0, OVR = 0 표시
+- **스탯 데이터 없는 선수**: 계산에서 제외 (스탯 있는 선수만으로 평균)
+
+### 스탯 데이터 출처
+기존 `radar_stats` 테이블에서 선수별 6축(speed, power, stamina, technique, passing, defense) → 포지션별 라인으로 매핑:
+- **ATK**: FW 선수들의 6축 평균
+- **MID**: MF 선수들의 6축 평균
+- **DEF**: DF 선수들의 6축 평균
+- **GK**: GK 선수들의 6축 평균
+
+서버에서 계산 후 `team_ranking_cache` 테이블에 `atk`, `mid`, `def`, `gk`, `ovr` 컬럼 추가 필요.
+
+### 태그 생성 규칙 (Full 전용)
+- MVP `N`명 → `mvpCount > 0`일 때 자동 생성
+- 활동 활발 → `activityScore >= 70`일 때
+- 주 N회 훈련 → `weeklyTrainingCount` 값 (팀 설정에서 입력)
+
 ## 색상 등급
 | 범위 | 색상 | 토큰 |
 |------|------|------|
@@ -101,7 +120,8 @@ OVR = round(ATK × 0.3 + MID × 0.3 + DEF × 0.25 + GK × 0.15)
 로고 URL이 없으면 팀명에서 이니셜 추출:
 - "FC 용인 드래곤즈" → "FC"
 - "성남 SC 유스" → "SC"
-- 로직: 대문자 약어 우선, 없으면 첫 2글자
+- "용인 드래곤즈" → "용인" (한글만 있으면 첫 2글자)
+- 로직: 영문 대문자 약어 매칭 (`/[A-Z]{2,}/`) → 없으면 팀명 첫 2글자
 
 ## 폰트 규칙
 | 요소 | 폰트 | 크기 | 무게 |
@@ -131,6 +151,21 @@ src/lib/team-stats.ts                  # OVR 계산, 색상 등급 유틸
 - `src/components/explore/TeamRanking.tsx` — 기존 팀 리스트 → TeamCard compact 사용
 - `src/app/team/[id]/page.tsx` — TeamHeader 영역에 TeamCard full 삽입
 - `src/components/player/ProfileCard.tsx` — 변경 없음 (개인 카드는 그대로)
+
+## CSS 추가 사항
+`globals.css`에 gradient 유틸 클래스 추가:
+```css
+.bar-gold { background: linear-gradient(0deg, #8B6914, #D4A853); }
+.bar-green { background: linear-gradient(0deg, #166534, #4ADE80); }
+.bar-blue { background: linear-gradient(0deg, #1e40af, #60A5FA); }
+.bar-gray { background: linear-gradient(0deg, #3f3f46, #71717A); }
+```
+
+## 카드 동작
+- **Compact/Inline 클릭**: `/team/[id]`로 라우팅 (`<Link>`)
+- **Full**: 클릭 없음 (이미 팀 상세 페이지 내부)
+- **너비**: full-width (부모 컨테이너 100%, max-width 430px는 앱 레벨 제약)
+- **접근성**: 바에 `aria-label="공격 87점"` 등 스크린 리더 지원
 
 ## 제거 항목
 기존 ProfileCard의 FIFA 요소들은 팀 카드에 사용하지 않음:
