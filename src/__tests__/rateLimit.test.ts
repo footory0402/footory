@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Each test uses a unique key to avoid state collision
 // since rateLimitMap is module-scoped and persists across tests.

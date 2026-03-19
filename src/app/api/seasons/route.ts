@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth-guard";
 
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+  const { user, supabase } = auth;
 
   const { data: seasons, error } = await supabase
     .from("seasons")
@@ -23,18 +18,16 @@ export async function GET() {
   }
 
   return NextResponse.json({ seasons: seasons ?? [] });
+  } catch {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+  const { user, supabase } = auth;
 
   const body = await request.json();
   const { year, teamName, teamId, league, isNewTeam } = body;
@@ -92,4 +85,7 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ season }, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

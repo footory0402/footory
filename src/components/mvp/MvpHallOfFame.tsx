@@ -3,19 +3,7 @@
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
 import { getMvpTierInfo } from "@/lib/mvp-scoring";
-import type { Position, MvpTierKey } from "@/lib/constants";
-
-export interface HallOfFameEntry {
-  profileId: string;
-  playerName: string;
-  playerHandle: string;
-  playerAvatarUrl?: string;
-  playerLevel: number;
-  playerPosition: Position | null;
-  teamName?: string;
-  mvpCount: number;
-  mvpTier: MvpTierKey | null;
-}
+import type { HallOfFameEntry } from "@/lib/types";
 
 interface MvpHallOfFameProps {
   entries: HallOfFameEntry[];

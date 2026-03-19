@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth-guard";
 
 type QueryResult<T> = {
   data: T | null;
@@ -11,9 +12,9 @@ type QueryResult<T> = {
 // Returns aggregated dashboard data for a linked child
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const { user, supabase } = auth;
 
     // Verify parent role
     const { data: profile, error: profileError } = await supabase

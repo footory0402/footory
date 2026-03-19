@@ -5,28 +5,8 @@ import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
 import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
-import type { Position } from "@/lib/constants";
+import type { VoteCardCandidate } from "@/lib/types";
 import MvpThumbnail from "./MvpThumbnail";
-
-export interface VoteCardCandidate {
-  clipId: string;
-  ownerId: string;
-  rank: number;
-  playerName: string;
-  playerHandle: string;
-  playerAvatarUrl?: string;
-  playerLevel: number;
-  playerPosition: Position | null;
-  teamName?: string;
-  tags: string[];
-  videoUrl?: string;
-  thumbnailUrl?: string;
-  totalScore: number;
-  viewsCount: number;
-  kudosCount: number;
-  voteCount: number;
-  isFollowing?: boolean;
-}
 
 interface VoteCardProps {
   candidate: VoteCardCandidate;
@@ -70,14 +50,14 @@ export default function VoteCard({
     <div
       className={`animate-fade-up overflow-hidden transition-transform duration-100 active:scale-[0.98] ${isFirst ? "card-accent" : ""}`}
       style={{
-        background: "#161618",
+        background: "var(--color-card)",
         border: isFirst
           ? "2px solid var(--color-accent)"
-          : "1px solid rgba(255,255,255,0.06)",
+          : "1px solid var(--white-06)",
         borderRadius: 12,
         boxShadow: isFirst
-          ? "0 0 24px rgba(212,168,83,0.18), 0 4px 16px rgba(0,0,0,0.5)"
-          : "0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)",
+          ? "0 0 24px rgba(212,168,83,0.18), 0 4px 16px var(--black-50)"
+          : "var(--card-shadow)",
       }}
     >
       {/* Gold gradient top bar for 1st place */}
@@ -120,8 +100,8 @@ export default function VoteCard({
             <div
               className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5"
               style={{
-                background: isFirst ? "var(--accent-gradient)" : "rgba(0,0,0,0.7)",
-                color: isFirst ? "#0C0C0E" : "#FAFAFA",
+                background: isFirst ? "var(--accent-gradient)" : "var(--black-60)",
+                color: isFirst ? "var(--color-bg)" : "var(--color-text-1)",
               }}
             >
               <span className="font-stat text-[12px] font-bold">
@@ -135,9 +115,9 @@ export default function VoteCard({
                 <span
                   className="rounded-md px-1.5 py-0.5 text-[10px] font-bold"
                   style={{
-                    background: "rgba(212,168,83,0.15)",
+                    background: "var(--accent-bg-15)",
                     color: "var(--color-accent)",
-                    border: "1px solid rgba(212,168,83,0.3)",
+                    border: "1px solid var(--border-accent-30)",
                   }}
                 >
                   {candidate.tags[0]}
@@ -197,9 +177,9 @@ export default function VoteCard({
           className="shrink-0 rounded-lg px-4 text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
           style={{
             height: 34,
-            background: hasVoted ? "rgba(212,168,83,0.1)" : "var(--accent-gradient)",
-            color: hasVoted ? "var(--color-accent)" : "#0C0C0E",
-            border: hasVoted ? "1px solid rgba(212,168,83,0.2)" : "none",
+            background: hasVoted ? "var(--accent-bg)" : "var(--accent-gradient)",
+            color: hasVoted ? "var(--color-accent)" : "var(--color-bg)",
+            border: hasVoted ? "1px solid var(--border-accent)" : "none",
           }}
         >
           {hasVoted ? "✓ 취소" : "투표"}
@@ -241,10 +221,10 @@ export function VoteCardCompact({
     <div
       className="animate-fade-up flex flex-col overflow-hidden transition-transform duration-100 active:scale-[0.98]"
       style={{
-        background: "#161618",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "var(--color-card)",
+        border: "1px solid var(--white-06)",
         borderRadius: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)",
+        boxShadow: "var(--card-shadow)",
       }}
     >
       {/* Thumbnail / Video */}
@@ -274,8 +254,8 @@ export function VoteCardCompact({
             <div
               className="absolute left-1.5 top-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
               style={{
-                background: "rgba(0,0,0,0.75)",
-                color: "#FAFAFA",
+                background: "var(--black-60)",
+                color: "var(--color-text-1)",
               }}
             >
               {candidate.rank}위
@@ -327,9 +307,9 @@ export function VoteCardCompact({
           disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
           className="w-full rounded-lg py-1.5 text-[12px] font-bold transition-all active:scale-[0.97] disabled:opacity-40 sm:py-2 sm:text-[13px]"
           style={{
-            background: hasVoted ? "rgba(212,168,83,0.1)" : "var(--accent-gradient)",
-            color: hasVoted ? "var(--color-accent)" : "#0C0C0E",
-            border: hasVoted ? "1px solid rgba(212,168,83,0.2)" : "none",
+            background: hasVoted ? "var(--accent-bg)" : "var(--accent-gradient)",
+            color: hasVoted ? "var(--color-accent)" : "var(--color-bg)",
+            border: hasVoted ? "1px solid var(--border-accent)" : "none",
           }}
         >
           {hasVoted ? "✓ 취소" : "투표"}

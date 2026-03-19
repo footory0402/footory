@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth-guard";
 
 // POST /api/push/token — Register FCM token
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+  const { user, supabase } = auth;
 
   const { token, deviceInfo } = await req.json();
   if (!token) return NextResponse.json({ error: "token required" }, { status: 400 });
@@ -25,13 +26,17 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 // DELETE /api/push/token — Unregister FCM token
 export async function DELETE(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+  const { user, supabase } = auth;
 
   const token = req.nextUrl.searchParams.get("token");
   if (!token) return NextResponse.json({ error: "token required" }, { status: 400 });
@@ -43,4 +48,7 @@ export async function DELETE(req: NextRequest) {
     .eq("token", token);
 
   return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth-guard";
 import { getPresignedUploadUrl, getPresignedThumbnailUrl } from "@/lib/r2";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const { allowed, retryAfter } = checkRateLimit(`presign:${user.id}`, 3_600_000, 50);
     if (!allowed) {

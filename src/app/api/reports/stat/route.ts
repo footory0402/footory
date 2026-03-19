@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { requireAuth } from "@/lib/auth-guard";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const VALID_CATEGORIES = ["fake_record", "inappropriate", "other"] as const;
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+  const { user, supabase } = auth;
 
   // 신고 남용 방지: 1시간에 5건
   const { allowed } = checkRateLimit(`report:${user.id}`, 3_600_000, 5);
@@ -59,4 +57,7 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

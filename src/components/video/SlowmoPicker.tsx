@@ -119,7 +119,7 @@ export default function SlowmoPicker({
           <div
             className={`absolute inset-y-0 rounded border-x-2 transition-colors ${
               slowmoStart !== null
-                ? "border-[#7F77DD] bg-[#7F77DD]/20"
+                ? "border-[var(--slowmo)] bg-[var(--slowmo-bg-20)]"
                 : "border-white/20 bg-white/5"
             }`}
             style={{
@@ -141,9 +141,9 @@ export default function SlowmoPicker({
             onPointerDown={handlePointerDown("start")}
           >
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className={`h-6 w-6 rounded-full border-2 transition-colors ${slowmoStart !== null ? "border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)]" : "border-white/30 bg-white/10"} transition-transform active:scale-125`} />
+              <div className={`h-6 w-6 rounded-full border-2 transition-colors ${slowmoStart !== null ? "border-[var(--slowmo)] bg-[var(--slowmo-bg-20)] shadow-[0_0_8px_rgba(127,119,221,0.3)]" : "border-white/30 bg-white/10"} transition-transform active:scale-125`} />
             </div>
-            <div className={`mx-auto h-full w-0.5 rounded-full ${slowmoStart !== null ? "bg-[#7F77DD]" : "bg-white/20"}`} />
+            <div className={`mx-auto h-full w-0.5 rounded-full ${slowmoStart !== null ? "bg-[var(--slowmo)]" : "bg-white/20"}`} />
           </div>
 
           {/* 오른쪽 핸들 */}
@@ -153,16 +153,16 @@ export default function SlowmoPicker({
             onPointerDown={handlePointerDown("end")}
           >
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className={`h-6 w-6 rounded-full border-2 transition-colors ${slowmoStart !== null ? "border-[#7F77DD] bg-[#7F77DD]/20 shadow-[0_0_8px_rgba(127,119,221,0.3)]" : "border-white/30 bg-white/10"} transition-transform active:scale-125`} />
+              <div className={`h-6 w-6 rounded-full border-2 transition-colors ${slowmoStart !== null ? "border-[var(--slowmo)] bg-[var(--slowmo-bg-20)] shadow-[0_0_8px_rgba(127,119,221,0.3)]" : "border-white/30 bg-white/10"} transition-transform active:scale-125`} />
             </div>
-            <div className={`mx-auto h-full w-0.5 rounded-full ${slowmoStart !== null ? "bg-[#7F77DD]" : "bg-white/20"}`} />
+            <div className={`mx-auto h-full w-0.5 rounded-full ${slowmoStart !== null ? "bg-[var(--slowmo)]" : "bg-white/20"}`} />
           </div>
         </div>
 
         {/* 시간 표시 */}
         <div className="mt-2 flex items-center justify-between text-[12px] text-text-3">
           <span>{formatTime(start)}</span>
-          <span className="font-stat text-[#7F77DD]">
+          <span className="font-stat text-[var(--slowmo)]">
             {formatTime(slowmoDuration)} → {resultDuration}초
           </span>
           <span>{formatTime(end)}</span>
@@ -180,8 +180,8 @@ export default function SlowmoPicker({
               onClick={() => handleSpeedChange(s.value)}
               className={`flex-1 rounded-xl border py-2.5 text-[14px] font-semibold transition-colors ${
                 speed === s.value
-                  ? "border-[#7F77DD] bg-[#7F77DD]/10 text-[#7F77DD]"
-                  : "border-[#2a2a2e] bg-[#161618] text-text-2"
+                  ? "border-[var(--slowmo)] bg-[var(--slowmo-bg-10)] text-[var(--slowmo)]"
+                  : "border-[var(--color-elevated)] bg-card text-text-2"
               }`}
             >
               <span className="block text-[14px]">{s.displayLabel}</span>

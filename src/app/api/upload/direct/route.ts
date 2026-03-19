@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { requireAuth } from "@/lib/auth-guard";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { putObjectToR2 } from "@/lib/r2";
 
 // Server proxy fallback for when presigned URL upload fails on mobile
@@ -18,14 +18,9 @@ function isAllowedKey(userId: string, key: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const { allowed, retryAfter } = checkRateLimit(
       `upload-direct:${user.id}`,

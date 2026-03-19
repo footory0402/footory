@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Avatar from "@/components/ui/Avatar";
-import { useComments, type Comment } from "@/hooks/useComments";
+import { useComments } from "@/hooks/useComments";
+import type { Comment } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";

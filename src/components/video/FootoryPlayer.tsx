@@ -204,11 +204,11 @@ export default function FootoryPlayer({
               className="h-20 w-20 rounded-full border-[3px] border-accent"
               style={{
                 boxShadow:
-                  "0 0 16px rgba(212,168,83,0.5), 0 0 32px rgba(212,168,83,0.2)",
+                  "0 0 16px var(--accent-bg-30), 0 0 32px var(--accent-bg-20)",
               }}
             />
             <div className="mt-1 flex flex-col items-center">
-              <span className="rounded-md bg-[#0C0C0E]/80 px-2 py-0.5 text-[11px] font-semibold text-accent">
+              <span className="rounded-md bg-bg/80 px-2 py-0.5 text-[11px] font-semibold text-accent">
                 {playerName}
               </span>
               {playerPosition && (
@@ -381,7 +381,7 @@ export default function FootoryPlayer({
         } ${phase === "ended" ? "opacity-100" : showControls ? "opacity-100" : "opacity-0"}`}
         style={{ pointerEvents: phase === "ended" || showControls ? "auto" : "none" }}
       >
-        <div className="bg-gradient-to-t from-black/60 via-black/30 to-transparent px-3 pb-3 pt-8">
+        <div className="bg-gradient-to-t from-black/60 via-black/30 to-transparent px-3 pb-3 pt-8" aria-hidden>
           {/* Seekbar */}
           <div
             ref={seekbarRef}

@@ -5,10 +5,8 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { SectionCard } from "@/components/ui/Card";
-import VoteCard, {
-  VoteCardCompact,
-  type VoteCardCandidate,
-} from "@/components/mvp/VoteCard";
+import VoteCard, { VoteCardCompact } from "@/components/mvp/VoteCard";
+import type { VoteCardCandidate, ArchiveWeek, HallOfFameEntry } from "@/lib/types";
 import MvpRanking from "@/components/mvp/MvpRanking";
 import {
   canVoteMvp as canVoteMvpForRole,
@@ -19,8 +17,6 @@ import {
   formatMonthRange,
   getVotingTimeRemaining,
 } from "@/lib/mvp-scoring";
-import type { ArchiveWeek } from "@/components/mvp/MvpArchive";
-import type { HallOfFameEntry } from "@/components/mvp/MvpHallOfFame";
 import type { MvpCandidatesPayload } from "@/lib/server/mvp";
 
 const MvpArchive = dynamic(() => import("@/components/mvp/MvpArchive"), {

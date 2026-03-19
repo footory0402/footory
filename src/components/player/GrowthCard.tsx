@@ -58,11 +58,11 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
       className="overflow-hidden rounded-2xl bg-card cursor-pointer select-none transition-all active:scale-[0.98]"
       style={{
         border: hasPR
-          ? "1px solid rgba(212,168,83,0.3)"
-          : "1px solid rgba(255,255,255,0.06)",
+          ? "1px solid var(--border-accent-30)"
+          : "1px solid var(--white-06)",
         boxShadow: hasPR
-          ? "inset 3px 0 0 #D4A853, 0 0 20px rgba(212,168,83,0.06)"
-          : "inset 3px 0 0 rgba(255,255,255,0.08)",
+          ? "inset 3px 0 0 var(--color-accent), 0 0 20px var(--accent-bg)"
+          : "inset 3px 0 0 var(--white-08)",
       }}
     >
       <div className="p-3">
@@ -82,7 +82,7 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
               style={{
                 fontSize: 24,
                 fontWeight: 800,
-                color: hasPR ? "#D4A853" : "var(--color-text-1)",
+                color: hasPR ? "var(--color-accent)" : "var(--color-text-1)",
                 letterSpacing: "-0.5px",
               }}
             >
@@ -96,8 +96,8 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
               <span
                 className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
                 style={{
-                  background: improved ? "rgba(74,222,128,0.12)" : "rgba(248,113,113,0.12)",
-                  color: improved ? "#4ADE80" : "#F87171",
+                  background: improved ? "var(--green-bg-12)" : "var(--red-bg-12)",
+                  color: improved ? "var(--color-green)" : "var(--color-red)",
                 }}
               >
                 {lowerIsBetter
@@ -107,7 +107,7 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
             ) : isFirst ? (
               <span
                 className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                style={{ background: "rgba(212,168,83,0.12)", color: "#D4A853" }}
+                style={{ background: "var(--accent-bg-12)", color: "var(--color-accent)" }}
               >
                 첫 기록
               </span>
@@ -117,9 +117,9 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
               <span
                 className="inline-flex items-center gap-0.5 rounded-full px-2 py-[3px] text-[10px] font-black uppercase tracking-wide"
                 style={{
-                  background: "linear-gradient(135deg, rgba(212,168,83,0.25), rgba(245,197,66,0.18))",
+                  background: "linear-gradient(135deg, var(--accent-bg-20), rgba(245,197,66,0.18))",
                   color: "#F5C542",
-                  border: "1px solid rgba(212,168,83,0.3)",
+                  border: "1px solid var(--border-accent-30)",
                   textShadow: "0 0 8px rgba(212,168,83,0.4)",
                 }}
               >
@@ -139,7 +139,7 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
                   style={{
                     width: `${percentile}%`,
                     background: tier.color === "#D4A853"
-                      ? "linear-gradient(90deg, #D4A853, #F5C542)"
+                      ? "linear-gradient(90deg, var(--color-accent), #F5C542)"
                       : "linear-gradient(90deg, rgba(161,161,170,0.5), rgba(161,161,170,0.7))",
                     boxShadow: tier.color === "#D4A853"
                       ? "0 0 8px rgba(212,168,83,0.4)"
@@ -151,10 +151,10 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
                 className="shrink-0 rounded-full px-2 py-[3px] text-[10px] font-extrabold"
                 style={{
                   background: tier.color === "#D4A853"
-                    ? "linear-gradient(135deg, rgba(212,168,83,0.25), rgba(245,197,66,0.18))"
+                    ? "linear-gradient(135deg, var(--accent-bg-20), rgba(245,197,66,0.18))"
                     : tier.bg,
                   color: tier.color,
-                  border: tier.color === "#D4A853" ? "1px solid rgba(212,168,83,0.25)" : "1px solid transparent",
+                  border: tier.color === "#D4A853" ? "1px solid var(--border-accent)" : "1px solid transparent",
                 }}
               >
                 {tier.emoji} {tier.label}
@@ -176,7 +176,7 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
                   className="h-full rounded-full transition-all"
                   style={{
                     width: `${percentile}%`,
-                    background: "linear-gradient(90deg, rgba(74,222,128,0.3), rgba(74,222,128,0.5))",
+                    background: "linear-gradient(90deg, var(--green-bg-20), rgba(74,222,128,0.5))",
                   }}
                 />
               </div>
@@ -193,9 +193,9 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
                 className="inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-bold"
                 style={{
                   background: teamRank.rank === 1
-                    ? "rgba(212,168,83,0.12)"
-                    : "rgba(96,165,250,0.10)",
-                  color: teamRank.rank === 1 ? "#D4A853" : "#60A5FA",
+                    ? "var(--accent-bg-12)"
+                    : "var(--blue-bg-12)",
+                  color: teamRank.rank === 1 ? "var(--color-accent)" : "var(--color-blue)",
                 }}
               >
                 {teamRank.rank === 1 ? "🥇" : "👥"} 팀 {teamRank.rank}위/{teamRank.total}명
@@ -209,7 +209,7 @@ function GrowthCard({ label, stat, lowerIsBetter = false, percentile, teamRank, 
       {expanded && (
         <div
           className="border-t px-3 py-2.5 space-y-1.5"
-          style={{ borderColor: "rgba(255,255,255,0.05)" }}
+          style={{ borderColor: "var(--divider)" }}
         >
           {bestValue != null && (
             <div className="flex items-center justify-between">

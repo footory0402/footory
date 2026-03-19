@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth-guard";
 import { fetchMvpCandidatesData } from "@/lib/server/mvp";
 
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+    const { user, supabase } = auth;
 
-  const data = await fetchMvpCandidatesData(supabase, user.id);
-  return NextResponse.json(data);
+    const data = await fetchMvpCandidatesData(supabase, user.id);
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }

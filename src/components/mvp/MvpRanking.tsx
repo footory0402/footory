@@ -5,7 +5,7 @@ import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
 import LazyVideo, { requestVideoPlay } from "@/components/ui/LazyVideo";
-import type { VoteCardCandidate } from "./VoteCard";
+import type { VoteCardCandidate } from "@/lib/types";
 import MvpThumbnail from "./MvpThumbnail";
 
 interface MvpRankingProps {

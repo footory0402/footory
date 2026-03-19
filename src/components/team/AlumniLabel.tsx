@@ -1,5 +1,3 @@
-"use client";
-
 interface AlumniLabelProps {
   size?: "sm" | "md";
 }

@@ -3,29 +3,8 @@
 import { useState } from "react";
 import { PositionBadge } from "@/components/ui/Badge";
 import { formatMonthRange, getMvpTierInfo } from "@/lib/mvp-scoring";
-import type { Position, MvpTierKey } from "@/lib/constants";
+import type { ArchiveWeek } from "@/lib/types";
 import MvpThumbnail from "./MvpThumbnail";
-
-export interface ArchiveWeek {
-  weekStart: string;
-  results: ArchiveResult[];
-}
-
-export interface ArchiveResult {
-  rank: number;
-  profileId: string;
-  playerName: string;
-  playerHandle: string;
-  playerAvatarUrl?: string;
-  playerLevel: number;
-  playerPosition: Position | null;
-  teamName?: string;
-  thumbnailUrl?: string;
-  totalScore: number;
-  voteCount: number;
-  mvpCount: number;
-  mvpTier: MvpTierKey | null;
-}
 
 interface MvpArchiveProps {
   weeks: ArchiveWeek[];

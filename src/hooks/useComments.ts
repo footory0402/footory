@@ -1,23 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-
-export interface Comment {
-  id: string;
-  content: string;
-  createdAt: string;
-  userId: string;
-  parentId: string | null;
-  profile: {
-    id: string;
-    handle: string;
-    name: string;
-    avatar_url: string | null;
-    level: number;
-    position: string;
-  };
-  replies?: Comment[];
-}
+import type { Comment } from "@/lib/types";
 
 export function useComments(feedItemId: string) {
   const [comments, setComments] = useState<Comment[]>([]);

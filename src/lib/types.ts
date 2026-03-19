@@ -1,4 +1,4 @@
-import type { Position, PlayStyleType, StyleTraitKey } from "./constants";
+import type { Position, PlayStyleType, StyleTraitKey, MvpTierKey } from "./constants";
 
 export interface Profile {
   id: string;
@@ -285,6 +285,78 @@ export interface PlayStyle {
 export function normalizeTraitTo10(rawValue: number): number {
   // raw 범위 0~15 → 0~10
   return Math.round((rawValue / 15) * 10);
+}
+
+// MVP types
+export interface VoteCardCandidate {
+  clipId: string;
+  ownerId: string;
+  rank: number;
+  playerName: string;
+  playerHandle: string;
+  playerAvatarUrl?: string;
+  playerLevel: number;
+  playerPosition: Position | null;
+  teamName?: string;
+  tags: string[];
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  totalScore: number;
+  viewsCount: number;
+  kudosCount: number;
+  voteCount: number;
+  isFollowing?: boolean;
+}
+
+export interface ArchiveResult {
+  rank: number;
+  profileId: string;
+  playerName: string;
+  playerHandle: string;
+  playerAvatarUrl?: string;
+  playerLevel: number;
+  playerPosition: Position | null;
+  teamName?: string;
+  thumbnailUrl?: string;
+  totalScore: number;
+  voteCount: number;
+  mvpCount: number;
+  mvpTier: MvpTierKey | null;
+}
+
+export interface ArchiveWeek {
+  weekStart: string;
+  results: ArchiveResult[];
+}
+
+export interface HallOfFameEntry {
+  profileId: string;
+  playerName: string;
+  playerHandle: string;
+  playerAvatarUrl?: string;
+  playerLevel: number;
+  playerPosition: Position | null;
+  teamName?: string;
+  mvpCount: number;
+  mvpTier: MvpTierKey | null;
+}
+
+// Comment type
+export interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  userId: string;
+  parentId: string | null;
+  profile: {
+    id: string;
+    handle: string;
+    name: string;
+    avatar_url: string | null;
+    level: number;
+    position: string;
+  };
+  replies?: Comment[];
 }
 
 export interface DmRequest {

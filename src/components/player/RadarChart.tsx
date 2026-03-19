@@ -195,7 +195,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                 style={{
                   fontSize: "15px",
                   fontWeight: 700,
-                  fill: "#D4A853",
+                  fill: "var(--color-accent)",
                   fontFamily: "var(--font-stat)",
                 }}
               >
@@ -210,7 +210,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                 style={{
                   fontSize: "8px",
                   fontWeight: 600,
-                  fill: "#9E9EA8",
+                  fill: "var(--color-text-3)",
                   fontFamily: "var(--font-body)",
                   letterSpacing: "0.3px",
                 }}
@@ -235,7 +235,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                   style={{
                     fontSize: "22px",
                     fontWeight: 700,
-                    fill: "#D4A853",
+                    fill: "var(--color-accent)",
                     fontFamily: "var(--font-stat)",
                   }}
                 >
@@ -249,7 +249,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                   style={{
                     fontSize: "8px",
                     fontWeight: 700,
-                    fill: "#9E9EA8",
+                    fill: "var(--color-text-3)",
                     fontFamily: "var(--font-body)",
                     letterSpacing: "1px",
                   }}
@@ -266,7 +266,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                     style={{
                       fontSize: "10px",
                       fontWeight: 700,
-                      fill: overall > compareOverall ? "#4ADE80" : "#F87171",
+                      fill: overall > compareOverall ? "var(--color-green)" : "var(--color-red)",
                       fontFamily: "var(--font-stat)",
                     }}
                   >
@@ -284,7 +284,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                   style={{
                     fontSize: "26px",
                     fontWeight: 700,
-                    fill: "#D4A853",
+                    fill: "var(--color-accent)",
                     fontFamily: "var(--font-stat)",
                   }}
                 >
@@ -298,7 +298,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
                   style={{
                     fontSize: "8px",
                     fontWeight: 700,
-                    fill: "#9E9EA8",
+                    fill: "var(--color-text-3)",
                     fontFamily: "var(--font-body)",
                     letterSpacing: "1.5px",
                   }}
@@ -315,7 +315,7 @@ function RadarChartInner({ stats, compareStats, compareLabel, size = 280, showOv
       {compareStats && (
         <div className="flex items-center justify-center gap-4 mt-1">
           <div className="flex items-center gap-1.5">
-            <div className="h-[2px] w-4 rounded-full bg-[#D4A853]" />
+            <div className="h-[2px] w-4 rounded-full bg-accent" />
             <span className="text-[10px] font-semibold text-text-2">현재</span>
           </div>
           <div className="flex items-center gap-1.5">
