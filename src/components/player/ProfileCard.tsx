@@ -92,7 +92,7 @@ function ProfileCard({
         />
 
         {/* ── 사진 영역 ── */}
-        <div className="relative h-[230px] overflow-hidden">
+        <div className="relative h-[280px] overflow-hidden">
           {/* 배경: radial-gradient 골드 + pitch line 패턴 */}
           <div
             className="absolute inset-0"
@@ -113,7 +113,8 @@ function ProfileCard({
             <img
               src={safeAvatarUrl}
               alt={`${profile.name} 프로필 사진`}
-              className="absolute inset-0 h-full w-full object-cover object-top"
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: "center 20%" }}
             />
           ) : (
             /* placeholder */
