@@ -9,7 +9,8 @@ import { MEASUREMENTS, getStatMeta, RADAR_STATS, type RadarStatId, type PlayStyl
 import { formatStatDelta, formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
 
 import { EMPTY_RADAR_STATS, calcRadarStatsFromFirstValues, type ClipTagCount } from "@/lib/radar-calc";
-import type { Stat, PlayStyle } from "@/lib/types";
+import AchievementList from "@/components/portfolio/AchievementList";
+import type { Stat, PlayStyle, Achievement } from "@/lib/types";
 
 interface InfoTabProps {
   stats: Stat[];
@@ -24,6 +25,11 @@ interface InfoTabProps {
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
   onPlayStyleTest?: () => void;
+  achievements?: Achievement[];
+  onAddAchievement?: (input: { title: string; competition?: string; year?: number }) => Promise<void>;
+  onRemoveAchievement?: (id: string) => Promise<void>;
+  /** 공개 프로필 읽기전용 모드 — 편집 UI, 팀 내 순위 숨김 */
+  readOnly?: boolean;
 }
 
 export default function InfoTab({
@@ -39,6 +45,10 @@ export default function InfoTab({
   onUpdateStat,
   onDeleteStat,
   onPlayStyleTest,
+  achievements,
+  onAddAchievement,
+  onRemoveAchievement,
+  readOnly,
 }: InfoTabProps) {
   const growthStats = stats.filter((s) => (s.measureCount ?? 0) > 1);
   const radar = radarStats ?? EMPTY_RADAR_STATS;
@@ -56,9 +66,22 @@ export default function InfoTab({
   return (
     <div className="flex flex-col gap-5">
       <RadarSection radarStats={radar} hasData={hasRadarData} pastRadar={pastRadar} />
-      <PlayStyleSection playStyle={playStyle} onTest={onPlayStyleTest} />
-      <GrowthSection stats={stats} percentiles={percentiles} ageAvgs={ageAvgs} peerCounts={peerCounts} ageGroup={ageGroup} onAddStat={onAddStat} onUpdateStat={onUpdateStat} onDeleteStat={onDeleteStat} />
+      <PlayStyleSection playStyle={playStyle} onTest={readOnly ? undefined : onPlayStyleTest} />
+      <GrowthSection stats={stats} percentiles={percentiles} ageAvgs={ageAvgs} peerCounts={peerCounts} ageGroup={ageGroup} onAddStat={readOnly ? undefined : onAddStat} onUpdateStat={readOnly ? undefined : onUpdateStat} onDeleteStat={readOnly ? undefined : onDeleteStat} readOnly={readOnly} />
       {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
+      {achievements && achievements.length > 0 && (
+        <AchievementList
+          achievements={achievements}
+          onAdd={readOnly ? undefined : onAddAchievement}
+          onRemove={readOnly ? undefined : onRemoveAchievement}
+        />
+      )}
+      {!readOnly && achievements && achievements.length === 0 && onAddAchievement && (
+        <AchievementList
+          achievements={[]}
+          onAdd={onAddAchievement}
+        />
+      )}
     </div>
   );
 }
@@ -265,6 +288,7 @@ function GrowthSection({
   onAddStat,
   onUpdateStat,
   onDeleteStat,
+  readOnly,
 }: {
   stats: Stat[];
   percentiles?: Record<string, number>;
@@ -274,16 +298,18 @@ function GrowthSection({
   onAddStat?: () => void;
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
+  readOnly?: boolean;
 }) {
   // 팀 내 순위 로드 (비공개, 나만 볼 수 있음)
   const [teamRanks, setTeamRanks] = useState<Record<string, { rank: number; total: number }>>({});
 
   useEffect(() => {
+    if (readOnly) return;
     fetch("/api/stats/team-rank")
       .then((r) => (r.ok ? r.json() : { ranks: {} }))
       .then((data) => setTeamRanks(data.ranks ?? {}))
       .catch(() => {});
-  }, []);
+  }, [readOnly]);
 
   return (
     <div>
@@ -325,7 +351,7 @@ function GrowthSection({
                 ageAvg={ageAvgs?.[stat.type]}
                 ageGroup={ageGroup ? ageGroup.toUpperCase().replace(/^U(\d+)$/, "U-$1") : undefined}
                 peerCount={peerCounts?.[stat.type]}
-                teamRank={teamRanks[stat.type]}
+                teamRank={readOnly ? undefined : teamRanks[stat.type]}
                 onUpdate={onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
                 onDelete={onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
               />

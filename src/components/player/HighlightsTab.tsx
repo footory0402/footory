@@ -29,6 +29,10 @@ interface HighlightsTabProps {
   position?: string | null;
   onDeleteClip?: (clipId: string) => Promise<boolean>;
   onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
+  /** 공개 프로필 읽기전용 모드 */
+  readOnly?: boolean;
+  /** readOnly일 때 SSR에서 전달받은 대표 영상 */
+  initialFeatured?: Array<{ clip_id: string; clips?: { video_url: string; thumbnail_url?: string | null } | null }>;
 }
 
 function formatDuration(seconds: number): string {
@@ -44,8 +48,10 @@ export default function HighlightsTab({
   position,
   onDeleteClip,
   onEditTags,
+  readOnly,
+  initialFeatured,
 }: HighlightsTabProps) {
-  const { featured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
+  const { featured: hookFeatured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
@@ -53,8 +59,11 @@ export default function HighlightsTab({
   const [editingClipId, setEditingClipId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (readOnly) return;
     fetchFeatured();
-  }, [fetchFeatured]);
+  }, [fetchFeatured, readOnly]);
+
+  const featured = readOnly ? (initialFeatured ?? []) : hookFeatured;
 
   const handleAdd = useCallback(() => setPickerOpen(true), []);
   const handleSelect = useCallback(async (clipId: string) => {
@@ -132,11 +141,12 @@ export default function HighlightsTab({
             onAdd={handleAdd}
             onRemove={handleRemove}
             onPlay={(idx) => { setPlayingIndex(idx); setPlayingSource("featured"); }}
+            readOnly={readOnly}
           />
         )}
 
-        {/* ── 대표 영상 없을 때 배너 ── */}
-        {featured.length === 0 && hasClips && (
+        {/* ── 대표 영상 없을 때 배너 (편집 모드만) ── */}
+        {!readOnly && featured.length === 0 && hasClips && (
           <button
             onClick={handleAdd}
             className="flex items-center gap-3 rounded-xl border border-accent/20 bg-gradient-to-r from-accent/[0.08] to-transparent px-4 py-3 text-left transition-colors active:bg-accent/10"
@@ -182,7 +192,7 @@ export default function HighlightsTab({
                   onClick={() => setActiveFilter(tag.id)}
                 />
               ))}
-              {untaggedClips.length > 0 && (
+              {!readOnly && untaggedClips.length > 0 && (
                 <FilterChip
                   label="미분류"
                   count={untaggedClips.length}
@@ -202,23 +212,25 @@ export default function HighlightsTab({
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-1.5">
-              {/* "+" 업로드 카드 — 첫 번째 셀 */}
-              <Link
-                href="/upload"
-                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-accent/40 bg-card transition-colors active:bg-accent/10"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                <span className="text-[10px] font-semibold text-accent">영상 추가</span>
-              </Link>
+              {/* "+" 업로드 카드 — 편집 모드만 */}
+              {!readOnly && (
+                <Link
+                  href="/upload"
+                  className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-accent/40 bg-card transition-colors active:bg-accent/10"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  <span className="text-[10px] font-semibold text-accent">영상 추가</span>
+                </Link>
+              )}
 
               {filteredClips.map((clip, i) => (
                 <GridThumb
                   key={clip.id}
                   clip={clip}
                   onPlay={() => { setPlayingIndex(i); setPlayingSource("grid"); }}
-                  onEditTags={onEditTags ? () => setEditingClipId(clip.id) : undefined}
+                  onEditTags={!readOnly && onEditTags ? () => setEditingClipId(clip.id) : undefined}
                 />
               ))}
 
@@ -235,10 +247,14 @@ export default function HighlightsTab({
           {!tagClipsLoading && !hasClips && (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <span className="text-3xl">🎬</span>
-              <p className="text-[13px] font-semibold text-text-1">아직 영상이 없어요</p>
-              <p className="text-[11px] text-text-3 leading-relaxed">
-                첫 영상을 올려 나만의 포트폴리오를<br />시작해보세요
+              <p className="text-[13px] font-semibold text-text-1">
+                {readOnly ? "아직 등록된 영상이 없습니다" : "아직 영상이 없어요"}
               </p>
+              {!readOnly && (
+                <p className="text-[11px] text-text-3 leading-relaxed">
+                  첫 영상을 올려 나만의 포트폴리오를<br />시작해보세요
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -256,8 +272,8 @@ export default function HighlightsTab({
             clips={gridPlayable}
             initialIndex={playingIndex}
             onClose={() => { setPlayingIndex(null); setPlayingSource(null); }}
-            onDelete={onDeleteClip}
-            onEditTags={onEditTags ? (clipId) => {
+            onDelete={readOnly ? undefined : onDeleteClip}
+            onEditTags={!readOnly && onEditTags ? (clipId) => {
               setPlayingIndex(null);
               setPlayingSource(null);
               setEditingClipId(clipId);
@@ -265,8 +281,8 @@ export default function HighlightsTab({
           />
         )}
 
-        {/* Clip Picker */}
-        {pickerOpen && (
+        {/* Clip Picker (편집 모드만) */}
+        {!readOnly && pickerOpen && (
           <ClipPickerSheet
             open={pickerOpen}
             onClose={() => setPickerOpen(false)}
@@ -275,8 +291,8 @@ export default function HighlightsTab({
           />
         )}
 
-        {/* Tag Edit */}
-        {editingClipId && onEditTags && (
+        {/* Tag Edit (편집 모드만) */}
+        {!readOnly && editingClipId && onEditTags && (
           <TagEditSheet
             clipId={editingClipId}
             currentTags={[]}
@@ -297,6 +313,7 @@ function HeroZone({
   onAdd,
   onRemove,
   onPlay,
+  readOnly,
 }: {
   featured: Array<{ clip_id: string; clips?: { video_url: string; thumbnail_url?: string | null; highlight_start?: number | null; highlight_end?: number | null } | null }>;
   maxSlots: number;
@@ -304,6 +321,7 @@ function HeroZone({
   onAdd: () => void;
   onRemove: (clipId: string) => void;
   onPlay: (index: number) => void;
+  readOnly?: boolean;
 }) {
   const slotsToShow = Math.min(featured.length + 1, maxSlots);
   const slots = Array.from({ length: slotsToShow });
@@ -323,7 +341,7 @@ function HeroZone({
           <span className="text-[12px] font-bold text-accent uppercase tracking-wider">Featured</span>
           <span className="text-[10px] text-text-3">{featured.length}/{maxSlots}</span>
         </div>
-        {maxSlots > featured.length && (
+        {!readOnly && maxSlots > featured.length && (
           <button
             onClick={onAdd}
             className="rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-semibold text-accent transition-colors active:bg-accent/20"
@@ -342,11 +360,11 @@ function HeroZone({
               sortOrder={1}
               fullWidth
               onPlay={() => onPlay(0)}
-              onRemove={() => onRemove(featured[0].clip_id)}
+              onRemove={readOnly ? undefined : () => onRemove(featured[0].clip_id)}
             />
-          ) : (
+          ) : !readOnly ? (
             <HeroEmptySlot sortOrder={1} onAdd={onAdd} fullWidth />
-          )}
+          ) : null}
         </div>
       ) : (
         <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none">
@@ -358,11 +376,11 @@ function HeroZone({
                 clip={feat}
                 sortOrder={i + 1}
                 onPlay={() => onPlay(i)}
-                onRemove={() => onRemove(feat.clip_id)}
+                onRemove={readOnly ? undefined : () => onRemove(feat.clip_id)}
               />
-            ) : (
+            ) : !readOnly ? (
               <HeroEmptySlot key={`empty-${i}`} sortOrder={i + 1} onAdd={onAdd} />
-            );
+            ) : null;
           })}
         </div>
       )}
@@ -381,7 +399,7 @@ function HeroSlot({
   sortOrder: number;
   fullWidth?: boolean;
   onPlay: () => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) {
   const thumbnailUrl = clip.clips?.thumbnail_url;
   const hs = clip.clips?.highlight_start;
@@ -436,16 +454,18 @@ function HeroSlot({
         {formatDuration(Math.round(duration))}
       </span>
 
-      {/* 제거 버튼 */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm active:bg-red-500/80"
-        aria-label="대표 영상 해제"
-      >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
+      {/* 제거 버튼 (편집 모드만) */}
+      {onRemove && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm active:bg-red-500/80"
+          aria-label="대표 영상 해제"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

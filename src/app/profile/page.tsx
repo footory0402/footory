@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useStats } from "@/hooks/useStats";
 import { useClips, useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
+import { useAchievements } from "@/hooks/useAchievements";
 import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
 type ProfileTab = "highlight" | "stat";
 
@@ -55,6 +56,7 @@ export default function ProfilePage() {
   const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
+  const { achievements, addAchievement, removeAchievement } = useAchievements({ enabled: shouldLoadData });
 
   useEffect(() => {
     if (!shouldLoadData) return;
@@ -294,6 +296,9 @@ export default function ProfilePage() {
                 onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
                 onDeleteStat={handleDeleteStat}
                 onPlayStyleTest={() => setPlayStyleTestOpen(true)}
+                achievements={achievements}
+                onAddAchievement={addAchievement}
+                onRemoveAchievement={removeAchievement}
               />
             )}
           </div>

@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ProfileCard from "@/components/player/ProfileCard";
 import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
 import SeasonTimeline from "@/components/player/SeasonTimeline";
-import FeaturedSlot from "@/components/player/FeaturedSlot";
-import StatRow from "@/components/player/StatRow";
-import TagAccordion from "@/components/player/TagAccordion";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
 import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
@@ -19,17 +16,16 @@ const AddToWatchlistButton = dynamic(
   { ssr: false }
 );
 
+const InfoTab = dynamic(() => import("@/components/player/InfoTab"), { ssr: false });
+const HighlightsTab = dynamic(() => import("@/components/player/HighlightsTab"), { ssr: false });
 const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
-const StatReportSheet = dynamic(() => import("@/components/stats/StatReportSheet"), { ssr: false });
 const CompareSheet = dynamic(() => import("@/components/player/CompareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { SectionCard } from "@/components/ui/Card";
 import AchievementList from "@/components/portfolio/AchievementList";
-import GrowthTimeline from "@/components/portfolio/GrowthTimeline";
-import PlayStyleCard from "@/components/player/PlayStyleCard";
-import { APP_URL, POSITION_LABELS, SKILL_TAGS, getStatMeta, type RadarStatId, type PlayStyleType, type StyleTraitKey } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS, MEASUREMENTS, type PlayStyleType } from "@/lib/constants";
 import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
-import type { Profile, Stat, Season, Achievement, TimelineEvent, TimelineEventType, PlayStyle } from "@/lib/types";
+import type { Profile, Stat, Season, Achievement, PlayStyle } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
 interface FeaturedClip {
@@ -141,30 +137,59 @@ function mapAchievements(rows: Record<string, unknown>[]): Achievement[] {
   }));
 }
 
-function mapTimelineEvents(rows: Record<string, unknown>[]): TimelineEvent[] {
-  return rows.map((r) => ({
-    id: r.id as string,
-    profileId: r.profile_id as string,
-    eventType: r.event_type as TimelineEventType,
-    eventData: (r.event_data as Record<string, unknown>) ?? {},
-    clipId: (r.clip_id as string) ?? undefined,
-    createdAt: r.created_at as string,
-  }));
+function statMedian(arr: number[]): number {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-// Map DB stat rows (DB uses recorded_at, not measured_at)
-function mapStats(rows: Record<string, unknown>[]): Stat[] {
-  return rows.map((r) => ({
-    id: r.id as string,
-    playerId: r.profile_id as string,
-    type: r.stat_type as string,
-    value: r.value as number,
-    previousValue: r.previous_value as number | undefined,
-    unit: r.unit as string,
-    measuredAt: r.recorded_at as string,
-    evidenceClipId: (r.evidence_clip_id as string) ?? undefined,
-    verified: (r.verified as boolean) ?? false,
-  }));
+// Compute aggregated stats: deduplicate by type, compute PR/first/best/measureCount
+function computeAggregatedStats(rows: Record<string, unknown>[]): Stat[] {
+  if (rows.length === 0) return [];
+  const sorted = [...rows].sort(
+    (a, b) => new Date(b.recorded_at as string).getTime() - new Date(a.recorded_at as string).getTime()
+  );
+  const byType = new Map<string, Record<string, unknown>[]>();
+  for (const row of sorted) {
+    const type = row.stat_type as string;
+    if (!byType.has(type)) byType.set(type, []);
+    byType.get(type)!.push(row);
+  }
+  const VALID_IDS = new Set<string>(MEASUREMENTS.map((m) => m.id));
+  const result: Stat[] = [];
+
+  for (const [type, records] of byType.entries()) {
+    if (!VALID_IDS.has(type)) continue;
+    const latest = records[0];
+    const m = MEASUREMENTS.find((x) => x.id === type);
+    const lowerIsBetter = m?.lowerIsBetter ?? false;
+
+    const allValues = records.map((r) => r.value as number);
+    const bestValue = lowerIsBetter ? Math.min(...allValues) : Math.max(...allValues);
+    const recent3 = records.slice(0, 3).map((r) => r.value as number);
+    const representativeValue = recent3.length >= 3 ? statMedian(recent3) : (latest.value as number);
+    const previous = records.length > 1 ? records[1] : null;
+    const oldest = records[records.length - 1];
+
+    result.push({
+      id: latest.id as string,
+      playerId: latest.profile_id as string,
+      type,
+      value: representativeValue,
+      previousValue: previous ? (previous.value as number) : undefined,
+      unit: latest.unit as string,
+      measuredAt: latest.recorded_at as string,
+      evidenceClipId: (latest.evidence_clip_id as string) ?? undefined,
+      verified: (latest.verified as boolean) ?? false,
+      bestValue,
+      isPR: (latest.value as number) === bestValue && records.length > 1,
+      firstValue: oldest.value as number,
+      firstMeasuredAt: oldest.recorded_at as string,
+      measureCount: records.length,
+    });
+  }
+
+  return result;
 }
 
 // Map DB season rows (DB has year, team_name, league, highlight_clip_id only)
@@ -178,21 +203,6 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
   }));
 }
 
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${
-        active
-          ? "bg-accent text-bg"
-          : "bg-card text-text-3 active:bg-card-alt"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
 function footLabel(foot: string): string {
   if (foot === "right") return "오른발";
   if (foot === "left") return "왼발";
@@ -204,29 +214,66 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProfileTab>("highlights");
   const [shareOpen, setShareOpen] = useState(false);
-  const [filter, setFilter] = useState<string | null>(null);
   const [dmModalOpen, setDmModalOpen] = useState(false);
   const [dmMsg, setDmMsg] = useState("");
   const [dmSending, setDmSending] = useState(false);
-  const [reportTarget, setReportTarget] = useState<{ statId: string; profileId: string } | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
 
   const profile = toProfile(data);
-  const stats = mapStats(data.stats);
+  const stats = useMemo(() => computeAggregatedStats(data.stats), [data.stats]);
   const seasons = mapSeasons(data.seasons);
   const achievements = mapAchievements(data.achievements ?? []);
-  const timelineEvents = mapTimelineEvents(data.timelineEvents ?? []);
-  const featured = data.featured;
   const tagClips = data.tagClips ?? {};
 
-  // Compute target radar stats for comparison
+  // Percentile data for InfoTab
+  const [percentiles, setPercentiles] = useState<Record<string, number>>({});
+  const [ageAvgs, setAgeAvgs] = useState<Record<string, number>>({});
+  const [peerCounts, setPeerCounts] = useState<Record<string, number>>({});
+  const [ageGroup, setAgeGroup] = useState<string>("");
+
+  useEffect(() => {
+    if (stats.length === 0) return;
+    fetch(`/api/stats/percentile?profileId=${data.id}`)
+      .then((r) => (r.ok ? r.json() : { percentiles: {}, ageAvgs: {}, peerCounts: {}, ageGroup: "" }))
+      .then((d) => {
+        setPercentiles(d.percentiles ?? {});
+        setAgeAvgs(d.ageAvgs ?? {});
+        setPeerCounts(d.peerCounts ?? {});
+        setAgeGroup(d.ageGroup ?? "");
+      })
+      .catch(() => {});
+  }, [data.id, stats.length]);
+
+  // Map play style from SSR data to PlayStyle type
+  const mappedPlayStyle: PlayStyle | null = useMemo(() => {
+    if (!data.playStyle) return null;
+    return {
+      id: data.playStyle.id as string,
+      profileId: data.playStyle.profile_id as string,
+      styleType: data.playStyle.style_type as PlayStyleType,
+      traitBreakthrough: data.playStyle.trait_breakthrough as number,
+      traitCreativity: data.playStyle.trait_creativity as number,
+      traitFinishing: data.playStyle.trait_finishing as number,
+      traitTenacity: data.playStyle.trait_tenacity as number,
+      createdAt: data.playStyle.created_at as string,
+      updatedAt: data.playStyle.updated_at as string,
+    };
+  }, [data.playStyle]);
+
+  // clipTagCounts for radar and InfoTab
+  const clipTagCounts: ClipTagCount[] = useMemo(() => {
+    return Object.entries(tagClips)
+      .map(([, clips]) => {
+        const tagName = clips[0]?.tag ?? "";
+        return { tagName, count: clips.length };
+      })
+      .filter((t) => t.tagName);
+  }, [tagClips]);
+
+  // Compute radar stats with percentiles
   const targetRadarStats = useMemo(() => {
-    const clipTagCounts: ClipTagCount[] = Object.entries(tagClips).map(([, clips]) => {
-      const tagName = clips[0]?.tag ?? "";
-      return { tagName, count: clips.length };
-    }).filter((t) => t.tagName);
-    return calcRadarStats(stats, clipTagCounts);
-  }, [stats, tagClips]);
+    return calcRadarStats(stats, clipTagCounts, percentiles);
+  }, [stats, clipTagCounts, percentiles]);
 
   const shareUrl = typeof window !== "undefined"
     ? window.location.href
@@ -245,11 +292,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     if (window.history.length > 1) router.back();
     else router.push("/");
   }, [router]);
-
-  const tagsWithClips = SKILL_TAGS.filter((t) => (tagClips[t.id]?.length ?? 0) > 0);
-  const tagsToShow = filter
-    ? SKILL_TAGS.filter((t) => t.id === filter)
-    : SKILL_TAGS;
 
   const hasPhysical = profile.heightCm || profile.weightKg || profile.preferredFoot;
 
@@ -404,82 +446,28 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       {/* Tab content */}
       <div className="mt-5">
         {activeTab === "highlights" && (
-          <div className="flex flex-col gap-5">
-            {/* Featured Highlights (read-only) */}
-            {featured.length > 0 && (
-              <SectionCard title="대표 하이라이트" icon="⭐">
-                <div className="grid grid-cols-2 gap-2">
-                  {featured.map((feat, i) => (
-                    <div key={feat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                      <FeaturedSlot
-                        clipId={feat.clip_id}
-                        thumbnailUrl={feat.clips?.thumbnail_url}
-                        durationSeconds={feat.clips?.duration_seconds ?? undefined}
-                        sortOrder={i + 1}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            )}
-
-            {/* Filter bar */}
-            {tagsWithClips.length > 0 && (
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-                <FilterChip label="전체" active={filter === null} onClick={() => setFilter(null)} />
-                {tagsWithClips.map((tag) => (
-                  <FilterChip
-                    key={tag.id}
-                    label={`${tag.emoji} ${tag.label}`}
-                    active={filter === tag.id}
-                    onClick={() => setFilter(filter === tag.id ? null : tag.id)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Tag accordions */}
-            {tagsToShow.map((tag, i) => {
-              const clips = tagClips[tag.id];
-              if (!clips || clips.length === 0) return null;
-              return (
-                <div key={tag.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                  <TagAccordion
-                    emoji={tag.emoji}
-                    label={tag.label}
-                    clips={clips}
-                  />
-                </div>
-              );
-            })}
-
-            {/* Empty state */}
-            {featured.length === 0 && tagsWithClips.length === 0 && (
-              <div className="py-12 text-center text-[13px] text-text-3">
-                아직 등록된 영상이 없습니다
-              </div>
-            )}
-          </div>
+          <HighlightsTab
+            readOnly
+            tagClips={tagClips}
+            initialFeatured={data.featured}
+            position={profile.position}
+          />
         )}
 
         {activeTab === "records" && (
           <div className="flex flex-col gap-5">
-            {/* Play Style */}
-            {data.playStyle ? (
-              <PlayStyleCard
-                styleType={data.playStyle.style_type as PlayStyleType}
-                traits={{
-                  breakthrough: data.playStyle.trait_breakthrough as number,
-                  creativity: data.playStyle.trait_creativity as number,
-                  finishing: data.playStyle.trait_finishing as number,
-                  tenacity: data.playStyle.trait_tenacity as number,
-                }}
-              />
-            ) : (
-              <div className="rounded-2xl border border-white/[0.06] bg-card py-6 text-center">
-                <p className="text-[12px] text-text-3">아직 플레이 스타일을 테스트하지 않았어요</p>
-              </div>
-            )}
+            <InfoTab
+              readOnly
+              stats={stats}
+              percentiles={percentiles}
+              ageAvgs={ageAvgs}
+              peerCounts={peerCounts}
+              ageGroup={ageGroup}
+              radarStats={targetRadarStats}
+              clipTagCounts={clipTagCounts}
+              playStyle={mappedPlayStyle}
+              achievements={achievements}
+            />
 
             {/* Physical */}
             {hasPhysical && (
@@ -507,71 +495,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
               </div>
             )}
 
-            {/* Stats (성장 기록) */}
-            <div>
-              <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-text-3">성장 기록</h3>
-              {stats.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {stats.map((stat, i) => {
-                    const m = getStatMeta(stat.type);
-                    return (
-                      <div key={stat.id} className="animate-fade-up" style={{ animationDelay: `${i * 0.04}s` }}>
-                        <StatRow
-                          icon={m.icon}
-                          label={m.label}
-                          value={stat.value}
-                          unit={stat.unit}
-                          type={stat.type}
-                          previousValue={stat.previousValue}
-                          verified={stat.verified}
-                          lowerIsBetter={"lowerIsBetter" in m ? m.lowerIsBetter : undefined}
-                          statId={!data.isOwnProfile ? stat.id : undefined}
-                          profileId={!data.isOwnProfile ? profile.id : undefined}
-                          onReport={!data.isOwnProfile ? (sid, pid) => setReportTarget({ statId: sid, profileId: pid }) : undefined}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/[0.06] bg-card py-8 text-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.05]">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
-                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                      <polyline points="17 6 23 6 23 12" />
-                    </svg>
-                  </div>
-                  <p className="text-[12px] text-text-3">아직 등록된 측정 기록이 없어요</p>
-                  {data.isOwnProfile && (
-                    <button
-                      onClick={() => router.push("/profile?tab=records")}
-                      className="mt-1 rounded-full bg-accent/10 px-4 py-1.5 text-[11px] font-bold text-accent active:scale-95"
-                    >
-                      측정 기록 추가
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Season records */}
             {seasons.length > 0 && (
               <SectionCard title="시즌 기록" icon="📅">
                 <SeasonTimeline seasons={seasons} />
               </SectionCard>
-            )}
-            {achievements.length > 0 && (
-              <AchievementList achievements={achievements} />
-            )}
-            {timelineEvents.length > 0 && (
-              <SectionCard title="성장 타임라인" icon="📈">
-                <GrowthTimeline events={timelineEvents} />
-              </SectionCard>
-            )}
-            {!hasPhysical && stats.length === 0 && seasons.length === 0 && achievements.length === 0 && timelineEvents.length === 0 && !data.playStyle && (
-              <div className="py-12 text-center text-[13px] text-text-3">
-                아직 등록된 기록이 없습니다
-              </div>
             )}
           </div>
         )}
@@ -586,16 +514,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         title={`${profile.name} — Footory`}
         text={`${profile.name}${profile.position ? ` | ${POSITION_LABELS[profile.position] ?? profile.position}` : ""} | Footory 선수 프로필`}
       />
-
-      {/* 기록 신고 시트 */}
-      {reportTarget && (
-        <StatReportSheet
-          open={!!reportTarget}
-          statId={reportTarget.statId}
-          reportedId={reportTarget.profileId}
-          onClose={() => setReportTarget(null)}
-        />
-      )}
 
       {/* 비교 시트 */}
       {compareOpen && (

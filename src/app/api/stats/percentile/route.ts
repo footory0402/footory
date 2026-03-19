@@ -1,18 +1,30 @@
-import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth-guard";
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { MEASUREMENTS, MEASUREMENT_BENCHMARKS, getAgeGroup } from "@/lib/constants";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth();
-    if (auth instanceof NextResponse) return auth;
-    const { user, supabase } = auth;
+    const targetProfileId = request.nextUrl.searchParams.get("profileId");
+    const supabase = await createClient();
 
-    // 내 프로필에서 birth_year 조회
+    let profileId: string;
+    if (targetProfileId) {
+      // 공개 프로필 — 인증 불필요
+      profileId = targetProfileId;
+    } else {
+      // 내 프로필 — 인증 필요
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      profileId = user.id;
+    }
+
+    // 프로필에서 birth_year 조회
     const { data: myProfile } = await supabase
       .from("profiles")
       .select("birth_year")
-      .eq("id", user.id)
+      .eq("id", profileId)
       .single();
 
     const ageGroup = getAgeGroup(myProfile?.birth_year ?? null);
@@ -21,7 +33,7 @@ export async function GET() {
     const { data: myStats } = await supabase
       .from("stats")
       .select("stat_type, value")
-      .eq("profile_id", user.id)
+      .eq("profile_id", profileId)
       .order("recorded_at", { ascending: false });
 
     if (!myStats || myStats.length === 0) {
