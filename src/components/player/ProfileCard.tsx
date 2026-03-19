@@ -398,46 +398,6 @@ function ProfileCard({
           </div>
         )}
 
-        {/* ── 소셜 스탯 ── */}
-        <div
-          className="mx-4 mb-1 mt-0 h-px"
-          style={{ background: "rgba(255,255,255,0.04)" }}
-        />
-        <div className="flex items-center px-2 pb-3.5">
-          <Link
-            href="/profile/follows?tab=followers"
-            className="flex flex-1 flex-col items-center gap-0.5 transition-opacity hover:opacity-70"
-          >
-            <span className="font-stat text-[16px] font-bold leading-none text-[#FAFAFA]">
-              {profile.followers}
-            </span>
-            <span className="text-[10px]" style={{ color: "#71717A" }}>
-              팔로워
-            </span>
-          </Link>
-          <div className="h-6 w-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-          <Link
-            href="/profile/follows?tab=following"
-            className="flex flex-1 flex-col items-center gap-0.5 transition-opacity hover:opacity-70"
-          >
-            <span className="font-stat text-[16px] font-bold leading-none text-[#FAFAFA]">
-              {profile.following}
-            </span>
-            <span className="text-[10px]" style={{ color: "#71717A" }}>
-              팔로잉
-            </span>
-          </Link>
-          <div className="h-6 w-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-          <div className="flex flex-1 flex-col items-center gap-0.5">
-            <span className="font-stat text-[16px] font-bold leading-none" style={{ color: "#D4A853" }}>
-              {profile.views}
-            </span>
-            <span className="text-[10px]" style={{ color: "#71717A" }}>
-              조회
-            </span>
-          </div>
-        </div>
-
         {/* ── 프로필 완성도 안내 ── */}
         {missingItems.length > 0 && (
           <div className="px-4 pb-4">
