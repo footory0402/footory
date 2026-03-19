@@ -1,5 +1,5 @@
 const CACHE_NAME = "footory-v5";
-const NAV_CACHE = "footory-nav-v2";
+const NAV_CACHE = "footory-nav-v3";
 
 // App shell: 오프라인에서도 빠르게 로드할 핵심 자원
 const APP_SHELL = [
@@ -53,8 +53,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ── 네비게이션: Stale-While-Revalidate (PWA 즉시 로드 핵심) ──
+  // ── 네비게이션: PWA cold start 시 홈으로 리다이렉트 ──
   if (request.mode === "navigate") {
+    // PWA standalone에서 앱을 새로 열면 마지막 URL을 복원하는데,
+    // Referer가 없으면 cold start(앱 새로 열림)로 판단하여 홈으로 보냄
+    if (
+      url.pathname !== "/" &&
+      !request.referrer &&
+      !url.searchParams.has("nav")
+    ) {
+      event.respondWith(Response.redirect("/", 302));
+      return;
+    }
     // 1) 백그라운드 네트워크 fetch 시작 (preload 있으면 사용)
     const networkFetch = (event.preloadResponse || Promise.resolve(null))
       .then((preloaded) => preloaded || fetch(request))
