@@ -94,6 +94,7 @@ export interface Team {
   createdBy: string;
   createdAt: string;
   myRole?: "admin" | "member" | "alumni" | null;
+  lastActivity?: string;
 }
 
 export interface TeamMember {

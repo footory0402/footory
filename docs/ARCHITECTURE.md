@@ -125,7 +125,7 @@ CREATE TABLE featured_clips (
 CREATE TABLE stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  stat_type TEXT NOT NULL,           -- '30m_sprint', 'juggling', '1000m_run' 등
+  stat_type TEXT NOT NULL,           -- 'sprint_50m', 'juggling', 'kick_power', 'run_1000m', 'push_ups', 'sargent_jump'
   value DECIMAL NOT NULL,            -- 수치값
   unit TEXT NOT NULL,                -- 's', '회', 'm' 등
   evidence_clip_id UUID REFERENCES clips(id),
@@ -158,15 +158,25 @@ CREATE TABLE medal_criteria (
   label TEXT NOT NULL
 );
 
+-- 현재 유효 종목 (6개)
+-- sprint_50m (50m 달리기, 초, lowerIsBetter)
+-- juggling (리프팅, 회)
+-- kick_power (슈팅 속도, km/h)
+-- run_1000m (1000m 달리기, 분:초, lowerIsBetter)
+-- push_ups (팔굽혀펴기, 회)
+-- sargent_jump (서전트 점프, cm)
+--
+-- 제거된 종목: 30m_sprint, shooting_accuracy, shuttle_run, standing_jump, sit_ups, flexibility
+
 -- 초기 메달 기준 데이터
 INSERT INTO medal_criteria (code, stat_type, threshold, comparison, icon, label) VALUES
-  ('sprint_5.0', '30m_sprint', 5.0, 'lte', '⚡', '5.0s'),
-  ('sprint_4.5', '30m_sprint', 4.5, 'lte', '⚡⚡', '4.5s'),
+  ('sprint_7.0', 'sprint_50m', 7.0, 'lte', '⚡', '7.0s'),
+  ('sprint_6.5', 'sprint_50m', 6.5, 'lte', '⚡⚡', '6.5s'),
   ('juggling_100', 'juggling', 100, 'gte', '🔥', '100+'),
   ('juggling_300', 'juggling', 300, 'gte', '🔥🔥', '300+'),
   ('juggling_500', 'juggling', 500, 'gte', '🔥🔥🔥', '500+'),
-  ('shooting_10', 'shooting_accuracy', 10, 'gte', '🎯', '10+'),
-  ('run_4_30', '1000m_run', 270, 'lte', '🏃', '4:30');
+  ('kick_80', 'kick_power', 80, 'gte', '🦵', '80km/h+'),
+  ('run_4_30', 'run_1000m', 270, 'lte', '🏃', '4:30');
 ```
 
 ### 2.4 팀

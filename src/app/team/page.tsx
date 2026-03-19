@@ -8,6 +8,7 @@ import Avatar from "@/components/ui/Avatar";
 import AlumniLabel from "@/components/team/AlumniLabel";
 import CreateTeamSheet from "@/components/team/CreateTeamSheet";
 import JoinTeamSheet from "@/components/team/JoinTeamSheet";
+import { timeAgo } from "@/lib/utils";
 
 export default function TeamPage() {
   const { teams, loading, refetch } = useMyTeams();
@@ -20,17 +21,17 @@ export default function TeamPage() {
     return (
       <div className="px-4 pt-4">
         <div className="flex flex-col items-center pt-16 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl mb-4">🏟</div>
-          <p className="text-lg font-bold text-text-1">팀 기능 준비 중</p>
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card text-4xl mb-4">🔍</div>
+          <p className="text-lg font-bold text-text-1">탐색에서 팀을 확인하세요</p>
           <p className="mt-2 text-sm text-text-3 leading-relaxed">
-            탐색에서 팀 랭킹을 확인해보세요
+            팀 랭킹과 선수 정보를<br />탐색 탭에서 한눈에 볼 수 있어요
           </p>
           <div className="mt-6 flex flex-col gap-3 w-full max-w-[280px]">
             <Link
               href="/discover"
               className="rounded-full bg-accent py-3 text-sm font-semibold text-bg text-center"
             >
-              팀 랭킹 보기
+              팀 랭킹 보러가기
             </Link>
           </div>
         </div>
@@ -82,19 +83,6 @@ export default function TeamPage() {
             </button>
           </div>
 
-          {/* Recommended teams placeholder */}
-          <div className="mt-12 w-full">
-            <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-base font-semibold text-text-2">추천 팀</h2>
-            </div>
-            <div className="card-elevated flex flex-col items-center px-4 py-8 opacity-60">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3/60">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
-              </svg>
-              <p className="mt-2 text-[13px] text-text-3">주변 팀이 준비 중이에요</p>
-            </div>
-          </div>
         </div>
       ) : (
         /* Team list — current / previous separation */
@@ -145,15 +133,6 @@ export default function TeamPage() {
             </div>
           )}
 
-          {/* Placeholder sections */}
-          <div className="mt-2 card-elevated px-4 py-5 opacity-60">
-            <p className="text-xs font-semibold text-text-2 mb-2">곧 추가될 기능</p>
-            <div className="space-y-1.5 text-xs text-text-3">
-              <p>📢 경기가 끝나면 팀 활동이 여기에 표시돼요</p>
-              <p>⚽ 시즌이 시작되면 최근 경기를 볼 수 있어요</p>
-              <p>📊 팀 통계 기능이 곧 추가됩니다</p>
-            </div>
-          </div>
         </>
       )}
 
@@ -166,11 +145,9 @@ export default function TeamPage() {
 function TeamCard({
   team,
   isAlumni,
-  lastActivity,
 }: {
   team: ReturnType<typeof useMyTeams>["teams"][number];
   isAlumni?: boolean;
-  lastActivity?: string;
 }) {
   return (
     <Link
@@ -206,8 +183,8 @@ function TeamCard({
             </>
           )}
         </div>
-        {lastActivity && (
-          <p className="mt-1 text-xs text-text-3">최근 활동: {lastActivity}</p>
+        {team.lastActivity && (
+          <p className="mt-1 text-[11px] text-text-3">최근 활동 {timeAgo(team.lastActivity)}</p>
         )}
       </div>
       <svg className="h-4 w-4 text-text-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

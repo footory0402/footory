@@ -26,6 +26,26 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const teamIds = (memberships ?? []).map((m) => m.team_id);
+
+    // Fetch latest member join time per team as last activity (single query)
+    const lastActivityMap: Record<string, string> = {};
+    if (teamIds.length > 0) {
+      const { data: allMembers } = await supabase
+        .from("team_members")
+        .select("team_id, joined_at")
+        .in("team_id", teamIds)
+        .order("joined_at", { ascending: false });
+
+      if (allMembers) {
+        for (const m of allMembers) {
+          if (!lastActivityMap[m.team_id]) {
+            lastActivityMap[m.team_id] = m.joined_at;
+          }
+        }
+      }
+    }
+
     const teams = (memberships ?? []).map((m) => {
       const team = m.teams as unknown as Record<string, unknown> & { team_members?: { count: number }[] };
       const { team_members: members, ...rest } = team;
@@ -33,6 +53,7 @@ export async function GET() {
         ...rest,
         memberCount: members?.[0]?.count ?? 0,
         myRole: m.role,
+        last_activity: lastActivityMap[m.team_id] ?? null,
       };
     });
 

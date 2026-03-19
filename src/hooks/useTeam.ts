@@ -20,6 +20,7 @@ interface TeamApiResponse {
   created_at: string;
   memberCount: number;
   myRole: "admin" | "member" | "alumni" | null;
+  last_activity: string | null;
 }
 
 function toTeam(data: TeamApiResponse): Team {
@@ -36,6 +37,7 @@ function toTeam(data: TeamApiResponse): Team {
     createdBy: data.created_by ?? "",
     createdAt: data.created_at,
     myRole: data.myRole,
+    lastActivity: data.last_activity ?? undefined,
   };
 }
 

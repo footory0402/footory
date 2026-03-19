@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
+import { MEASUREMENTS } from "@/lib/constants";
+
+const VALID_STAT_TYPES = MEASUREMENTS.map((m) => m.id);
 
 export async function GET(
   _req: NextRequest,
@@ -23,11 +26,12 @@ export async function GET(
 
     const memberIds = members.map((m) => m.profile_id);
 
-    // Fetch all stats for team members
+    // Fetch stats for team members (valid types only)
     const { data: allStats } = await supabase
       .from("stats")
       .select("*")
       .in("profile_id", memberIds)
+      .in("stat_type", VALID_STAT_TYPES)
       .order("recorded_at", { ascending: false });
 
     // Fetch profiles for members

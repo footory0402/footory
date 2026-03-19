@@ -43,18 +43,12 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
   if (loading) {
     return (
       <div className="space-y-5 animate-pulse">
-        <div className="flex gap-3 overflow-hidden">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="card-elevated shrink-0 w-[150px] p-4 h-[100px]" />
+        <div className="grid grid-cols-2 gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-2xl bg-card h-[100px]" />
           ))}
         </div>
-        <div className="card-elevated overflow-hidden">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="px-4 py-3.5">
-              <div className="h-4 w-full rounded bg-card-alt" />
-            </div>
-          ))}
-        </div>
+        <div className="rounded-2xl bg-card h-[200px]" />
       </div>
     );
   }
@@ -78,42 +72,58 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
 
   return (
     <div className="space-y-6 pb-4">
-      {/* 팀 평균 스탯 — 수평 스크롤 카드 */}
+      {/* 팀 평균 스탯 — GrowthCard 스타일 2열 그리드 */}
       {avgStats.length > 0 && (
         <section>
-          <h3 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-text-2">
-            <span className="text-base">📊</span>
-            팀 평균
-          </h3>
-          <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+          <SectionHeader icon="📊" title="팀 평균" count={avgStats.length} />
+          <div className="grid grid-cols-2 gap-2">
             {avgStats.map((stat, idx) => {
               const meta = getStatMeta(stat.statType);
               const displayUnit = normalizeStatUnit(stat.statType, meta.unit);
-              const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
+              const isTime = isTimeStatUnit(displayUnit);
               return (
                 <div
                   key={stat.statType}
-                  className="card-elevated shrink-0 w-[150px] p-4 animate-fade-up"
-                  style={{ animationDelay: `${idx * 80}ms` }}
+                  className="overflow-hidden rounded-2xl bg-card animate-fade-up"
+                  style={{
+                    border: "1px solid var(--white-06)",
+                    boxShadow: "inset 3px 0 0 var(--white-08)",
+                    animationDelay: `${idx * 60}ms`,
+                  }}
                 >
-                  <div className="flex items-center gap-1.5 mb-2.5">
-                    <span className="text-sm">{meta.icon}</span>
-                    <span className="text-[11px] font-medium text-text-3">{meta.label}</span>
+                  <div className="p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-text-3 truncate">
+                        {meta.label}
+                      </p>
+                      <span
+                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                        style={{ background: "rgba(212,168,83,0.08)", color: "var(--color-accent)" }}
+                      >
+                        {stat.count}명
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span
+                        className="font-stat leading-none tabular-nums"
+                        style={{ fontSize: 24, fontWeight: 800, color: "var(--color-text-1)", letterSpacing: "-0.5px" }}
+                      >
+                        {formatStatValue(stat.avg, stat.statType, meta.unit)}
+                      </span>
+                      {!isTime && displayUnit && (
+                        <span className="text-[11px] text-text-3 font-medium">{displayUnit}</span>
+                      )}
+                    </div>
+                    {/* 기록왕 인라인 */}
+                    <div className="mt-2 flex items-center gap-1">
+                      <span className="text-[10px]">👑</span>
+                      <span className="text-[10px] font-semibold text-accent">{stat.best.name}</span>
+                      <span className="font-stat text-[10px] font-bold text-text-2 tabular-nums ml-auto">
+                        {formatStatValue(stat.best.value, stat.statType, meta.unit)}
+                        {!isTime && displayUnit}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-stat text-[22px] font-bold text-text-1 leading-none" style={{ fontVariantNumeric: "tabular-nums" }}>
-                      {formatStatValue(stat.avg, stat.statType, meta.unit)}
-                    </span>
-                    {showUnit && <span className="text-[10px] text-text-3">{displayUnit}</span>}
-                  </div>
-                  <p className="mt-2 text-[10px] text-text-3">
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium"
-                      style={{ background: "rgba(212,168,83,0.08)", color: "var(--color-accent)" }}
-                    >
-                      {stat.count}명 측정
-                    </span>
-                  </p>
                 </div>
               );
             })}
@@ -121,65 +131,22 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
         </section>
       )}
 
-      {/* 팀 내 기록왕 */}
-      {avgStats.length > 0 && avgStats.some((s) => s.best) && (
-        <section>
-          <h3 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-text-2">
-            <span className="text-base">🏅</span>
-            기록왕
-          </h3>
-          <div className="card-elevated divide-y divide-white/[0.06] overflow-hidden">
-            {avgStats
-              .filter((s) => s.best)
-              .map((stat) => {
-                const meta = getStatMeta(stat.statType);
-                const displayUnit = normalizeStatUnit(stat.statType, meta.unit);
-                const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
-                return (
-                  <div key={stat.statType} className="flex items-center justify-between px-4 py-3.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-sm">{meta.icon}</span>
-                      <span className="text-[12px] font-medium text-text-2">{meta.label}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[12px] font-semibold text-text-1">
-                        {stat.best.name}
-                      </span>
-                      <span
-                        className="inline-flex items-baseline gap-0.5 rounded-full px-2 py-0.5 font-stat text-[13px] font-bold"
-                        style={{ background: "rgba(212,168,83,0.12)", color: "var(--color-accent)", fontVariantNumeric: "tabular-nums" }}
-                      >
-                        {formatStatValue(stat.best.value, stat.statType, meta.unit)}
-                        {showUnit && displayUnit}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </section>
-      )}
-
-      {/* 팀원 최근 기록 */}
+      {/* 최근 기록 — 성장 추이 스타일 */}
       {recentRecords.length > 0 && (
         <section>
-          <h3 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-text-2">
-            <span className="text-base">📋</span>
-            최근 기록
-          </h3>
-          <div className="space-y-2">
+          <SectionHeader icon="📋" title="최근 기록" />
+          <div className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden divide-y divide-white/[0.05]">
             {recentRecords.map((record, i) => {
               const meta = getStatMeta(record.statType);
               const displayUnit = normalizeStatUnit(record.statType, record.unit || meta.unit);
-              const showUnit = displayUnit.length > 0 && !isTimeStatUnit(displayUnit);
-              const date = new Date(record.recordedAt);
-              const ago = getRelativeTime(date);
+              const isTime = isTimeStatUnit(displayUnit);
+              const ago = getRelativeTime(new Date(record.recordedAt));
 
               return (
                 <div
                   key={`${record.profileId}-${record.statType}-${i}`}
-                  className="card-elevated flex items-center gap-3 p-3 animate-fade-up"
-                  style={{ animationDelay: `${i * 50}ms` }}
+                  className="flex items-center gap-3 px-4 py-3 animate-fade-up"
+                  style={{ animationDelay: `${i * 40}ms` }}
                 >
                   <Avatar name={record.name} imageUrl={record.avatarUrl} size="sm" />
                   <div className="flex-1 min-w-0">
@@ -187,24 +154,49 @@ export default function TeamRecordsTab({ teamId }: { teamId: string }) {
                       <span className="text-[12px] font-semibold text-text-1 truncate">{record.name}</span>
                       <span className="text-[10px] text-text-3 shrink-0">{ago}</span>
                     </div>
-                    <p className="mt-0.5 flex items-center gap-1 text-[11px] text-text-3">
-                      <span>{meta.icon}</span>
-                      <span>{meta.label}</span>
-                      <span
-                        className="font-stat font-bold"
-                        style={{ color: "var(--color-accent)", fontVariantNumeric: "tabular-nums" }}
-                      >
-                        {formatStatValue(record.value, record.statType, record.unit || meta.unit)}
-                        {showUnit && displayUnit}
-                      </span>
-                    </p>
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <span className="text-[11px]">{meta.icon}</span>
+                      <span className="text-[11px] text-text-3">{meta.label}</span>
+                    </div>
                   </div>
+                  <span
+                    className="inline-flex items-baseline gap-0.5 rounded-full px-2.5 py-1 font-stat text-[14px] font-bold tabular-nums"
+                    style={{
+                      background: "rgba(212,168,83,0.10)",
+                      color: "var(--color-accent)",
+                    }}
+                  >
+                    {formatStatValue(record.value, record.statType, record.unit || meta.unit)}
+                    {!isTime && displayUnit && (
+                      <span className="text-[10px] font-medium">{displayUnit}</span>
+                    )}
+                  </span>
                 </div>
               );
             })}
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+/* ── 섹션 헤더 (InfoTab 패턴과 동일) ── */
+function SectionHeader({ icon, title, count }: { icon: string; title: string; count?: number }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-[3px] rounded-full bg-accent shrink-0" />
+        <span className="flex items-center gap-1.5">
+          <span className="text-sm">{icon}</span>
+          <span className="text-[14px] font-bold text-text-1">{title}</span>
+        </span>
+        {count != null && count > 0 && (
+          <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+            {count}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
