@@ -10,7 +10,6 @@ import UploadComplete from "@/components/upload/UploadComplete";
 import ChildSelector from "@/components/upload/ChildSelector";
 import VideoTrimmer from "@/components/video/VideoTrimmer";
 import SpotlightPicker from "@/components/video/SpotlightPicker";
-import RenderProgress from "@/components/video/RenderProgress";
 import SkillLabelPicker from "@/components/video/SkillLabelPicker";
 import EffectsToggle from "@/components/video/EffectsToggle";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -56,9 +55,10 @@ export default function UploadPage() {
     }
   }, [canUpload, isParent, challengeTag]);
 
-  // Reset on unmount
+  // Reset only when re-entering after a completed upload
   useEffect(() => {
-    return () => useUploadStore.getState().reset();
+    const s = useUploadStore.getState();
+    if (s.status === "done") s.reset();
   }, []);
 
   const step = store.step;
@@ -91,17 +91,9 @@ export default function UploadPage() {
 
   const handleUpload = useCallback(() => {
     startRenderUpload();
-  }, []);
+    router.replace("/profile");
+  }, [router]);
 
-  const handleRenderComplete = useCallback((_outputKey: string) => {
-    useUploadStore.getState().setStatus("done");
-  }, []);
-
-  const handleRenderError = useCallback((error: string) => {
-    const s = useUploadStore.getState();
-    s.setError(error);
-    s.setStatus("error");
-  }, []);
 
   const handleStepTap = useCallback(
     (targetStep: number) => {
@@ -153,59 +145,21 @@ export default function UploadPage() {
     return <UploadComplete />;
   }
 
-  // 렌더링 중
-  if (store.status === "rendering") {
-    return (
-      <RenderProgress
-        jobId={store.renderJobId}
-        onComplete={handleRenderComplete}
-        onError={handleRenderError}
-        onRetry={() => {
-          store.setStatus("idle");
-          store.setError(null);
-          store.setProgress(0);
-          store.setRenderJobId(null);
-          startRenderUpload();
-        }}
-        onBackToEdit={() => {
-          store.setStatus("idle");
-          store.setError(null);
-          store.setProgress(0);
-          store.setRenderJobId(null);
-        }}
-      />
-    );
-  }
-
-  // 업로드 중
+  // 업로드/렌더 진행 중에 /upload 재진입 시 — 간결한 메시지만 표시
+  // (실제 progress는 GlobalUploadIndicator 플로팅바에서 표시)
   if (
-    store.status === "uploading_raw" ||
-    store.status === "uploading" ||
-    store.status === "thumbnail" ||
-    store.status === "saving"
+    ["uploading_raw", "uploading", "thumbnail", "saving", "creating_job", "rendering"].includes(store.status)
   ) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/90 backdrop-blur-sm">
-        <div className="flex w-72 flex-col items-center gap-5 rounded-2xl border border-white/[0.06] bg-card p-8">
+      <div className="flex min-h-[60vh] items-center justify-center px-6 text-center">
+        <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-3 border-white/10 border-t-accent" />
           <p className="text-[15px] font-semibold text-text-1">
-            {store.status === "uploading_raw" || store.status === "uploading"
-              ? "영상 업로드 중..."
-              : store.status === "thumbnail"
-                ? "대표 이미지 만드는 중..."
-                : "저장 중..."}
+            영상을 처리하고 있어요
           </p>
-          <div className="w-full">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-              <div
-                className="h-full rounded-full bg-accent transition-all duration-300"
-                style={{ width: `${store.progress}%` }}
-              />
-            </div>
-            <p className="mt-2 text-center text-[12px] text-text-3">
-              {store.progress}%
-            </p>
-          </div>
+          <p className="text-[12px] text-text-3">
+            다른 페이지를 둘러봐도 괜찮아요
+          </p>
         </div>
       </div>
     );

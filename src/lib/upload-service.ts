@@ -6,9 +6,9 @@ import { useUploadStore } from "@/stores/upload-store";
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel payload 제한)
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
 const MAX_DIRECT_RETRIES = 3; // presigned URL 최대 재시도 횟수
-const MULTIPART_THRESHOLD = 10 * 1024 * 1024; // 10MB 이상이면 multipart
-const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk (R2 최소 5MB)
-const CONCURRENT_PARTS = 3; // 동시 업로드 파트 수
+const MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB 이상이면 multipart (병렬 + 정확한 progress)
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk (작은 청크 = 빠른 progress 갱신)
+const CONCURRENT_PARTS = 4; // 동시 업로드 파트 수
 
 /** 파일 크기 기반 동적 타임아웃 (50KB/s 기준, 최소 3분) */
 function calcUploadTimeout(fileSize: number): number {
@@ -203,9 +203,9 @@ function xhrUploadPart(
       if (stallTimer) { clearInterval(stallTimer); stallTimer = null; }
     };
 
-    // 멈춤 감지: 30초간 progress 없으면 abort
+    // 멈춤 감지: 45초간 progress 없으면 abort (모바일 네트워크 고려)
     stallTimer = setInterval(() => {
-      if (Date.now() - lastProgressTime > 30_000) {
+      if (Date.now() - lastProgressTime > 45_000) {
         cleanup();
         xhr.abort();
         reject(new Error("파트 업로드 멈춤"));
@@ -360,7 +360,7 @@ async function multipartUploadToR2(
 
 // ─── R2 업로드 (presigned URL) ───
 
-const STALL_TIMEOUT_MS = 15_000; // 15초간 progress 없으면 멈춤 판단
+const STALL_TIMEOUT_MS = 25_000; // 25초간 progress 없으면 멈춤 판단 (모바일 네트워크 고려)
 
 /**
  * XHR로 presigned URL에 PUT 업로드. 멈춤 감지 포함.

@@ -42,6 +42,7 @@ interface UploadState {
   effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
   visibility: ClipVisibility;
   renderJobId: string | null;
+  renderProgress: number;
 
   setFile: (file: File | null) => void;
   setTags: (tags: string[]) => void;
@@ -67,6 +68,7 @@ interface UploadState {
   setEffects: (effects: Partial<UploadState["effects"]>) => void;
   setVisibility: (v: ClipVisibility) => void;
   setRenderJobId: (id: string | null) => void;
+  setRenderProgress: (p: number) => void;
 
   reset: () => void;
 }
@@ -98,6 +100,7 @@ const initial = {
   effects: { color: false, cinematic: false, eafc: false, intro: false },
   visibility: "followers" as ClipVisibility,
   renderJobId: null as string | null,
+  renderProgress: 0,
 };
 
 export const useUploadStore = create<UploadState>((set) => ({
@@ -128,6 +131,7 @@ export const useUploadStore = create<UploadState>((set) => ({
   })),
   setVisibility: (visibility) => set({ visibility }),
   setRenderJobId: (renderJobId) => set({ renderJobId }),
+  setRenderProgress: (renderProgress) => set({ renderProgress }),
 
   reset: () => set(initial),
 }));

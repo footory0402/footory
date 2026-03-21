@@ -3,9 +3,12 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useUploadStore } from "@/stores/upload-store";
+import { useGlobalRenderPolling } from "@/hooks/useGlobalRenderPolling";
 import { ProfileProvider } from "@/providers/ProfileProvider";
 import AppHeader from "./AppHeader";
 import BottomTab from "./BottomTab";
+import GlobalUploadIndicator from "@/components/upload/GlobalUploadIndicator";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 const BARE_ROUTES = ["/login", "/onboarding", "/signup", "/auth/"];
@@ -14,6 +17,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isBare = BARE_ROUTES.some((r) => pathname.startsWith(r));
   const userIdRef = useRef<string | null>(null);
+
+  // Global render job polling (persists across navigations)
+  useGlobalRenderPolling();
+
+  // Warn before closing tab during active upload
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const { status } = useUploadStore.getState();
+      const active = !["idle", "done", "error", "editing"].includes(status);
+      if (active) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   // bfcache guard: 로그아웃 후 뒤로가기로 복원되면 새로고침
   useEffect(() => {
@@ -74,6 +91,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="pb-[calc(60px+env(safe-area-inset-bottom))]">
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
+      <GlobalUploadIndicator />
       <BottomTab />
     </ProfileProvider>
   );
