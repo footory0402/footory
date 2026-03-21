@@ -1,35 +1,33 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import ProfileCard from "@/components/player/ProfileCard";
-import TeamBanner from "@/components/player/TeamBanner";
-import HighlightsTab from "@/components/player/HighlightsTab";
+import HeroSection from "@/components/profile/HeroSection";
+import ProfileTabBar, { type ProfileTabKey } from "@/components/profile/ProfileTabBar";
+import HighlightsTabV5 from "@/components/profile/HighlightsTabV5";
 import ProfileSkeleton from "@/components/player/ProfileSkeleton";
 
-const InfoTab = dynamic(() => import("@/components/player/InfoTab"), { ssr: false });
+const RecordsTabV5 = dynamic(() => import("@/components/profile/RecordsTabV5"), { ssr: false });
+const CareerTabV5 = dynamic(() => import("@/components/profile/CareerTabV5"), { ssr: false });
 const ProfileEditSheet = dynamic(() => import("@/components/player/ProfileEditSheet"), { ssr: false });
 const StatInputSheet = dynamic(() => import("@/components/stats/StatInputSheet"), { ssr: false });
 const SeasonAddSheet = dynamic(() => import("@/components/player/SeasonAddSheet"), { ssr: false });
 const ProfilePdfExport = dynamic(() => import("@/components/portfolio/ProfilePdfExport"), { ssr: false });
 const PlayStyleTest = dynamic(() => import("@/components/player/PlayStyleTest"), { ssr: false });
 
-import SocialCard from "@/components/player/SocialCard";
 import { useProfile } from "@/hooks/useProfile";
 import { usePlayStyle } from "@/hooks/usePlayStyle";
 import { toast } from "sonner";
-import Link from "next/link";
 import { useStats } from "@/hooks/useStats";
 import { useClips, useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
 import { useAchievements } from "@/hooks/useAchievements";
-import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
-type ProfileTab = "highlight" | "stat";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("highlight");
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>("highlights");
+  const [teamTransferring, setTeamTransferring] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [statInputType, setStatInputType] = useState<string | undefined>();
@@ -47,43 +45,12 @@ export default function ProfilePage() {
     }
   }, [profile?.role, router]);
 
-  const [percentiles, setPercentiles] = useState<Record<string, number>>({});
-  const [ageAvgs, setAgeAvgs] = useState<Record<string, number>>({});
-  const [peerCounts, setPeerCounts] = useState<Record<string, number>>({});
-  const [ageGroup, setAgeGroup] = useState<string>("");
-
   const shouldLoadData = !!profile && !isScoutProfile;
   const { stats, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
   const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
-  const { achievements, addAchievement, removeAchievement } = useAchievements({ enabled: shouldLoadData });
-
-  useEffect(() => {
-    if (!shouldLoadData) return;
-    fetch("/api/stats/percentile")
-      .then((r) => (r.ok ? r.json() : { percentiles: {}, ageAvgs: {}, peerCounts: {}, ageGroup: "" }))
-      .then((d) => {
-        setPercentiles(d.percentiles ?? {});
-        setAgeAvgs(d.ageAvgs ?? {});
-        setPeerCounts(d.peerCounts ?? {});
-        setAgeGroup(d.ageGroup ?? "");
-      })
-      .catch(() => {});
-  }, [shouldLoadData]);
-
-  const clipTagCounts: ClipTagCount[] = useMemo(() => {
-    return Object.entries(tagClips)
-      .map(([, clips]) => {
-        const tagName = clips[0]?.tag ?? "";
-        return { tagName, count: clips.length };
-      })
-      .filter((tag) => tag.tagName);
-  }, [tagClips]);
-
-  const radarStats = useMemo(() => {
-    return calcRadarStats(stats, clipTagCounts, percentiles);
-  }, [stats, clipTagCounts, percentiles]);
+  const { achievements } = useAchievements({ enabled: shouldLoadData });
 
   if (loading && !profile) return <ProfileSkeleton />;
 
@@ -102,6 +69,8 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  // ── Handlers ──
 
   const handleDeleteClip = async (clipId: string) => {
     const ok = await deleteClip(clipId);
@@ -175,65 +144,26 @@ export default function ProfilePage() {
     }));
   }
 
-  return (
-    <div className="px-4 pt-4">
-      {/* 프로필 카드 */}
-      <ProfileCard
-        profile={profile}
-        radarStats={radarStats}
-        stats={stats}
-        onEdit={() => setEditOpen(true)}
-        onAvatarUpload={uploadAvatar}
-        onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
-      />
+  // ── Team state logic ──
+  const teamState = teamTransferring
+    ? "transferring" as const
+    : profile.teamName
+      ? "has-team" as const
+      : "no-team" as const;
 
-      {/* 소셜 지표 카드 */}
-      <SocialCard
-        followers={profile.followers}
-        following={profile.following}
-        views={profile.views}
-        followsHref="/profile/follows"
-        className="mt-2.5"
-      />
-
-      {/* 소속 팀 배너 */}
-      {!isScoutProfile && (
-        <TeamBanner
+  // ── Scout view (unchanged) ──
+  if (isScoutProfile) {
+    return (
+      <div className="px-4 pt-4">
+        <HeroSection
           profile={profile}
-          seasons={seasons}
-          onAddSeason={() => setSeasonAddOpen(true)}
+          playStyle={playStyle}
+          teamState={teamState}
+          onEdit={() => setEditOpen(true)}
+          onShare={handleShareProfile}
+          onPdf={() => setPdfExportOpen(true)}
+          onAvatarUpload={uploadAvatar}
         />
-      )}
-
-      {/* 액션 행 */}
-      <div className="mt-3 flex items-center justify-between">
-        <div>
-          {profile.isVerified && profile.role === "scout" && (
-            <Link href="/profile/watchlist" className="action-btn">
-              <span>⭐</span> 관심 선수
-            </Link>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleShareProfile} className="action-btn" aria-label="프로필 링크 공유">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
-            공유
-          </button>
-          <button onClick={() => setPdfExportOpen(true)} className="action-btn" aria-label="PDF 내보내기">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><polyline points="9 15 12 18 15 15" />
-            </svg>
-            PDF
-          </button>
-        </div>
-      </div>
-
-      {/* 스카우터: 단순 뷰 */}
-      {profile.role === "scout" ? (
         <div className="mt-5 flex flex-col gap-4">
           {(!profile.bio && !profile.city && !profile.teamName) ? (
             <div className="card-elevated flex flex-col items-center gap-3 py-8 text-center">
@@ -260,67 +190,82 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      ) : (
-        /* 선수: 2탭 구조 */
-        <>
-          {/* 탭 바 — 세그먼트 컨트롤 */}
-          <div className="-mx-4 mt-4 px-4 py-2.5 border-b border-white/[0.05]">
-            <div className="flex rounded-xl bg-white/[0.06] p-1 gap-1">
-              {(["highlight", "stat"] as const).map((tab) => {
-                const label = tab === "highlight" ? "하이라이트" : "기록";
-                const icon = tab === "highlight" ? "▶" : "📊";
-                const isActive = activeTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[13px] font-bold transition-all ${
-                      isActive
-                        ? "bg-accent/15 text-accent border border-accent/30"
-                        : "text-text-3 hover:text-text-2"
-                    }`}
-                  >
-                    <span className="text-[13px]">{icon}</span>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* 탭 콘텐츠 */}
-          <div className="mt-4 pb-6">
-            {activeTab === "highlight" ? (
-              <HighlightsTab
-                tagClips={mappedTagClips}
-                untaggedClips={untaggedClips}
-                tagClipsLoading={tagClipsLoading}
-                position={profile.position}
-                onDeleteClip={handleDeleteClip}
-                onEditTags={handleEditTags}
-              />
-            ) : (
-              <InfoTab
-                stats={stats}
-                percentiles={percentiles}
-                ageAvgs={ageAvgs}
-                peerCounts={peerCounts}
-                ageGroup={ageGroup}
-                radarStats={radarStats}
-                clipTagCounts={clipTagCounts}
-                playStyle={playStyle}
-                onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
-                onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
-                onDeleteStat={handleDeleteStat}
-                onPlayStyleTest={() => setPlayStyleTestOpen(true)}
-                achievements={achievements}
-                onAddAchievement={addAchievement}
-                onRemoveAchievement={removeAchievement}
-              />
-            )}
-          </div>
-        </>
-      )}
+        {/* Sheets */}
+        {editOpen && (
+          <ProfileEditSheet
+            profile={profile}
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            onSave={updateProfile}
+            onAvatarUpload={uploadAvatar}
+            onCheckHandle={checkHandle}
+          />
+        )}
+        {pdfExportOpen && (
+          <ProfilePdfExport
+            open={pdfExportOpen}
+            onClose={() => setPdfExportOpen(false)}
+            loading={false}
+            profile={profile}
+            stats={[]}
+            seasons={[]}
+            achievements={[]}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ── Player view — v5 redesign ──
+  return (
+    <div style={{ background: "var(--v5-dark)" }}>
+      {/* Hero */}
+      <HeroSection
+        profile={profile}
+        playStyle={playStyle}
+        teamState={teamState}
+        onEdit={() => setEditOpen(true)}
+        onShare={handleShareProfile}
+        onPdf={() => setPdfExportOpen(true)}
+        onAvatarUpload={uploadAvatar}
+        onTeamChange={() => setTeamTransferring(true)}
+      />
+
+      {/* Tab bar (sticky) */}
+      <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* Tab content */}
+      <div className="px-4 pb-6">
+        {activeTab === "highlights" && (
+          <HighlightsTabV5
+            tagClips={mappedTagClips}
+            untaggedClips={untaggedClips}
+            tagClipsLoading={tagClipsLoading}
+            position={profile.position}
+            onDeleteClip={handleDeleteClip}
+            onEditTags={handleEditTags}
+          />
+        )}
+        {activeTab === "records" && (
+          <RecordsTabV5
+            stats={stats}
+            playStyle={playStyle}
+            onAddStat={() => { setStatInputType(undefined); setStatInputOpen(true); }}
+            onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
+            onDeleteStat={handleDeleteStat}
+            onPlayStyleTest={() => setPlayStyleTestOpen(true)}
+          />
+        )}
+        {activeTab === "career" && (
+          <CareerTabV5
+            profile={profile}
+            seasons={seasons}
+            achievements={achievements}
+            onAddSeason={() => setSeasonAddOpen(true)}
+          />
+        )}
+      </div>
 
       {/* Sheets */}
       {editOpen && (
@@ -360,7 +305,7 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* 성장 기록 삭제 확인 다이얼로그 */}
+      {/* Delete stat dialog */}
       {deletingStatId && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center"
@@ -393,7 +338,7 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* 플레이 스타일 테스트 풀스크린 */}
+      {/* PlayStyle test fullscreen */}
       {playStyleTestOpen && (
         <div className="fixed inset-0 z-50 flex flex-col bg-bg">
           <div className="flex items-center justify-between px-4 py-3">
