@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
     params?: Record<string, unknown>;
   };
   const normalizedParams = normalizeRenderParams(params);
+  console.log("[render/route] received params:", JSON.stringify(params, null, 2));
+  console.log("[render/route] normalized params:", JSON.stringify(normalizedParams, null, 2));
 
   if (!clipId || !inputKey) {
     return NextResponse.json(

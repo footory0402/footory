@@ -755,6 +755,8 @@ export async function startRenderUpload() {
       effects: store.effects,
     };
 
+    console.log("[upload-service] renderParams:", JSON.stringify(renderParams, null, 2));
+
     const renderRes = await apiFetch(
       "/api/render",
       {
