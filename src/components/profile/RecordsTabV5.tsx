@@ -44,8 +44,8 @@ export default function RecordsTabV5({
           className="flex items-center justify-between"
           style={{
             background: "rgba(255,255,255,0.02)",
-            borderRadius: 14,
-            border: "1px solid var(--v5-card-border)",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.06)",
             padding: "12px 14px",
           }}
         >
@@ -69,7 +69,7 @@ export default function RecordsTabV5({
                   fontFamily: "var(--font-body)",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "var(--v5-text)",
+                  color: "var(--color-text-1)",
                 }}
               >
                 {styleInfo.label}
@@ -79,7 +79,7 @@ export default function RecordsTabV5({
                 style={{
                   fontFamily: "var(--font-body)",
                   fontSize: 9,
-                  color: "var(--v5-text-dim)",
+                  color: "var(--color-text-3)",
                   marginTop: 1,
                   fontStyle: "italic",
                 }}
@@ -95,8 +95,8 @@ export default function RecordsTabV5({
                 padding: "4px 8px",
                 borderRadius: 6,
                 background: "rgba(255,255,255,0.04)",
-                border: "1px solid var(--v5-card-border)",
-                color: "var(--v5-text-dim)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                color: "var(--color-text-3)",
                 fontSize: 10,
                 fontFamily: "var(--font-body)",
                 cursor: "pointer",
@@ -112,8 +112,8 @@ export default function RecordsTabV5({
           onClick={onPlayStyleTest}
           style={{
             background: "rgba(255,255,255,0.02)",
-            borderRadius: 14,
-            border: "1px solid var(--v5-card-border)",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.06)",
             padding: "12px 14px",
           }}
         >
@@ -137,7 +137,7 @@ export default function RecordsTabV5({
                   fontFamily: "var(--font-body)",
                   fontSize: 13,
                   fontWeight: 700,
-                  color: "var(--v5-gold-light)",
+                  color: "var(--color-accent)",
                 }}
               >
                 플레이 스타일을 찾아보세요
@@ -147,7 +147,7 @@ export default function RecordsTabV5({
                 style={{
                   fontFamily: "var(--font-body)",
                   fontSize: 9,
-                  color: "var(--v5-text-dim)",
+                  color: "var(--color-text-3)",
                   marginTop: 1,
                 }}
               >
@@ -155,7 +155,7 @@ export default function RecordsTabV5({
               </p>
             </div>
           </div>
-          <span style={{ color: "var(--v5-gold-dim)", fontSize: 14 }}>›</span>
+          <span style={{ color: "var(--color-accent)", fontSize: 14 }}>›</span>
         </div>
       ) : null}
 
@@ -170,9 +170,9 @@ export default function RecordsTabV5({
                 style={{
                   padding: "4px 10px",
                   borderRadius: 6,
-                  background: "var(--v5-gold-bg)",
-                  border: "1px solid var(--v5-gold-border)",
-                  color: "var(--v5-gold-light)",
+                  background: "rgba(212,168,83,0.08)",
+                  border: "1px solid rgba(212,168,83,0.2)",
+                  color: "var(--color-accent)",
                   fontSize: 10,
                   fontFamily: "var(--font-body)",
                   fontWeight: 500,
@@ -209,7 +209,7 @@ export default function RecordsTabV5({
             className="flex flex-col items-center gap-3 py-8 text-center"
             style={{
               borderRadius: 12,
-              border: "1px solid var(--v5-card-border)",
+              border: "1px solid rgba(255,255,255,0.06)",
               background: "rgba(255,255,255,0.015)",
             }}
           >
@@ -219,7 +219,7 @@ export default function RecordsTabV5({
                 fontFamily: "var(--font-body)",
                 fontSize: 13,
                 fontWeight: 700,
-                color: "var(--v5-text)",
+                color: "var(--color-text-1)",
               }}
             >
               나의 성장을 기록해보세요
@@ -228,7 +228,7 @@ export default function RecordsTabV5({
               style={{
                 fontFamily: "var(--font-body)",
                 fontSize: 11,
-                color: "var(--v5-text-dim)",
+                color: "var(--color-text-3)",
                 lineHeight: 1.5,
               }}
             >
@@ -243,7 +243,7 @@ export default function RecordsTabV5({
                 style={{
                   padding: "8px 20px",
                   borderRadius: 999,
-                  background: "var(--v5-gold)",
+                  background: "var(--color-accent)",
                   color: "#000",
                   fontSize: 12,
                   fontWeight: 700,
@@ -265,7 +265,7 @@ export default function RecordsTabV5({
           <div
             style={{
               borderRadius: 12,
-              border: "1px solid var(--v5-card-border)",
+              border: "1px solid rgba(255,255,255,0.06)",
               overflow: "hidden",
             }}
           >
@@ -293,7 +293,7 @@ export default function RecordsTabV5({
                     background: "rgba(255,255,255,0.015)",
                     borderBottom:
                       i < growthStats.length - 1
-                        ? "1px solid var(--v5-card-border)"
+                        ? "1px solid rgba(255,255,255,0.06)"
                         : "none",
                   }}
                 >
@@ -301,7 +301,7 @@ export default function RecordsTabV5({
                     style={{
                       fontFamily: "var(--font-body)",
                       fontSize: 12,
-                      color: "var(--v5-text-sub)",
+                      color: "var(--color-text-2)",
                     }}
                   >
                     {meta.label}
@@ -312,7 +312,7 @@ export default function RecordsTabV5({
                         fontFamily: "var(--font-stat)",
                         fontSize: 14,
                         fontWeight: 600,
-                        color: "var(--v5-text)",
+                        color: "var(--color-text-1)",
                       }}
                     >
                       {formatStatValue(stat.value, stat.type, stat.unit)}
@@ -325,7 +325,7 @@ export default function RecordsTabV5({
                           fontFamily: "var(--font-stat)",
                           fontWeight: 600,
                           color: improved
-                            ? "var(--v5-green)"
+                            ? "var(--color-green)"
                             : "var(--color-red)",
                           background: improved
                             ? "rgba(74,222,128,0.08)"
@@ -346,7 +346,7 @@ export default function RecordsTabV5({
               <span
                 style={{
                   fontSize: 9,
-                  color: "var(--v5-text-dim)",
+                  color: "var(--color-text-3)",
                   fontFamily: "var(--font-body)",
                 }}
               >
@@ -380,7 +380,7 @@ function SectionHeader({
             width: 3,
             height: 14,
             borderRadius: 2,
-            background: "var(--v5-gold)",
+            background: "var(--color-accent)",
           }}
         />
         <span
@@ -388,7 +388,7 @@ function SectionHeader({
             fontFamily: "var(--font-body)",
             fontSize: 14,
             fontWeight: 700,
-            color: "var(--v5-text)",
+            color: "var(--color-text-1)",
           }}
         >
           {title}
@@ -398,7 +398,7 @@ function SectionHeader({
             style={{
               fontFamily: "var(--font-stat)",
               fontSize: 11,
-              color: "var(--v5-text-dim)",
+              color: "var(--color-text-3)",
               background: "rgba(255,255,255,0.04)",
               borderRadius: 8,
               padding: "1px 7px",
@@ -452,7 +452,7 @@ function PhysicalTestCard({
         background: isTeam
           ? "rgba(74,222,128,0.015)"
           : "rgba(255,255,255,0.015)",
-        border: `1px solid ${isTeam ? "var(--v5-green-border)" : "var(--v5-card-border)"}`,
+        border: `1px solid ${isTeam ? "rgba(74,222,128,0.18)" : "rgba(255,255,255,0.06)"}`,
       }}
       onClick={onUpdate}
       role={onUpdate ? "button" : undefined}
@@ -467,7 +467,7 @@ function PhysicalTestCard({
             fontFamily: "var(--font-body)",
             fontSize: 11,
             fontWeight: 600,
-            color: "var(--v5-text-sub)",
+            color: "var(--color-text-2)",
           }}
         >
           {meta.label}
@@ -475,7 +475,7 @@ function PhysicalTestCard({
         <span
           style={{
             fontSize: 9,
-            color: "var(--v5-text-dim)",
+            color: "var(--color-text-3)",
             fontFamily: "var(--font-body)",
           }}
         >
@@ -490,7 +490,7 @@ function PhysicalTestCard({
             fontFamily: "var(--font-stat)",
             fontSize: 28,
             fontWeight: 700,
-            color: "var(--v5-text)",
+            color: "var(--color-text-1)",
             lineHeight: 1,
           }}
         >
@@ -500,7 +500,7 @@ function PhysicalTestCard({
           style={{
             fontFamily: "var(--font-body)",
             fontSize: 10,
-            color: "var(--v5-text-dim)",
+            color: "var(--color-text-3)",
           }}
         >
           {!isTime && displayUnit}
@@ -511,7 +511,7 @@ function PhysicalTestCard({
             style={{
               fontSize: 10,
               fontFamily: "var(--font-stat)",
-              color: improved ? "var(--v5-green)" : "var(--color-red)",
+              color: improved ? "var(--color-green)" : "var(--color-red)",
             }}
           >
             {improved ? "↑" : "↓"}
