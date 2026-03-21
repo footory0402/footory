@@ -91,31 +91,6 @@
   }
 }
 
-/* ── v5 Profile tokens → bridged to standard tokens ── */
-:root {
-  --v5-dark: var(--color-bg);
-  --v5-card: var(--color-card);
-  --v5-card-border: rgba(255, 255, 255, 0.06);
-
-  --v5-gold: var(--color-accent);
-  --v5-gold-light: var(--color-accent);
-  --v5-gold-dim: var(--color-accent-dim);
-  --v5-gold-bg: var(--accent-bg);
-  --v5-gold-border: rgba(212, 168, 83, 0.2);
-  --v5-gold-glow: var(--accent-bg-12);
-
-  --v5-text: var(--color-text-1);
-  --v5-text-sub: var(--color-text-2);
-  --v5-text-dim: var(--color-text-3);
-
-  --v5-green: var(--color-green);
-  --v5-green-bg: rgba(74, 222, 128, 0.08);
-  --v5-green-border: rgba(74, 222, 128, 0.18);
-
-  --v5-blue: var(--color-blue);
-  --v5-blue-bg: rgba(96, 165, 250, 0.08);
-  --v5-blue-border: rgba(96, 165, 250, 0.18);
-}
 
 /* Accent helpers */
 :root {
