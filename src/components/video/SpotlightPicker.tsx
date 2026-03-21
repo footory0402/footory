@@ -41,7 +41,7 @@ export default function SpotlightPicker({
     video.src = url;
 
     video.onloadeddata = () => {
-      video.currentTime = trimStart ?? 0.5;
+      video.currentTime = (trimStart && trimStart > 0) ? trimStart : 0.5;
     };
 
     video.onseeked = () => {
