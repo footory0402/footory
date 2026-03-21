@@ -9,6 +9,7 @@ interface SpotlightPickerProps {
   spotlightX: number | null;
   spotlightY: number | null;
   onSpotlightChange: (x: number | null, y: number | null) => void;
+  trimStart?: number;
 }
 
 export default function SpotlightPicker({
@@ -16,6 +17,7 @@ export default function SpotlightPicker({
   spotlightX,
   spotlightY,
   onSpotlightChange,
+  trimStart,
 }: SpotlightPickerProps) {
   const { profile } = useProfileContext();
   const isParent = useUploadStore((s) => s.context === "parent");
@@ -39,7 +41,7 @@ export default function SpotlightPicker({
     video.src = url;
 
     video.onloadeddata = () => {
-      video.currentTime = 0.5;
+      video.currentTime = trimStart ?? 0.5;
     };
 
     video.onseeked = () => {
@@ -55,7 +57,7 @@ export default function SpotlightPicker({
     };
 
     return () => URL.revokeObjectURL(url);
-  }, [file]);
+  }, [file, trimStart]);
 
   const handleTap = useCallback(
     (e: React.PointerEvent) => {
