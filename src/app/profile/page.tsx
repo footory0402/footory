@@ -219,7 +219,7 @@ export default function ProfilePage() {
 
   // ── Player view — v5 redesign ──
   return (
-    <div style={{ background: "var(--v5-dark)" }}>
+    <div className="bg-bg">
       {/* Hero */}
       <HeroSection
         profile={profile}

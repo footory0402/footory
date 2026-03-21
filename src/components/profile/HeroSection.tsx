@@ -66,7 +66,7 @@ function HeroSectionInner({
     : null;
 
   return (
-    <div style={{ background: "var(--v5-card)" }}>
+    <div className="bg-card">
       {/* ── 좌우 분할 ── */}
       <div className="flex" style={{ minHeight: 210 }}>
         {/* 좌: 프로필 사진 (40%) */}
@@ -75,7 +75,7 @@ function HeroSectionInner({
             className="flex h-full w-full items-center justify-center"
             style={{
               minHeight: 230,
-              background: "linear-gradient(165deg, #1a1a1a 0%, #0d0d0d 100%)",
+              background: "linear-gradient(165deg, var(--color-card) 0%, var(--color-bg) 100%)",
             }}
           >
             {/* Gold radial glow */}
@@ -83,7 +83,7 @@ function HeroSectionInner({
               className="absolute inset-0"
               style={{
                 background:
-                  "radial-gradient(circle at 30% 60%, var(--v5-gold-glow), transparent 60%)",
+                  "radial-gradient(circle at 30% 60%, rgba(212,168,83,0.12), transparent 60%)",
               }}
             />
 
@@ -168,7 +168,7 @@ function HeroSectionInner({
                 backdropFilter: "blur(10px)",
                 borderRadius: 6,
                 padding: "3px 10px",
-                border: "1px solid rgba(201,168,76,0.25)",
+                border: "1px solid rgba(212,168,83,0.2)",
               }}
             >
               <span
@@ -176,7 +176,7 @@ function HeroSectionInner({
                   fontFamily: "var(--font-stat)",
                   fontSize: 15,
                   fontWeight: 700,
-                  color: "var(--v5-gold-light)",
+                  color: "var(--color-accent)",
                 }}
               >
                 {profile.position}
@@ -196,7 +196,7 @@ function HeroSectionInner({
                 padding: "2px 8px",
                 fontSize: 10,
                 fontFamily: "var(--font-stat)",
-                color: "var(--v5-gold-light)",
+                color: "var(--color-accent)",
               }}
             >
               🏆 ×{profile.mvpCount}
@@ -221,7 +221,7 @@ function HeroSectionInner({
             className="m-0 text-[21px] font-[800]"
             style={{
               fontFamily: "var(--font-body)",
-              color: "var(--v5-text)",
+              color: "var(--color-text-1)",
               letterSpacing: "-0.02em",
               lineHeight: 1.2,
             }}
@@ -235,7 +235,7 @@ function HeroSectionInner({
             style={{
               fontFamily: "var(--font-body)",
               fontSize: 11,
-              color: "var(--v5-text-dim)",
+              color: "var(--color-text-3)",
               margin: "2px 0 0",
             }}
           >
@@ -246,7 +246,7 @@ function HeroSectionInner({
           {/* Divider */}
           <div
             className="my-[9px]"
-            style={{ height: 1, background: "var(--v5-card-border)" }}
+            style={{ height: 1, background: "rgba(255,255,255,0.05)" }}
           />
 
           {/* Physical tags */}
@@ -266,8 +266,8 @@ function HeroSectionInner({
                     borderRadius: 4,
                     fontSize: 10,
                     background: "rgba(255,255,255,0.03)",
-                    border: "1px solid var(--v5-card-border)",
-                    color: "var(--v5-text-sub)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    color: "var(--color-text-2)",
                     fontFamily: "var(--font-body)",
                   }}
                 >
@@ -293,7 +293,7 @@ function HeroSectionInner({
                   fontFamily: "var(--font-body)",
                   fontSize: 11,
                   fontWeight: 700,
-                  color: "var(--v5-text)",
+                  color: "var(--color-text-1)",
                 }}
               >
                 {styleInfo.label}
@@ -311,7 +311,7 @@ function HeroSectionInner({
                   height: 20,
                   borderRadius: 4,
                   background: "rgba(255,255,255,0.04)",
-                  border: "1px solid var(--v5-card-border)",
+                  border: "1px solid rgba(255,255,255,0.06)",
                   fontSize: 10,
                 }}
               >
@@ -323,7 +323,7 @@ function HeroSectionInner({
                   fontFamily: "var(--font-body)",
                   fontSize: 11,
                   fontWeight: 600,
-                  color: "var(--v5-text-sub)",
+                  color: "var(--color-text-2)",
                 }}
               >
                 {profile.teamName}
@@ -335,8 +335,8 @@ function HeroSectionInner({
                     padding: "2px 6px",
                     borderRadius: 4,
                     background: "rgba(255,255,255,0.03)",
-                    border: "1px solid var(--v5-card-border)",
-                    color: "var(--v5-text-dim)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    color: "var(--color-text-3)",
                     fontSize: 9,
                     fontFamily: "var(--font-body)",
                     cursor: "pointer",
@@ -355,8 +355,8 @@ function HeroSectionInner({
               style={{
                 padding: "8px 10px",
                 borderRadius: 8,
-                background: "var(--v5-gold-bg)",
-                border: "1px solid var(--v5-gold-border)",
+                background: "rgba(212,168,83,0.08)",
+                border: "1px solid rgba(212,168,83,0.2)",
               }}
             >
               <div className="flex items-center gap-[6px]">
@@ -367,12 +367,12 @@ function HeroSectionInner({
                     fontFamily: "var(--font-body)",
                     fontSize: 11,
                     fontWeight: 700,
-                    color: "var(--v5-gold-light)",
+                    color: "var(--color-accent)",
                   }}
                 >
                   팀에 소속되어 보세요
                 </span>
-                <span style={{ color: "var(--v5-gold-dim)", fontSize: 14 }}>
+                <span style={{ color: "rgba(212,168,83,0.5)", fontSize: 14 }}>
                   ›
                 </span>
               </div>
@@ -383,12 +383,12 @@ function HeroSectionInner({
                 <span
                   style={{
                     fontSize: 9,
-                    color: "var(--v5-gold-dim)",
+                    color: "rgba(212,168,83,0.5)",
                     fontFamily: "var(--font-body)",
                     padding: "1px 6px",
                     borderRadius: 3,
-                    background: "rgba(201,168,76,0.06)",
-                    border: "1px solid rgba(201,168,76,0.1)",
+                    background: "rgba(212,168,83,0.06)",
+                    border: "1px solid rgba(212,168,83,0.1)",
                   }}
                 >
                   🔗 초대코드로 가입
@@ -396,12 +396,12 @@ function HeroSectionInner({
                 <span
                   style={{
                     fontSize: 9,
-                    color: "var(--v5-gold-dim)",
+                    color: "rgba(212,168,83,0.5)",
                     fontFamily: "var(--font-body)",
                     padding: "1px 6px",
                     borderRadius: 3,
-                    background: "rgba(201,168,76,0.06)",
-                    border: "1px solid rgba(201,168,76,0.1)",
+                    background: "rgba(212,168,83,0.06)",
+                    border: "1px solid rgba(212,168,83,0.1)",
                   }}
                 >
                   ✚ 우리 팀 직접 만들기
@@ -417,8 +417,8 @@ function HeroSectionInner({
               style={{
                 padding: "8px 10px",
                 borderRadius: 8,
-                background: "var(--v5-blue-bg)",
-                border: "1px solid var(--v5-blue-border)",
+                background: "rgba(96,165,250,0.08)",
+                border: "1px solid rgba(96,165,250,0.18)",
               }}
             >
               <div className="flex items-center gap-[6px]">
@@ -430,7 +430,7 @@ function HeroSectionInner({
                       fontFamily: "var(--font-body)",
                       fontSize: 11,
                       fontWeight: 700,
-                      color: "var(--v5-blue)",
+                      color: "var(--color-blue)",
                     }}
                   >
                     새 팀으로 이동하기
@@ -497,14 +497,14 @@ function HeroSectionInner({
                 key={l}
                 style={{
                   fontSize: 10,
-                  color: "var(--v5-text-dim)",
+                  color: "var(--color-text-3)",
                   fontFamily: "var(--font-body)",
                 }}
               >
                 {l}{" "}
                 <span
                   style={{
-                    color: "var(--v5-text-sub)",
+                    color: "var(--color-text-2)",
                     fontWeight: 700,
                     fontFamily: "var(--font-stat)",
                     fontSize: 12,
@@ -522,7 +522,7 @@ function HeroSectionInner({
       <div
         className="flex"
         style={{
-          borderTop: "1px solid var(--v5-card-border)",
+          borderTop: "1px solid rgba(255,255,255,0.05)",
           background: "rgba(255,255,255,0.01)",
         }}
       >
@@ -540,10 +540,10 @@ function HeroSectionInner({
               background: "transparent",
               border: "none",
               borderRight:
-                i < 2 ? "1px solid var(--v5-card-border)" : "none",
+                i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none",
               color: primary
-                ? "var(--v5-gold-light)"
-                : "var(--v5-text-dim)",
+                ? "var(--color-accent)"
+                : "var(--color-text-3)",
               fontSize: 11,
               fontFamily: "var(--font-body)",
               fontWeight: primary ? 600 : 400,
