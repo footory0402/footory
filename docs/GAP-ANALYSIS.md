@@ -1,6 +1,7 @@
 # GAP-ANALYSIS.md — 기획 vs 구현 갭 분석
 
 > 생성일: 2026-03-19 | 최종 업데이트: 2026-03-20
+> Last synced: 2026-03-21
 > 비교 대상: SPEC-v1.2.md, FOOTORY-v1.2-최종-기획안.md, ARCHITECTURE-v1.2.md vs 실제 코드
 > 기준: PROJECT-SCAN.md (2026-03-20) + 코드 직접 검증
 

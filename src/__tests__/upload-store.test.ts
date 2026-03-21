@@ -8,7 +8,7 @@ describe("Upload Store v1.3", () => {
 
   it("has correct initial v1.3 state", () => {
     const state = useUploadStore.getState();
-    expect(state.step).toBe(0);
+    expect(state.step).toBe(1);
     expect(state.trimStart).toBe(0);
     expect(state.trimEnd).toBeNull();
     expect(state.spotlightX).toBeNull();
@@ -117,7 +117,7 @@ describe("Upload Store v1.3", () => {
     store.reset();
 
     const state = useUploadStore.getState();
-    expect(state.step).toBe(0);
+    expect(state.step).toBe(1);
     expect(state.trimStart).toBe(0);
     expect(state.spotlightX).toBeNull();
     expect(state.skillLabels).toEqual([]);

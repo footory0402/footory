@@ -6,80 +6,55 @@
 
 ---
 
-## 개발 환경 시작
+## 주요 기능
+
+| 기능 | 설명 |
+|------|------|
+| **프로필** | V5 3탭 (하이라이트/기록/커리어), 플레이스타일 테스트, PDF 내보내기 |
+| **영상 업로드** | R2 presigned URL, 2단계 위저드 (트림 → 꾸미기), 이펙트/스킬 라벨 |
+| **MVP 투표** | 주간 MVP 투표 (자동70%+투표30%), 아카이브, 명예의 전당 |
+| **탐색** | 선수/팀 랭킹, 태그 그리드, 검색 오버레이 |
+| **소셜** | 팔로우, 응원(Kudos), 댓글, DM, 공유 |
+| **팀** | 생성/가입, 앨범, 공지, 현재/이전 소속 분리 |
+| **부모** | 자녀 대시보드, 빠른 업로드, 주간 리캡 |
+| **스카우트** | 관심목록, 선수 비교 |
+| **인증** | 카카오 SSO + 이메일 로그인, 역할 3분기 (player/parent/scout) |
+
+## 라우트 구조
+
+```
+/ .................. 홈 (역할별 피드)
+/login ............. 로그인
+/signup ............ 이메일 가입
+/onboarding ........ 역할별 온보딩
+/profile ........... 내 프로필 (3탭)
+/profile/settings .. 설정
+/profile/follows ... 팔로잉/팔로워
+/profile/watchlist . 스카우트 관심목록
+/profile/children .. 부모: 자녀 관리
+/discover .......... 탐색 (랭킹 + 검색)
+/mvp ............... MVP 투표
+/team .............. 팀 허브
+/team/[id] ......... 팀 상세
+/upload ............ 영상 업로드
+/dm ................ DM 목록
+/p/[handle] ........ 공개 프로필 (SSR)
+/t/[handle] ........ 공개 팀 프로필 (SSR)
+/admin/video-lab ... 영상 가공 랩 (관리자)
+```
+
+---
+
+## 개발 환경
 
 ```bash
 npm install
-npm run dev
+npm run dev        # localhost:3000
 ```
 
-`http://localhost:3000` 에서 확인.
+## 환경변수
 
----
-
-## 명령어 목록
-
-### 개발
-
-| 명령어 | 설명 |
-|--------|------|
-| `npm run dev` | Next.js 개발 서버 실행 (localhost:3000) |
-| `npm run build` | 프로덕션 빌드 |
-| `npm run start` | 빌드 결과물로 서버 실행 (프로덕션 미리보기) |
-
-### 코드 품질
-
-| 명령어 | 설명 |
-|--------|------|
-| `npm run typecheck` | TypeScript 타입 에러 검사 (빌드 없이) |
-| `npm run lint` | ESLint로 `src/` 코드 정적 분석 |
-| `npm run format` | Prettier로 `src/` 코드 자동 포맷 |
-
-### 테스트
-
-| 명령어 | 설명 |
-|--------|------|
-| `npm run test` | Vitest 단위 테스트 워치 모드 (개발 중 실시간) |
-| `npm run test:run` | Vitest 단위 테스트 1회 실행 후 종료 |
-| `npm run test:e2e` | Playwright E2E 테스트 실행 |
-| `npm run test:e2e:ui` | Playwright UI 모드로 E2E 테스트 (브라우저 시각화) |
-| `npm run test:e2e:auth:save` | Playwright Codegen으로 로그인 세션 저장 → `.auth/user.json` |
-| `npm run test:e2e:auth` | 저장된 인증 세션으로 E2E 테스트 실행 (로그인 불필요) |
-| `npm run test:qa` | typecheck + test:run + test:e2e 풀 QA 파이프라인 |
-
-### 권장 워크플로우
-
-```bash
-# 1. E2E 테스트 전 최초 1회: 로그인 세션 저장
-npm run test:e2e:auth:save
-
-# 2. 이후 E2E 테스트 실행 (세션 재사용)
-npm run test:e2e:auth
-
-# 3. 배포 전 최종 검사
-npm run test:qa
-```
-
-### 테스트 운영 팁
-
-- `npm run test:e2e`:
-  - 비로그인 기준 스모크 실행용입니다.
-  - 보호 라우트 시나리오는 자동으로 `skip` 될 수 있습니다.
-- `npm run test:e2e:auth`:
-  - `.auth/user.json` 세션을 사용해 전체 플로우를 로그인 상태로 검증합니다.
-  - 로그인 만료 시 `npm run test:e2e:auth:save`를 다시 실행하세요.
-- Playwright 결과물:
-  - HTML 리포트: `playwright-report/`
-  - 실패 스냅샷/비디오: `test-results/`
-- CI:
-  - GitHub Actions 워크플로우: `.github/workflows/qa.yml`
-  - PR/`main` push 시 `npm run test:qa` 실행 + Playwright 아티팩트 업로드
-
----
-
-## 환경변수 설정
-
-`.env.local` 파일 생성 후 아래 값 입력:
+`.env.local` 파일 생성:
 
 ```env
 # Supabase
@@ -94,11 +69,24 @@ R2_BUCKET_NAME=footory-videos
 R2_PUBLIC_URL=
 ```
 
----
+## 명령어
 
-## 주요 문서
+| 명령어 | 설명 |
+|--------|------|
+| `npm run dev` | 개발 서버 |
+| `npm run build` | 프로덕션 빌드 |
+| `npm run typecheck` | TypeScript 검사 |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest 워치 모드 |
+| `npm run test:run` | Vitest 1회 실행 |
+| `npm run test:e2e` | Playwright E2E |
+| `npm run test:qa` | typecheck + test + e2e |
 
-- `docs/DESIGN-SYSTEM.md` — 디자인 토큰, 컬러, 타이포, 컴포넌트 패턴
-- `docs/SPEC.md` — 전체 기획서 (화면설계, 기능 명세)
-- `docs/ARCHITECTURE.md` — DB 스키마, API 구조, 영상 파이프라인
-- `docs/PROGRESS.md` — 현재 진행 상황
+## 문서
+
+- `docs/SPEC.md` — 기획서 (v1.1 화면설계)
+- `docs/ARCHITECTURE.md` — DB 스키마, API, 영상 파이프라인
+- `docs/DESIGN-SYSTEM.md` — 디자인 토큰, 컴포넌트 패턴
+- `docs/PROGRESS.md` — 구현 진행 상황
+- `docs/FOOTORY-프로필-리디자인-핸드오프.md` — 프로필 V5 설계
+- `docs/FOOTORY-v1.3-기획안.md` — v1.3 로드맵 (영상 엔진)

@@ -433,10 +433,6 @@ body {
   height: 6px;
 }
 
-/* FootoryPlayer — color grading filter */
-.footory-color-grade {
-  filter: contrast(1.08) saturate(1.15) brightness(1.04);
-}
 
 @layer base {
   * {

@@ -1,5 +1,8 @@
 # FOOTORY 기술 아키텍처
 
+> Last synced: 2026-03-21
+> ⚠️ 이 문서는 설계 기준입니다. 실제 구현과 차이가 있는 부분은 `[미구현]`으로 표기합니다.
+
 ## 1. 시스템 구성도
 
 ```
@@ -415,21 +418,38 @@ ffmpeg -i input.mp4 -ss 5 -vframes 1 -q:v 2 thumbnail.jpg
 | 성장 (1000명, 10000영상) | 300GB | 무료 | ~$4.50 |
 | 확장 (5000명, 50000영상) | 1.5TB | 무료 | ~$22.50 |
 
-## 5. API 구조 (Supabase Edge Functions)
+## 5. API 구조
 
-| 엔드포인트 | 메서드 | 설명 |
-|-----------|--------|------|
-| `/functions/v1/upload-url` | POST | R2 presigned URL 생성 |
-| `/functions/v1/process-video` | POST | 스마트 트리밍 + 썸네일 (비동기) |
-| `/functions/v1/check-medal` | POST | 메달 자동 부여 체크 |
-| `/functions/v1/generate-feed` | POST | 피드 카드 자동 생성 |
-| `/functions/v1/send-notification` | POST | 푸시 알림 발송 (FCM) |
+> ⚠️ 실제 구현: Supabase Edge Functions 대신 **Next.js API Route Handlers** (`src/app/api/`)로 구현됨.
+> 총 24개 도메인, 77개 이상의 엔드포인트.
 
-| `/functions/v1/mvp-score` | POST | 주간 MVP 자동 점수 집계 (매일 cron) |
-| `/functions/v1/mvp-finalize` | POST | 주간 MVP 최종 확정 (월요일 cron) |
-| `/functions/v1/ranking-update` | POST | 선수/팀 랭킹 캐시 갱신 (매일 cron) |
-| `/functions/v1/feed-recommend` | POST | 추천 피드 생성 (팔로우 기반 가중치) |
-나머지 CRUD는 Supabase Client SDK로 직접 DB 호출.
+### 주요 API 도메인
+
+| 도메인 | 경로 | 주요 기능 |
+|--------|------|----------|
+| Profile | `/api/profile/*` | 프로필 CRUD, 핸들 체크, 아바타, 검색 |
+| Clips | `/api/clips/*` | 클립 CRUD |
+| Highlights | `/api/highlights/*`, `/api/featured/*` | 하이라이트, Featured |
+| Feed | `/api/feed/*` | 피드 조회, Kudos, 댓글 |
+| Discover | `/api/discover/*` | 랭킹, 검색, 태그, 떠오르는 선수 |
+| MVP | `/api/mvp/*` | 후보, 투표, 아카이브, 명예의전당 |
+| Teams | `/api/teams/*` | 팀 CRUD, 멤버, 앨범, 기록 |
+| Upload | `/api/upload/*` | Presigned URL, 직접 업로드, 멀티파트 |
+| Render | `/api/render/*` | 영상 렌더 작업 상태 |
+| Stats | `/api/stats/*` | 기록 CRUD, 퍼센타일, 팀 랭크 |
+| Notifications | `/api/notifications/*` | 알림 CRUD, 읽음, 설정 |
+| Follows | `/api/follows/*` | 팔로우, 추천 |
+| Parent | `/api/parent/*` | 자녀 연동, 대시보드, 업로드, 리캡 |
+| Play Style | `/api/play-style` | 플레이스타일 조회/저장 |
+
+### 미구현 API [미구현]
+
+| 기획 엔드포인트 | 상태 |
+|----------------|------|
+| 메달 자동 부여 체크 | DB만 존재, API 없음 |
+| tournament_records CRUD | 마이그레이션만, API 없음 |
+| awards CRUD | 마이그레이션만, API 없음 |
+| physical_tests CRUD | 마이그레이션만, API 없음 |
 
 ## 6. MVP 점수 계산 로직 (v1.1)
 

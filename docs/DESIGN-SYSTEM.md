@@ -4,6 +4,10 @@
 > Theme: Pitch Black Gold
 > Status: ✅ 확정
 > Date: 2026-03-03
+> Last synced: 2026-03-21
+>
+> ⚠️ 프로필 V5 리디자인 반영: `FOOTORY-프로필-리디자인-핸드오프.md` 참조.
+> V5는 좌측 사진 + 우측 정보 히어로 + 3탭(하이라이트/기록/커리어) 구조.
 
 ---
 
@@ -296,38 +300,16 @@ EA FC의 TOTW 카드처럼 매트 블랙 위에 골드가 빛나는 프리미엄
 
 ### 11.1 기술 스택
 ```
-Next.js 14+ (App Router)
+Next.js 16 (App Router)
 TypeScript
-Tailwind CSS (커스텀 토큰 확장)
+Tailwind CSS v4 (globals.css @theme inline 블록)
 Supabase (백엔드)
 Vercel (배포)
 ```
 
-### 11.2 Tailwind 설정 예시
-```js
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        bg: { DEFAULT: '#0C0C0E', card: '#161618', 'card-alt': '#1E1E22', elevated: '#252528' },
-        accent: { DEFAULT: '#D4A853', dim: '#8B6914' },
-        success: '#4ADE80',
-        pos: { fw: '#F87171', mf: '#4ADE80', df: '#60A5FA', gk: '#FBBF24' },
-      },
-      fontFamily: {
-        body: ['Noto Sans KR', 'sans-serif'],
-        stat: ['Oswald', 'sans-serif'],
-        brand: ['Rajdhani', 'sans-serif'],
-      },
-      borderRadius: {
-        card: '10px',
-        'card-lg': '14px',
-      },
-    },
-  },
-}
-```
+### 11.2 Tailwind 설정
+> ⚠️ Tailwind v4 사용 — `tailwind.config.ts` 없음.
+> 모든 디자인 토큰은 `src/app/globals.css`의 `@theme inline` 블록에서 관리.
 
 ### 11.3 프로젝트 구조
 ```
@@ -353,8 +335,6 @@ src/
 │   │   ├── ProfileCard.tsx     # EA FC 스타일 프로필 카드
 │   │   ├── StatCard.tsx        # 가로 스탯 카드
 │   │   ├── MedalBadge.tsx
-│   │   ├── FeaturedSlot.tsx
-│   │   ├── TagAccordion.tsx
 │   │   └── SeasonTimeline.tsx
 │   ├── feed/
 │   │   ├── FeedCard.tsx

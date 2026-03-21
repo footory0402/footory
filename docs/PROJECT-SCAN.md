@@ -1,6 +1,7 @@
 # PROJECT-SCAN.md — Footory 프로젝트 전체 구조 분석
 
 > 생성일: 2026-03-20
+> Last synced: 2026-03-21
 
 ---
 

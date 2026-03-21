@@ -1,5 +1,7 @@
 # Claude Code 시작 프롬프트
 
+> Last synced: 2026-03-21
+
 아래 내용을 Claude Code 새 세션에서 그대로 사용하세요.
 
 ---
