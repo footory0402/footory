@@ -6,21 +6,15 @@ interface TournamentTypeBadgeProps {
   type: TournamentType;
 }
 
-const TYPE_STYLES: Record<TournamentType, { color: string; bg: string; border: string }> = {
+const TYPE_STYLES: Record<TournamentType, { className: string }> = {
   "공식대회": {
-    color: "var(--v5-gold-light)",
-    bg: "var(--v5-gold-bg)",
-    border: "var(--v5-gold-border)",
+    className: "bg-accent/[0.08] border-accent/20 text-accent",
   },
   "리그": {
-    color: "var(--v5-blue)",
-    bg: "var(--v5-blue-bg)",
-    border: "var(--v5-blue-border)",
+    className: "bg-blue/[0.08] border-blue/[0.18] text-blue",
   },
   "친선": {
-    color: "var(--v5-text-sub)",
-    bg: "rgba(255,255,255,0.03)",
-    border: "var(--v5-card-border)",
+    className: "bg-white/[0.03] border-white/[0.06] text-text-3",
   },
 };
 
@@ -29,16 +23,7 @@ function TournamentTypeBadgeInner({ type }: TournamentTypeBadgeProps) {
 
   return (
     <span
-      style={{
-        padding: "2px 7px",
-        borderRadius: 4,
-        fontSize: 9,
-        fontFamily: "var(--font-body)",
-        fontWeight: 600,
-        background: style.bg,
-        border: `1px solid ${style.border}`,
-        color: style.color,
-      }}
+      className={`inline-block rounded-sm px-[7px] py-0.5 text-[9px] font-body font-semibold border border-solid ${style.className}`}
     >
       {type}
     </span>

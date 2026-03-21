@@ -11,19 +11,13 @@ function VerifyBadgeInner({ source, verifier, compact }: VerifyBadgeProps) {
 
   return (
     <span
-      className="inline-flex items-center gap-[3px] whitespace-nowrap"
-      style={{
-        padding: compact ? "1px 6px" : "2px 8px",
-        borderRadius: 4,
-        fontSize: compact ? 9 : 10,
-        fontFamily: "var(--font-body)",
-        fontWeight: 500,
-        background: isTeam
-          ? "var(--v5-green-bg)"
-          : "rgba(255,255,255,0.03)",
-        border: `1px solid ${isTeam ? "var(--v5-green-border)" : "var(--v5-card-border)"}`,
-        color: isTeam ? "var(--v5-green)" : "var(--v5-text-dim)",
-      }}
+      className={`inline-flex items-center gap-[3px] whitespace-nowrap rounded-sm font-body font-medium ${
+        compact ? "text-[9px] px-[6px] py-px" : "text-[10px] px-2 py-0.5"
+      } ${
+        isTeam
+          ? "bg-green/[0.08] border border-green/[0.18] text-green"
+          : "bg-white/[0.03] border border-white/[0.06] text-text-3"
+      }`}
     >
       {isTeam ? "✓" : "○"}
       {isTeam
