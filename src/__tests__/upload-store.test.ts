@@ -15,10 +15,6 @@ describe("Upload Store v1.3", () => {
     expect(state.spotlightY).toBeNull();
     expect(state.skillLabels).toEqual([]);
     expect(state.customLabels).toEqual([]);
-    expect(state.slowmoStart).toBeNull();
-    expect(state.slowmoEnd).toBeNull();
-    expect(state.slowmoSpeed).toBe(0.5);
-    expect(state.bgmId).toBeNull();
     expect(state.effects).toEqual({
       color: false,
       cinematic: false,
@@ -79,15 +75,6 @@ describe("Upload Store v1.3", () => {
     ]);
   });
 
-  it("sets slowmo with speed", () => {
-    const store = useUploadStore.getState();
-    store.setSlowmo(10.5, 15.5, 0.3);
-    const state = useUploadStore.getState();
-    expect(state.slowmoStart).toBe(10.5);
-    expect(state.slowmoEnd).toBe(15.5);
-    expect(state.slowmoSpeed).toBe(0.3);
-  });
-
   it("sets effects partially", () => {
     const store = useUploadStore.getState();
     store.setEffects({ color: true, intro: true });
@@ -124,8 +111,6 @@ describe("Upload Store v1.3", () => {
     store.setTrimStart(10);
     store.setSpotlight(0.5, 0.5);
     store.setSkillLabels(["dribble"]);
-    store.setSlowmo(5, 10, 0.25);
-    store.setBgmId("bgm-1");
     store.setEffects({ color: false });
     store.setRenderJobId("job-1");
 
@@ -136,8 +121,6 @@ describe("Upload Store v1.3", () => {
     expect(state.trimStart).toBe(0);
     expect(state.spotlightX).toBeNull();
     expect(state.skillLabels).toEqual([]);
-    expect(state.slowmoStart).toBeNull();
-    expect(state.bgmId).toBeNull();
     expect(state.effects.color).toBe(false);
     expect(state.renderJobId).toBeNull();
   });

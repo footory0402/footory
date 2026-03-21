@@ -719,10 +719,6 @@ export async function startRenderUpload() {
       trim_end: store.trimEnd,
       spotlight_x: store.spotlightX,
       spotlight_y: store.spotlightY,
-      slowmo_start: store.slowmoStart,
-      slowmo_end: store.slowmoEnd,
-      slowmo_speed: store.slowmoSpeed,
-      bgm_id: store.bgmId,
       effects: store.effects,
       raw_key: key,
     };
@@ -756,13 +752,10 @@ export async function startRenderUpload() {
       ...(store.spotlightY !== null ? { spotlightY: store.spotlightY } : {}),
       ...(store.skillLabels.length > 0 ? { skillLabels: store.skillLabels } : {}),
       ...(store.customLabels.length > 0 ? { customLabels: store.customLabels } : {}),
-      ...(store.slowmoStart !== null ? { slowmoStart: store.slowmoStart } : {}),
-      ...(store.slowmoEnd !== null ? { slowmoEnd: store.slowmoEnd } : {}),
-      ...(store.slowmoStart !== null && store.slowmoEnd !== null && store.slowmoSpeed > 0
-        ? { slowmoSpeed: store.slowmoSpeed } : {}),
-      ...(store.bgmId ? { bgmId: store.bgmId } : {}),
-      ...(Object.keys(store.effects).length > 0 ? { effects: store.effects } : {}),
+      effects: store.effects,
     };
+
+    console.log("[upload-service] renderParams:", JSON.stringify(renderParams, null, 2));
 
     const renderRes = await apiFetch(
       "/api/render",

@@ -13,35 +13,20 @@ import SpotlightPicker from "@/components/video/SpotlightPicker";
 import RenderProgress from "@/components/video/RenderProgress";
 import SkillLabelPicker from "@/components/video/SkillLabelPicker";
 import EffectsToggle from "@/components/video/EffectsToggle";
-import SlowmoPicker from "@/components/video/SlowmoPicker";
-import BgmPicker from "@/components/video/BgmPicker";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ClipVisibility } from "@/stores/upload-store";
 
 /*
- * 3단계 위저드 (v1.4 개편)
+ * 2단계 위저드 (v1.5 개편)
  *
  * Step 1: 파일 선택 + 구간 자르기
- * Step 2: 꾸미기 (탭 UI — 나 찾기 / 느린 재생 / 효과 / BGM, 모두 선택사항)
- * Step 3: 태그 + 확인 + 업로드
- *
- * 부모 간편 모드: Step 1 → Step 3 (꾸미기 건너뛰기)
+ * Step 2: 꾸미기 (나 찾기 / 효과 / 스킬 라벨 / 태그 / 공개 범위 — 단일 스크롤)
  */
 
 const STEPS = [
   { id: 1, label: "자르기" },
   { id: 2, label: "꾸미기" },
-  { id: 3, label: "확인" },
-];
-
-const DECORATE_TABS = [
-  { key: "spotlight" as const, label: "나 찾기" },
-  { key: "slowmo" as const, label: "느린 재생" },
-  { key: "effects" as const, label: "효과" },
-  { key: "bgm" as const, label: "BGM" },
 ] as const;
-
-type DecorateTab = (typeof DECORATE_TABS)[number]["key"];
 
 export default function UploadPage() {
   const router = useRouter();
@@ -54,26 +39,21 @@ export default function UploadPage() {
   const canUpload = role === "player" || role === "parent";
   const challengeTag = searchParams.get("challenge_tag");
 
-  const [decorateTab, setDecorateTab] = useState<DecorateTab>("spotlight");
-  const [isSimpleMode, setIsSimpleMode] = useState(isParent);
-
   // Set context + challenge tag on mount
   useEffect(() => {
     if (!canUpload) return;
-
+    const s = useUploadStore.getState();
     if (isParent) {
-      store.setContext("parent");
-      setIsSimpleMode(true);
+      s.setContext("parent");
     } else if (challengeTag) {
-      store.setContext("challenge");
-      store.setChallengeTag(challengeTag);
-      if (!store.tags.includes(challengeTag)) {
-        store.setTags([challengeTag, ...store.tags].slice(0, 3));
+      s.setContext("challenge");
+      s.setChallengeTag(challengeTag);
+      if (!s.tags.includes(challengeTag)) {
+        s.setTags([challengeTag, ...s.tags].slice(0, 3));
       }
     } else {
-      store.setContext("general");
+      s.setContext("general");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canUpload, isParent, challengeTag]);
 
   // Reset on unmount
@@ -82,15 +62,9 @@ export default function UploadPage() {
   }, []);
 
   const step = store.step;
-  const maxStep = 3;
+  const maxStep = 2;
 
-  // 파일 선택 후 자동으로 Step 1로
   const file = store.file;
-  useEffect(() => {
-    if (file && step === 0) {
-      useUploadStore.getState().setStep(1);
-    }
-  }, [file, step]);
 
   const handleNext = useCallback(() => {
     const s = useUploadStore.getState();
@@ -101,7 +75,7 @@ export default function UploadPage() {
     const s = useUploadStore.getState();
     if (s.step > 1) s.setStep(s.step - 1);
     else if (s.step === 1) {
-      s.setStep(0);
+      // step 1에서 뒤로 가면 파일만 초기화 (step은 1 유지 → VideoSelector로 돌아감)
       s.setFile(null);
     }
   }, []);
@@ -243,8 +217,8 @@ export default function UploadPage() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => (step > 0 ? handleBack() : router.back())}
-            aria-label={step > 0 ? "이전 단계" : "뒤로가기"}
+            onClick={() => (step > 1 || store.file ? handleBack() : router.back())}
+            aria-label={step > 1 || store.file ? "이전 단계" : "뒤로가기"}
             className="flex h-11 w-11 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
             <svg
@@ -265,8 +239,8 @@ export default function UploadPage() {
           </h1>
         </div>
 
-        {/* Step Bar — 3단계 라벨 인디케이터 */}
-        {step > 0 && (
+        {/* Step Bar — 2단계 라벨 인디케이터 */}
+        {store.file && (
           <div className="flex items-center justify-center gap-1">
             {STEPS.map((s, i) => (
               <div key={s.id} className="flex items-center">
@@ -307,8 +281,8 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Challenge banner */}
-        {challengeTag && step === 0 && (
+        {/* Challenge banner — Step 1 파일 미선택 상태에서 표시 */}
+        {challengeTag && step === 1 && !store.file && (
           <div className="flex items-center gap-3 rounded-xl bg-accent/8 px-4 py-3">
             <span className="text-lg">🏆</span>
             <div>
@@ -322,18 +296,17 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Parent: child selector */}
-        {isParent && step === 0 && <ChildSelector />}
+        {/* Parent: child selector — 파일 미선택 상태에서 표시 */}
+        {isParent && step === 1 && !store.file && <ChildSelector />}
 
-        {/* ═══ Step 0: 파일 선택 ═══ */}
-        {step === 0 && (
+        {/* ═══ Step 1: 파일 선택 (파일 없음) 또는 구간 자르기 (파일 있음) ═══ */}
+        {step === 1 && !store.file && (
           <>
             {!isParent && <UploadUsageGuide isChallenge={!!challengeTag} />}
             <VideoSelector />
           </>
         )}
 
-        {/* ═══ Step 1: 파일 선택 + 구간 자르기 (통합) ═══ */}
         {step === 1 && store.file && (
           <div className="animate-fade-up">
             <h2 className="mb-3 text-[15px] font-semibold text-text-1">
@@ -348,126 +321,66 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* ═══ Step 2: 꾸미기 (탭 UI) ═══ */}
+        {/* ═══ Step 2: 꾸미기 + 업로드 (단일 스크롤) ═══ */}
         {step === 2 && (
-          <div className="animate-fade-up flex flex-col gap-4">
-            {/* 축소 비디오 프리뷰 + 적용 효과 뱃지 */}
-            {store.file && (
-              <CompactVideoPreview
-                file={store.file}
-                spotlightSet={store.spotlightX !== null}
-                slowmoSet={store.slowmoStart !== null}
-                effectsActive={Object.values(store.effects).some(Boolean)}
-                bgmSet={!!store.bgmId}
-              />
-            )}
-
-            {/* 4탭 네비게이션 */}
-            <div className="flex gap-1 rounded-xl bg-card p-1">
-              {DECORATE_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setDecorateTab(tab.key)}
-                  className={`flex-1 rounded-lg py-2.5 text-[12px] font-semibold transition-all ${
-                    decorateTab === tab.key
-                      ? "bg-accent/20 text-accent shadow-[inset_0_1px_0_rgba(212,168,83,0.15)]"
-                      : "text-text-3 active:bg-card-alt"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 탭 콘텐츠 */}
-            <div className="min-h-[200px]">
-              {decorateTab === "spotlight" && store.file && (
+          <div className="flex flex-col gap-6 pb-8 animate-fade-up">
+            {/* 나 찾기 */}
+            <section>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">나 찾기</h2>
+              {store.file && (
                 <SpotlightPicker
                   file={store.file}
                   spotlightX={store.spotlightX}
                   spotlightY={store.spotlightY}
                   onSpotlightChange={(x, y) => store.setSpotlight(x, y)}
-                />
-              )}
-
-              {decorateTab === "slowmo" && (
-                <SlowmoPicker
                   trimStart={store.trimStart}
-                  trimEnd={store.trimEnd ?? 30}
-                  slowmoStart={store.slowmoStart}
-                  slowmoEnd={store.slowmoEnd}
-                  slowmoSpeed={store.slowmoSpeed}
-                  onSlowmoChange={(start, end, speed) =>
-                    store.setSlowmo(start, end, speed)
-                  }
                 />
               )}
+            </section>
 
-              {decorateTab === "effects" && (
-                <EffectsToggle
-                  effects={store.effects}
-                  onChange={(partial) => store.setEffects(partial)}
-                />
-              )}
+            {/* 효과 */}
+            <section>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">효과</h2>
+              <EffectsToggle
+                effects={store.effects}
+                onChange={(partial) => store.setEffects(partial)}
+              />
+            </section>
 
-              {decorateTab === "bgm" && (
-                <BgmPicker
-                  selectedId={store.bgmId}
-                  onSelect={(id) => store.setBgmId(id)}
-                />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ═══ Step 3: 태그 + 확인 ═══ */}
-        {step === 3 && (
-          <div className="animate-fade-up flex flex-col gap-6">
             {/* 스킬 라벨 */}
-            <div>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
-                스킬 라벨
-                {isParent && (
-                  <span className="ml-2 text-[11px] font-normal text-text-3">
-                    (선택사항)
-                  </span>
-                )}
-              </h2>
+            <section>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">스킬 라벨</h2>
               <SkillLabelPicker
                 selected={store.skillLabels}
                 customLabels={store.customLabels}
                 onSelectedChange={(labels) => store.setSkillLabels(labels)}
                 onCustomChange={(labels) => store.setCustomLabels(labels)}
               />
-            </div>
+            </section>
 
             {/* 태그 & 메모 */}
-            <div>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
-                태그 & 메모
-              </h2>
+            <section>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">태그 & 메모</h2>
               <TagMemoForm />
-            </div>
+            </section>
 
             {/* 공개 범위 */}
-            <div>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
-                공개 범위
-              </h2>
+            <section>
+              <h2 className="mb-3 text-[15px] font-semibold text-text-1">공개 범위</h2>
               <VisibilitySelector
                 value={store.visibility}
                 onChange={(v) => store.setVisibility(v)}
               />
-            </div>
+            </section>
 
-            {/* 설정 요약 카드 */}
-            <div>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">
-                설정 요약
-              </h2>
-              <UploadSummary />
-            </div>
+            {/* 업로드 버튼 — 스크롤 영역 마지막 */}
+            <button
+              type="button"
+              onClick={handleUpload}
+              className="w-full rounded-xl border border-accent/20 bg-accent py-4 text-[15px] font-bold text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-transform active:scale-[0.99]"
+            >
+              업로드
+            </button>
           </div>
         )}
 
@@ -495,7 +408,7 @@ export default function UploadPage() {
                   store.setError(null);
                   store.setProgress(0);
                   store.setRenderJobId(null);
-                  store.setStep(store.step > 0 ? store.step : 0);
+                  store.setStep(store.step >= 1 ? store.step : 1);
                 }}
                 className="flex-1 rounded-xl border border-white/[0.08] bg-card py-3 text-[13px] font-semibold text-text-2 active:scale-[0.99]"
               >
@@ -518,123 +431,22 @@ export default function UploadPage() {
         )}
       </div>
 
-      {/* Bottom navigation */}
-      {step > 0 && store.status !== "error" && (
+      {/* Bottom navigation — Step 1에서만 "다음" 버튼 표시 (Step 2는 스크롤 내 업로드 버튼 사용) */}
+      {step === 1 && store.file && store.status !== "error" && (
         <div className="pointer-events-none fixed bottom-[calc(54px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2">
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg via-bg/96 to-transparent" />
           <div className="relative flex gap-3 px-4 pb-3">
-            {/* 간편 업로드 (Step 2에서만, 꾸미기 건너뛰기) */}
-            {step === 2 && (
-              <button
-                type="button"
-                onClick={() => {
-                  useUploadStore.getState().setStep(3);
-                }}
-                className="pointer-events-auto flex-1 rounded-xl border border-white/[0.08] bg-card py-3.5 text-sm font-semibold text-text-2 active:scale-[0.99]"
-              >
-                간편 업로드
-              </button>
-            )}
-
-            {/* 다음 / 업로드 */}
             <button
               type="button"
-              onClick={() => {
-                if (step === 3) {
-                  handleUpload();
-                } else if (step === 1 && isSimpleMode) {
-                  // 부모 간편 모드: 자르기 → 바로 확인
-                  useUploadStore.getState().setStep(3);
-                } else {
-                  handleNext();
-                }
-              }}
-              disabled={step === 0 && !store.file}
-              className="pointer-events-auto flex-1 rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color] active:scale-[0.99] disabled:border-border disabled:bg-card-alt disabled:text-text-3 disabled:shadow-none"
+              onClick={handleNext}
+              className="pointer-events-auto flex-1 rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color] active:scale-[0.99]"
             >
-              {step === 3
-                ? "업로드"
-                : step === 1 && isSimpleMode
-                  ? "간편 업로드"
-                  : "다음"}
+              다음
             </button>
           </div>
-
-          {/* 부모 간편 모드에서 고급 편집 옵션 */}
-          {step === 1 && isSimpleMode && (
-            <div className="relative px-4 pb-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSimpleMode(false);
-                  handleNext();
-                }}
-                className="pointer-events-auto w-full py-2 text-center text-[12px] text-text-3 underline underline-offset-2"
-              >
-                효과 추가하기 (고급)
-              </button>
-            </div>
-          )}
         </div>
       )}
     </>
-  );
-}
-
-/* ── Compact Video Preview (Step 2) ── */
-function CompactVideoPreview({
-  file,
-  spotlightSet,
-  slowmoSet,
-  effectsActive,
-  bgmSet,
-}: {
-  file: File;
-  spotlightSet?: boolean;
-  slowmoSet?: boolean;
-  effectsActive?: boolean;
-  bgmSet?: boolean;
-}) {
-  const [videoUrl, setVideoUrl] = useState("");
-
-  useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setVideoUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-
-  if (!videoUrl) return null;
-
-  const badges = [
-    spotlightSet && { icon: "🎯", label: "나 찾기" },
-    slowmoSet && { icon: "🐢", label: "슬로모" },
-    effectsActive && { icon: "✨", label: "효과" },
-    bgmSet && { icon: "🎵", label: "BGM" },
-  ].filter(Boolean) as { icon: string; label: string }[];
-
-  return (
-    <div className="relative overflow-hidden rounded-xl bg-black">
-      <video
-        src={videoUrl}
-        className="mx-auto h-[180px] w-auto object-contain"
-        playsInline
-        muted
-        autoPlay
-        loop
-      />
-      {badges.length > 0 && (
-        <div className="absolute bottom-2 left-2 flex gap-1.5">
-          {badges.map((b) => (
-            <span
-              key={b.label}
-              className="flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-semibold text-accent backdrop-blur-sm"
-            >
-              {b.icon} {b.label}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -696,59 +508,6 @@ function VisibilitySelector({
       ))}
     </div>
   );
-}
-
-/* ── Upload Summary ── */
-function UploadSummary() {
-  const store = useUploadStore();
-
-  return (
-    <div className="flex flex-col gap-2">
-      <SummaryRow label="구간" value={`${formatTime(store.trimStart)} ~ ${formatTime(store.trimEnd ?? 0)}`} />
-      <SummaryRow
-        label="나 찾기"
-        value={store.spotlightX !== null ? "설정됨" : "건너뜀"}
-      />
-      <SummaryRow
-        label="느린 재생"
-        value={store.slowmoStart !== null ? "설정됨" : "건너뜀"}
-      />
-      {store.tags.length > 0 && (
-        <SummaryRow label="태그" value={store.tags.join(", ")} />
-      )}
-      {store.memo && <SummaryRow label="메모" value={store.memo} />}
-      <SummaryRow
-        label="효과"
-        value={Object.entries(store.effects)
-          .filter(([, v]) => v)
-          .map(([k]) => EFFECT_LABELS[k] ?? k)
-          .join(", ") || "없음"}
-      />
-      {store.bgmId && <SummaryRow label="BGM" value="설정됨" />}
-    </div>
-  );
-}
-
-const EFFECT_LABELS: Record<string, string> = {
-  color: "색보정",
-  cinematic: "영화 느낌 바",
-  eafc: "선수 카드 효과",
-  intro: "인트로",
-};
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-xl bg-card px-4 py-3">
-      <span className="min-w-[52px] text-[13px] text-text-3">{label}</span>
-      <span className="text-[13px] text-text-1">{value}</span>
-    </div>
-  );
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /* ── Error message helpers ── */

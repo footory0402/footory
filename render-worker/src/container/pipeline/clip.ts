@@ -6,7 +6,6 @@ import { updateClipRendered } from "../supabase.js";
 import { passColor } from "./color.js";
 import { passText } from "./text.js";
 import { passRing } from "./ring.js";
-import { passSlowmo } from "./slowmo.js";
 import { passIntro } from "./intro.js";
 import { passConcat } from "./concat.js";
 
@@ -17,10 +16,6 @@ interface RenderParams {
   spotlightY?: number;
   skillLabels?: string[];
   customLabels?: string[];
-  slowmoStart?: number;
-  slowmoEnd?: number;
-  slowmoSpeed?: number;
-  bgmId?: string;
   playerName?: string;
   playerPosition?: string;
   playerNumber?: number;
@@ -40,15 +35,12 @@ interface RenderInput {
 }
 
 /**
- * 멀티패스 렌더 파이프라인
+ * 멀티패스 렌더 파이프라인 (4패스)
  *
- * Pass 1: 색보정 + 스케일 + 레터박스
+ * Pass 1: 색보정 + 스케일 + 레터박스 (트림 포함)
  * Pass 2: 텍스트 오버레이 (스킬 라벨, EA FC 카드)
- * Pass 3: 골드 링 오버레이
- * Pass 4: 슬로모션 리플레이 (옵션)
- * Pass 5: 인트로 카드 (옵션)
- * Pass 6: concat (인트로 + 메인 + 슬로모)
- * Pass 7: BGM (Sprint 35에서 추가)
+ * Pass 3: 골드 링 / 스포트라이트
+ * Pass 4: 인트로 카드 + concat (인트로 있을 때만)
  */
 export async function renderClip(input: RenderInput): Promise<string> {
   const { jobId, clipId, inputKey, params } = input;
@@ -63,7 +55,6 @@ export async function renderClip(input: RenderInput): Promise<string> {
     const pass1Out = join(workDir, "pass1.mp4");
     const pass2Out = join(workDir, "pass2.mp4");
     const pass3Out = join(workDir, "pass3.mp4");
-    const slowmoOut = join(workDir, "slowmo.mp4");
     const introOut = join(workDir, "intro.mp4");
     const finalOut = join(workDir, "final.mp4");
 
@@ -71,8 +62,8 @@ export async function renderClip(input: RenderInput): Promise<string> {
     console.log(`[Render] Downloading ${inputKey}...`);
     await downloadFromR2(inputKey, rawPath);
 
-    // Pass 1: 색보정
-    console.log(`[Render] Pass 1: Color correction...`);
+    // Pass 1: 색보정 + 트림
+    console.log(`[Render] Pass 1: Color + trim...`);
     await passColor(rawPath, pass1Out, {
       trimStart: params.trimStart,
       trimEnd: params.trimEnd,
@@ -91,51 +82,25 @@ export async function renderClip(input: RenderInput): Promise<string> {
       eafcEnabled: params.effects?.eafc,
     });
 
-    // Pass 3: 골드 링
-    console.log(`[Render] Pass 3: Ring overlay...`);
+    // Pass 3: 골드 링 / 스포트라이트
+    console.log(`[Render] Pass 3: Spotlight ring...`);
     await passRing(pass2Out, pass3Out, {
       spotlightX: params.spotlightX,
       spotlightY: params.spotlightY,
     });
 
-    // 최종 출력 결정 — concat 필요 여부에 따라
-    const segments: string[] = [];
-
-    // Pass 5: 인트로 카드 (옵션)
-    if (params.effects?.intro !== false && params.playerName) {
-      console.log(`[Render] Pass 5: Intro card...`);
+    // Pass 4: 인트로 + concat (인트로 활성화 & 선수명 있을 때만)
+    const useIntro = params.effects?.intro !== false && !!params.playerName;
+    if (useIntro) {
+      console.log(`[Render] Pass 4: Intro card + concat...`);
       await passIntro(introOut, {
-        playerName: params.playerName,
+        playerName: params.playerName!,
         playerPosition: params.playerPosition,
         playerNumber: params.playerNumber,
       });
-      segments.push(introOut);
-    }
-
-    // 메인 영상
-    segments.push(pass3Out);
-
-    // Pass 4: 슬로모션 (옵션)
-    if (
-      params.slowmoStart !== undefined &&
-      params.slowmoEnd !== undefined &&
-      params.slowmoSpeed
-    ) {
-      console.log(`[Render] Pass 4: Slowmo replay...`);
-      await passSlowmo(pass3Out, slowmoOut, {
-        slowmoStart: params.slowmoStart,
-        slowmoEnd: params.slowmoEnd,
-        slowmoSpeed: params.slowmoSpeed,
-      });
-      segments.push(slowmoOut);
-    }
-
-    // Pass 6: concat
-    if (segments.length > 1) {
-      console.log(`[Render] Pass 6: Concat ${segments.length} segments...`);
-      await passConcat(segments, finalOut);
+      await passConcat([introOut, pass3Out], finalOut);
     } else {
-      // concat 불필요 — pass3 결과가 최종
+      // 인트로 없음 — pass3 결과가 최종
       await passConcat([pass3Out], finalOut);
     }
 

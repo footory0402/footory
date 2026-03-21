@@ -16,10 +16,6 @@ export interface RenderRequest {
     spotlightY?: number;
     skillLabels?: string[];
     customLabels?: string[];
-    slowmoStart?: number;
-    slowmoEnd?: number;
-    slowmoSpeed?: number;
-    bgmId?: string;
     effects?: {
       color?: boolean;
       cinematic?: boolean;
