@@ -139,7 +139,7 @@ export default function CareerTabV5({
           <div
             style={{
               borderRadius: 12,
-              border: "1px solid var(--v5-card-border)",
+              border: "1px solid rgba(255,255,255,0.06)",
               overflow: "hidden",
             }}
           >
@@ -180,8 +180,8 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
         href="/team"
         style={{
           background: "rgba(255,255,255,0.02)",
-          borderRadius: 14,
-          border: "1px solid var(--v5-card-border)",
+          borderRadius: 12,
+          border: "1px solid rgba(255,255,255,0.06)",
           padding: "14px 16px",
           display: "block",
         }}
@@ -189,7 +189,7 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
         <span
           style={{
             fontSize: 9,
-            color: "var(--v5-text-dim)",
+            color: "var(--color-text-3)",
             fontFamily: "var(--font-body)",
             textTransform: "uppercase",
             letterSpacing: "0.08em",
@@ -205,7 +205,7 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
               height: 36,
               borderRadius: 8,
               background: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--v5-card-border)",
+              border: "1px solid rgba(255,255,255,0.06)",
               fontSize: 16,
             }}
           >
@@ -216,7 +216,7 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
               fontFamily: "var(--font-body)",
               fontSize: 13,
               fontWeight: 600,
-              color: "var(--v5-text-dim)",
+              color: "var(--color-text-3)",
             }}
           >
             소속 팀 없음
@@ -226,9 +226,9 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
             style={{
               padding: "5px 10px",
               borderRadius: 7,
-              background: "var(--v5-gold-bg)",
-              border: "1px solid var(--v5-gold-border)",
-              color: "var(--v5-gold-light)",
+              background: "rgba(212,168,83,0.08)",
+              border: "1px solid rgba(212,168,83,0.2)",
+              color: "var(--color-accent)",
               fontSize: 11,
               fontFamily: "var(--font-body)",
             }}
@@ -244,15 +244,15 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
     <div
       style={{
         background: "rgba(255,255,255,0.02)",
-        borderRadius: 14,
-        border: "1px solid var(--v5-card-border)",
+        borderRadius: 12,
+        border: "1px solid rgba(255,255,255,0.06)",
         padding: "14px 16px",
       }}
     >
       <span
         style={{
           fontSize: 9,
-          color: "var(--v5-text-dim)",
+          color: "var(--color-text-3)",
           fontFamily: "var(--font-body)",
           textTransform: "uppercase",
           letterSpacing: "0.08em",
@@ -269,7 +269,7 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
               height: 36,
               borderRadius: 8,
               background: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--v5-card-border)",
+              border: "1px solid rgba(255,255,255,0.06)",
               fontSize: 16,
             }}
           >
@@ -282,7 +282,7 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
                 fontFamily: "var(--font-body)",
                 fontSize: 15,
                 fontWeight: 700,
-                color: "var(--v5-text)",
+                color: "var(--color-text-1)",
               }}
             >
               {profile.teamName}
@@ -296,8 +296,8 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
               padding: "5px 10px",
               borderRadius: 7,
               background: "rgba(255,255,255,0.04)",
-              border: "1px solid var(--v5-card-border)",
-              color: "var(--v5-text-sub)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              color: "var(--color-text-2)",
               fontSize: 11,
               fontFamily: "var(--font-body)",
             }}
@@ -319,12 +319,12 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
   return (
     <div
       style={{
-        borderRadius: 14,
+        borderRadius: 12,
         padding: 14,
         background: isTeam
           ? "rgba(74,222,128,0.015)"
           : "rgba(255,255,255,0.015)",
-        border: `1px solid ${isTeam ? "var(--v5-green-border)" : "var(--v5-card-border)"}`,
+        border: `1px solid ${isTeam ? "rgba(74,222,128,0.18)" : "rgba(255,255,255,0.06)"}`,
       }}
     >
       {/* Header */}
@@ -336,7 +336,7 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
               <span
                 style={{
                   fontSize: 9,
-                  color: "var(--v5-text-dim)",
+                  color: "var(--color-text-3)",
                   fontFamily: "var(--font-body)",
                 }}
               >
@@ -350,7 +350,7 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
               fontFamily: "var(--font-body)",
               fontSize: 14,
               fontWeight: 700,
-              color: "var(--v5-text)",
+              color: "var(--color-text-1)",
               lineHeight: 1.3,
             }}
           >
@@ -371,11 +371,11 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
             style={{
               padding: "3px 8px",
               borderRadius: 5,
-              background: "var(--v5-gold-bg)",
-              border: "1px solid var(--v5-gold-border)",
+              background: "rgba(212,168,83,0.08)",
+              border: "1px solid rgba(212,168,83,0.2)",
               fontSize: 11,
               fontWeight: 600,
-              color: "var(--v5-gold-light)",
+              color: "var(--color-accent)",
               fontFamily: "var(--font-body)",
             }}
           >
@@ -392,7 +392,7 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
                     fontFamily: "var(--font-stat)",
                     fontSize: 15,
                     fontWeight: 700,
-                    color: "var(--v5-text)",
+                    color: "var(--color-text-1)",
                   }}
                 >
                   {t.goals}
@@ -400,7 +400,7 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
                 <span
                   style={{
                     fontSize: 9,
-                    color: "var(--v5-text-dim)",
+                    color: "var(--color-text-3)",
                   }}
                 >
                   골
@@ -415,7 +415,7 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
                     fontFamily: "var(--font-stat)",
                     fontSize: 15,
                     fontWeight: 700,
-                    color: "var(--v5-text)",
+                    color: "var(--color-text-1)",
                   }}
                 >
                   {t.assists}
@@ -423,7 +423,7 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
                 <span
                   style={{
                     fontSize: 9,
-                    color: "var(--v5-text-dim)",
+                    color: "var(--color-text-3)",
                   }}
                 >
                   도움
@@ -437,7 +437,7 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: "var(--v5-gold-light)",
+                    color: "var(--color-accent)",
                     fontFamily: "var(--font-body)",
                   }}
                 >
@@ -459,9 +459,9 @@ function AwardCard({ award: a }: { award: AwardRecord }) {
       className="flex items-center justify-between"
       style={{
         padding: "12px 14px",
-        background: "var(--v5-gold-bg)",
+        background: "rgba(212,168,83,0.08)",
         borderRadius: 12,
-        border: "1px solid var(--v5-gold-border)",
+        border: "1px solid rgba(212,168,83,0.2)",
       }}
     >
       <div className="flex items-center gap-2">
@@ -471,14 +471,14 @@ function AwardCard({ award: a }: { award: AwardRecord }) {
             fontFamily: "var(--font-body)",
             fontSize: 13,
             fontWeight: 700,
-            color: "var(--v5-text)",
+            color: "var(--color-text-1)",
           }}
         >
           {a.title}
           {a.detail && (
             <>
               {" · "}
-              <span style={{ color: "var(--v5-gold-light)" }}>
+              <span style={{ color: "var(--color-accent)" }}>
                 {a.detail}
               </span>
             </>
@@ -514,7 +514,7 @@ function HistoryRow({
           width: 8,
           height: 8,
           borderRadius: "50%",
-          background: current ? "var(--v5-gold)" : "var(--v5-text-dim)",
+          background: current ? "var(--color-accent)" : "var(--color-text-3)",
         }}
       />
       <span
@@ -523,7 +523,7 @@ function HistoryRow({
           fontFamily: "var(--font-body)",
           fontSize: 13,
           fontWeight: 600,
-          color: "var(--v5-text)",
+          color: "var(--color-text-1)",
         }}
       >
         {team}
@@ -532,7 +532,7 @@ function HistoryRow({
         style={{
           fontFamily: "var(--font-stat)",
           fontSize: 12,
-          color: "var(--v5-text-dim)",
+          color: "var(--color-text-3)",
         }}
       >
         {period}
@@ -559,7 +559,7 @@ function SectionHeader({
             width: 3,
             height: 14,
             borderRadius: 2,
-            background: "var(--v5-gold)",
+            background: "var(--color-accent)",
           }}
         />
         <span
@@ -567,7 +567,7 @@ function SectionHeader({
             fontFamily: "var(--font-body)",
             fontSize: 14,
             fontWeight: 700,
-            color: "var(--v5-text)",
+            color: "var(--color-text-1)",
           }}
         >
           {title}
@@ -577,7 +577,7 @@ function SectionHeader({
             style={{
               fontFamily: "var(--font-stat)",
               fontSize: 11,
-              color: "var(--v5-text-dim)",
+              color: "var(--color-text-3)",
               background: "rgba(255,255,255,0.04)",
               borderRadius: 8,
               padding: "1px 7px",
@@ -609,12 +609,12 @@ function AddButton({
         padding: "4px 10px",
         borderRadius: 6,
         background: gold
-          ? "var(--v5-gold-bg)"
+          ? "rgba(212,168,83,0.08)"
           : "rgba(255,255,255,0.04)",
-        border: `1px solid ${gold ? "var(--v5-gold-border)" : "var(--v5-card-border)"}`,
+        border: `1px solid ${gold ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`,
         color: gold
-          ? "var(--v5-gold-light)"
-          : "var(--v5-text-dim)",
+          ? "var(--color-accent)"
+          : "var(--color-text-3)",
         fontSize: 10,
         fontFamily: "var(--font-body)",
         cursor: "pointer",
@@ -645,7 +645,7 @@ function EmptyState({
       className="flex flex-col items-center gap-2 py-8 text-center"
       style={{
         borderRadius: 12,
-        border: "1px solid var(--v5-card-border)",
+        border: "1px solid rgba(255,255,255,0.06)",
         background: "rgba(255,255,255,0.015)",
       }}
     >
@@ -656,7 +656,7 @@ function EmptyState({
           fontFamily: "var(--font-body)",
           fontSize: 13,
           fontWeight: 700,
-          color: "var(--v5-text)",
+          color: "var(--color-text-1)",
         }}
       >
         {title}
@@ -666,7 +666,7 @@ function EmptyState({
         style={{
           fontFamily: "var(--font-body)",
           fontSize: 11,
-          color: "var(--v5-text-dim)",
+          color: "var(--color-text-3)",
           lineHeight: 1.5,
         }}
       >
@@ -679,7 +679,7 @@ function EmptyState({
           style={{
             padding: "8px 20px",
             borderRadius: 999,
-            background: "var(--v5-gold)",
+            background: "var(--color-accent)",
             color: "#000",
             fontSize: 12,
             fontWeight: 700,
