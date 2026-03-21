@@ -42,19 +42,18 @@ export default function UploadPage() {
   // Set context + challenge tag on mount
   useEffect(() => {
     if (!canUpload) return;
-
+    const s = useUploadStore.getState();
     if (isParent) {
-      store.setContext("parent");
+      s.setContext("parent");
     } else if (challengeTag) {
-      store.setContext("challenge");
-      store.setChallengeTag(challengeTag);
-      if (!store.tags.includes(challengeTag)) {
-        store.setTags([challengeTag, ...store.tags].slice(0, 3));
+      s.setContext("challenge");
+      s.setChallengeTag(challengeTag);
+      if (!s.tags.includes(challengeTag)) {
+        s.setTags([challengeTag, ...s.tags].slice(0, 3));
       }
     } else {
-      store.setContext("general");
+      s.setContext("general");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canUpload, isParent, challengeTag]);
 
   // Reset on unmount
@@ -409,7 +408,7 @@ export default function UploadPage() {
                   store.setError(null);
                   store.setProgress(0);
                   store.setRenderJobId(null);
-                  store.setStep(store.step > 0 ? store.step : 0);
+                  store.setStep(store.step >= 1 ? store.step : 1);
                 }}
                 className="flex-1 rounded-xl border border-white/[0.08] bg-card py-3 text-[13px] font-semibold text-text-2 active:scale-[0.99]"
               >
@@ -509,54 +508,6 @@ function VisibilitySelector({
       ))}
     </div>
   );
-}
-
-/* ── Upload Summary ── */
-function UploadSummary() {
-  const store = useUploadStore();
-
-  return (
-    <div className="flex flex-col gap-2">
-      <SummaryRow label="구간" value={`${formatTime(store.trimStart)} ~ ${formatTime(store.trimEnd ?? 0)}`} />
-      <SummaryRow
-        label="나 찾기"
-        value={store.spotlightX !== null ? "설정됨" : "건너뜀"}
-      />
-      {store.tags.length > 0 && (
-        <SummaryRow label="태그" value={store.tags.join(", ")} />
-      )}
-      {store.memo && <SummaryRow label="메모" value={store.memo} />}
-      <SummaryRow
-        label="효과"
-        value={Object.entries(store.effects)
-          .filter(([, v]) => v)
-          .map(([k]) => EFFECT_LABELS[k] ?? k)
-          .join(", ") || "없음"}
-      />
-    </div>
-  );
-}
-
-const EFFECT_LABELS: Record<string, string> = {
-  color: "색보정",
-  cinematic: "영화 느낌 바",
-  eafc: "선수 카드 효과",
-  intro: "인트로",
-};
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-xl bg-card px-4 py-3">
-      <span className="min-w-[52px] text-[13px] text-text-3">{label}</span>
-      <span className="text-[13px] text-text-1">{value}</span>
-    </div>
-  );
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /* ── Error message helpers ── */
