@@ -39,10 +39,6 @@ interface UploadState {
   spotlightY: number | null;
   skillLabels: string[];
   customLabels: string[];
-  slowmoStart: number | null;
-  slowmoEnd: number | null;
-  slowmoSpeed: number;
-  bgmId: string | null;
   effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
   visibility: ClipVisibility;
   renderJobId: string | null;
@@ -68,8 +64,6 @@ interface UploadState {
   setSpotlight: (x: number | null, y: number | null) => void;
   setSkillLabels: (labels: string[]) => void;
   setCustomLabels: (labels: string[]) => void;
-  setSlowmo: (start: number | null, end: number | null, speed?: number) => void;
-  setBgmId: (id: string | null) => void;
   setEffects: (effects: Partial<UploadState["effects"]>) => void;
   setVisibility: (v: ClipVisibility) => void;
   setRenderJobId: (id: string | null) => void;
@@ -101,10 +95,6 @@ const initial = {
   spotlightY: null as number | null,
   skillLabels: [] as string[],
   customLabels: [] as string[],
-  slowmoStart: null as number | null,
-  slowmoEnd: null as number | null,
-  slowmoSpeed: 0.5,
-  bgmId: null as string | null,
   effects: { color: false, cinematic: false, eafc: false, intro: false },
   visibility: "followers" as ClipVisibility,
   renderJobId: null as string | null,
@@ -133,12 +123,6 @@ export const useUploadStore = create<UploadState>((set) => ({
   setSpotlight: (x, y) => set({ spotlightX: x, spotlightY: y }),
   setSkillLabels: (skillLabels) => set({ skillLabels }),
   setCustomLabels: (customLabels) => set({ customLabels }),
-  setSlowmo: (start, end, speed) => set({
-    slowmoStart: start,
-    slowmoEnd: end,
-    ...(speed !== undefined ? { slowmoSpeed: speed } : {}),
-  }),
-  setBgmId: (bgmId) => set({ bgmId }),
   setEffects: (partial) => set((state) => ({
     effects: { ...state.effects, ...partial },
   })),
