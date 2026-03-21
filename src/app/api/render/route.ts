@@ -122,10 +122,6 @@ type RenderRequest = {
     spotlightY?: number;
     skillLabels?: string[];
     customLabels?: string[];
-    slowmoStart?: number;
-    slowmoEnd?: number;
-    slowmoSpeed?: number;
-    bgmId?: string;
     effects?: Record<string, boolean>;
   };
 };
@@ -134,10 +130,7 @@ type NumericRenderParamKey =
   | "trimStart"
   | "trimEnd"
   | "spotlightX"
-  | "spotlightY"
-  | "slowmoStart"
-  | "slowmoEnd"
-  | "slowmoSpeed";
+  | "spotlightY";
 
 function normalizeRenderParams(
   params?: Record<string, unknown>
@@ -170,15 +163,8 @@ function normalizeRenderParams(
   assignNumber("trimEnd", params.trimEnd);
   assignNumber("spotlightX", params.spotlightX);
   assignNumber("spotlightY", params.spotlightY);
-  assignNumber("slowmoStart", params.slowmoStart);
-  assignNumber("slowmoEnd", params.slowmoEnd);
-  assignNumber("slowmoSpeed", params.slowmoSpeed);
   assignStringArray("skillLabels", params.skillLabels);
   assignStringArray("customLabels", params.customLabels);
-
-  if (typeof params.bgmId === "string" && params.bgmId.length > 0) {
-    normalized.bgmId = params.bgmId;
-  }
 
   if (params.effects && typeof params.effects === "object") {
     const rawEffects = params.effects as Record<string, unknown>;
