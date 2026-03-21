@@ -489,7 +489,7 @@ function FeaturedCard({
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(circle at 40% 50%, rgba(201,168,76,0.06), transparent 60%)",
+                "radial-gradient(circle at 40% 50%, rgba(212,168,83,0.06), transparent 60%)",
             }}
           />
 
@@ -511,9 +511,9 @@ function FeaturedCard({
               width: 60,
               height: 60,
               borderRadius: "50%",
-              background: "rgba(201,168,76,0.15)",
+              background: "rgba(212,168,83,0.15)",
               backdropFilter: "blur(8px)",
-              border: "2px solid rgba(201,168,76,0.4)",
+              border: "2px solid rgba(212,168,83,0.4)",
             }}
           >
             <span
@@ -601,7 +601,7 @@ function FeaturedEmptyCTA({ onAdd }: { onAdd: () => void }) {
       className="w-full text-left"
       style={{
         background:
-          "linear-gradient(135deg, rgba(201,168,76,0.06), rgba(201,168,76,0.02))",
+          "linear-gradient(135deg, rgba(212,168,83,0.06), rgba(212,168,83,0.02))",
         border: "1px solid rgba(212,168,83,0.2)",
         borderRadius: 12,
         padding: "14px 16px",
@@ -732,7 +732,7 @@ function ClipCard({
         <div
           className="flex h-full w-full items-center justify-center"
           style={{
-            background: `linear-gradient(${140 + index * 10}deg, rgba(74,222,128,0.02), rgba(201,168,76,0.03))`,
+            background: `linear-gradient(${140 + index * 10}deg, rgba(74,222,128,0.02), rgba(212,168,83,0.03))`,
           }}
         >
           <div
@@ -832,7 +832,7 @@ function ClipCard({
           }}
           className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full"
           style={{
-            background: "rgba(201,168,76,0.8)",
+            background: "rgba(212,168,83,0.8)",
             color: "#000",
           }}
           aria-label="태그 추가"
