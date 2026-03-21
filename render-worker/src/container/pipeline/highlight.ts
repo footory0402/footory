@@ -4,15 +4,12 @@ import { join } from "path";
 import { downloadFromR2, uploadToR2 } from "../r2.js";
 import { passIntro } from "./intro.js";
 import { passConcat } from "./concat.js";
-import { passBgm, downloadBgm } from "./bgm.js";
-
 interface HighlightRenderInput {
   jobId: string;
   highlightId: string;
   clipKeys: string[]; // rendered clips R2 keys
   playerName: string;
   playerPosition?: string;
-  bgmR2Key?: string;
 }
 
 /**
@@ -22,8 +19,7 @@ interface HighlightRenderInput {
 export async function renderHighlight(
   input: HighlightRenderInput
 ): Promise<string> {
-  const { jobId, highlightId, clipKeys, playerName, playerPosition, bgmR2Key } =
-    input;
+  const { jobId, highlightId, clipKeys, playerName, playerPosition } = input;
 
   const workDir = await mkdtemp(join(tmpdir(), `highlight-${jobId}-`));
 
@@ -48,24 +44,10 @@ export async function renderHighlight(
     console.log(`[Highlight] Concatenating ${segments.length} segments...`);
     await passConcat(segments, concatPath);
 
-    // BGM (옵션)
-    let finalPath = concatPath;
-    if (bgmR2Key) {
-      const bgmPath = join(workDir, "bgm.mp3");
-      await downloadBgm(bgmR2Key, bgmPath);
-
-      finalPath = join(workDir, "final.mp4");
-      await passBgm(concatPath, bgmPath, finalPath, {
-        bgmR2Key,
-        originalVolume: 0.5,
-        bgmVolume: 0.5,
-      });
-    }
-
     // R2 업로드
     const outputKey = `highlights/${highlightId}.mp4`;
     console.log(`[Highlight] Uploading to ${outputKey}...`);
-    await uploadToR2(finalPath, outputKey);
+    await uploadToR2(concatPath, outputKey);
 
     return outputKey;
   } finally {
