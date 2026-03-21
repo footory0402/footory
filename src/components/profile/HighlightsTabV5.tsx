@@ -180,7 +180,7 @@ export default function HighlightsTabV5({
                 width: 3,
                 height: 14,
                 borderRadius: 2,
-                background: "var(--v5-gold)",
+                background: "var(--color-accent)",
               }}
             />
             <span
@@ -188,7 +188,7 @@ export default function HighlightsTabV5({
                 fontFamily: "var(--font-body)",
                 fontSize: 14,
                 fontWeight: 700,
-                color: "var(--v5-text)",
+                color: "var(--color-text-1)",
               }}
             >
               전체 클립
@@ -197,7 +197,7 @@ export default function HighlightsTabV5({
               style={{
                 fontFamily: "var(--font-stat)",
                 fontSize: 11,
-                color: "var(--v5-text-dim)",
+                color: "var(--color-text-3)",
                 background: "rgba(255,255,255,0.04)",
                 borderRadius: 8,
                 padding: "1px 7px",
@@ -212,9 +212,9 @@ export default function HighlightsTabV5({
               style={{
                 padding: "4px 10px",
                 borderRadius: 6,
-                background: "var(--v5-gold-bg)",
-                border: "1px solid var(--v5-gold-border)",
-                color: "var(--v5-gold-light)",
+                background: "rgba(212,168,83,0.08)",
+                border: "1px solid rgba(212,168,83,0.2)",
+                color: "var(--color-accent)",
                 fontSize: 10,
                 fontFamily: "var(--font-body)",
                 fontWeight: 500,
@@ -255,10 +255,10 @@ export default function HighlightsTabV5({
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="animate-pulse rounded-[14px]"
+                className="animate-pulse rounded-xl"
                 style={{
                   aspectRatio: "3/4",
-                  background: "var(--v5-card)",
+                  background: "var(--color-card)",
                 }}
               />
             ))}
@@ -272,9 +272,9 @@ export default function HighlightsTabV5({
                 className="flex flex-col items-center justify-center gap-2"
                 style={{
                   aspectRatio: "3/4",
-                  borderRadius: 14,
-                  border: "1.5px dashed rgba(201,168,76,0.2)",
-                  background: "rgba(201,168,76,0.02)",
+                  borderRadius: 12,
+                  border: "1.5px dashed rgba(212,168,83,0.2)",
+                  background: "rgba(212,168,83,0.02)",
                   cursor: "pointer",
                 }}
               >
@@ -284,9 +284,9 @@ export default function HighlightsTabV5({
                     width: 44,
                     height: 44,
                     borderRadius: "50%",
-                    background: "var(--v5-gold-bg)",
+                    background: "rgba(212,168,83,0.08)",
                     fontSize: 20,
-                    color: "var(--v5-gold-dim)",
+                    color: "rgba(212,168,83,0.5)",
                   }}
                 >
                   +
@@ -294,7 +294,7 @@ export default function HighlightsTabV5({
                 <span
                   style={{
                     fontSize: 11,
-                    color: "var(--v5-gold-dim)",
+                    color: "rgba(212,168,83,0.5)",
                     fontFamily: "var(--font-body)",
                   }}
                 >
@@ -328,7 +328,7 @@ export default function HighlightsTabV5({
             <p
               style={{
                 fontSize: 12,
-                color: "var(--v5-text-dim)",
+                color: "var(--color-text-3)",
                 fontFamily: "var(--font-body)",
               }}
             >
@@ -449,7 +449,7 @@ function FeaturedCard({
             fontFamily: "var(--font-body)",
             fontSize: 13,
             fontWeight: 700,
-            color: "var(--v5-gold-light)",
+            color: "var(--color-accent)",
           }}
         >
           대표 영상
@@ -458,7 +458,7 @@ function FeaturedCard({
           className="ml-auto"
           style={{
             fontSize: 9,
-            color: "var(--v5-text-dim)",
+            color: "var(--color-text-3)",
             fontFamily: "var(--font-body)",
           }}
         >
@@ -471,9 +471,9 @@ function FeaturedCard({
         className="relative cursor-pointer overflow-hidden"
         onClick={onPlay}
         style={{
-          borderRadius: 16,
-          border: "1px solid rgba(201,168,76,0.25)",
-          boxShadow: "0 4px 24px rgba(201,168,76,0.1)",
+          borderRadius: 12,
+          border: "1px solid rgba(212,168,83,0.2)",
+          boxShadow: "0 4px 20px rgba(212,168,83,0.06)",
         }}
       >
         {/* 16:9 area */}
@@ -520,7 +520,7 @@ function FeaturedCard({
               style={{
                 fontSize: 22,
                 marginLeft: 3,
-                color: "var(--v5-gold-light)",
+                color: "var(--color-accent)",
               }}
             >
               ▶
@@ -531,7 +531,7 @@ function FeaturedCard({
           <div
             className="absolute left-[10px] top-[10px]"
             style={{
-              background: "var(--v5-gold)",
+              background: "var(--color-accent)",
               borderRadius: 4,
               padding: "3px 8px",
               fontSize: 9,
@@ -553,7 +553,7 @@ function FeaturedCard({
               borderRadius: 4,
               padding: "3px 7px",
               fontSize: 10,
-              color: "var(--v5-text-sub)",
+              color: "var(--color-text-2)",
               fontFamily: "var(--font-stat)",
             }}
           >
@@ -602,8 +602,8 @@ function FeaturedEmptyCTA({ onAdd }: { onAdd: () => void }) {
       style={{
         background:
           "linear-gradient(135deg, rgba(201,168,76,0.06), rgba(201,168,76,0.02))",
-        border: "1px solid var(--v5-gold-border)",
-        borderRadius: 14,
+        border: "1px solid rgba(212,168,83,0.2)",
+        borderRadius: 12,
         padding: "14px 16px",
         marginBottom: 20,
         cursor: "pointer",
@@ -616,8 +616,8 @@ function FeaturedEmptyCTA({ onAdd }: { onAdd: () => void }) {
             width: 42,
             height: 42,
             borderRadius: 12,
-            background: "var(--v5-gold-bg)",
-            border: "1px solid var(--v5-gold-border)",
+            background: "rgba(212,168,83,0.08)",
+            border: "1px solid rgba(212,168,83,0.2)",
             fontSize: 18,
           }}
         >
@@ -630,7 +630,7 @@ function FeaturedEmptyCTA({ onAdd }: { onAdd: () => void }) {
               fontFamily: "var(--font-body)",
               fontSize: 13,
               fontWeight: 700,
-              color: "var(--v5-gold-light)",
+              color: "var(--color-accent)",
             }}
           >
             대표 영상을 설정해보세요
@@ -639,14 +639,14 @@ function FeaturedEmptyCTA({ onAdd }: { onAdd: () => void }) {
             style={{
               fontFamily: "var(--font-body)",
               fontSize: 10,
-              color: "var(--v5-text-dim)",
+              color: "var(--color-text-3)",
               margin: "3px 0 0",
             }}
           >
             스카우터가 가장 먼저 보는 영상이에요
           </p>
         </div>
-        <span style={{ color: "var(--v5-gold-dim)", fontSize: 18 }}>›</span>
+        <span style={{ color: "rgba(212,168,83,0.5)", fontSize: 18 }}>›</span>
       </div>
     </button>
   );
@@ -673,12 +673,12 @@ function TagPill({
         borderRadius: 16,
         whiteSpace: "nowrap",
         background: active
-          ? "var(--v5-gold-bg)"
+          ? "rgba(212,168,83,0.08)"
           : "rgba(255,255,255,0.03)",
-        border: `1px solid ${active ? "var(--v5-gold-border)" : "var(--v5-card-border)"}`,
+        border: `1px solid ${active ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`,
         color: active
-          ? "var(--v5-gold-light)"
-          : "var(--v5-text-dim)",
+          ? "var(--color-accent)"
+          : "var(--color-text-3)",
         fontSize: 11,
         fontFamily: "var(--font-body)",
         fontWeight: active ? 600 : 400,
@@ -714,9 +714,9 @@ function ClipCard({
       onClick={onPlay}
       style={{
         aspectRatio: "3/4",
-        borderRadius: 14,
+        borderRadius: 12,
         background: "rgba(255,255,255,0.02)",
-        border: "1px solid var(--v5-card-border)",
+        border: "1px solid rgba(255,255,255,0.06)",
       }}
     >
       {/* Background / Thumbnail */}
@@ -760,7 +760,7 @@ function ClipCard({
             borderRadius: 3,
             padding: "2px 5px",
             fontSize: 9,
-            color: "var(--v5-text-sub)",
+            color: "var(--color-text-2)",
             fontFamily: "var(--font-stat)",
           }}
         >
@@ -776,8 +776,8 @@ function ClipCard({
               padding: "1px 5px",
               borderRadius: 3,
               fontSize: 8,
-              background: "rgba(201,168,76,0.15)",
-              color: "var(--v5-gold-light)",
+              background: "rgba(212,168,83,0.15)",
+              color: "var(--color-accent)",
               fontFamily: "var(--font-body)",
               fontWeight: 500,
             }}
@@ -814,7 +814,7 @@ function ClipCard({
           <span
             style={{
               fontSize: 9,
-              color: "var(--v5-text-dim)",
+              color: "var(--color-text-3)",
               fontFamily: "var(--font-body)",
             }}
           >
