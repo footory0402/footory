@@ -91,6 +91,37 @@
   }
 }
 
+/* ── v5 Profile Redesign tokens ── */
+:root {
+  /* v5 Hero backgrounds */
+  --v5-dark: #080808;
+  --v5-card: #111111;
+  --v5-card-border: rgba(255, 255, 255, 0.06);
+
+  /* v5 Gold palette */
+  --v5-gold: #c9a84c;
+  --v5-gold-light: #e8d48b;
+  --v5-gold-dim: rgba(201, 168, 76, 0.5);
+  --v5-gold-bg: rgba(201, 168, 76, 0.08);
+  --v5-gold-border: rgba(201, 168, 76, 0.15);
+  --v5-gold-glow: rgba(201, 168, 76, 0.12);
+
+  /* v5 Text */
+  --v5-text: #f0f0f0;
+  --v5-text-sub: rgba(255, 255, 255, 0.50);
+  --v5-text-dim: rgba(255, 255, 255, 0.22);
+
+  /* v5 Verify (green) */
+  --v5-green: #4ade80;
+  --v5-green-bg: rgba(74, 222, 128, 0.08);
+  --v5-green-border: rgba(74, 222, 128, 0.18);
+
+  /* v5 Transfer (blue) */
+  --v5-blue: #60a5fa;
+  --v5-blue-bg: rgba(96, 165, 250, 0.08);
+  --v5-blue-border: rgba(96, 165, 250, 0.18);
+}
+
 /* Accent helpers */
 :root {
   --accent-bg: rgba(212, 168, 83, 0.08);
