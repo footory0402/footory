@@ -87,7 +87,7 @@ const initial = {
   highlightStart: 0,
 
   // v1.3
-  step: 0,
+  step: 1,
   trimStart: 0,
   trimEnd: null as number | null,
   duration: null as number | null,

@@ -65,13 +65,7 @@ export default function UploadPage() {
   const step = store.step;
   const maxStep = 2;
 
-  // 파일 선택 후 자동으로 Step 1로
   const file = store.file;
-  useEffect(() => {
-    if (file && step === 0) {
-      useUploadStore.getState().setStep(1);
-    }
-  }, [file, step]);
 
   const handleNext = useCallback(() => {
     const s = useUploadStore.getState();
@@ -82,7 +76,7 @@ export default function UploadPage() {
     const s = useUploadStore.getState();
     if (s.step > 1) s.setStep(s.step - 1);
     else if (s.step === 1) {
-      s.setStep(0);
+      // step 1에서 뒤로 가면 파일만 초기화 (step은 1 유지 → VideoSelector로 돌아감)
       s.setFile(null);
     }
   }, []);
@@ -224,8 +218,8 @@ export default function UploadPage() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => (step > 0 ? handleBack() : router.back())}
-            aria-label={step > 0 ? "이전 단계" : "뒤로가기"}
+            onClick={() => (step > 1 || store.file ? handleBack() : router.back())}
+            aria-label={step > 1 || store.file ? "이전 단계" : "뒤로가기"}
             className="flex h-11 w-11 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
             <svg
@@ -246,8 +240,8 @@ export default function UploadPage() {
           </h1>
         </div>
 
-        {/* Step Bar — 3단계 라벨 인디케이터 */}
-        {step > 0 && (
+        {/* Step Bar — 2단계 라벨 인디케이터 */}
+        {store.file && (
           <div className="flex items-center justify-center gap-1">
             {STEPS.map((s, i) => (
               <div key={s.id} className="flex items-center">
@@ -288,8 +282,8 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Challenge banner */}
-        {challengeTag && step === 0 && (
+        {/* Challenge banner — Step 1 파일 미선택 상태에서 표시 */}
+        {challengeTag && step === 1 && !store.file && (
           <div className="flex items-center gap-3 rounded-xl bg-accent/8 px-4 py-3">
             <span className="text-lg">🏆</span>
             <div>
@@ -303,18 +297,17 @@ export default function UploadPage() {
           </div>
         )}
 
-        {/* Parent: child selector */}
-        {isParent && step === 0 && <ChildSelector />}
+        {/* Parent: child selector — 파일 미선택 상태에서 표시 */}
+        {isParent && step === 1 && !store.file && <ChildSelector />}
 
-        {/* ═══ Step 0: 파일 선택 ═══ */}
-        {step === 0 && (
+        {/* ═══ Step 1: 파일 선택 (파일 없음) 또는 구간 자르기 (파일 있음) ═══ */}
+        {step === 1 && !store.file && (
           <>
             {!isParent && <UploadUsageGuide isChallenge={!!challengeTag} />}
             <VideoSelector />
           </>
         )}
 
-        {/* ═══ Step 1: 파일 선택 + 구간 자르기 (통합) ═══ */}
         {step === 1 && store.file && (
           <div className="animate-fade-up">
             <h2 className="mb-3 text-[15px] font-semibold text-text-1">
@@ -380,6 +373,15 @@ export default function UploadPage() {
                 onChange={(v) => store.setVisibility(v)}
               />
             </section>
+
+            {/* 업로드 버튼 — 스크롤 영역 마지막 */}
+            <button
+              type="button"
+              onClick={handleUpload}
+              className="w-full rounded-xl border border-accent/20 bg-accent py-4 text-[15px] font-bold text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-transform active:scale-[0.99]"
+            >
+              업로드
+            </button>
           </div>
         )}
 
@@ -430,25 +432,17 @@ export default function UploadPage() {
         )}
       </div>
 
-      {/* Bottom navigation */}
-      {step > 0 && store.status !== "error" && (
+      {/* Bottom navigation — Step 1에서만 "다음" 버튼 표시 (Step 2는 스크롤 내 업로드 버튼 사용) */}
+      {step === 1 && store.file && store.status !== "error" && (
         <div className="pointer-events-none fixed bottom-[calc(54px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2">
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg via-bg/96 to-transparent" />
           <div className="relative flex gap-3 px-4 pb-3">
-            {/* 다음 / 업로드 */}
             <button
               type="button"
-              onClick={() => {
-                if (step === 2) {
-                  handleUpload();
-                } else {
-                  handleNext();
-                }
-              }}
-              disabled={step === 0 && !store.file}
-              className="pointer-events-auto flex-1 rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color] active:scale-[0.99] disabled:border-border disabled:bg-card-alt disabled:text-text-3 disabled:shadow-none"
+              onClick={handleNext}
+              className="pointer-events-auto flex-1 rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color] active:scale-[0.99]"
             >
-              {step === 2 ? "업로드" : "다음"}
+              다음
             </button>
           </div>
         </div>
