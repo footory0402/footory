@@ -18,14 +18,8 @@ const TABS: { key: ProfileTabKey; label: string; icon: string }[] = [
 function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
   return (
     <div
-      className="sticky z-40 flex"
-      style={{
-        top: 49,
-        background: "rgba(8,8,8,0.96)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        borderBottom: "1px solid var(--v5-card-border)",
-      }}
+      className="sticky z-40 flex border-b border-white/[0.06] bg-bg/95 backdrop-blur-sm"
+      style={{ top: 49 }}
     >
       {TABS.map((tab) => {
         const active = activeTab === tab.key;
@@ -33,25 +27,13 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
           <button
             key={tab.key}
             onClick={() => onTabChange(tab.key)}
-            className="flex flex-1 items-center justify-center gap-1"
-            style={{
-              padding: "11px 0 9px",
-              background: "transparent",
-              border: "none",
-              borderBottom: active
-                ? "2px solid var(--v5-gold)"
-                : "2px solid transparent",
-              color: active
-                ? "var(--v5-gold-light)"
-                : "var(--v5-text-dim)",
-              fontFamily: "var(--font-body)",
-              fontSize: 12,
-              fontWeight: active ? 700 : 400,
-              cursor: "pointer",
-              transition: "color 0.15s, border-color 0.15s",
-            }}
+            className={`flex flex-1 items-center justify-center gap-1 border-b-2 py-[10px] text-xs transition-colors ${
+              active
+                ? "border-accent text-accent font-bold"
+                : "border-transparent text-text-3"
+            }`}
           >
-            <span style={{ fontSize: 12 }}>{tab.icon}</span>
+            <span className="text-xs">{tab.icon}</span>
             {tab.label}
           </button>
         );
