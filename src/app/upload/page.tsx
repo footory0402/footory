@@ -388,6 +388,7 @@ export default function UploadPage() {
                   spotlightX={store.spotlightX}
                   spotlightY={store.spotlightY}
                   onSpotlightChange={(x, y) => store.setSpotlight(x, y)}
+                  trimStart={store.trimStart}
                 />
               )}
 
