@@ -221,7 +221,7 @@ export default function ProfilePage() {
   return (
     <div className="bg-bg">
       {/* Hero */}
-      <div className="mx-4 mt-4 rounded-xl overflow-hidden">
+      <div className="mx-4 mt-4">
         <HeroSection
           profile={profile}
           playStyle={playStyle}

@@ -285,13 +285,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
       <div className="px-4 pt-3">
       {/* Profile hero (read-only, no callbacks = no action bar) */}
-      <div className="rounded-xl overflow-hidden">
-        <HeroSection
-          profile={profile}
-          playStyle={mappedPlayStyle}
-          teamState={profile.teamName ? "has-team" : "no-team"}
-        />
-      </div>
+      <HeroSection
+        profile={profile}
+        playStyle={mappedPlayStyle}
+        teamState={profile.teamName ? "has-team" : "no-team"}
+      />
 
       {/* 액션 버튼 — 프로필 카드 바로 아래 */}
       {!data.isOwnProfile && (

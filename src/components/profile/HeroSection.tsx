@@ -20,6 +20,33 @@ interface HeroSectionProps {
   onTeamChange?: () => void;
 }
 
+/* ── SVG Icon components ── */
+const IconShare = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
+  </svg>
+);
+const IconFile = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
+  </svg>
+);
+const IconEdit = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+const IconCamera = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" />
+  </svg>
+);
+const IconChevronRight = ({ color = "currentColor", size = 14 }: { color?: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);
+
 function HeroSectionInner({
   profile,
   playStyle,
@@ -32,6 +59,7 @@ function HeroSectionInner({
 }: HeroSectionProps) {
   const avatarRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const isOwn = !!onEdit;
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,501 +93,519 @@ function HeroSectionInner({
     ? PLAY_STYLES[playStyle.styleType]
     : null;
 
-  return (
-    <div className="bg-card">
-      {/* ── 좌우 분할 ── */}
-      <div className="flex" style={{ minHeight: 210 }}>
-        {/* 좌: 프로필 사진 (40%) */}
-        <div className="relative w-[40%] shrink-0 overflow-hidden">
-          <div
-            className="flex h-full w-full items-center justify-center"
-            style={{
-              minHeight: 230,
-              background: "linear-gradient(165deg, var(--color-card) 0%, var(--color-bg) 100%)",
-            }}
-          >
-            {/* Gold radial glow */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(circle at 30% 60%, rgba(212,168,83,0.12), transparent 60%)",
-              }}
-            />
+  const fmt = (n: number) => {
+    if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return String(n);
+  };
 
-            {safeAvatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={safeAvatarUrl}
-                alt={`${profile.name} 프로필 사진`}
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ objectPosition: "center 20%" }}
-              />
-            ) : (
-              <svg
-                width="70"
-                height="90"
-                viewBox="0 0 120 140"
-                fill="none"
-                opacity="0.25"
+  const followsHref = (tab: string) =>
+    isOwn
+      ? `/profile/follows?tab=${tab}`
+      : `/profile/follows?tab=${tab}&profileId=${profile.id}`;
+
+  const physicalTags = [
+    profile.birthYear ? `${profile.birthYear}년생` : null,
+    profile.heightCm ? `${profile.heightCm}cm` : null,
+    profile.weightKg ? `${profile.weightKg}kg` : null,
+    preferredFootLabel,
+  ].filter(Boolean);
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* ═══════════════════════════════════════════
+          CARD 1 — Player Identity
+          ═══════════════════════════════════════════ */}
+      <div
+        className="relative overflow-hidden"
+        style={{
+          background: "var(--color-card)",
+          borderRadius: 16,
+          border: "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
+        {/* Gold accent line — top edge */}
+        <div
+          style={{
+            height: 2,
+            background: "linear-gradient(90deg, transparent 0%, rgba(212,168,83,0.5) 30%, rgba(212,168,83,0.7) 50%, rgba(212,168,83,0.5) 70%, transparent 100%)",
+          }}
+        />
+
+        {/* Avatar row */}
+        <div className="flex items-center gap-4 px-5 pt-5 pb-4">
+          {/* Avatar — 88px square with gold ring */}
+          <div className="relative shrink-0">
+            <div
+              className="overflow-hidden"
+              style={{
+                width: 88,
+                height: 88,
+                borderRadius: 22,
+                padding: 2,
+                background: safeAvatarUrl
+                  ? "linear-gradient(135deg, rgba(212,168,83,0.6), rgba(212,168,83,0.15))"
+                  : "rgba(255,255,255,0.06)",
+              }}
+            >
+              <div
+                className="h-full w-full overflow-hidden"
+                style={{
+                  borderRadius: 20,
+                  background: "var(--color-card-alt)",
+                }}
               >
-                <circle
-                  cx="60"
-                  cy="42"
-                  r="28"
-                  fill="rgba(201,168,76,0.18)"
-                  stroke="rgba(201,168,76,0.22)"
-                  strokeWidth="1"
-                />
-                <path
-                  d="M22 132 Q22 94 60 87 Q98 94 98 132"
-                  fill="rgba(201,168,76,0.08)"
-                  stroke="rgba(201,168,76,0.15)"
-                  strokeWidth="1"
-                />
-              </svg>
+                {safeAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={safeAvatarUrl}
+                    alt={profile.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Position badge — bottom-right corner */}
+            {profile.position && (
+              <div
+                className="absolute -bottom-1 -right-1"
+                style={{
+                  padding: 2,
+                  borderRadius: 9,
+                  background: "var(--color-card)",
+                }}
+              >
+                <div
+                  className="flex items-center justify-center"
+                  style={{
+                    width: 28,
+                    height: 20,
+                    borderRadius: 7,
+                    background: "linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))",
+                    border: "1px solid rgba(212,168,83,0.25)",
+                    fontFamily: "var(--font-stat)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "var(--color-accent)",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {profile.position}
+                </div>
+              </div>
+            )}
+
+            {/* Avatar upload button */}
+            {onAvatarUpload && (
+              <>
+                <button
+                  onClick={() => avatarRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="absolute inset-0 flex items-center justify-center rounded-[22px] opacity-0 transition-opacity hover:opacity-100 active:opacity-100"
+                  style={{ background: "rgba(0,0,0,0.5)" }}
+                  aria-label="프로필 사진 변경"
+                >
+                  {avatarUploading ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <IconCamera />
+                  )}
+                </button>
+                <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              </>
             )}
           </div>
 
-          {/* Avatar upload overlay */}
-          {onAvatarUpload && (
-            <>
-              <button
-                onClick={() => avatarRef.current?.click()}
-                disabled={avatarUploading}
-                className="absolute inset-0 z-[4] flex items-center justify-center opacity-0 transition-opacity hover:opacity-100"
-                style={{ background: "rgba(0,0,0,0.45)" }}
-                aria-label="프로필 사진 변경"
-              >
-                {avatarUploading ? (
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                ) : (
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                )}
-              </button>
-              <input
-                ref={avatarRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
-            </>
-          )}
-
-          {/* Position badge (top-left) */}
-          {profile.position && (
-            <div
-              className="absolute left-[10px] top-[10px]"
-              style={{
-                background: "rgba(0,0,0,0.7)",
-                backdropFilter: "blur(10px)",
-                borderRadius: 6,
-                padding: "3px 10px",
-                border: "1px solid rgba(212,168,83,0.2)",
-              }}
-            >
-              <span
+          {/* Name + Handle + Badges */}
+          <div className="flex flex-1 flex-col gap-1 min-w-0">
+            {/* Name row */}
+            <div className="flex items-center gap-2">
+              <h1
+                className="m-0 truncate text-[20px] font-[800] leading-tight"
                 style={{
-                  fontFamily: "var(--font-stat)",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  color: "var(--color-accent)",
+                  fontFamily: "var(--font-body)",
+                  color: "var(--color-text-1)",
+                  letterSpacing: "-0.02em",
                 }}
               >
-                {profile.position}
-              </span>
+                {profile.name}
+              </h1>
             </div>
-          )}
 
-          {/* MVP badge (bottom-left) */}
-          {profile.mvpCount > 0 && (
-            <div
-              className="absolute bottom-[10px] left-[10px]"
+            {/* Handle + City */}
+            <p
+              className="m-0 truncate"
               style={{
-                background: "rgba(201,168,76,0.2)",
-                backdropFilter: "blur(8px)",
-                border: "1px solid rgba(201,168,76,0.4)",
-                borderRadius: 10,
-                padding: "2px 8px",
-                fontSize: 10,
-                fontFamily: "var(--font-stat)",
-                color: "var(--color-accent)",
+                fontSize: 13,
+                color: "var(--color-text-3)",
+                fontFamily: "var(--font-body)",
               }}
             >
-              🏆 ×{profile.mvpCount}
-            </div>
-          )}
+              @{profile.handle}
+              {profile.city && (
+                <span style={{ opacity: 0.5 }}>{` · ${profile.city}`}</span>
+              )}
+            </p>
 
-          {/* Gold divider line (right edge) */}
-          <div
-            className="absolute right-0 top-0 h-full"
-            style={{
-              width: 1,
-              background:
-                "linear-gradient(180deg, transparent 10%, rgba(201,168,76,0.2) 50%, transparent 90%)",
-            }}
-          />
+            {/* Inline badges: MVP, Play style */}
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {profile.mvpCount > 0 && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 3,
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    background: "linear-gradient(135deg, rgba(212,168,83,0.15), rgba(212,168,83,0.06))",
+                    border: "1px solid rgba(212,168,83,0.25)",
+                    fontFamily: "var(--font-stat)",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "var(--color-accent)",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  MVP{profile.mvpCount > 1 ? ` x${profile.mvpCount}` : ""}
+                </span>
+              )}
+              {styleInfo && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "var(--color-text-2)",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >
+                  {styleInfo.label}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* 우: 선수 정보 (60%) */}
-        <div className="flex flex-1 flex-col" style={{ padding: "14px 14px 10px" }}>
-          {/* Name */}
-          <h1
-            className="m-0 text-[21px] font-[800]"
-            style={{
-              fontFamily: "var(--font-body)",
-              color: "var(--color-text-1)",
-              letterSpacing: "-0.02em",
-              lineHeight: 1.2,
-            }}
-          >
-            {profile.name}
-          </h1>
+        {/* ── Stats counter row ── */}
+        <div
+          className="mx-5 mb-5 flex items-center"
+          style={{
+            borderRadius: 12,
+            background: "rgba(255,255,255,0.025)",
+            border: "1px solid rgba(255,255,255,0.04)",
+            overflow: "hidden",
+          }}
+        >
+          {[
+            { label: "팔로워", value: profile.followers, href: followsHref("followers") },
+            { label: "팔로잉", value: profile.following, href: followsHref("following") },
+            { label: "조회수", value: profile.views, href: null },
+          ].map(({ label, value, href }, i) => {
+            const inner = (
+              <>
+                <span
+                  style={{
+                    fontFamily: "var(--font-stat)",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "var(--color-text-1)",
+                    lineHeight: 1,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {fmt(value)}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "var(--color-text-3)",
+                    fontFamily: "var(--font-body)",
+                    marginTop: 3,
+                    fontWeight: 500,
+                  }}
+                >
+                  {label}
+                </span>
+              </>
+            );
 
-          {/* Handle + Region */}
-          <p
-            className="mt-[2px]"
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 11,
-              color: "var(--color-text-3)",
-              margin: "2px 0 0",
-            }}
-          >
-            @{profile.handle}
-            {profile.city && ` · ${profile.city}`}
-          </p>
+            const cls = `flex flex-1 flex-col items-center py-3.5 transition-colors active:bg-white/[0.03]`;
+            const divider = i < 2 ? (
+              <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.05)" }} />
+            ) : null;
 
-          {/* Divider */}
-          <div
-            className="my-[9px]"
-            style={{ height: 1, background: "rgba(255,255,255,0.05)" }}
-          />
+            return (
+              <React.Fragment key={label}>
+                {href ? (
+                  <Link href={href} className={cls}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <div className={cls}>{inner}</div>
+                )}
+                {divider}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
 
+      {/* ═══════════════════════════════════════════
+          CARD 2 — Player Info (physical + team)
+          ═══════════════════════════════════════════ */}
+      {(physicalTags.length > 0 || teamState !== "no-team" || onTeamChange) && (
+        <div
+          style={{
+            background: "var(--color-card)",
+            borderRadius: 16,
+            border: "1px solid rgba(255,255,255,0.05)",
+            padding: "14px 16px",
+          }}
+        >
           {/* Physical tags */}
-          <div className="mb-2 flex flex-wrap gap-[5px]">
-            {[
-              profile.birthYear ? `${profile.birthYear}` : null,
-              profile.heightCm ? `${profile.heightCm}cm` : null,
-              profile.weightKg ? `${profile.weightKg}kg` : null,
-              preferredFootLabel,
-            ]
-              .filter(Boolean)
-              .map((v) => (
+          {physicalTags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {physicalTags.map((v) => (
                 <span
                   key={v}
                   style={{
-                    padding: "2px 7px",
-                    borderRadius: 4,
-                    fontSize: 10,
-                    background: "rgba(255,255,255,0.03)",
+                    padding: "4px 10px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    background: "rgba(255,255,255,0.04)",
                     border: "1px solid rgba(255,255,255,0.06)",
                     color: "var(--color-text-2)",
                     fontFamily: "var(--font-body)",
+                    fontWeight: 500,
                   }}
                 >
                   {v}
                 </span>
               ))}
-          </div>
-
-          {/* Play style */}
-          {styleInfo && (
-            <div
-              className="mb-2 flex items-center gap-[6px]"
-              style={{
-                padding: "5px 9px",
-                borderRadius: 7,
-                background: "rgba(250,204,21,0.04)",
-                border: "1px solid rgba(250,204,21,0.08)",
-              }}
-            >
-              <span style={{ fontSize: 12 }}>{styleInfo.icon}</span>
-              <span
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--color-text-1)",
-                }}
-              >
-                {styleInfo.label}
-              </span>
             </div>
           )}
 
-          {/* ── Team state branching ── */}
-          {teamState === "has-team" && (
-            <div className="mb-[6px] flex items-center gap-[6px]">
-              <div
-                className="flex items-center justify-center"
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 4,
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  fontSize: 10,
-                }}
-              >
-                ⚽
-              </div>
-              <span
-                className="flex-1"
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "var(--color-text-2)",
-                }}
-              >
-                {profile.teamName}
-              </span>
-              {onTeamChange && (
-                <button
-                  onClick={onTeamChange}
-                  style={{
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    color: "var(--color-text-3)",
-                    fontSize: 9,
-                    fontFamily: "var(--font-body)",
-                    cursor: "pointer",
-                  }}
-                >
-                  변경
-                </button>
+          {/* Team section */}
+          {(teamState !== "no-team" || onTeamChange) && (
+            <>
+              {physicalTags.length > 0 && (
+                <div className="my-3" style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
               )}
-            </div>
-          )}
 
-          {teamState === "no-team" && onTeamChange && (
-            <Link
-              href="/team"
-              className="mb-[6px] block cursor-pointer"
-              style={{
-                padding: "8px 10px",
-                borderRadius: 8,
-                background: "rgba(212,168,83,0.08)",
-                border: "1px solid rgba(212,168,83,0.2)",
-              }}
-            >
-              <div className="flex items-center gap-[6px]">
-                <span style={{ fontSize: 14 }}>👥</span>
-                <span
-                  className="flex-1"
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "var(--color-accent)",
-                  }}
-                >
-                  팀에 소속되어 보세요
-                </span>
-                <span style={{ color: "rgba(212,168,83,0.5)", fontSize: 14 }}>
-                  ›
-                </span>
-              </div>
-              <div
-                className="mt-[6px] flex gap-[6px]"
-                style={{ paddingLeft: 22 }}
-              >
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: "rgba(212,168,83,0.5)",
-                    fontFamily: "var(--font-body)",
-                    padding: "1px 6px",
-                    borderRadius: 3,
-                    background: "rgba(212,168,83,0.06)",
-                    border: "1px solid rgba(212,168,83,0.1)",
-                  }}
-                >
-                  🔗 초대코드로 가입
-                </span>
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: "rgba(212,168,83,0.5)",
-                    fontFamily: "var(--font-body)",
-                    padding: "1px 6px",
-                    borderRadius: 3,
-                    background: "rgba(212,168,83,0.06)",
-                    border: "1px solid rgba(212,168,83,0.1)",
-                  }}
-                >
-                  ✚ 우리 팀 직접 만들기
-                </span>
-              </div>
-            </Link>
-          )}
-
-          {teamState === "transferring" && onTeamChange && (
-            <Link
-              href="/team"
-              className="mb-[6px] block cursor-pointer"
-              style={{
-                padding: "8px 10px",
-                borderRadius: 8,
-                background: "rgba(96,165,250,0.08)",
-                border: "1px solid rgba(96,165,250,0.18)",
-              }}
-            >
-              <div className="flex items-center gap-[6px]">
-                <span style={{ fontSize: 12 }}>🔄</span>
-                <div className="flex-1">
-                  <span
-                    className="block"
+              {teamState === "has-team" && (
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="flex shrink-0 items-center justify-center"
                     style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--color-blue)",
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.06)",
                     }}
                   >
-                    새 팀으로 이동하기
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 9,
-                      color: "rgba(96,165,250,0.5)",
-                      fontFamily: "var(--font-body)",
-                    }}
-                  >
-                    진학·이적 시 새 소속 설정
-                  </span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-3)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M12 8v8M8 12h8" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span
+                      style={{
+                        fontFamily: "var(--font-body)",
+                        fontSize: 9,
+                        fontWeight: 600,
+                        color: "var(--color-text-3)",
+                        textTransform: "uppercase" as const,
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      현재 소속
+                    </span>
+                    <span
+                      className="truncate"
+                      style={{
+                        fontFamily: "var(--font-body)",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: "var(--color-text-1)",
+                        marginTop: 1,
+                      }}
+                    >
+                      {profile.teamName}
+                    </span>
+                  </div>
+                  {onTeamChange && (
+                    <button
+                      onClick={onTeamChange}
+                      className="ml-auto shrink-0 transition-colors active:bg-white/[0.05]"
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: 8,
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        color: "var(--color-text-3)",
+                        fontSize: 11,
+                        fontFamily: "var(--font-body)",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      변경
+                    </button>
+                  )}
                 </div>
-                <span style={{ color: "rgba(96,165,250,0.4)", fontSize: 14 }}>
-                  ›
-                </span>
-              </div>
-              <div
-                className="mt-[6px] flex gap-[6px]"
-                style={{ paddingLeft: 22 }}
-              >
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: "rgba(96,165,250,0.5)",
-                    fontFamily: "var(--font-body)",
-                    padding: "1px 6px",
-                    borderRadius: 3,
-                    background: "rgba(96,165,250,0.04)",
-                    border: "1px solid rgba(96,165,250,0.1)",
-                  }}
+              )}
+
+              {teamState === "no-team" && onTeamChange && (
+                <Link
+                  href="/team"
+                  className="flex items-center gap-2.5 py-0.5 transition-colors active:opacity-80"
                 >
-                  🔗 새 팀 초대코드 입력
-                </span>
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: "rgba(96,165,250,0.5)",
-                    fontFamily: "var(--font-body)",
-                    padding: "1px 6px",
-                    borderRadius: 3,
-                    background: "rgba(96,165,250,0.04)",
-                    border: "1px solid rgba(96,165,250,0.1)",
-                  }}
+                  <div
+                    className="flex shrink-0 items-center justify-center"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: "rgba(212,168,83,0.06)",
+                      border: "1px dashed rgba(212,168,83,0.25)",
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </div>
+                  <span
+                    className="flex-1"
+                    style={{
+                      fontFamily: "var(--font-body)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "var(--color-accent)",
+                    }}
+                  >
+                    팀에 소속되어 보세요
+                  </span>
+                  <IconChevronRight color="rgba(212,168,83,0.35)" />
+                </Link>
+              )}
+
+              {teamState === "transferring" && onTeamChange && (
+                <Link
+                  href="/team"
+                  className="flex items-center gap-2.5 py-0.5 transition-colors active:opacity-80"
                 >
-                  ✚ 새 팀 등록하기
-                </span>
-              </div>
-            </Link>
+                  <div
+                    className="flex shrink-0 items-center justify-center"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: "rgba(96,165,250,0.06)",
+                      border: "1px dashed rgba(96,165,250,0.25)",
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                    </svg>
+                  </div>
+                  <div className="flex flex-1 flex-col min-w-0">
+                    <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "var(--color-blue)" }}>
+                      새 팀으로 이동하기
+                    </span>
+                    <span style={{ fontSize: 11, color: "rgba(96,165,250,0.5)", fontFamily: "var(--font-body)" }}>
+                      진학·이적 시 새 소속 설정
+                    </span>
+                  </div>
+                  <IconChevronRight color="rgba(96,165,250,0.35)" />
+                </Link>
+              )}
+            </>
           )}
-
-          {/* Followers / Following / Views */}
-          <div
-            className="mt-auto flex gap-[10px]"
-            style={{ paddingTop: 3 }}
-          >
-            {[
-              { l: "팔로워", v: profile.followers },
-              { l: "팔로잉", v: profile.following },
-              { l: "조회", v: profile.views },
-            ].map(({ l, v }) => (
-              <span
-                key={l}
-                style={{
-                  fontSize: 10,
-                  color: "var(--color-text-3)",
-                  fontFamily: "var(--font-body)",
-                }}
-              >
-                {l}{" "}
-                <span
-                  style={{
-                    color: "var(--color-text-2)",
-                    fontWeight: 700,
-                    fontFamily: "var(--font-stat)",
-                    fontSize: 12,
-                  }}
-                >
-                  {v}
-                </span>
-              </span>
-            ))}
-          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── Action bar ── */}
-      {(onShare || onPdf || onEdit) && (() => {
-        const actions = [
-          { icon: "📤", label: "공유", primary: true, onClick: onShare },
-          { icon: "📄", label: "PDF", primary: false, onClick: onPdf },
-          { icon: "✏️", label: "편집", primary: false, onClick: onEdit },
-        ].filter((item) => item.onClick);
-        return (
-          <div
-            className="flex"
-            style={{
-              borderTop: "1px solid rgba(255,255,255,0.05)",
-              background: "rgba(255,255,255,0.01)",
-            }}
-          >
-            {actions.map(({ icon, label, primary, onClick }, i) => (
-              <button
-                key={label}
-                onClick={onClick}
-                className="flex flex-1 items-center justify-center gap-1"
-                style={{
-                  padding: "10px 0",
-                  background: "transparent",
-                  border: "none",
-                  borderRight:
-                    i < actions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                  color: primary
-                    ? "var(--color-accent)"
-                    : "var(--color-text-3)",
-                  fontSize: 11,
-                  fontFamily: "var(--font-body)",
-                  fontWeight: primary ? 600 : 400,
-                  cursor: "pointer",
-                }}
-              >
-                <span style={{ fontSize: 12 }}>{icon}</span>
-                {label}
-              </button>
-            ))}
-          </div>
-        );
-      })()}
+      {/* ═══════════════════════════════════════════
+          ACTION BUTTONS (own profile only)
+          ═══════════════════════════════════════════ */}
+      {(onShare || onPdf || onEdit) && (
+        <div className="flex gap-2">
+          {onShare && (
+            <button
+              onClick={onShare}
+              className="flex flex-1 items-center justify-center gap-1.5 transition-colors active:bg-white/[0.04]"
+              style={{
+                padding: "10px 0",
+                borderRadius: 12,
+                background: "var(--color-card)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                color: "var(--color-accent)",
+                fontSize: 12,
+                fontFamily: "var(--font-body)",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <IconShare />
+              공유
+            </button>
+          )}
+          {onPdf && (
+            <button
+              onClick={onPdf}
+              className="flex flex-1 items-center justify-center gap-1.5 transition-colors active:bg-white/[0.04]"
+              style={{
+                padding: "10px 0",
+                borderRadius: 12,
+                background: "var(--color-card)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                color: "var(--color-text-3)",
+                fontSize: 12,
+                fontFamily: "var(--font-body)",
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              <IconFile />
+              PDF
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="flex flex-1 items-center justify-center gap-1.5 transition-colors active:bg-white/[0.04]"
+              style={{
+                padding: "10px 0",
+                borderRadius: 12,
+                background: "var(--color-card)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                color: "var(--color-text-3)",
+                fontSize: 12,
+                fontFamily: "var(--font-body)",
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              <IconEdit />
+              편집
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
