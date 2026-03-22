@@ -110,7 +110,7 @@ export default function GlobalUploadIndicator() {
 
   return (
     <div
-      className={`fixed left-1/2 z-[60] w-[calc(100%-16px)] max-w-[414px] -translate-x-1/2 transition-all duration-250 ${
+      className={`fixed left-0 right-0 z-[60] mx-auto w-[calc(100%-16px)] max-w-[414px] transition-all duration-250 ${
         exiting
           ? "-translate-y-full opacity-0"
           : "translate-y-0 opacity-100 animate-slide-down"

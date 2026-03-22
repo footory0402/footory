@@ -9,7 +9,7 @@ import {
   listMultipartParts,
 } from "@/lib/r2";
 
-export const maxDuration = 60;
+export const maxDuration = 300; // multipart complete (ListParts + CompleteMultipartUpload) 최대 5분
 export const dynamic = "force-dynamic";
 
 function isAllowedKey(userId: string, key: string) {
