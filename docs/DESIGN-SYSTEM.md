@@ -4,7 +4,7 @@
 > Theme: Pitch Black Gold
 > Status: ✅ 확정
 > Date: 2026-03-03
-> Last synced: 2026-03-21
+> Last synced: 2026-03-22
 >
 
 ---
@@ -161,20 +161,22 @@ EA FC의 TOTW 카드처럼 매트 블랙 위에 골드가 빛나는 프리미엄
 
 ## 7. 핵심 컴포넌트 패턴
 
-### 7.1 프로필 카드 (EA FC 스타일)
-- 배경: `bg-card` + 상단 3px 골드 그라디언트 라인
-- 좌측: 아바타(64px) + 포지션 뱃지(우하단)
-- 우측: 이름 + 레벨뱃지 / 핸들 / 포지션·나이·도시 / 팀
-- 하단: 팔로워·팔로잉 + 조회수 + 레벨 프로그레스 바
-- 우상단: 은은한 골드 radial-gradient 장식
+### 7.1 프로필 히어로 섹션 (V5 — 좌우 분할)
+- 래퍼: `mx-4 mt-4 rounded-xl overflow-hidden` — 카드 형태로 부드러운 모서리
+- 좌 40%: 선수 사진 전체 채움 (`object-cover`) + 포지션 뱃지(좌상단) + MVP 뱃지(좌하단)
+- 우 60%: 이름(21px/800) · 핸들(11px) · 신체정보 태그 · 플레이스타일 · 팀상태 · 팔로워/팔로잉/조회
+- 하단: 공유/PDF/편집 액션 바 (3분할, 구분선)
+- 배경: `bg-card`, 골드 radial-gradient 장식 (좌 30% 60% 위치)
 
-### 7.2 프로필 서브 탭 (3탭)
+### 7.2 프로필 탭 바 (세그먼트 컨트롤 스타일)
 ```
-[ 📋 요약 | 🏷 스킬 | 📊 기록 ]
+[ 🎬 하이라이트 | 📊 기록 | ⚽ 커리어 ]
 ```
-- 배경: `bg-card`, border-radius: 10px, 내부 패딩 3px
-- 활성 탭: `accent`컬러 + accent-bg 배경
-- 비활성: `text-3` 컬러
+- 외부 래퍼: sticky, `px-4 py-2`, `bg-bg/95 backdrop-blur-sm`
+- 내부 컨테이너: `rounded-xl bg-card p-1 gap-1`
+- 활성 탭: `rounded-lg bg-elevated text-accent font-bold`
+- 비활성 탭: `text-text-3`
+- MVP/Discover 화면 탭바와 동일한 세그먼트 컨트롤 패턴
 
 **요약 탭 구성:**
 1. ⭐ 대표 하이라이트 (Featured 1~3, Progressive Disclosure)
@@ -192,6 +194,12 @@ EA FC의 TOTW 카드처럼 매트 블랙 위에 골드가 빛나는 프리미엄
 1. 📊 측정 기록 (리스트형, 값+변화량)
 2. 🏅 메달 전체 (3열 그리드)
 3. 📅 시즌 기록 (타임라인)
+
+### 7.2.1 프로필 탭 콘텐츠 카드
+- 모든 카드: `card-elevated` 클래스 사용 (`bg-card` + `box-shadow` + `border-radius: 12px` + 테두리)
+- 팀 인증 카드: `borderColor: rgba(74,222,128,0.18)`, `backgroundColor: rgba(74,222,128,0.04)` 오버라이드
+- 수상 카드: 골드 배경(`rgba(212,168,83,0.08)`) + 골드 보더 유지 (card-elevated 미사용)
+- Featured 영상 컨테이너: `borderRadius: 16px` (히어로 영역이라 더 큰 반지름 허용)
 
 ### 7.3 피드 카드
 - 배경: `bg-card`, radius: 14px
