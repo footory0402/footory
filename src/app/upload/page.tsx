@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
 import { startUpload } from "@/lib/upload-service";
@@ -38,6 +38,7 @@ export default function UploadPage() {
   const { profile, loading } = useProfileContext();
   const store = useUploadStore();
 
+  const [uploading, setUploading] = useState(false);
   const role = profile?.role ?? null;
   const isParent = role === "parent";
   const canUpload = role === "player" || role === "parent";
@@ -91,8 +92,10 @@ export default function UploadPage() {
       s.setError(null);
       s.setProgress(0);
     }
+    setUploading(true);
     startUpload(); // 백그라운드로 실행 — GlobalUploadIndicator가 진행 상태 표시
-    router.replace("/profile"); // 즉시 이동 (인스타그램 방식)
+    // 150ms 후 이동 — 사용자가 "시작됨" 느낌을 받을 수 있도록 brief 딜레이
+    setTimeout(() => router.replace("/profile"), 150);
   }, [router]);
 
   /* ── Guard: 로딩 중 ── */
@@ -250,9 +253,10 @@ export default function UploadPage() {
           <button
             type="button"
             onClick={handleUpload}
-            className="w-full rounded-xl border border-accent/20 bg-accent py-4 text-[15px] font-bold text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-transform active:scale-[0.99]"
+            disabled={uploading}
+            className="w-full rounded-xl border border-accent/20 bg-accent py-4 text-[15px] font-bold text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-all active:scale-[0.99] disabled:opacity-70"
           >
-            올리기
+            {uploading ? "업로드 시작 중..." : "올리기"}
           </button>
         </div>
       )}
