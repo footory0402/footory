@@ -129,9 +129,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
     }
 
-    // Insert tags + auto is_top for first clip of each tag (batched)
-    if (validTags.length > 0) {
-      // Single query: get user's existing clip IDs
+    // clips INSERT 완료 후 tags·feed·알림을 병렬 실행 (서로 의존성 없음)
+    // 부분 실패 허용 — 클립 자체는 이미 저장됐으므로 업로드 성공으로 처리
+    let tagWarning: string | undefined;
+
+    const tagsTask = async () => {
+      if (validTags.length === 0) return;
+
       const { data: userClips } = await supabase
         .from("clips")
         .select("id")
@@ -140,7 +144,6 @@ export async function POST(req: NextRequest) {
 
       const userClipIds = (userClips ?? []).map((c) => c.id);
 
-      // Single query: count existing tags for user's other clips
       let existingTagNames: Set<string> = new Set();
       if (userClipIds.length > 0) {
         const { data: existingTags } = await supabase
@@ -151,7 +154,6 @@ export async function POST(req: NextRequest) {
         existingTagNames = new Set((existingTags ?? []).map((t) => t.tag_name));
       }
 
-      // Single bulk insert
       const { error: tagInsertError } = await supabase.from("clip_tags").insert(
         validTags.map((tagName) => ({
           clip_id: clip.id,
@@ -162,58 +164,55 @@ export async function POST(req: NextRequest) {
 
       if (tagInsertError) {
         console.error("[clips/POST] clip_tags insert error:", tagInsertError.message);
-        // 태그 저장 실패해도 클립 자체는 이미 저장됨 — 클라이언트에 경고 포함해서 반환
-        return NextResponse.json(
-          { clip, warning: "태그 저장에 실패했습니다. 클립은 저장됐어요." },
-          { status: 201 }
+        tagWarning = "태그 저장에 실패했습니다. 클립은 저장됐어요.";
+      }
+    };
+
+    const feedTask = async () => {
+      await supabase.from("feed_items").insert({
+        profile_id: user.id,
+        type: "highlight" as const,
+        reference_id: clip.id,
+        metadata: {
+          video_url: clip.video_url,
+          thumbnail_url: clip.thumbnail_url,
+          duration: clip.duration_seconds,
+          tags: validTags,
+          memo: clip.memo,
+        },
+      });
+    };
+
+    // K11: 관심 선수 새 영상 업로드 시 스카우터 + 연동 부모 알림
+    const notifyTask = async () => {
+      const { data: uploader } = await supabase
+        .from("profiles")
+        .select("name, handle")
+        .eq("id", user.id)
+        .single();
+
+      if (!uploader) return;
+
+      const [{ data: watchers }] = await Promise.all([
+        supabase.from("scout_watchlist").select("scout_id").eq("player_id", user.id),
+      ]);
+
+      if (watchers && watchers.length > 0) {
+        await Promise.all(
+          watchers.map((w) =>
+            createNotification(supabase, {
+              userId: w.scout_id,
+              type: "watchlist_clip",
+              title: `${uploader.name}님이 새 영상을 올렸어요`,
+              body: "관심 선수의 새 클립을 확인하세요",
+              referenceId: clip.id,
+              actionUrl: `/p/${uploader.handle}`,
+              groupKey: `watchlist_clip:${user.id}`,
+            })
+          )
         );
       }
-    }
 
-    // Auto-create feed item
-    await supabase.from("feed_items").insert({
-      profile_id: user.id,
-      type: "highlight" as const,
-      reference_id: clip.id,
-      metadata: {
-        video_url: clip.video_url,
-        thumbnail_url: clip.thumbnail_url,
-        duration: clip.duration_seconds,
-        tags: validTags,
-        memo: clip.memo,
-      },
-    });
-
-    // K11: 관심 선수 새 영상 업로드 시 스카우터에게 알림
-    const { data: uploader } = await supabase
-      .from("profiles")
-      .select("name, handle")
-      .eq("id", user.id)
-      .single();
-
-    const { data: watchers } = await supabase
-      .from("scout_watchlist")
-      .select("scout_id")
-      .eq("player_id", user.id);
-
-    if (watchers && watchers.length > 0 && uploader) {
-      await Promise.all(
-        watchers.map((w) =>
-          createNotification(supabase, {
-            userId: w.scout_id,
-            type: "watchlist_clip",
-            title: `${uploader.name}님이 새 영상을 올렸어요`,
-            body: "관심 선수의 새 클립을 확인하세요",
-            referenceId: clip.id,
-            actionUrl: `/p/${uploader.handle}`,
-            groupKey: `watchlist_clip:${user.id}`,
-          })
-        )
-      );
-    }
-
-    // 연동된 부모에게 자녀 클립 업로드 알림
-    if (uploader) {
       notifyLinkedParents(supabase, {
         childId: user.id,
         type: "child_clip",
@@ -221,10 +220,15 @@ export async function POST(req: NextRequest) {
         body: validTags.length > 0 ? validTags.join(", ") : undefined,
         referenceId: clip.id,
         actionUrl: `/p/${uploader.handle}`,
-      }).catch(() => {}); // fire and forget
-    }
+      }).catch(() => {});
+    };
 
-    return NextResponse.json({ clip }, { status: 201 });
+    await Promise.allSettled([tagsTask(), feedTask(), notifyTask()]);
+
+    return NextResponse.json(
+      tagWarning ? { clip, warning: tagWarning } : { clip },
+      { status: 201 }
+    );
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

@@ -1,3 +1,4 @@
+// v1.3 렌더 파이프라인 - 현재 미사용
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
 import { dispatchRender } from "@/lib/render-api";

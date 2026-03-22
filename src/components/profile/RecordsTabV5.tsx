@@ -1,8 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import VerifyBadge from "./VerifyBadge";
-import PlayStyleCard from "@/components/player/PlayStyleCard";
 import { getStatMeta } from "@/lib/constants";
 import {
   formatStatDelta,
@@ -11,7 +10,6 @@ import {
   normalizeStatUnit,
 } from "@/lib/stat-display";
 import type { Stat, PlayStyle } from "@/lib/types";
-import type { PlayStyleType } from "@/lib/constants";
 import { PLAY_STYLES } from "@/lib/constants";
 
 interface RecordsTabV5Props {
@@ -31,6 +29,8 @@ export default function RecordsTabV5({
   onDeleteStat,
   onPlayStyleTest,
 }: RecordsTabV5Props) {
+  const [isEditMode, setIsEditMode] = useState(false);
+
   const growthStats = stats.filter((s) => (s.measureCount ?? 0) > 1);
   const styleInfo = playStyle?.styleType
     ? PLAY_STYLES[playStyle.styleType]
@@ -38,11 +38,12 @@ export default function RecordsTabV5({
 
   return (
     <div className="pt-4 flex flex-col gap-5">
-      {/* ── Play style compact card ── */}
+      {/* ── 플레이 스타일 카드 ── */}
       {styleInfo && playStyle ? (
         <div
           className="card-elevated flex items-center justify-between"
-          style={{ padding: "12px 14px" }}
+          style={{ padding: "12px 14px", cursor: onPlayStyleTest ? "pointer" : undefined }}
+          onClick={onPlayStyleTest}
         >
           <div className="flex items-center gap-[10px]">
             <div
@@ -85,19 +86,22 @@ export default function RecordsTabV5({
           </div>
           {onPlayStyleTest && (
             <button
-              onClick={onPlayStyleTest}
+              onClick={(e) => { e.stopPropagation(); onPlayStyleTest(); }}
               style={{
-                padding: "4px 8px",
-                borderRadius: 6,
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                color: "var(--color-text-3)",
-                fontSize: 10,
+                padding: "6px 14px",
+                borderRadius: 8,
+                background: "rgba(212,168,83,0.08)",
+                border: "1px solid rgba(212,168,83,0.20)",
+                color: "var(--color-accent)",
+                fontSize: 11,
+                fontWeight: 600,
                 fontFamily: "var(--font-body)",
                 cursor: "pointer",
+                minHeight: 32,
+                whiteSpace: "nowrap",
               }}
             >
-              🔄
+              다시 테스트
             </button>
           )}
         </div>
@@ -154,33 +158,79 @@ export default function RecordsTabV5({
         <SectionHeader
           title="체력 측정"
           right={
-            onAddStat ? (
-              <button
-                onClick={onAddStat}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  background: "rgba(212,168,83,0.08)",
-                  border: "1px solid rgba(212,168,83,0.2)",
-                  color: "var(--color-accent)",
-                  fontSize: 10,
-                  fontFamily: "var(--font-body)",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                }}
-              >
-                + 기록 추가
-              </button>
+            onAddStat || onDeleteStat ? (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {onAddStat && !isEditMode && (
+                  <button
+                    onClick={onAddStat}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      background: "rgba(212,168,83,0.08)",
+                      border: "1px solid rgba(212,168,83,0.2)",
+                      color: "var(--color-accent)",
+                      fontSize: 10,
+                      fontFamily: "var(--font-body)",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    + 기록 추가
+                  </button>
+                )}
+                {/* 편집 / 완료 토글 — 기록이 있고 삭제 가능할 때만 표시 */}
+                {onDeleteStat && stats.length > 0 && (
+                  <button
+                    onClick={() => setIsEditMode((v) => !v)}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      background: isEditMode
+                        ? "rgba(212,168,83,0.12)"
+                        : "rgba(255,255,255,0.04)",
+                      border: isEditMode
+                        ? "1px solid rgba(212,168,83,0.3)"
+                        : "1px solid rgba(255,255,255,0.08)",
+                      color: isEditMode
+                        ? "var(--color-accent)"
+                        : "var(--color-text-3)",
+                      fontSize: 10,
+                      fontFamily: "var(--font-body)",
+                      fontWeight: isEditMode ? 600 : 400,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {isEditMode ? "완료" : "편집"}
+                  </button>
+                )}
+              </div>
             ) : undefined
           }
         />
 
         {/* Verify legend */}
-        {stats.length > 0 && (
+        {stats.length > 0 && !isEditMode && (
           <div className="mb-[10px] flex gap-2">
             <VerifyBadge source="team" verifier="팀 인증" compact />
             <VerifyBadge source="self" compact />
           </div>
+        )}
+
+        {/* 편집 모드 안내 */}
+        {isEditMode && stats.length > 0 && (
+          <p
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 11,
+              color: "rgba(248,113,113,0.7)",
+              marginBottom: 10,
+              marginTop: 0,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            삭제할 기록의 × 버튼을 탭하세요
+          </p>
         )}
 
         {stats.length > 0 ? (
@@ -189,8 +239,9 @@ export default function RecordsTabV5({
               <PhysicalTestCard
                 key={stat.id}
                 stat={stat}
-                onUpdate={onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
-                onDelete={onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
+                isEditMode={isEditMode}
+                onUpdate={!isEditMode && onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
+                onDelete={isEditMode && onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
               />
             ))}
           </div>
@@ -339,7 +390,7 @@ export default function RecordsTabV5({
   );
 }
 
-/* ── Section Header (v5 style with gold bar) ── */
+/* ── Section Header ── */
 function SectionHeader({
   title,
   count,
@@ -350,9 +401,7 @@ function SectionHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div
-      className="mb-[10px] flex items-center justify-between"
-    >
+    <div className="mb-[10px] flex items-center justify-between">
       <div className="flex items-center gap-[6px]">
         <div
           style={{
@@ -392,13 +441,15 @@ function SectionHeader({
   );
 }
 
-/* ── Physical Test Card (v5 style with verify badge) ── */
+/* ── Physical Test Card ── */
 function PhysicalTestCard({
   stat,
+  isEditMode,
   onUpdate,
   onDelete,
 }: {
   stat: Stat;
+  isEditMode: boolean;
   onUpdate?: () => void;
   onDelete?: () => void;
 }) {
@@ -411,7 +462,6 @@ function PhysicalTestCard({
   const improved =
     diff != null && diff !== 0 && (meta.lowerIsBetter ? diff < 0 : diff > 0);
 
-  // For now all existing stats are "self" since team verification doesn't exist yet
   const source: "team" | "self" = stat.verified ? "team" : "self";
   const isTeam = source === "team";
 
@@ -427,9 +477,14 @@ function PhysicalTestCard({
       className="card-elevated relative"
       style={{
         padding: "12px 12px 10px",
+        cursor: onUpdate ? "pointer" : "default",
+        transition: "background 0.15s, transform 0.15s",
         ...(isTeam && {
           borderColor: "rgba(74,222,128,0.18)",
           backgroundColor: "rgba(74,222,128,0.04)",
+        }),
+        ...(isEditMode && {
+          borderColor: "rgba(248,113,113,0.15)",
         }),
       }}
       onClick={onUpdate}
@@ -437,9 +492,7 @@ function PhysicalTestCard({
       tabIndex={onUpdate ? 0 : undefined}
     >
       {/* Header: label + date */}
-      <div
-        className="mb-[6px] flex items-center justify-between"
-      >
+      <div className="mb-[6px] flex items-center justify-between">
         <span
           style={{
             fontFamily: "var(--font-body)",
@@ -501,23 +554,41 @@ function PhysicalTestCard({
       {/* Verify badge */}
       <VerifyBadge source={source} compact />
 
-      {/* Delete button (long press or tap, small) */}
-      {onDelete && (
+      {/* 탭하여 업데이트 힌트 — 일반 모드에서만 */}
+      {onUpdate && !isEditMode && (
+        <p
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: 9,
+            color: "rgba(255,255,255,0.20)",
+            textAlign: "right",
+            marginTop: 4,
+            marginBottom: 0,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          탭하여 업데이트
+        </p>
+      )}
+
+      {/* 삭제 버튼 — 편집 모드에서만 표시 */}
+      {isEditMode && onDelete && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-opacity hover:opacity-100"
+          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full transition-opacity active:scale-95"
           style={{
-            background: "rgba(248,113,113,0.15)",
+            background: "rgba(248,113,113,0.20)",
+            border: "1px solid rgba(248,113,113,0.30)",
             color: "var(--color-red)",
           }}
           aria-label="기록 삭제"
         >
           <svg
-            width="8"
-            height="8"
+            width="9"
+            height="9"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"

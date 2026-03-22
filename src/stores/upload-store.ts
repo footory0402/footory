@@ -38,16 +38,16 @@ interface UploadState {
   childHandle: string | null;
   highlightStart: number;
 
-  // v1.3 — 5스텝 위저드
+  // v1.3 렌더 파이프라인용 - 현재 미사용
   step: number;
   trimStart: number;
   trimEnd: number | null;
   duration: number | null; // 트리머에서 감지된 영상 길이 (초)
-  spotlightX: number | null;
-  spotlightY: number | null;
-  skillLabels: string[];
-  customLabels: string[];
-  effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
+  spotlightX: number | null; // v1.3 렌더 파이프라인용 - 현재 미사용
+  spotlightY: number | null; // v1.3 렌더 파이프라인용 - 현재 미사용
+  skillLabels: string[];     // v1.3 렌더 파이프라인용 - 현재 미사용
+  customLabels: string[];    // v1.3 렌더 파이프라인용 - 현재 미사용
+  effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean }; // v1.3 렌더 파이프라인용 - 현재 미사용
   visibility: ClipVisibility;
   renderJobId: string | null;
   renderProgress: number;

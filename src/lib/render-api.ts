@@ -1,4 +1,5 @@
 /**
+ * v1.3 렌더 파이프라인 - 현재 미사용
  * Cloudflare Container Worker 호출 래퍼
  */
 

@@ -382,7 +382,12 @@ async function multipartUploadToR2(
 
 // ─── R2 업로드 (presigned URL) ───
 
-const STALL_TIMEOUT_MS = 25_000; // 25초간 progress 없으면 멈춤 판단 (모바일 네트워크 고려)
+/** 파일 크기 기반 동적 stall 타임아웃 (progress 없을 때 abort 기준) */
+function calcStallTimeout(fileSize: number): number {
+  if (fileSize < 10 * 1024 * 1024) return 15_000; // 10MB 미만 → 15초
+  if (fileSize < 50 * 1024 * 1024) return 30_000; // 10~50MB → 30초
+  return 60_000;                                    // 50MB 이상 → 60초
+}
 
 /**
  * XHR로 presigned URL에 PUT 업로드. 멈춤 감지 포함.
@@ -399,14 +404,15 @@ function xhrUpload(
     const xhr = new XMLHttpRequest();
     let lastProgressTime = Date.now();
     let stallTimer: ReturnType<typeof setInterval> | null = null;
+    const stallTimeout = calcStallTimeout(file.size);
 
     const cleanup = () => {
       if (stallTimer) { clearInterval(stallTimer); stallTimer = null; }
     };
 
-    // 멈춤 감지: 15초간 progress 이벤트 없으면 abort
+    // 멈춤 감지: 파일 크기 기반 타임아웃 동안 progress 이벤트 없으면 abort
     stallTimer = setInterval(() => {
-      if (Date.now() - lastProgressTime > STALL_TIMEOUT_MS) {
+      if (Date.now() - lastProgressTime > stallTimeout) {
         console.warn("[Upload] XHR stalled — aborting");
         cleanup();
         xhr.abort();
