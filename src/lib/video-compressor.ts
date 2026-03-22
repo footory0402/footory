@@ -12,7 +12,16 @@ let ffmpeg: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
 
 export function isCompressionSupported(): boolean {
-  return typeof WebAssembly !== "undefined";
+  if (typeof WebAssembly === "undefined") return false;
+  // 2코어 이하 기기: 120초 내 압축 완료가 어려워 원본 업로드 폴백
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.hardwareConcurrency === "number" &&
+    navigator.hardwareConcurrency <= 2
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /**

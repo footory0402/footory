@@ -1,5 +1,6 @@
 const CACHE_NAME = "footory-v5";
 const NAV_CACHE = "footory-nav-v3";
+const WASM_CACHE = "footory-wasm-v1"; // FFmpeg WASM 영구 캐시 (한 번 다운로드 후 재사용)
 
 // App shell: 오프라인에서도 빠르게 로드할 핵심 자원
 const APP_SHELL = [
@@ -23,7 +24,7 @@ self.addEventListener("activate", (event) => {
       caches.keys().then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k !== CACHE_NAME && k !== NAV_CACHE)
+            .filter((k) => k !== CACHE_NAME && k !== NAV_CACHE && k !== WASM_CACHE)
             .map((k) => caches.delete(k))
         )
       ),
@@ -42,9 +43,21 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (!url.protocol.startsWith("http")) return;
 
-  // non-GET, API, auth, cross-origin 요청은 절대 가로채지 않음
-  // 모바일에서 SW가 POST/PUT을 intercept하면 "Failed to fetch" 발생 가능
+  // non-GET 요청은 절대 가로채지 않음
   if (request.method !== "GET") return;
+
+  // FFmpeg WASM 바이너리: cross-origin이지만 영구 캐시 (Cache-first)
+  // 첫 다운로드(~25MB) 후 두 번째부터 즉시 로드
+  if (
+    url.hostname === "unpkg.com" &&
+    url.pathname.includes("ffmpeg") &&
+    (url.pathname.endsWith(".wasm") || url.pathname.endsWith(".js"))
+  ) {
+    event.respondWith(wasmCacheFirst(request));
+    return;
+  }
+
+  // API, auth, cross-origin 요청은 가로채지 않음
   if (url.origin !== self.location.origin) return;
   if (
     url.pathname.startsWith("/api/") ||
@@ -138,6 +151,25 @@ async function cacheFirst(request) {
     }
     return response;
   } catch {
+    return new Response("", { status: 503 });
+  }
+}
+
+// FFmpeg WASM 전용 Cache-first (cross-origin, 영구 보관)
+async function wasmCacheFirst(request) {
+  try {
+    const cache = await caches.open(WASM_CACHE);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    // 캐시 없음: 네트워크에서 가져와 저장
+    const response = await fetch(request, { mode: "cors" });
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    // 네트워크 실패 — 캐시도 없으면 503
     return new Response("", { status: 503 });
   }
 }
