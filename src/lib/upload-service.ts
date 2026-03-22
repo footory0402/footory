@@ -6,9 +6,9 @@ import { useUploadStore } from "@/stores/upload-store";
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel payload 제한)
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
 const MAX_DIRECT_RETRIES = 3; // presigned URL 최대 재시도 횟수
-const MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB 이상이면 multipart (병렬 + 정확한 progress)
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk (작은 청크 = 빠른 progress 갱신)
-const CONCURRENT_PARTS = 3; // 동시 업로드 파트 수 (모바일 안정성)
+const MULTIPART_THRESHOLD = 15 * 1024 * 1024; // 15MB 이상이면 multipart (API 오버헤드 최소화)
+const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk (재시도 낭비 최소화 + 빠른 progress)
+const CONCURRENT_PARTS = 4; // 동시 업로드 파트 수 (모바일 안정성 + 처리량)
 
 /** 파일 크기 기반 동적 타임아웃 (50KB/s 기준, 최소 3분) */
 function calcUploadTimeout(fileSize: number): number {
@@ -576,9 +576,11 @@ function waitForR2Upload(): Promise<void> {
 /**
  * 파일 선택 즉시 호출 — R2 업로드만 백그라운드로 시작.
  * 사용자가 태그/메모를 입력하는 동안 업로드가 병렬로 진행됨.
+ * compressedFile이 있으면 우선 사용 (크기 절감).
  */
 export function startR2BackgroundUpload() {
-  const file = useUploadStore.getState().file;
+  const state = useUploadStore.getState();
+  const file = state.compressedFile ?? state.file;
   if (!file) return;
 
   const generation = ++bgUploadGeneration;
@@ -667,7 +669,9 @@ export async function startUpload() {
     store.setStatus("uploading");
     store.setProgress(0);
 
-    const fileContentType = resolveContentType(store.file!);
+    // 압축 파일 우선 사용 (용량 절감)
+    const uploadFile = store.compressedFile ?? store.file!;
+    const fileContentType = resolveContentType(uploadFile);
     let key = "";
     let clipId = "";
 
@@ -704,8 +708,8 @@ export async function startUpload() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contentType: fileContentType,
-            fileName: store.file!.name,
-            fileSize: store.file!.size,
+            fileName: uploadFile.name,
+            fileSize: uploadFile.size,
           }),
         },
         "Presign URL 요청"
@@ -725,8 +729,8 @@ export async function startUpload() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contentType: fileContentType,
-              fileName: store.file!.name,
-              fileSize: store.file!.size,
+              fileName: uploadFile.name,
+              fileSize: uploadFile.size,
               clipId,
             }),
           },
@@ -736,7 +740,7 @@ export async function startUpload() {
         const data = await res.json();
         return data.url as string;
       };
-      await uploadToR2(presignData.url, store.file!, key, fileContentType, (pct) =>
+      await uploadToR2(presignData.url, uploadFile, key, fileContentType, (pct) =>
         store.setProgress(pct), getNewUrl
       );
     }
@@ -762,7 +766,7 @@ export async function startUpload() {
           clip_id: clipId,
           video_url: videoUrl,
           duration_seconds: duration || null,
-          file_size_bytes: store.file?.size,
+          file_size_bytes: uploadFile.size,
           tags: store.tags,
           thumbnail_url: null,
         }
@@ -770,7 +774,7 @@ export async function startUpload() {
           clip_id: clipId,
           video_url: videoUrl,
           duration_seconds: duration || null,
-          file_size_bytes: store.file?.size,
+          file_size_bytes: uploadFile.size,
           memo: store.memo || null,
           tags: store.tags,
           thumbnail_url: null,
