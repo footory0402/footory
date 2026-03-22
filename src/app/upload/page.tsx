@@ -1,31 +1,20 @@
 "use client";
 
-import { useEffect, useCallback, useState, useRef } from "react";
+import { useEffect, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
-import { startRenderUpload } from "@/lib/upload-service";
-import { useVideoCompressor } from "@/hooks/useVideoCompressor";
+import { startUpload } from "@/lib/upload-service";
+import { getSkillTagsForPosition } from "@/lib/constants";
 import VideoSelector from "@/components/upload/VideoSelector";
-import TagMemoForm from "@/components/upload/TagMemoForm";
 import ChildSelector from "@/components/upload/ChildSelector";
-import VideoTrimmer from "@/components/video/VideoTrimmer";
-import SpotlightPicker from "@/components/video/SpotlightPicker";
-import SkillLabelPicker from "@/components/video/SkillLabelPicker";
-import EffectsToggle from "@/components/video/EffectsToggle";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { ClipVisibility, CompressStatus } from "@/stores/upload-store";
 
 /*
- * 2단계 위저드 (v1.5 개편)
+ * v2.0 — Instagram-style 1-screen upload
  *
- * Step 1: 파일 선택 + 구간 자르기
- * Step 2: 꾸미기 (나 찾기 / 효과 / 스킬 라벨 / 태그 / 공개 범위 — 단일 스크롤)
+ * 파일 선택 → 태그(최대 2) + 한줄 메모 → 올리기 → 즉시 /profile 이동
+ * 백그라운드 업로드 + GlobalUploadIndicator로 진행률 표시
  */
-
-const STEPS = [
-  { id: 1, label: "자르기" },
-  { id: 2, label: "꾸미기" },
-] as const;
 
 export default function UploadPage() {
   const router = useRouter();
@@ -33,15 +22,20 @@ export default function UploadPage() {
   const { profile, loading } = useProfileContext();
   const store = useUploadStore();
 
-  const compressor = useVideoCompressor();
-  const uploadPendingRef = useRef(false);
-
   const role = profile?.role ?? null;
   const isParent = role === "parent";
   const canUpload = role === "player" || role === "parent";
   const challengeTag = searchParams.get("challenge_tag");
 
-  // Set context + challenge tag on mount
+  // Reset stale states on mount (fixes "아무 반응 없음" bug)
+  useEffect(() => {
+    const s = useUploadStore.getState();
+    if (["error", "done"].includes(s.status)) {
+      s.reset();
+    }
+  }, []);
+
+  // Set context + challenge tag
   useEffect(() => {
     if (!canUpload) return;
     const s = useUploadStore.getState();
@@ -51,114 +45,47 @@ export default function UploadPage() {
       s.setContext("challenge");
       s.setChallengeTag(challengeTag);
       if (!s.tags.includes(challengeTag)) {
-        s.setTags([challengeTag, ...s.tags].slice(0, 3));
+        s.setTags([challengeTag, ...s.tags].slice(0, 2));
       }
     } else {
       s.setContext("general");
     }
   }, [canUpload, isParent, challengeTag]);
 
-  // Reset only when re-entering after a completed upload
-  useEffect(() => {
-    const s = useUploadStore.getState();
-    if (s.status === "done") {
-      s.reset();
-      compressor.reset();
-    }
-  }, [compressor]);
-
-  // Sync compressor state → upload store
-  useEffect(() => {
-    const s = useUploadStore.getState();
-    s.setCompressStatus(compressor.status);
-    s.setCompressProgress(compressor.progress);
-    if (compressor.compressedFile) {
-      s.setCompressedFile(compressor.compressedFile);
-    }
-    if (compressor.stats) {
-      s.setCompressStats(compressor.stats.originalSize, compressor.stats.compressedSize);
-    }
-  }, [compressor.status, compressor.progress, compressor.compressedFile, compressor.stats]);
-
-  // 압축 완료 시 + 업로드 대기 중이면 자동 업로드 시작
-  useEffect(() => {
-    if (compressor.status === "done" && uploadPendingRef.current) {
-      uploadPendingRef.current = false;
+  const toggleTag = useCallback(
+    (tagName: string) => {
+      if (challengeTag && tagName === challengeTag) return;
       const s = useUploadStore.getState();
-      startRenderUpload(compressor.compressedFile ?? undefined);
-      router.replace("/profile");
-    }
-  }, [compressor.status, router]);
-
-  const step = store.step;
-  const maxStep = 2;
-
-  const file = store.file;
-
-  const handleNext = useCallback(() => {
-    const s = useUploadStore.getState();
-    if (s.step < maxStep) {
-      s.setStep(s.step + 1);
-
-      // Step 1 → 2: 백그라운드 압축 시작
-      if (s.step === 1 && s.file) {
-        s.setCompressStatus("loading");
-        compressor.compress(s.file, {
-          trimStart: s.trimStart,
-          trimEnd: s.trimEnd ?? undefined,
-        });
-      }
-    }
-  }, [compressor]);
-
-  const handleBack = useCallback(() => {
-    const s = useUploadStore.getState();
-    if (s.step > 1) s.setStep(s.step - 1);
-    else if (s.step === 1) {
-      // step 1에서 뒤로 가면 파일만 초기화 (step은 1 유지 → VideoSelector로 돌아감)
-      s.setFile(null);
-    }
-  }, []);
-
-  const handleTrimChange = useCallback((start: number, end: number, duration?: number) => {
-    const s = useUploadStore.getState();
-    s.setTrimStart(start);
-    s.setTrimEnd(end);
-    if (duration !== undefined && duration > 0) {
-      s.setDuration(duration);
-    }
-  }, []);
-
-  const handleUpload = useCallback(() => {
-    if (compressor.status === "done" && compressor.compressedFile) {
-      // 압축 완료 → 즉시 업로드
-      startRenderUpload(compressor.compressedFile);
-      router.replace("/profile");
-    } else if (compressor.status === "compressing" || compressor.status === "loading") {
-      // 압축 진행 중 → 완료 대기 플래그
-      uploadPendingRef.current = true;
-    } else {
-      // 압축 미지원/에러 → 원본 업로드 (폴백)
-      startRenderUpload();
-      router.replace("/profile");
-    }
-  }, [compressor.status, compressor.compressedFile, router]);
-
-
-  const handleStepTap = useCallback(
-    (targetStep: number) => {
-      if (targetStep < step) {
-        useUploadStore.getState().setStep(targetStep);
+      if (s.tags.includes(tagName)) {
+        s.setTags(s.tags.filter((t) => t !== tagName));
+      } else if (s.tags.length < 2) {
+        s.setTags([...s.tags, tagName]);
       }
     },
-    [step]
+    [challengeTag]
   );
 
-  // 완료 화면
+  const handleUpload = useCallback(() => {
+    const s = useUploadStore.getState();
+    if (!s.file) return;
+
+    // Force idle if stuck (belt-and-suspenders)
+    if (s.status !== "idle") {
+      s.setStatus("idle");
+      s.setError(null);
+      s.setProgress(0);
+    }
+
+    startUpload();
+    router.replace("/profile");
+  }, [router]);
+
+  /* ── Guard screens ── */
+
   if (loading && !role) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center px-6 text-center">
-        <p className="text-sm text-text-3">업로드 권한을 확인하고 있어요...</p>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-sm text-text-3">로딩 중...</p>
       </div>
     );
   }
@@ -190,23 +117,23 @@ export default function UploadPage() {
     );
   }
 
-  // 완료 → 프로필로 리다이렉트 (토스트에서 완료 표시)
   if (store.status === "done") {
     router.replace("/profile");
     return null;
   }
 
-  // 업로드/렌더 진행 중에 /upload 재진입 시 — 간결한 메시지만 표시
-  // (실제 progress는 GlobalUploadIndicator 플로팅바에서 표시)
+  // Active upload — show processing (GlobalUploadIndicator handles progress)
   if (
-    ["uploading_raw", "uploading", "thumbnail", "saving", "creating_job", "rendering"].includes(store.status)
+    ["uploading_raw", "uploading", "thumbnail", "saving", "creating_job", "rendering"].includes(
+      store.status
+    )
   ) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-6 text-center">
         <div className="flex flex-col items-center gap-4">
           <div className="h-12 w-12 animate-spin rounded-full border-3 border-white/10 border-t-accent" />
           <p className="text-[15px] font-semibold text-text-1">
-            영상을 처리하고 있어요
+            영상을 올리고 있어요
           </p>
           <p className="text-[12px] text-text-3">
             다른 페이지를 둘러봐도 괜찮아요
@@ -216,378 +143,159 @@ export default function UploadPage() {
     );
   }
 
-  return (
-    <>
-      <div className="flex flex-col gap-4 px-4 pt-4 pb-28">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => (step > 1 || store.file ? handleBack() : router.back())}
-            aria-label={step > 1 || store.file ? "이전 단계" : "뒤로가기"}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-text-2 active:bg-card"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <h1 className="text-[17px] font-bold text-text-1">
-            {isParent ? "영상 올려주기" : "영상 업로드"}
-          </h1>
-        </div>
+  const availableTags = getSkillTagsForPosition(profile?.position);
 
-        {/* Step Bar — 2단계 라벨 인디케이터 */}
-        {store.file && (
-          <div className="flex items-center justify-center gap-1">
-            {STEPS.map((s, i) => (
-              <div key={s.id} className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => handleStepTap(s.id)}
-                  disabled={s.id > step}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                    s.id === step
-                      ? "bg-accent/15 text-accent"
-                      : s.id < step
-                        ? "text-text-2 active:bg-card"
-                        : "text-text-3/50"
-                  }`}
-                >
-                  <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                      s.id < step
-                        ? "bg-accent/20 text-accent"
-                        : s.id === step
-                          ? "bg-accent text-bg"
-                          : "bg-[#1E1E22] text-text-3"
+  return (
+    <div className="flex flex-col gap-4 px-4 pt-4 pb-28">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => (store.file ? useUploadStore.getState().setFile(null) : router.back())}
+          aria-label={store.file ? "파일 선택 해제" : "뒤로가기"}
+          className="flex h-11 w-11 items-center justify-center rounded-full text-text-2 active:bg-card"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <h1 className="text-[17px] font-bold text-text-1">
+          {isParent ? "영상 올려주기" : "영상 업로드"}
+        </h1>
+      </div>
+
+      {/* Challenge banner */}
+      {challengeTag && !store.file && (
+        <div className="flex items-center gap-3 rounded-xl bg-accent/8 px-4 py-3">
+          <span className="text-lg">🏆</span>
+          <div>
+            <p className="text-[13px] font-semibold text-accent">
+              챌린지 참여
+            </p>
+            <p className="text-[12px] text-text-2">
+              {challengeTag} 태그가 자동 설정됩니다
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Parent: child selector */}
+      {isParent && !store.file && <ChildSelector />}
+
+      {/* Video selector */}
+      <VideoSelector />
+
+      {/* ── Tags + Memo + Upload (file selected) ── */}
+      {store.file && (
+        <div className="flex flex-col gap-5 animate-fade-up">
+          {/* Tag chips */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <h3 className="text-[14px] font-semibold text-text-1">태그</h3>
+              <span className="text-[12px] text-text-3">
+                {store.tags.length}/2
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map((tag) => {
+                const selected = store.tags.includes(tag.dbName);
+                const locked = challengeTag === tag.dbName;
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.dbName)}
+                    className={`rounded-full px-3.5 py-2 text-[13px] font-medium transition-all ${
+                      selected
+                        ? locked
+                          ? "bg-accent/80 text-bg"
+                          : "bg-accent text-bg"
+                        : "bg-card text-text-2 active:bg-surface"
                     }`}
                   >
-                    {s.id < step ? "✓" : s.id}
-                  </span>
-                  {s.label}
-                </button>
-                {i < STEPS.length - 1 && (
-                  <div
-                    className={`mx-1 h-px w-6 ${
-                      s.id < step ? "bg-accent/30" : "bg-[#1E1E22]"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Challenge banner — Step 1 파일 미선택 상태에서 표시 */}
-        {challengeTag && step === 1 && !store.file && (
-          <div className="flex items-center gap-3 rounded-xl bg-accent/8 px-4 py-3">
-            <span className="text-lg">🏆</span>
-            <div>
-              <p className="text-[13px] font-semibold text-accent">
-                챌린지 참여
-              </p>
-              <p className="text-[12px] text-text-2">
-                {challengeTag} 태그가 자동 설정됩니다
-              </p>
+                    {tag.emoji} {tag.label}
+                    {locked && " 🔒"}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        )}
 
-        {/* Parent: child selector — 파일 미선택 상태에서 표시 */}
-        {isParent && step === 1 && !store.file && <ChildSelector />}
-
-        {/* ═══ Step 1: 파일 선택 (파일 없음) 또는 구간 자르기 (파일 있음) ═══ */}
-        {step === 1 && !store.file && (
-          <>
-            {!isParent && <UploadUsageGuide isChallenge={!!challengeTag} />}
-            <VideoSelector />
-          </>
-        )}
-
-        {step === 1 && store.file && (
-          <div className="animate-fade-up">
-            <h2 className="mb-3 text-[15px] font-semibold text-text-1">
-              구간 자르기
-            </h2>
-            <VideoTrimmer
-              file={store.file}
-              trimStart={store.trimStart}
-              trimEnd={store.trimEnd}
-              onTrimChange={handleTrimChange}
+          {/* Memo */}
+          <div>
+            <h3 className="mb-2 text-[14px] font-semibold text-text-1">
+              메모
+            </h3>
+            <input
+              type="text"
+              value={store.memo}
+              onChange={(e) => store.setMemo(e.target.value)}
+              placeholder="한줄 메모 (선택)"
+              maxLength={100}
+              className="w-full rounded-xl border border-white/[0.08] bg-card px-4 py-3 text-sm text-text-1 placeholder:text-text-3 focus:border-accent/30 focus:outline-none"
             />
           </div>
-        )}
 
-        {/* ═══ Step 2: 꾸미기 + 업로드 (단일 스크롤) ═══ */}
-        {step === 2 && (
-          <div className="flex flex-col gap-6 pb-8 animate-fade-up">
-            {/* 압축 진행 인디케이터 */}
-            <CompressIndicator
-              status={compressor.status}
-              progress={compressor.progress}
-              stats={compressor.stats}
-            />
-
-            {/* 나 찾기 */}
-            <section>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">나 찾기</h2>
-              {store.file && (
-                <SpotlightPicker
-                  file={store.file}
-                  spotlightX={store.spotlightX}
-                  spotlightY={store.spotlightY}
-                  onSpotlightChange={(x, y) => store.setSpotlight(x, y)}
-                  trimStart={store.trimStart}
-                />
-              )}
-            </section>
-
-            {/* 효과 */}
-            <section>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">효과</h2>
-              <EffectsToggle
-                effects={store.effects}
-                onChange={(partial) => store.setEffects(partial)}
-              />
-            </section>
-
-            {/* 스킬 라벨 */}
-            <section>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">스킬 라벨</h2>
-              <SkillLabelPicker
-                selected={store.skillLabels}
-                customLabels={store.customLabels}
-                onSelectedChange={(labels) => store.setSkillLabels(labels)}
-                onCustomChange={(labels) => store.setCustomLabels(labels)}
-              />
-            </section>
-
-            {/* 태그 & 메모 */}
-            <section>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">태그 & 메모</h2>
-              <TagMemoForm />
-            </section>
-
-            {/* 공개 범위 */}
-            <section>
-              <h2 className="mb-3 text-[15px] font-semibold text-text-1">공개 범위</h2>
-              <VisibilitySelector
-                value={store.visibility}
-                onChange={(v) => store.setVisibility(v)}
-              />
-            </section>
-
-            {/* 업로드 버튼 — 스크롤 영역 마지막 */}
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={uploadPendingRef.current}
-              className={`w-full rounded-xl border border-accent/20 py-4 text-[15px] font-bold shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-transform active:scale-[0.99] ${
-                uploadPendingRef.current
-                  ? "bg-accent/50 text-bg/60"
-                  : "bg-accent text-bg"
-              }`}
-            >
-              {uploadPendingRef.current
-                ? "최적화 마무리 중..."
-                : compressor.status === "compressing" || compressor.status === "loading"
-                  ? "올리기 (최적화 완료 후 시작)"
-                  : "올리기"}
-            </button>
-          </div>
-        )}
-
-        {/* Error state */}
-        {store.status === "error" && (
-          <div className="flex flex-col items-center gap-4 rounded-xl border border-red-400/20 bg-red-400/5 px-5 py-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-400/10">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {/* Error state */}
+          {store.status === "error" && (
+            <div className="flex items-center gap-3 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#F87171"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="shrink-0"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium text-red-400">
+                  {getErrorMessage(store.error)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-text-3">
+                  {getErrorHint(store.error)}
+                </p>
+              </div>
             </div>
-            <p className="text-center text-[14px] font-medium text-text-1">
-              {getErrorMessage(store.error)}
-            </p>
-            <p className="text-center text-[12px] text-text-3">
-              {getErrorHint(store.error)}
-            </p>
-            <div className="flex w-full gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  store.setStatus("idle");
-                  store.setError(null);
-                  store.setProgress(0);
-                  store.setRenderJobId(null);
-                  store.setStep(store.step >= 1 ? store.step : 1);
-                }}
-                className="flex-1 rounded-xl border border-white/[0.08] bg-card py-3 text-[13px] font-semibold text-text-2 active:scale-[0.99]"
-              >
-                편집으로 돌아가기
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  store.setStatus("idle");
-                  store.setError(null);
-                  store.setProgress(0);
-                  store.setRenderJobId(null);
-                }}
-                className="flex-1 rounded-xl bg-accent py-3 text-[13px] font-bold text-bg active:scale-[0.99]"
-              >
-                다시 시도
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Bottom navigation — Step 1에서만 "다음" 버튼 표시 (Step 2는 스크롤 내 업로드 버튼 사용) */}
-      {step === 1 && store.file && store.status !== "error" && (
-        <div className="pointer-events-none fixed bottom-[calc(54px+env(safe-area-inset-bottom))] left-1/2 z-30 w-full max-w-[430px] -translate-x-1/2">
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg via-bg/96 to-transparent" />
-          <div className="relative flex gap-3 px-4 pb-3">
-            <button
-              type="button"
-              onClick={handleNext}
-              className="pointer-events-auto flex-1 rounded-xl border border-accent/20 bg-accent py-3.5 text-sm font-bold text-bg shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-[transform,background-color] active:scale-[0.99]"
-            >
-              다음
-            </button>
-          </div>
+          {/* Upload button */}
+          <button
+            type="button"
+            onClick={handleUpload}
+            className="w-full rounded-xl border border-accent/20 bg-accent py-4 text-[15px] font-bold text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-transform active:scale-[0.99]"
+          >
+            올리기
+          </button>
         </div>
       )}
-    </>
-  );
-}
-
-/* ── Compress Indicator (Step 2 상단) ── */
-function CompressIndicator({
-  status,
-  progress,
-  stats,
-}: {
-  status: CompressStatus;
-  progress: number;
-  stats: { originalSize: number; compressedSize: number; ratio: number } | null;
-}) {
-  if (status === "idle" || status === "unsupported" || status === "skipped") return null;
-
-  const formatMB = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)}MB`;
-
-  if (status === "done" && stats) {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/8 px-4 py-2.5">
-        <span className="text-green-400">✓</span>
-        <span className="text-[13px] text-green-400 font-medium">
-          최적화 완료 ({formatMB(stats.originalSize)} → {formatMB(stats.compressedSize)})
-        </span>
-      </div>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-card px-4 py-2.5">
-        <span className="text-[13px] text-text-3">원본 파일로 업로드합니다</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-card px-4 py-3">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[13px] text-text-2">영상 최적화 중...</span>
-        <span className="text-[12px] font-mono text-text-3">{progress}%</span>
-      </div>
-      <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
-        <div
-          className="h-full rounded-full bg-accent transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
     </div>
   );
 }
 
-/* ── Visibility Selector ── */
-const VISIBILITY_OPTIONS: { value: ClipVisibility; label: string; icon: string; desc: string }[] = [
-  { value: "public", label: "전체 공개", icon: "🌍", desc: "누구나 볼 수 있어요" },
-  { value: "followers", label: "팔로워만", icon: "👥", desc: "나를 팔로우하는 사람만" },
-  { value: "team", label: "팀원만", icon: "⚽", desc: "같은 팀 멤버만 볼 수 있어요" },
-  { value: "private", label: "나만 보기", icon: "🔒", desc: "나만 볼 수 있어요" },
-];
+/* ── Error helpers ── */
 
-function VisibilitySelector({
-  value,
-  onChange,
-}: {
-  value: ClipVisibility;
-  onChange: (v: ClipVisibility) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {VISIBILITY_OPTIONS.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
-            value === opt.value
-              ? "border border-accent/30 bg-accent/8"
-              : "border border-transparent bg-card"
-          }`}
-        >
-          <span className="text-[16px]">{opt.icon}</span>
-          <div className="flex flex-col items-start">
-            <span
-              className={`text-[13px] font-semibold ${
-                value === opt.value ? "text-accent" : "text-text-1"
-              }`}
-            >
-              {opt.label}
-            </span>
-            <span className="text-[11px] text-text-3">{opt.desc}</span>
-          </div>
-          {value === opt.value && (
-            <svg
-              className="ml-auto text-accent"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ── Error message helpers ── */
 function getErrorMessage(error: string | null): string {
   if (!error) return "업로드에 실패했어요.";
   if (error.includes("네트워크") || error.includes("network"))
     return "인터넷 연결이 불안정해요.";
   if (error.includes("Presign") || error.includes("CORS") || error.includes("R2"))
     return "서버 연결에 문제가 있어요.";
-  if (error.includes("클립 저장") || error.includes("렌더"))
+  if (error.includes("클립 저장"))
     return "영상 처리에 실패했어요.";
   return error;
 }
@@ -598,75 +306,5 @@ function getErrorHint(error: string | null): string {
     return "Wi-Fi 또는 데이터 연결을 확인해주세요.";
   if (error.includes("CORS") || error.includes("R2"))
     return "관리자에게 문의해주세요.";
-  if (error.includes("렌더"))
-    return "편집으로 돌아가서 설정을 변경해보세요.";
   return "잠시 후 다시 시도해주세요.";
-}
-
-/* ── Upload Usage Guide Banner ── */
-const GUIDE_DISMISSED_KEY = "footory_upload_guide_dismissed";
-
-function UploadUsageGuide({ isChallenge }: { isChallenge: boolean }) {
-  const [collapsed, setCollapsed] = useState(true);
-
-  useEffect(() => {
-    setCollapsed(localStorage.getItem(GUIDE_DISMISSED_KEY) === "true");
-  }, []);
-
-  const toggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    if (next) {
-      localStorage.setItem(GUIDE_DISMISSED_KEY, "true");
-    } else {
-      localStorage.removeItem(GUIDE_DISMISSED_KEY);
-    }
-  };
-
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-card">
-      <button
-        type="button"
-        onClick={toggle}
-        className="flex w-full items-center justify-between px-4 py-3"
-      >
-        <span className="text-[13px] font-semibold text-text-1">
-          영상을 올리면 이런 곳에 쓰여요
-        </span>
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`text-text-3 transition-transform ${collapsed ? "" : "rotate-180"}`}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {!collapsed && (
-        <div className="flex flex-col gap-2.5 px-4 pb-4">
-          <GuideItem icon="👤" text="내 프로필 하이라이트에 추가" />
-          <GuideItem icon="📰" text="홈 피드에 자동 게시 (팔로워 노출)" />
-          <GuideItem icon="🏆" text="이번 주 MVP 투표 후보 등록" />
-          {isChallenge && (
-            <GuideItem icon="🎯" text="챌린지 순위에도 반영됩니다" />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GuideItem({ icon, text }: { icon: string; text: string }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="text-sm">{icon}</span>
-      <span className="text-[12px] text-text-2">{text}</span>
-    </div>
-  );
 }

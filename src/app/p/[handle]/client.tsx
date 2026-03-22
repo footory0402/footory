@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import ProfileCard from "@/components/player/ProfileCard";
-import SocialCard from "@/components/player/SocialCard";
-import ProfileTabs, { type ProfileTab } from "@/components/player/ProfileTabs";
-import SeasonTimeline from "@/components/player/SeasonTimeline";
+import HeroSection from "@/components/profile/HeroSection";
+import ProfileTabBar, { type ProfileTabKey } from "@/components/profile/ProfileTabBar";
+import HighlightsTabV5 from "@/components/profile/HighlightsTabV5";
+import RecordsTabV5 from "@/components/profile/RecordsTabV5";
+import CareerTabV5 from "@/components/profile/CareerTabV5";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
 import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
@@ -17,15 +18,11 @@ const AddToWatchlistButton = dynamic(
   { ssr: false }
 );
 
-const InfoTab = dynamic(() => import("@/components/player/InfoTab"), { ssr: false });
-const HighlightsTab = dynamic(() => import("@/components/player/HighlightsTab"), { ssr: false });
 const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
 const CompareSheet = dynamic(() => import("@/components/player/CompareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { SectionCard } from "@/components/ui/Card";
-import AchievementList from "@/components/portfolio/AchievementList";
 import { APP_URL, POSITION_LABELS, MEASUREMENTS, type PlayStyleType } from "@/lib/constants";
-import { calcRadarStats, type ClipTagCount } from "@/lib/radar-calc";
+import { calcRadarStats } from "@/lib/radar-calc";
 import type { Profile, Stat, Season, Achievement, PlayStyle } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
 
@@ -201,19 +198,13 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
     year: r.year as number,
     teamName: r.team_name as string,
     position: (r.position as Season["position"]) ?? "FW",
+    isCurrent: !!(r.is_current),
   }));
-}
-
-function footLabel(foot: string): string {
-  if (foot === "right") return "오른발";
-  if (foot === "left") return "왼발";
-  if (foot === "both") return "양발";
-  return foot;
 }
 
 export default function PublicProfileClient({ profile: data }: { profile: PublicProfileData }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("highlights");
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>("highlights");
   const [shareOpen, setShareOpen] = useState(false);
   const [dmModalOpen, setDmModalOpen] = useState(false);
   const [dmMsg, setDmMsg] = useState("");
@@ -225,25 +216,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const seasons = mapSeasons(data.seasons);
   const achievements = mapAchievements(data.achievements ?? []);
   const tagClips = data.tagClips ?? {};
-
-  // Percentile data for InfoTab
-  const [percentiles, setPercentiles] = useState<Record<string, number>>({});
-  const [ageAvgs, setAgeAvgs] = useState<Record<string, number>>({});
-  const [peerCounts, setPeerCounts] = useState<Record<string, number>>({});
-  const [ageGroup, setAgeGroup] = useState<string>("");
-
-  useEffect(() => {
-    if (stats.length === 0) return;
-    fetch(`/api/stats/percentile?profileId=${data.id}`)
-      .then((r) => (r.ok ? r.json() : { percentiles: {}, ageAvgs: {}, peerCounts: {}, ageGroup: "" }))
-      .then((d) => {
-        setPercentiles(d.percentiles ?? {});
-        setAgeAvgs(d.ageAvgs ?? {});
-        setPeerCounts(d.peerCounts ?? {});
-        setAgeGroup(d.ageGroup ?? "");
-      })
-      .catch(() => {});
-  }, [data.id, stats.length]);
 
   // Map play style from SSR data to PlayStyle type
   const mappedPlayStyle: PlayStyle | null = useMemo(() => {
@@ -261,20 +233,10 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     };
   }, [data.playStyle]);
 
-  // clipTagCounts for radar and InfoTab
-  const clipTagCounts: ClipTagCount[] = useMemo(() => {
-    return Object.entries(tagClips)
-      .map(([, clips]) => {
-        const tagName = clips[0]?.tag ?? "";
-        return { tagName, count: clips.length };
-      })
-      .filter((t) => t.tagName);
-  }, [tagClips]);
-
-  // Compute radar stats with percentiles
+  // Radar stats for CompareSheet
   const targetRadarStats = useMemo(() => {
-    return calcRadarStats(stats, clipTagCounts, percentiles);
-  }, [stats, clipTagCounts, percentiles]);
+    return calcRadarStats(stats, []);
+  }, [stats]);
 
   const shareUrl = typeof window !== "undefined"
     ? window.location.href
@@ -293,8 +255,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     if (window.history.length > 1) router.back();
     else router.push("/");
   }, [router]);
-
-  const hasPhysical = profile.heightCm || profile.weightKg || profile.preferredFoot;
 
   return (
     <ErrorBoundary>
@@ -324,19 +284,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       </div>
 
       <div className="px-4 pt-3">
-      {/* Profile card (read-only, no edit button) */}
-      <ProfileCard
+      {/* Profile hero (read-only, no callbacks = no action bar) */}
+      <HeroSection
         profile={profile}
-        radarStats={targetRadarStats}
-        stats={stats}
-      />
-
-      {/* 소셜 지표 카드 */}
-      <SocialCard
-        followers={profile.followers}
-        following={profile.following}
-        views={profile.views}
-        className="mt-2.5"
+        playStyle={mappedPlayStyle}
+        teamState={profile.teamName ? "has-team" : "no-team"}
       />
 
       {/* 액션 버튼 — 프로필 카드 바로 아래 */}
@@ -452,14 +404,14 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       )}
 
       {/* Tabs */}
-      <div className="mt-4">
-        <ProfileTabs active={activeTab} onChange={setActiveTab} />
+      <div className="-mx-4 mt-4">
+        <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} stickyTop={48} />
       </div>
 
       {/* Tab content */}
-      <div className="mt-5">
+      <div>
         {activeTab === "highlights" && (
-          <HighlightsTab
+          <HighlightsTabV5
             readOnly
             tagClips={tagClips}
             initialFeatured={data.featured}
@@ -468,53 +420,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         )}
 
         {activeTab === "records" && (
-          <div className="flex flex-col gap-5">
-            <InfoTab
-              readOnly
-              stats={stats}
-              percentiles={percentiles}
-              ageAvgs={ageAvgs}
-              peerCounts={peerCounts}
-              ageGroup={ageGroup}
-              radarStats={targetRadarStats}
-              clipTagCounts={clipTagCounts}
-              playStyle={mappedPlayStyle}
-              achievements={achievements}
-            />
+          <RecordsTabV5 stats={stats} playStyle={mappedPlayStyle} />
+        )}
 
-            {/* Physical */}
-            {hasPhysical && (
-              <div className="flex flex-wrap gap-2">
-                {profile.heightCm && (
-                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                    <span className="text-[10px] text-text-3">키</span>
-                    <span className="font-stat text-sm font-bold text-text-1">{profile.heightCm}</span>
-                    <span className="text-[10px] text-text-3">cm</span>
-                  </div>
-                )}
-                {profile.weightKg && (
-                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                    <span className="text-[10px] text-text-3">몸무게</span>
-                    <span className="font-stat text-sm font-bold text-text-1">{profile.weightKg}</span>
-                    <span className="text-[10px] text-text-3">kg</span>
-                  </div>
-                )}
-                {profile.preferredFoot && (
-                  <div className="flex items-center gap-1.5 rounded-lg bg-white/[0.04] px-3 py-2">
-                    <span className="text-[10px] text-text-3">주발</span>
-                    <span className="text-sm font-medium text-text-1">{footLabel(profile.preferredFoot)}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Season records */}
-            {seasons.length > 0 && (
-              <SectionCard title="시즌 기록" icon="📅">
-                <SeasonTimeline seasons={seasons} />
-              </SectionCard>
-            )}
-          </div>
+        {activeTab === "career" && (
+          <CareerTabV5 readOnly profile={profile} seasons={seasons} achievements={achievements} />
         )}
       </div>
 

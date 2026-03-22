@@ -35,6 +35,7 @@ interface CareerTabV5Props {
   tournaments?: TournamentRecord[];
   awards?: AwardRecord[];
   achievements?: Achievement[];
+  readOnly?: boolean;
   onAddSeason?: () => void;
   onAddTournament?: () => void;
   onAddAward?: () => void;
@@ -46,6 +47,7 @@ export default function CareerTabV5({
   tournaments = [],
   awards = [],
   achievements = [],
+  readOnly,
   onAddSeason,
   onAddTournament,
   onAddAward,
@@ -68,7 +70,7 @@ export default function CareerTabV5({
   return (
     <div className="flex flex-col gap-5 pt-4">
       {/* ── 현재 소속 ── */}
-      <CurrentTeamCard profile={profile} />
+      <CurrentTeamCard profile={profile} readOnly={readOnly} />
 
       {/* ── 대회 기록 ── */}
       <div>
@@ -169,8 +171,53 @@ export default function CareerTabV5({
 }
 
 /* ── Current Team Card ── */
-function CurrentTeamCard({ profile }: { profile: Profile }) {
+function CurrentTeamCard({ profile, readOnly }: { profile: Profile; readOnly?: boolean }) {
   if (!profile.teamName) {
+    if (readOnly) {
+      return (
+        <div
+          className="card-elevated"
+          style={{ padding: "14px 16px" }}
+        >
+          <span
+            style={{
+              fontSize: 9,
+              color: "var(--color-text-3)",
+              fontFamily: "var(--font-body)",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+            }}
+          >
+            현재 소속
+          </span>
+          <div className="mt-2 flex items-center gap-[10px]">
+            <div
+              className="flex items-center justify-center"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                fontSize: 16,
+              }}
+            >
+              ⚽
+            </div>
+            <span
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--color-text-3)",
+              }}
+            >
+              소속 팀 없음
+            </span>
+          </div>
+        </div>
+      );
+    }
     return (
       <Link
         href="/team"

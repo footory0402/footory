@@ -7,19 +7,20 @@ export type ProfileTabKey = "highlights" | "records" | "career";
 interface ProfileTabBarProps {
   activeTab: ProfileTabKey;
   onTabChange: (tab: ProfileTabKey) => void;
+  stickyTop?: number;
 }
 
-const TABS: { key: ProfileTabKey; label: string; icon: string }[] = [
-  { key: "highlights", label: "하이라이트", icon: "🎬" },
-  { key: "records", label: "기록", icon: "📊" },
-  { key: "career", label: "커리어", icon: "⚽" },
+const TABS: { key: ProfileTabKey; label: string }[] = [
+  { key: "highlights", label: "하이라이트" },
+  { key: "records", label: "기록" },
+  { key: "career", label: "커리어" },
 ];
 
-function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
+function ProfileTabBarInner({ activeTab, onTabChange, stickyTop }: ProfileTabBarProps) {
   return (
     <div
       className="sticky z-40 bg-bg/95 backdrop-blur-sm px-4 py-2"
-      style={{ top: 49 }}
+      style={{ top: stickyTop ?? 49 }}
     >
       <div className="flex rounded-xl bg-card p-1 gap-1">
         {TABS.map((tab) => {
@@ -28,13 +29,12 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
             <button
               key={tab.key}
               onClick={() => onTabChange(tab.key)}
-              className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 text-xs transition-all ${
+              className={`flex flex-1 items-center justify-center rounded-lg py-2.5 text-[13px] font-semibold transition-all ${
                 active
-                  ? "bg-elevated text-accent font-bold"
+                  ? "bg-elevated text-accent"
                   : "text-text-3"
               }`}
             >
-              <span>{tab.icon}</span>
               {tab.label}
             </button>
           );
