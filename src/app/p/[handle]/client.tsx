@@ -21,7 +21,7 @@ const AddToWatchlistButton = dynamic(
 const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
 const CompareSheet = dynamic(() => import("@/components/player/CompareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { APP_URL, POSITION_LABELS, MEASUREMENTS, type PlayStyleType } from "@/lib/constants";
+import { APP_URL, POSITION_LABELS, MEASUREMENTS, getStatMeta, type PlayStyleType } from "@/lib/constants";
 import { calcRadarStats } from "@/lib/radar-calc";
 import type { Profile, Stat, Season, Achievement, PlayStyle } from "@/lib/types";
 import type { DmActionState, UserRole } from "@/lib/permissions";
@@ -202,9 +202,145 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
   }));
 }
 
+// ── Scout-only 대표 영상 섹션 ──────────────────────────────────────────
+function FeaturedVideoSection({ featured }: { featured: FeaturedClip[] }) {
+  const clip = featured[0];
+  if (!clip?.clips) return null;
+  const { video_url, thumbnail_url, duration_seconds } = clip.clips;
+  const secs = duration_seconds ?? 0;
+  const mm = Math.floor(secs / 60);
+  const ss = secs % 60;
+  return (
+    <div style={{ padding: "10px 14px 0" }}>
+      <p style={{ fontSize: 11, fontFamily: "'Noto Sans KR', sans-serif", color: "rgba(255,255,255,0.36)", marginBottom: 8, letterSpacing: "-0.01em" }}>
+        대표 영상
+      </p>
+      <div style={{ borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9" }}>
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video
+          src={video_url}
+          poster={thumbnail_url ?? undefined}
+          controls
+          preload="none"
+          playsInline
+          style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}
+        />
+        {duration_seconds != null && (
+          <div style={{
+            position: "absolute", bottom: 8, right: 8,
+            background: "rgba(0,0,0,0.72)", borderRadius: 6,
+            padding: "2px 6px", fontSize: 11, color: "#fff",
+            fontFamily: "'Oswald', sans-serif", pointerEvents: "none",
+          }}>
+            {mm}:{String(ss).padStart(2, "0")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Scout-only 신체 요약 카드 ────────────────────────────────────────────
+function ScoutSummarySection({ profile, stats, achievements }: {
+  profile: Profile;
+  stats: Stat[];
+  achievements: Achievement[];
+}) {
+  const age = profile.birthYear ? new Date().getFullYear() - profile.birthYear : null;
+  const foot =
+    profile.preferredFoot === "right" ? "오른발" :
+    profile.preferredFoot === "left"  ? "왼발" :
+    profile.preferredFoot === "both"  ? "양발" : null;
+
+  const physicalItems = [
+    age ? `${age}세` : null,
+    profile.heightCm  ? `${profile.heightCm}cm`  : null,
+    profile.weightKg  ? `${profile.weightKg}kg`  : null,
+    foot,
+  ].filter(Boolean) as string[];
+
+  const top3 = stats.slice(0, 3);
+  const hasContent =
+    physicalItems.length > 0 || top3.length > 0 ||
+    achievements.length > 0  || profile.mvpCount > 0;
+  if (!hasContent) return null;
+
+  return (
+    <div style={{ padding: "10px 14px 0" }}>
+      <div style={{
+        background: "#111111",
+        borderRadius: 18,
+        border: "1px solid rgba(255,255,255,0.06)",
+        padding: 14,
+      }}>
+        <p style={{ fontSize: 11, fontFamily: "'Noto Sans KR', sans-serif", color: "rgba(255,255,255,0.36)", marginBottom: 12, letterSpacing: "-0.01em" }}>
+          스카우터 요약
+        </p>
+
+        {/* 신체 정보 */}
+        {physicalItems.length > 0 && (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: top3.length > 0 ? 10 : 0 }}>
+            {physicalItems.map((item) => (
+              <span key={item} style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 13, color: "rgba(255,255,255,0.78)" }}>
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* 체력 TOP 3 */}
+        {top3.length > 0 && (
+          <div style={{ borderTop: physicalItems.length > 0 ? "1px solid rgba(255,255,255,0.06)" : "none", paddingTop: physicalItems.length > 0 ? 10 : 0, marginBottom: (achievements.length > 0 || profile.mvpCount > 0) ? 10 : 0 }}>
+            {top3.map((stat) => {
+              const meta = getStatMeta(stat.type);
+              return (
+                <div key={stat.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+                    {meta.label}
+                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 700, color: "#e8d48b" }}>
+                      {stat.value}
+                    </span>
+                    <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.36)" }}>
+                      {meta.unit || stat.unit}
+                    </span>
+                    {stat.isPR && (
+                      <span style={{ fontSize: 10, color: "#60a5fa", fontFamily: "'Oswald', sans-serif", marginLeft: 2 }}>PR</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 대회 + MVP 요약 */}
+        {(achievements.length > 0 || profile.mvpCount > 0) && (
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10, display: "flex", gap: 14 }}>
+            {achievements.length > 0 && (
+              <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.52)" }}>
+                🏆 대회 {achievements.length}회
+              </span>
+            )}
+            {profile.mvpCount > 0 && (
+              <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.52)" }}>
+                ⭐ MVP {profile.mvpCount}회
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PublicProfileClient({ profile: data }: { profile: PublicProfileData }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>("highlights");
+  const isScoutViewer = data.viewerAccess?.role === "scout" && data.role === "player";
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>(
+    () => data.viewerAccess?.role === "scout" ? "records" : "highlights"
+  );
   const [shareOpen, setShareOpen] = useState(false);
   const [dmModalOpen, setDmModalOpen] = useState(false);
   const [dmMsg, setDmMsg] = useState("");
@@ -400,6 +536,14 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             </a>
           )}
         </div>
+      )}
+
+      {/* 스카우터 전용: 대표 영상 + 신체 요약 카드 */}
+      {isScoutViewer && data.featured.length > 0 && (
+        <FeaturedVideoSection featured={data.featured} />
+      )}
+      {isScoutViewer && (
+        <ScoutSummarySection profile={profile} stats={stats} achievements={achievements} />
       )}
 
       {/* Tabs */}
