@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useUploadStore } from "@/stores/upload-store";
 import { useGlobalRenderPolling } from "@/hooks/useGlobalRenderPolling";
 import { ProfileProvider } from "@/providers/ProfileProvider";
 import AppHeader from "./AppHeader";
@@ -20,17 +19,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Global render job polling (persists across navigations)
   useGlobalRenderPolling();
-
-  // Warn before closing tab during active upload
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      const { status } = useUploadStore.getState();
-      const active = !["idle", "done", "error", "editing"].includes(status);
-      if (active) e.preventDefault();
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, []);
 
   // bfcache guard: 로그아웃 후 뒤로가기로 복원되면 새로고침
   useEffect(() => {
