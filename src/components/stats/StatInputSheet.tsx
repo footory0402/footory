@@ -28,6 +28,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
   const [minutes, setMinutes] = useState("");
   const [seconds, setSeconds] = useState("");
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { profile } = useProfile();
 
   const measurement = selectedType ? getStatMeta(selectedType) : null;
@@ -55,6 +56,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
     setMinutes("");
     setSeconds("");
     setSaving(false);
+    setErrorMsg(null);
   };
 
   const handleClose = () => {
@@ -82,11 +84,13 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
     // 범위 초과 시 차단
     if (warning?.type === "blocked") return;
 
+    setErrorMsg(null);
     setSaving(true);
     try {
       await onSave(selectedType, num);
       handleClose();
-    } catch {
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "저장에 실패했습니다");
       setSaving(false);
     }
   };
@@ -214,7 +218,15 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
                 </div>
               )}
 
-              {!warning && <div className="mb-3" />}
+              {!warning && !errorMsg && <div className="mb-3" />}
+
+              {/* 서버 에러 메시지 */}
+              {errorMsg && (
+                <div className="mb-4 flex items-start gap-2 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[12px] leading-relaxed text-red-400">
+                  <span className="mt-0.5 shrink-0">🚫</span>
+                  <span>{errorMsg}</span>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button

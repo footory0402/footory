@@ -95,7 +95,7 @@ export default function GlobalUploadIndicator() {
   const handleTap = () => {
     if (isDone) router.push("/profile");
     else if (isError) router.push("/upload");
-    else router.push("/upload");
+    // 업로드 중엔 탭해도 페이지 이동 없음 — 진행 중인 업로드 방해 방지
   };
 
   const handleClose = (e: React.MouseEvent) => {

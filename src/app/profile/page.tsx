@@ -23,6 +23,7 @@ import { useStats } from "@/hooks/useStats";
 import { useClips, useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
 import { useAchievements } from "@/hooks/useAchievements";
+import { useUploadStore } from "@/stores/upload-store";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -48,6 +49,14 @@ export default function ProfilePage() {
   const shouldLoadData = !!profile && !isScoutProfile;
   const { stats, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
   const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
+
+  // 백그라운드 업로드 완료 시 클립 자동 새로고침
+  const uploadStatus = useUploadStore((s) => s.status);
+  useEffect(() => {
+    if (uploadStatus === "done" && shouldLoadData) {
+      fetchTagClips();
+    }
+  }, [uploadStatus, shouldLoadData, fetchTagClips]);
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
   const { achievements } = useAchievements({ enabled: shouldLoadData });

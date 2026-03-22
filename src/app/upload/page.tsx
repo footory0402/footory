@@ -9,12 +9,10 @@ import ChildSelector from "@/components/upload/ChildSelector";
 import { useRouter, useSearchParams } from "next/navigation";
 
 /*
- * v2.1 — Instagram-style upload (mobile-safe)
+ * v2.2 — Instagram-style upload
  *
- * 파일 선택 → 태그(최대 2) + 메모 → 올리기
- * → 업로드 중 스피너 (페이지에 머무름) → 완료 시 /profile 이동
- *
- * 모바일 안정성: 즉시 navigate 제거, store.status === "done" 시 이동
+ * 파일 선택 → 즉시 R2 백그라운드 업로드 시작 → 태그(최대 2) + 메모 → 올리기
+ * → 즉시 /profile 이동 → GlobalUploadIndicator가 진행 상태 표시
  */
 
 const SIMPLE_TAGS = [
@@ -72,13 +70,6 @@ export default function UploadPage() {
     }
   }, [canUpload, isParent, challengeTag]);
 
-  // 업로드 완료 → /profile 이동 (모바일 안전)
-  useEffect(() => {
-    if (store.status === "done") {
-      router.replace("/profile");
-    }
-  }, [store.status, router]);
-
   const toggleTag = useCallback(
     (dbName: string) => {
       if (challengeTag && dbName === challengeTag) return;
@@ -100,8 +91,9 @@ export default function UploadPage() {
       s.setError(null);
       s.setProgress(0);
     }
-    startUpload(); // 완료 시 store.status → "done" → useEffect에서 navigate
-  }, []);
+    startUpload(); // 백그라운드로 실행 — GlobalUploadIndicator가 진행 상태 표시
+    router.replace("/profile"); // 즉시 이동 (인스타그램 방식)
+  }, [router]);
 
   /* ── Guard: 로딩 중 ── */
   if (loading && !role) {
@@ -133,46 +125,6 @@ export default function UploadPage() {
           >
             홈으로 돌아가기
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  /* ── 업로드 진행 중 화면 ── */
-  if (
-    ["uploading_raw", "uploading", "thumbnail", "saving", "creating_job", "rendering"].includes(
-      store.status
-    )
-  ) {
-    const pct = store.progress;
-    return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 px-6 pb-28">
-        {/* 원형 진행 표시 */}
-        <div className="relative h-20 w-20">
-          <svg className="h-20 w-20 -rotate-90" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-            <circle
-              cx="40" cy="40" r="34"
-              fill="none"
-              stroke="var(--color-accent)"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 34}`}
-              strokeDashoffset={`${2 * Math.PI * 34 * (1 - pct / 100)}`}
-              className="transition-all duration-500"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[15px] font-stat font-bold text-accent">
-              {pct > 0 ? `${pct}%` : "·"}
-            </span>
-          </div>
-        </div>
-        <div className="text-center">
-          <p className="text-[16px] font-semibold text-text-1">
-            {store.status === "saving" ? "저장 중..." : "올리는 중..."}
-          </p>
-          <p className="mt-1 text-[13px] text-text-3">잠깐만 기다려주세요</p>
         </div>
       </div>
     );

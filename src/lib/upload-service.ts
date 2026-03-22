@@ -365,19 +365,38 @@ async function multipartUploadToR2(
   }
 
   // 5. Complete (서버에서 ListParts로 ETags 자동 취합)
-  const completeRes = await apiFetch(
-    "/api/upload/multipart",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "complete", key, uploadId }),
-    },
-    "Multipart 완료"
-  );
+  // complete 호출 중에도 progress가 90%에서 멈춰 보이지 않도록 91→94%로 서서히 증가
+  let completeSimPct = 91;
+  onProgress(completeSimPct);
+  const completeSimTimer = setInterval(() => {
+    if (completeSimPct < 94) {
+      completeSimPct++;
+      onProgress(completeSimPct);
+    }
+  }, 3000);
+
+  let completeRes: Response;
+  try {
+    completeRes = await apiFetch(
+      "/api/upload/multipart",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete", key, uploadId }),
+      },
+      "Multipart 완료",
+      2, // 재시도 2회
+      90_000 // 90초 타임아웃 (ListParts가 오래 걸릴 수 있음)
+    );
+  } finally {
+    clearInterval(completeSimTimer);
+  }
+
   if (!completeRes.ok) {
     const err = await completeRes.json().catch(() => ({}));
     throw new Error(err.error ?? "Multipart 완료 실패");
   }
+  onProgress(95);
 }
 
 // ─── R2 업로드 (presigned URL) ───
