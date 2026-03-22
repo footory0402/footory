@@ -71,20 +71,17 @@ export default function BottomTab() {
     });
   }, [tabs, router]);
 
-  // 패턴 B (카카오/네이버/당근): 뒤로가기 → 홈 → 종료
-  // 홈에서 다른 탭 = push (홈이 히스토리에 남음)
-  // 탭에서 탭 = replace (탭끼리는 교체)
-  // 홈 탭 = replace (항상)
-  const isOnHome = pathname === "/";
+  // 인스타그램 방식: 탭 전환은 무조건 replace (히스토리에 다른 탭 흔적 남기지 않음)
+  // - 탭 루트에서 뒤로가기 → 앱 종료 (Android) / 아무 동작 없음 (iOS)
+  // - 탭 내 서브페이지에서 뒤로가기 → 해당 탭의 이전 페이지로
+  // - 업로드는 예외: push 유지 (탭이 아니라 화면 진입이므로 back 가능해야 함)
 
   const handleCenterTap = (tab: Tab) => {
     if (tab.href === "/upload" && (role === "player" || role === "parent")) {
-      router.push("/upload"); // upload은 depth 진입이므로 push 유지
+      router.push("/upload"); // upload = 서브페이지 진입 → push
       return;
     }
-    // 센터 탭 전환 (watchlist 등)
-    if (isOnHome) router.push(tab.href);
-    else router.replace(tab.href);
+    router.replace(tab.href); // 그 외 센터 탭 전환 = replace
   };
 
   return (
@@ -127,8 +124,8 @@ export default function BottomTab() {
             }
 
             /* ── Normal tab ── */
-            // 홈 탭 or 탭→탭 = replace, 홈→다른탭 = push
-            const shouldReplace = tab.href === "/" || !isOnHome;
+            // 탭 전환은 항상 replace (인스타그램 방식 — 탭끼리 히스토리 오염 방지)
+            const shouldReplace = true;
 
             return (
               <Link
