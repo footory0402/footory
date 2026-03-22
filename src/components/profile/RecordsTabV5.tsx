@@ -37,7 +37,7 @@ export default function RecordsTabV5({
     : null;
 
   return (
-    <div className="pt-4 flex flex-col gap-5">
+    <div className="pt-3 flex flex-col gap-4">
       {/* ── 플레이 스타일 카드 ── */}
       {styleInfo && playStyle ? (
         <div

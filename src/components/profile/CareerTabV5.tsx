@@ -68,7 +68,7 @@ export default function CareerTabV5({
   ];
 
   return (
-    <div className="flex flex-col gap-5 pt-4">
+    <div className="flex flex-col gap-4 pt-3">
       {/* ── 현재 소속 ── */}
       <CurrentTeamCard profile={profile} readOnly={readOnly} />
 

@@ -155,7 +155,7 @@ export default function HighlightsTabV5({
 
   return (
     <ErrorBoundary>
-      <div className="pt-4">
+      <div className="pt-3">
         {/* ── Featured video (v5: 16:9, gold border) ── */}
         {primaryFeatured?.clips?.video_url ? (
           <FeaturedCard

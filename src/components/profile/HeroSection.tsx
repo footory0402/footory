@@ -83,7 +83,7 @@ function HeroSectionInner({
   const showActionBar = onShare || onPdf || onEdit;
 
   return (
-    <div style={{ padding: "8px 14px 0" }}>
+    <div style={{ padding: "6px 14px 0" }}>
       <div style={{
         background: "#111111",
         borderRadius: 22,
@@ -91,12 +91,12 @@ function HeroSectionInner({
         overflow: "hidden",
       }}>
         {/* 상단: 사진 + 정보 */}
-        <div style={{ display: "flex", padding: 14, gap: 14 }}>
+        <div style={{ display: "flex", padding: "10px 12px", gap: 12 }}>
 
-          {/* 사진 — 110×136, 포지션/MVP 오버레이 포함 */}
+          {/* 사진 — 90×112, 포지션/MVP 오버레이 포함 */}
           <div style={{
-            width: 110, height: 136, flexShrink: 0,
-            borderRadius: 18, overflow: "hidden",
+            width: 90, height: 112, flexShrink: 0,
+            borderRadius: 16, overflow: "hidden",
             position: "relative",
             background: "linear-gradient(170deg, #1a1a1a, #0c0c0c)",
           }}>
@@ -113,7 +113,7 @@ function HeroSectionInner({
               />
             ) : (
               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 1 }}>
-                <svg width="44" height="55" viewBox="0 0 120 140" fill="none" opacity={0.18}>
+                <svg width="36" height="45" viewBox="0 0 120 140" fill="none" opacity={0.18}>
                   <circle cx="60" cy="42" r="28" fill="rgba(201,168,76,0.25)" stroke="rgba(201,168,76,0.3)" strokeWidth="1" />
                   <path d="M22 132 Q22 94 60 87 Q98 94 98 132" fill="rgba(201,168,76,0.12)" />
                 </svg>
@@ -198,16 +198,16 @@ function HeroSectionInner({
             {/* 이름 */}
             <h1 style={{
               fontFamily: "'Noto Sans KR', sans-serif",
-              fontSize: 20, fontWeight: 800,
-              color: "#f5f5f5", margin: "0 0 3px",
+              fontSize: 18, fontWeight: 800,
+              color: "#f5f5f5", margin: "0 0 2px",
               letterSpacing: "-0.03em", lineHeight: 1.15,
             }}>{profile.name}</h1>
 
             {/* 핸들 + 지역 */}
             <p style={{
               fontFamily: "'Noto Sans KR', sans-serif",
-              fontSize: 12, color: "rgba(255,255,255,0.40)",
-              margin: "0 0 6px", letterSpacing: "-0.01em",
+              fontSize: 11, color: "rgba(255,255,255,0.40)",
+              margin: "0 0 4px", letterSpacing: "-0.01em",
             }}>
               @{profile.handle}
               {profile.city ? ` · ${profile.city}` : ""}
@@ -215,7 +215,7 @@ function HeroSectionInner({
 
             {/* 팀 정보 */}
             {teamState === "has-team" && profile.teamName && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <span style={{
                   fontFamily: "'Noto Sans KR', sans-serif",
                   fontSize: 12, fontWeight: 600,
@@ -242,8 +242,8 @@ function HeroSectionInner({
             {physicalParts.length > 0 && (
               <p style={{
                 fontFamily: "'Noto Sans KR', sans-serif",
-                fontSize: 12, color: "rgba(255,255,255,0.72)",
-                margin: "0 0 8px", lineHeight: 1.6,
+                fontSize: 11, color: "rgba(255,255,255,0.72)",
+                margin: "0 0 5px", lineHeight: 1.5,
                 letterSpacing: "-0.01em",
               }}>
                 {physicalParts.join(" · ")}
@@ -269,9 +269,9 @@ function HeroSectionInner({
 
             {/* 팀 없음 CTA */}
             {teamState === "no-team" && onTeamChange && (
-              <Link href="/team" style={{ textDecoration: "none", marginTop: 8 }}>
+              <Link href="/team" style={{ textDecoration: "none", marginTop: 6 }}>
                 <div style={{
-                  padding: "8px 10px", borderRadius: 12,
+                  padding: "6px 10px", borderRadius: 10,
                   background: "rgba(201,168,76,0.08)",
                   border: "1px solid rgba(201,168,76,0.18)",
                   cursor: "pointer",
@@ -291,9 +291,9 @@ function HeroSectionInner({
 
             {/* 이적 중 */}
             {teamState === "transferring" && (
-              <Link href="/team" style={{ textDecoration: "none", marginTop: 8 }}>
+              <Link href="/team" style={{ textDecoration: "none", marginTop: 6 }}>
                 <div style={{
-                  padding: "8px 10px", borderRadius: 12,
+                  padding: "6px 10px", borderRadius: 10,
                   background: "rgba(96,165,250,0.08)",
                   border: "1px solid rgba(96,165,250,0.20)",
                 }}>
@@ -320,7 +320,7 @@ function HeroSectionInner({
           }}>
             {onShare && (
               <button onClick={onShare} style={{
-                flex: 1, padding: "12px 0",
+                flex: 1, padding: "9px 0",
                 background: "transparent", border: "none",
                 borderRight: (onPdf || onEdit) ? "1px solid rgba(255,255,255,0.06)" : "none",
                 color: "#e8d48b",
@@ -331,7 +331,7 @@ function HeroSectionInner({
             )}
             {onPdf && (
               <button onClick={onPdf} style={{
-                flex: 1, padding: "12px 0",
+                flex: 1, padding: "9px 0",
                 background: "transparent", border: "none",
                 borderRight: onEdit ? "1px solid rgba(255,255,255,0.06)" : "none",
                 color: "rgba(255,255,255,0.40)",
@@ -342,7 +342,7 @@ function HeroSectionInner({
             )}
             {onEdit && (
               <button onClick={onEdit} style={{
-                flex: 1, padding: "12px 0",
+                flex: 1, padding: "9px 0",
                 background: "transparent", border: "none",
                 borderRight: "none",
                 color: "#e8d48b",

@@ -20,9 +20,9 @@ function ProfileTabBarInner({ activeTab, onTabChange, stickyTop }: ProfileTabBar
   return (
     <div
       style={{
-        margin: "10px 14px 0",
+        margin: "6px 14px 0",
         background: "#111111",
-        borderRadius: 20,
+        borderRadius: 18,
         overflow: "hidden",
         border: "1px solid rgba(255,255,255,0.06)",
         display: "flex",
@@ -39,7 +39,7 @@ function ProfileTabBarInner({ activeTab, onTabChange, stickyTop }: ProfileTabBar
             onClick={() => onTabChange(tab.key)}
             style={{
               flex: 1,
-              padding: "14px 0 12px",
+              padding: "10px 0 8px",
               background: active ? "rgba(255,255,255,0.035)" : "transparent",
               border: "none",
               borderBottom: active ? "2.5px solid #c9a84c" : "2.5px solid transparent",
