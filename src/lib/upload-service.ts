@@ -618,11 +618,11 @@ export async function startUpload() {
     store.setProgress(0);
 
     const fileContentType = resolveContentType(store.file!);
-    let key: string;
-    let clipId: string;
+    let key = "";
+    let clipId = "";
 
+    // Try to reuse background R2 upload
     if (store.r2Status === "done" && store.r2Key && store.r2ClipId) {
-      // Background R2 upload already done — skip to metadata save
       key = store.r2Key;
       clipId = store.r2ClipId;
     } else if (store.r2Status === "uploading") {
@@ -632,13 +632,21 @@ export async function startUpload() {
           useUploadStore.getState().setProgress(state.r2Progress);
         }
       });
-      try { await waitForR2Upload(); } finally { unsub(); }
-      const fresh = useUploadStore.getState();
-      if (!fresh.r2Key || !fresh.r2ClipId) throw new Error("R2 업로드 실패");
-      key = fresh.r2Key;
-      clipId = fresh.r2ClipId;
-    } else {
-      // No background upload — do it now (fallback)
+      try {
+        await waitForR2Upload();
+        const fresh = useUploadStore.getState();
+        key = fresh.r2Key ?? "";
+        clipId = fresh.r2ClipId ?? "";
+      } catch {
+        // Background upload failed — will fall through to direct upload
+      } finally {
+        unsub();
+      }
+    }
+
+    // Fallback: direct upload if background wasn't available or failed
+    if (!key || !clipId) {
+      store.setProgress(0);
       const presignRes = await apiFetch(
         "/api/upload/presign",
         {
