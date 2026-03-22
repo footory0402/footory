@@ -348,7 +348,7 @@ function HeroSectionInner({
             </div>
           )}
 
-          {teamState === "no-team" && (
+          {teamState === "no-team" && onTeamChange && (
             <Link
               href="/team"
               className="mb-[6px] block cursor-pointer"
@@ -410,7 +410,7 @@ function HeroSectionInner({
             </Link>
           )}
 
-          {teamState === "transferring" && (
+          {teamState === "transferring" && onTeamChange && (
             <Link
               href="/team"
               className="mb-[6px] block cursor-pointer"
@@ -519,42 +519,47 @@ function HeroSectionInner({
       </div>
 
       {/* ── Action bar ── */}
-      <div
-        className="flex"
-        style={{
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          background: "rgba(255,255,255,0.01)",
-        }}
-      >
-        {[
+      {(onShare || onPdf || onEdit) && (() => {
+        const actions = [
           { icon: "📤", label: "공유", primary: true, onClick: onShare },
           { icon: "📄", label: "PDF", primary: false, onClick: onPdf },
           { icon: "✏️", label: "편집", primary: false, onClick: onEdit },
-        ].map(({ icon, label, primary, onClick }, i) => (
-          <button
-            key={label}
-            onClick={onClick}
-            className="flex flex-1 items-center justify-center gap-1"
+        ].filter((item) => item.onClick);
+        return (
+          <div
+            className="flex"
             style={{
-              padding: "10px 0",
-              background: "transparent",
-              border: "none",
-              borderRight:
-                i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none",
-              color: primary
-                ? "var(--color-accent)"
-                : "var(--color-text-3)",
-              fontSize: 11,
-              fontFamily: "var(--font-body)",
-              fontWeight: primary ? 600 : 400,
-              cursor: "pointer",
+              borderTop: "1px solid rgba(255,255,255,0.05)",
+              background: "rgba(255,255,255,0.01)",
             }}
           >
-            <span style={{ fontSize: 12 }}>{icon}</span>
-            {label}
-          </button>
-        ))}
-      </div>
+            {actions.map(({ icon, label, primary, onClick }, i) => (
+              <button
+                key={label}
+                onClick={onClick}
+                className="flex flex-1 items-center justify-center gap-1"
+                style={{
+                  padding: "10px 0",
+                  background: "transparent",
+                  border: "none",
+                  borderRight:
+                    i < actions.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                  color: primary
+                    ? "var(--color-accent)"
+                    : "var(--color-text-3)",
+                  fontSize: 11,
+                  fontFamily: "var(--font-body)",
+                  fontWeight: primary ? 600 : 400,
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: 12 }}>{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
