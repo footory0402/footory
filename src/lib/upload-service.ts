@@ -8,7 +8,7 @@ const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
 const MAX_DIRECT_RETRIES = 3; // presigned URL 최대 재시도 횟수
 const MULTIPART_THRESHOLD = 5 * 1024 * 1024; // 5MB 이상이면 multipart (병렬 + 정확한 progress)
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk (작은 청크 = 빠른 progress 갱신)
-const CONCURRENT_PARTS = 4; // 동시 업로드 파트 수
+const CONCURRENT_PARTS = 3; // 동시 업로드 파트 수 (모바일 안정성)
 
 /** 파일 크기 기반 동적 타임아웃 (50KB/s 기준, 최소 3분) */
 function calcUploadTimeout(fileSize: number): number {
@@ -237,8 +237,33 @@ function xhrUploadPart(
 }
 
 /**
+ * 파트 업로드 + 자동 재시도 (최대 2회).
+ * 모바일 네트워크에서 일시적 끊김에 대응.
+ */
+async function xhrUploadPartWithRetry(
+  url: string,
+  chunk: Blob,
+  timeout: number,
+  onProgress: (loaded: number) => void,
+  maxRetries = 2
+): Promise<string> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await xhrUploadPart(url, chunk, timeout, onProgress);
+    } catch (err) {
+      const msg = (err as Error).message;
+      console.warn(`[Upload] Part attempt ${attempt + 1} failed:`, msg);
+      if (attempt === maxRetries) throw err;
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      onProgress(0);
+    }
+  }
+  throw new Error("파트 업로드 실패");
+}
+
+/**
  * Multipart Upload 실행.
- * 10MB 청크로 나눠 CONCURRENT_PARTS개씩 병렬 업로드.
+ * 5MB 청크로 나눠 CONCURRENT_PARTS개씩 병렬 업로드.
  * progress는 0~90 범위로 보고.
  */
 async function multipartUploadToR2(
@@ -312,7 +337,7 @@ async function multipartUploadToR2(
         const chunk = chunks[idx];
         const url = partUrls[idx];
 
-        await xhrUploadPart(url, chunk, timeout, (loaded) => {
+        await xhrUploadPartWithRetry(url, chunk, timeout, (loaded) => {
           partLoaded[idx] = loaded;
           reportProgress();
         });
