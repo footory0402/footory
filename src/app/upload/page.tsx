@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
 import { startRenderUpload } from "@/lib/upload-service";
+import { useVideoCompressor } from "@/hooks/useVideoCompressor";
 import VideoSelector from "@/components/upload/VideoSelector";
 import TagMemoForm from "@/components/upload/TagMemoForm";
-import UploadComplete from "@/components/upload/UploadComplete";
 import ChildSelector from "@/components/upload/ChildSelector";
 import VideoTrimmer from "@/components/video/VideoTrimmer";
 import SpotlightPicker from "@/components/video/SpotlightPicker";
 import SkillLabelPicker from "@/components/video/SkillLabelPicker";
 import EffectsToggle from "@/components/video/EffectsToggle";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { ClipVisibility } from "@/stores/upload-store";
+import type { ClipVisibility, CompressStatus } from "@/stores/upload-store";
 
 /*
  * 2단계 위저드 (v1.5 개편)
@@ -32,6 +32,9 @@ export default function UploadPage() {
   const searchParams = useSearchParams();
   const { profile, loading } = useProfileContext();
   const store = useUploadStore();
+
+  const compressor = useVideoCompressor();
+  const uploadPendingRef = useRef(false);
 
   const role = profile?.role ?? null;
   const isParent = role === "parent";
@@ -58,8 +61,34 @@ export default function UploadPage() {
   // Reset only when re-entering after a completed upload
   useEffect(() => {
     const s = useUploadStore.getState();
-    if (s.status === "done") s.reset();
-  }, []);
+    if (s.status === "done") {
+      s.reset();
+      compressor.reset();
+    }
+  }, [compressor]);
+
+  // Sync compressor state → upload store
+  useEffect(() => {
+    const s = useUploadStore.getState();
+    s.setCompressStatus(compressor.status);
+    s.setCompressProgress(compressor.progress);
+    if (compressor.compressedFile) {
+      s.setCompressedFile(compressor.compressedFile);
+    }
+    if (compressor.stats) {
+      s.setCompressStats(compressor.stats.originalSize, compressor.stats.compressedSize);
+    }
+  }, [compressor.status, compressor.progress, compressor.compressedFile, compressor.stats]);
+
+  // 압축 완료 시 + 업로드 대기 중이면 자동 업로드 시작
+  useEffect(() => {
+    if (compressor.status === "done" && uploadPendingRef.current) {
+      uploadPendingRef.current = false;
+      const s = useUploadStore.getState();
+      startRenderUpload(compressor.compressedFile ?? undefined);
+      router.replace("/profile");
+    }
+  }, [compressor.status, router]);
 
   const step = store.step;
   const maxStep = 2;
@@ -68,8 +97,19 @@ export default function UploadPage() {
 
   const handleNext = useCallback(() => {
     const s = useUploadStore.getState();
-    if (s.step < maxStep) s.setStep(s.step + 1);
-  }, []);
+    if (s.step < maxStep) {
+      s.setStep(s.step + 1);
+
+      // Step 1 → 2: 백그라운드 압축 시작
+      if (s.step === 1 && s.file) {
+        s.setCompressStatus("loading");
+        compressor.compress(s.file, {
+          trimStart: s.trimStart,
+          trimEnd: s.trimEnd ?? undefined,
+        });
+      }
+    }
+  }, [compressor]);
 
   const handleBack = useCallback(() => {
     const s = useUploadStore.getState();
@@ -90,9 +130,19 @@ export default function UploadPage() {
   }, []);
 
   const handleUpload = useCallback(() => {
-    startRenderUpload();
-    router.replace("/profile");
-  }, [router]);
+    if (compressor.status === "done" && compressor.compressedFile) {
+      // 압축 완료 → 즉시 업로드
+      startRenderUpload(compressor.compressedFile);
+      router.replace("/profile");
+    } else if (compressor.status === "compressing" || compressor.status === "loading") {
+      // 압축 진행 중 → 완료 대기 플래그
+      uploadPendingRef.current = true;
+    } else {
+      // 압축 미지원/에러 → 원본 업로드 (폴백)
+      startRenderUpload();
+      router.replace("/profile");
+    }
+  }, [compressor.status, compressor.compressedFile, router]);
 
 
   const handleStepTap = useCallback(
@@ -140,9 +190,10 @@ export default function UploadPage() {
     );
   }
 
-  // 완료 화면
+  // 완료 → 프로필로 리다이렉트 (토스트에서 완료 표시)
   if (store.status === "done") {
-    return <UploadComplete />;
+    router.replace("/profile");
+    return null;
   }
 
   // 업로드/렌더 진행 중에 /upload 재진입 시 — 간결한 메시지만 표시
@@ -278,6 +329,13 @@ export default function UploadPage() {
         {/* ═══ Step 2: 꾸미기 + 업로드 (단일 스크롤) ═══ */}
         {step === 2 && (
           <div className="flex flex-col gap-6 pb-8 animate-fade-up">
+            {/* 압축 진행 인디케이터 */}
+            <CompressIndicator
+              status={compressor.status}
+              progress={compressor.progress}
+              stats={compressor.stats}
+            />
+
             {/* 나 찾기 */}
             <section>
               <h2 className="mb-3 text-[15px] font-semibold text-text-1">나 찾기</h2>
@@ -331,9 +389,18 @@ export default function UploadPage() {
             <button
               type="button"
               onClick={handleUpload}
-              className="w-full rounded-xl border border-accent/20 bg-accent py-4 text-[15px] font-bold text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-transform active:scale-[0.99]"
+              disabled={uploadPendingRef.current}
+              className={`w-full rounded-xl border border-accent/20 py-4 text-[15px] font-bold shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-transform active:scale-[0.99] ${
+                uploadPendingRef.current
+                  ? "bg-accent/50 text-bg/60"
+                  : "bg-accent text-bg"
+              }`}
             >
-              업로드
+              {uploadPendingRef.current
+                ? "최적화 마무리 중..."
+                : compressor.status === "compressing" || compressor.status === "loading"
+                  ? "올리기 (최적화 완료 후 시작)"
+                  : "올리기"}
             </button>
           </div>
         )}
@@ -401,6 +468,55 @@ export default function UploadPage() {
         </div>
       )}
     </>
+  );
+}
+
+/* ── Compress Indicator (Step 2 상단) ── */
+function CompressIndicator({
+  status,
+  progress,
+  stats,
+}: {
+  status: CompressStatus;
+  progress: number;
+  stats: { originalSize: number; compressedSize: number; ratio: number } | null;
+}) {
+  if (status === "idle" || status === "unsupported" || status === "skipped") return null;
+
+  const formatMB = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+
+  if (status === "done" && stats) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/8 px-4 py-2.5">
+        <span className="text-green-400">✓</span>
+        <span className="text-[13px] text-green-400 font-medium">
+          최적화 완료 ({formatMB(stats.originalSize)} → {formatMB(stats.compressedSize)})
+        </span>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-card px-4 py-2.5">
+        <span className="text-[13px] text-text-3">원본 파일로 업로드합니다</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-card px-4 py-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[13px] text-text-2">영상 최적화 중...</span>
+        <span className="text-[12px] font-mono text-text-3">{progress}%</span>
+      </div>
+      <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+        <div
+          className="h-full rounded-full bg-accent transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
   );
 }
 

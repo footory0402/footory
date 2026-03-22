@@ -14,6 +14,14 @@ export type UploadStatus =
   | "rendering";
 export type UploadContext = "general" | "challenge" | "parent";
 export type ClipVisibility = "public" | "followers" | "team" | "private";
+export type CompressStatus =
+  | "idle"
+  | "loading"
+  | "compressing"
+  | "done"
+  | "error"
+  | "skipped"
+  | "unsupported";
 
 interface UploadState {
   file: File | null;
@@ -44,6 +52,13 @@ interface UploadState {
   renderJobId: string | null;
   renderProgress: number;
 
+  // v1.4 클라이언트 압축
+  compressStatus: CompressStatus;
+  compressProgress: number;
+  compressedFile: File | null;
+  originalSize: number | null;
+  compressedSize: number | null;
+
   setFile: (file: File | null) => void;
   setTags: (tags: string[]) => void;
   setMemo: (memo: string) => void;
@@ -69,6 +84,12 @@ interface UploadState {
   setVisibility: (v: ClipVisibility) => void;
   setRenderJobId: (id: string | null) => void;
   setRenderProgress: (p: number) => void;
+
+  // v1.4 압축 setters
+  setCompressStatus: (s: CompressStatus) => void;
+  setCompressProgress: (p: number) => void;
+  setCompressedFile: (f: File | null) => void;
+  setCompressStats: (original: number | null, compressed: number | null) => void;
 
   reset: () => void;
 }
@@ -101,6 +122,13 @@ const initial = {
   visibility: "followers" as ClipVisibility,
   renderJobId: null as string | null,
   renderProgress: 0,
+
+  // v1.4
+  compressStatus: "idle" as CompressStatus,
+  compressProgress: 0,
+  compressedFile: null as File | null,
+  originalSize: null as number | null,
+  compressedSize: null as number | null,
 };
 
 export const useUploadStore = create<UploadState>((set) => ({
@@ -132,6 +160,13 @@ export const useUploadStore = create<UploadState>((set) => ({
   setVisibility: (visibility) => set({ visibility }),
   setRenderJobId: (renderJobId) => set({ renderJobId }),
   setRenderProgress: (renderProgress) => set({ renderProgress }),
+
+  // v1.4 압축 setters
+  setCompressStatus: (compressStatus) => set({ compressStatus }),
+  setCompressProgress: (compressProgress) => set({ compressProgress }),
+  setCompressedFile: (compressedFile) => set({ compressedFile }),
+  setCompressStats: (originalSize, compressedSize) =>
+    set({ originalSize, compressedSize }),
 
   reset: () => set(initial),
 }));

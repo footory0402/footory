@@ -632,9 +632,17 @@ export async function startUpload() {
 
 // ─── startRenderUpload (v1.3 렌더 파이프라인) ───
 
-export async function startRenderUpload() {
+/**
+ * v1.3 렌더 파이프라인 업로드.
+ * @param compressedFile 클라이언트 측 압축 파일 (있으면 우선 사용, 없으면 원본)
+ */
+export async function startRenderUpload(compressedFile?: File) {
   const store = useUploadStore.getState();
   if (!store.file || store.status !== "idle") return;
+
+  // 업로드할 파일: 압축 완료 파일 > 원본
+  const uploadFile = compressedFile ?? store.file;
+  const clientTrimmed = !!compressedFile; // 압축 파일에는 트림이 이미 적용됨
 
   try {
     store.setError(null);
@@ -642,7 +650,7 @@ export async function startRenderUpload() {
     store.setStatus("uploading_raw");
     store.setProgress(0);
 
-    const fileContentType = resolveContentType(store.file);
+    const fileContentType = resolveContentType(uploadFile);
 
     // 1. presigned URL
     const presignRes = await apiFetch(
@@ -653,8 +661,8 @@ export async function startRenderUpload() {
         body: JSON.stringify({
           contentType: fileContentType,
           prefix: "raw",
-          fileName: store.file.name,
-          fileSize: store.file.size,
+          fileName: uploadFile.name,
+          fileSize: uploadFile.size,
         }),
       },
       "Presign URL 요청"
@@ -676,8 +684,8 @@ export async function startRenderUpload() {
           body: JSON.stringify({
             contentType: fileContentType,
             prefix: "raw",
-            fileName: store.file!.name,
-            fileSize: store.file!.size,
+            fileName: uploadFile.name,
+            fileSize: uploadFile.size,
             clipId,
           }),
         },
@@ -687,7 +695,7 @@ export async function startRenderUpload() {
       const data = await res.json();
       return data.url as string;
     };
-    await uploadToR2(url, store.file, key, fileContentType, (pct) =>
+    await uploadToR2(url, uploadFile, key, fileContentType, (pct) =>
       store.setProgress(pct), getNewUrl
     );
     store.setProgress(95);
@@ -707,20 +715,21 @@ export async function startRenderUpload() {
       clip_id: clipId,
       video_url: videoUrl,
       duration_seconds: duration || null,
-      file_size_bytes: store.file.size,
+      file_size_bytes: uploadFile.size,
       memo: store.memo || null,
       tags: store.tags,
       thumbnail_url: null,
-      highlight_start: store.trimStart,
-      highlight_end: store.trimEnd ?? Math.min(duration || 30, 30),
+      highlight_start: clientTrimmed ? 0 : store.trimStart,
+      highlight_end: clientTrimmed ? Math.min(duration || 30, 30) : (store.trimEnd ?? Math.min(duration || 30, 30)),
       skill_labels: store.skillLabels,
       custom_labels: store.customLabels,
-      trim_start: store.trimStart,
-      trim_end: store.trimEnd,
+      trim_start: clientTrimmed ? 0 : store.trimStart,
+      trim_end: clientTrimmed ? null : store.trimEnd,
       spotlight_x: store.spotlightX,
       spotlight_y: store.spotlightY,
       effects: store.effects,
       raw_key: key,
+      client_trimmed: clientTrimmed,
     };
 
     const clipRes = await apiFetch(
@@ -788,8 +797,8 @@ export async function startRenderUpload() {
       store.setProgress(0);
     }
 
-    // 썸네일은 백그라운드 (사용자 대기 없음)
-    backgroundThumbnailUpload(store.file, savedClipId).catch(() => {});
+    // 썸네일은 백그라운드 (사용자 대기 없음) — 압축 파일 우선 사용
+    backgroundThumbnailUpload(uploadFile, savedClipId).catch(() => {});
   } catch (e) {
     store.setError(e instanceof Error ? e.message : "업로드 실패");
     store.setStatus("error");

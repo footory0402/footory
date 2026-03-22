@@ -212,6 +212,15 @@ body {
   animation: slideUp 0.3s var(--ease-out) both;
 }
 
+@keyframes slideDown {
+  from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.25s var(--ease-out) both;
+}
+
 .animate-grow-w {
   animation: growW 0.8s var(--ease-out) both;
 }

@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       slowmo_start, slowmo_end, slowmo_speed,
       bgm_id, effects,
       status: reqStatus,
+      client_trimmed,
     } = body as {
       video_url: string;
       duration_seconds?: number;
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
       effects?: Record<string, boolean>;
       status?: string;
       clip_id?: string;
+      client_trimmed?: boolean;
     };
 
     const clip_id = requestedClipId ?? crypto.randomUUID();
@@ -87,8 +89,10 @@ export async function POST(req: NextRequest) {
       (VALID_TAGS as readonly string[]).includes(t)
     );
 
-    // Insert clip
-    const isRenderPipeline = !!raw_key;
+    // 효과 없고 클라이언트에서 트림 완료 → 렌더 스킵
+    const hasEffects = effects && Object.values(effects).some(Boolean);
+    const skipRender = client_trimmed && !hasEffects;
+    const isRenderPipeline = !!raw_key && !skipRender;
     const { data: clip, error } = await supabase
       .from("clips")
       .insert({
