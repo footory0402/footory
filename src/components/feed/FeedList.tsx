@@ -256,7 +256,13 @@ export default function FeedList({
         <ShareSheet
           open={!!shareTarget}
           onClose={() => setShareTarget(null)}
-          shareUrl={typeof window !== "undefined" ? `${window.location.origin}/p/${shareTarget.playerHandle}` : `/p/${shareTarget.playerHandle}`}
+          shareUrl={typeof window !== "undefined"
+            ? (shareTarget.type === "highlight" && shareTarget.reference_id
+                ? `${window.location.origin}/p/${shareTarget.playerHandle}/h/${shareTarget.reference_id}`
+                : `${window.location.origin}/p/${shareTarget.playerHandle}`)
+            : (shareTarget.type === "highlight" && shareTarget.reference_id
+                ? `/p/${shareTarget.playerHandle}/h/${shareTarget.reference_id}`
+                : `/p/${shareTarget.playerHandle}`)}
           title={`${shareTarget.playerName}의 하이라이트 — Footory`}
         />
       )}
