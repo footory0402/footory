@@ -214,6 +214,24 @@ export default function UploadPage() {
       {/* 영상 선택 */}
       <VideoSelector />
 
+      {/* Background upload progress */}
+      {store.file && store.r2Status === "uploading" && (
+        <div className="h-1 overflow-hidden rounded-full bg-white/5 -mt-1">
+          <div
+            className="h-full bg-accent/40 transition-all duration-300 ease-out"
+            style={{ width: `${Math.max(store.r2Progress, 3)}%` }}
+          />
+        </div>
+      )}
+      {store.file && store.r2Status === "done" && (
+        <div className="flex items-center gap-1.5 -mt-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span className="text-[11px] text-[#4ade80]/70">업로드 준비 완료</span>
+        </div>
+      )}
+
       {/* 태그 + 메모 + 올리기 (파일 선택 후) */}
       {store.file && (
         <div className="flex flex-col gap-5 animate-fade-up">

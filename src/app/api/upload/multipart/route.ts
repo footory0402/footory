@@ -9,7 +9,7 @@ import {
   listMultipartParts,
 } from "@/lib/r2";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function isAllowedKey(userId: string, key: string) {
@@ -65,6 +65,22 @@ export async function POST(req: NextRequest) {
         }
         const url = await getPresignedPartUrl(key, uploadId, partNumber);
         return NextResponse.json({ url });
+      }
+
+      case "presign-parts": {
+        if (!uploadId || typeof uploadId !== "string") {
+          return NextResponse.json({ error: "uploadId required" }, { status: 400 });
+        }
+        const partCount = body.partCount;
+        if (typeof partCount !== "number" || partCount < 1 || partCount > 10000) {
+          return NextResponse.json({ error: "valid partCount required" }, { status: 400 });
+        }
+        const urls = await Promise.all(
+          Array.from({ length: partCount }, (_, i) =>
+            getPresignedPartUrl(key, uploadId, i + 1)
+          )
+        );
+        return NextResponse.json({ urls });
       }
 
       case "complete": {

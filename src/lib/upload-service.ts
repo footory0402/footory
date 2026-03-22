@@ -16,7 +16,7 @@ function calcUploadTimeout(fileSize: number): number {
   const estimatedMs = (fileSize / (50 * 1024)) * 1000; // 50KB/s 기준
   return Math.max(minTimeout, Math.min(estimatedMs, UPLOAD_TIMEOUT_MS));
 }
-const API_TIMEOUT_MS = 30_000; // API 호출 30초
+const API_TIMEOUT_MS = 60_000; // API 호출 60초
 
 // ─── 유틸 ───
 
@@ -273,29 +273,26 @@ async function multipartUploadToR2(
   }
   const totalParts = chunks.length;
 
-  // 3. 각 파트 presigned URL 미리 발급 (병렬)
-  const partUrls: string[] = new Array(totalParts);
-  await Promise.all(
-    chunks.map(async (_, i) => {
-      const partRes = await apiFetch(
-        "/api/upload/multipart",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "presign-part",
-            key,
-            uploadId,
-            partNumber: i + 1,
-          }),
-        },
-        `파트 ${i + 1} presign`
-      );
-      if (!partRes.ok) throw new Error(`파트 ${i + 1} presign 실패`);
-      const { url } = await partRes.json();
-      partUrls[i] = url;
-    })
+  // 3. 모든 파트 presigned URL 일괄 발급 (1회 API 호출)
+  const batchRes = await apiFetch(
+    "/api/upload/multipart",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "presign-parts",
+        key,
+        uploadId,
+        partCount: totalParts,
+      }),
+    },
+    "파트 URL 일괄 발급"
   );
+  if (!batchRes.ok) {
+    const err = await batchRes.json().catch(() => ({}));
+    throw new Error(err.error ?? "파트 URL 발급 실패");
+  }
+  const { urls: partUrls } = await batchRes.json();
 
   // 4. 병렬 업로드 (CONCURRENT_PARTS씩)
   // 파트별 업로드된 바이트 추적
@@ -510,6 +507,106 @@ async function uploadToR2(
   );
 }
 
+// ─── Instant Upload (background R2 upload) ───
+
+let bgUploadGeneration = 0;
+
+function waitForR2Upload(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const current = useUploadStore.getState();
+    if (current.r2Status === "done") { resolve(); return; }
+    if (current.r2Status !== "uploading") { reject(new Error("R2 업로드 실패")); return; }
+    const unsub = useUploadStore.subscribe((state) => {
+      if (state.r2Status === "done") { unsub(); resolve(); }
+      else if (state.r2Status !== "uploading") { unsub(); reject(new Error("R2 업로드 실패")); }
+    });
+  });
+}
+
+/**
+ * 파일 선택 즉시 호출 — R2 업로드만 백그라운드로 시작.
+ * 사용자가 태그/메모를 입력하는 동안 업로드가 병렬로 진행됨.
+ */
+export function startR2BackgroundUpload() {
+  const file = useUploadStore.getState().file;
+  if (!file) return;
+
+  const generation = ++bgUploadGeneration;
+  const s = useUploadStore.getState();
+  s.setR2Status("uploading");
+  s.setR2Progress(0);
+
+  (async () => {
+    try {
+      const fileContentType = resolveContentType(file);
+
+      const presignRes = await apiFetch(
+        "/api/upload/presign",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contentType: fileContentType,
+            fileName: file.name,
+            fileSize: file.size,
+          }),
+        },
+        "Presign URL 요청"
+      );
+      if (generation !== bgUploadGeneration) return;
+      if (!presignRes.ok) {
+        const errBody = await presignRes.json().catch(() => ({}));
+        throw new Error(errBody.error ?? "Presign 실패");
+      }
+
+      const { url, key, clipId } = await presignRes.json();
+      if (generation !== bgUploadGeneration) return;
+
+      const st = useUploadStore.getState();
+      st.setR2Upload(key, clipId);
+      st.setClipId(clipId);
+
+      const getNewUrl = async () => {
+        const res = await apiFetch(
+          "/api/upload/presign",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contentType: fileContentType,
+              fileName: file.name,
+              fileSize: file.size,
+              clipId,
+            }),
+          },
+          "Presign URL 재발급"
+        );
+        if (!res.ok) throw new Error("Presign 재발급 실패");
+        const data = await res.json();
+        return data.url as string;
+      };
+
+      await uploadToR2(
+        url, file, key, fileContentType,
+        (pct) => {
+          if (generation === bgUploadGeneration) {
+            useUploadStore.getState().setR2Progress(pct);
+          }
+        },
+        getNewUrl
+      );
+
+      if (generation !== bgUploadGeneration) return;
+      useUploadStore.getState().setR2Progress(100);
+      useUploadStore.getState().setR2Status("done");
+    } catch (e) {
+      if (generation !== bgUploadGeneration) return;
+      console.warn("[Upload] Background R2 upload failed:", e);
+      useUploadStore.getState().setR2Status("error");
+    }
+  })();
+}
+
 // ─── startUpload (legacy) ───
 
 export async function startUpload() {
@@ -521,31 +618,28 @@ export async function startUpload() {
     store.setProgress(0);
 
     const fileContentType = resolveContentType(store.file!);
+    let key: string;
+    let clipId: string;
 
-    // 1. presigned URL
-    const presignRes = await apiFetch(
-      "/api/upload/presign",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contentType: fileContentType,
-          fileName: store.file!.name,
-          fileSize: store.file!.size,
-        }),
-      },
-      "Presign URL 요청"
-    );
-    if (!presignRes.ok) {
-      const errBody = await presignRes.json().catch(() => ({}));
-      throw new Error(errBody.error ?? `Presign 요청 실패 (${presignRes.status})`);
-    }
-    const { url, key, clipId } = await presignRes.json();
-    store.setClipId(clipId);
-
-    // 2. R2 업로드 (재시도 시 새 presigned URL 발급)
-    const getNewUrl = async () => {
-      const res = await apiFetch(
+    if (store.r2Status === "done" && store.r2Key && store.r2ClipId) {
+      // Background R2 upload already done — skip to metadata save
+      key = store.r2Key;
+      clipId = store.r2ClipId;
+    } else if (store.r2Status === "uploading") {
+      // Background upload in progress — pipe progress and wait
+      const unsub = useUploadStore.subscribe((state) => {
+        if (state.r2Status === "uploading") {
+          useUploadStore.getState().setProgress(state.r2Progress);
+        }
+      });
+      try { await waitForR2Upload(); } finally { unsub(); }
+      const fresh = useUploadStore.getState();
+      if (!fresh.r2Key || !fresh.r2ClipId) throw new Error("R2 업로드 실패");
+      key = fresh.r2Key;
+      clipId = fresh.r2ClipId;
+    } else {
+      // No background upload — do it now (fallback)
+      const presignRes = await apiFetch(
         "/api/upload/presign",
         {
           method: "POST",
@@ -554,18 +648,41 @@ export async function startUpload() {
             contentType: fileContentType,
             fileName: store.file!.name,
             fileSize: store.file!.size,
-            clipId,
           }),
         },
-        "Presign URL 재발급"
+        "Presign URL 요청"
       );
-      if (!res.ok) throw new Error("Presign 재발급 실패");
-      const data = await res.json();
-      return data.url as string;
-    };
-    await uploadToR2(url, store.file!, key, fileContentType, (pct) =>
-      store.setProgress(pct), getNewUrl
-    );
+      if (!presignRes.ok) {
+        const errBody = await presignRes.json().catch(() => ({}));
+        throw new Error(errBody.error ?? `Presign 요청 실패 (${presignRes.status})`);
+      }
+      const presignData = await presignRes.json();
+      key = presignData.key;
+      clipId = presignData.clipId;
+      const getNewUrl = async () => {
+        const res = await apiFetch(
+          "/api/upload/presign",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contentType: fileContentType,
+              fileName: store.file!.name,
+              fileSize: store.file!.size,
+              clipId,
+            }),
+          },
+          "Presign URL 재발급"
+        );
+        if (!res.ok) throw new Error("Presign 재발급 실패");
+        const data = await res.json();
+        return data.url as string;
+      };
+      await uploadToR2(presignData.url, store.file!, key, fileContentType, (pct) =>
+        store.setProgress(pct), getNewUrl
+      );
+    }
+    store.setClipId(clipId);
     store.setProgress(95);
 
     // 3. 클립 저장 (썸네일은 백그라운드, duration은 store 캐시 활용)

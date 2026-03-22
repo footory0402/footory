@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { useUploadStore } from "@/stores/upload-store";
+import { startR2BackgroundUpload } from "@/lib/upload-service";
 
 const MAX_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_DURATION = 120; // 120초 (2분)
@@ -27,6 +28,7 @@ export default function VideoSelector() {
 
     video.onloadedmetadata = () => {
       setDuration(Math.round(video.duration));
+      useUploadStore.getState().setDuration(Math.round(video.duration));
       const seekTo = Math.min(2, video.duration * 0.5);
       video.currentTime = seekTo;
     };
@@ -91,6 +93,9 @@ export default function VideoSelector() {
     }
 
     setFile(selected);
+    // Save duration to store + start R2 upload immediately
+    useUploadStore.getState().setDuration(Math.round(dur));
+    startR2BackgroundUpload();
   };
 
   const formatDuration = (sec: number) => {

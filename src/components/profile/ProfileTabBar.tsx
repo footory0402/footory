@@ -19,27 +19,43 @@ const TABS: { key: ProfileTabKey; label: string }[] = [
 function ProfileTabBarInner({ activeTab, onTabChange, stickyTop }: ProfileTabBarProps) {
   return (
     <div
-      className="sticky z-40 bg-bg/95 backdrop-blur-sm px-4 py-2"
-      style={{ top: stickyTop ?? 49 }}
+      style={{
+        margin: "10px 14px 0",
+        background: "#111111",
+        borderRadius: 20,
+        overflow: "hidden",
+        border: "1px solid rgba(255,255,255,0.06)",
+        display: "flex",
+        position: "sticky",
+        top: stickyTop ?? 49,
+        zIndex: 40,
+      }}
     >
-      <div className="flex rounded-xl bg-card p-1 gap-1">
-        {TABS.map((tab) => {
-          const active = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => onTabChange(tab.key)}
-              className={`flex flex-1 items-center justify-center rounded-lg py-2.5 text-[13px] font-semibold transition-all ${
-                active
-                  ? "bg-elevated text-accent"
-                  : "text-text-3"
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      {TABS.map((tab) => {
+        const active = activeTab === tab.key;
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onTabChange(tab.key)}
+            style={{
+              flex: 1,
+              padding: "14px 0 12px",
+              background: active ? "rgba(255,255,255,0.035)" : "transparent",
+              border: "none",
+              borderBottom: active ? "2.5px solid #c9a84c" : "2.5px solid transparent",
+              color: active ? "#e8d48b" : "rgba(255,255,255,0.24)",
+              fontFamily: "'Noto Sans KR', sans-serif",
+              fontSize: 13,
+              fontWeight: active ? 700 : 400,
+              cursor: "pointer",
+              letterSpacing: "-0.01em",
+              transition: "all 0.15s",
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

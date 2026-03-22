@@ -59,6 +59,12 @@ interface UploadState {
   originalSize: number | null;
   compressedSize: number | null;
 
+  // v2.0 instant upload (background R2 upload)
+  r2Status: "idle" | "uploading" | "done" | "error";
+  r2Progress: number;
+  r2Key: string | null;
+  r2ClipId: string | null;
+
   setFile: (file: File | null) => void;
   setTags: (tags: string[]) => void;
   setMemo: (memo: string) => void;
@@ -90,6 +96,11 @@ interface UploadState {
   setCompressProgress: (p: number) => void;
   setCompressedFile: (f: File | null) => void;
   setCompressStats: (original: number | null, compressed: number | null) => void;
+
+  // v2.0 instant upload setters
+  setR2Status: (s: "idle" | "uploading" | "done" | "error") => void;
+  setR2Progress: (p: number) => void;
+  setR2Upload: (key: string, clipId: string) => void;
 
   reset: () => void;
 }
@@ -129,11 +140,17 @@ const initial = {
   compressedFile: null as File | null,
   originalSize: null as number | null,
   compressedSize: null as number | null,
+
+  // v2.0 instant upload
+  r2Status: "idle" as "idle" | "uploading" | "done" | "error",
+  r2Progress: 0,
+  r2Key: null as string | null,
+  r2ClipId: null as string | null,
 };
 
 export const useUploadStore = create<UploadState>((set) => ({
   ...initial,
-  setFile: (file) => set({ file }),
+  setFile: (file) => set({ file, r2Status: "idle" as const, r2Progress: 0, r2Key: null, r2ClipId: null }),
   setTags: (tags) => set({ tags }),
   setMemo: (memo) => set({ memo }),
   setClipId: (id) => set({ clipId: id }),
@@ -167,6 +184,11 @@ export const useUploadStore = create<UploadState>((set) => ({
   setCompressedFile: (compressedFile) => set({ compressedFile }),
   setCompressStats: (originalSize, compressedSize) =>
     set({ originalSize, compressedSize }),
+
+  // v2.0 instant upload setters
+  setR2Status: (r2Status) => set({ r2Status }),
+  setR2Progress: (r2Progress) => set({ r2Progress }),
+  setR2Upload: (r2Key, r2ClipId) => set({ r2Key, r2ClipId }),
 
   reset: () => set(initial),
 }));

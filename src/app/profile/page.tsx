@@ -154,7 +154,7 @@ export default function ProfilePage() {
   // ── Scout view (unchanged) ──
   if (isScoutProfile) {
     return (
-      <div className="px-4 pt-4">
+      <div>
         <HeroSection
           profile={profile}
           playStyle={playStyle}
@@ -164,7 +164,7 @@ export default function ProfilePage() {
           onPdf={() => setPdfExportOpen(true)}
           onAvatarUpload={uploadAvatar}
         />
-        <div className="mt-5 flex flex-col gap-4">
+        <div className="mt-5 flex flex-col gap-4 px-4">
           {(!profile.bio && !profile.city && !profile.teamName) ? (
             <div className="card-elevated flex flex-col items-center gap-3 py-8 text-center">
               <span className="text-4xl">👤</span>
@@ -221,18 +221,16 @@ export default function ProfilePage() {
   return (
     <div className="bg-bg">
       {/* Hero */}
-      <div className="mx-4 mt-4">
-        <HeroSection
-          profile={profile}
-          playStyle={playStyle}
-          teamState={teamState}
-          onEdit={() => setEditOpen(true)}
-          onShare={handleShareProfile}
-          onPdf={() => setPdfExportOpen(true)}
-          onAvatarUpload={uploadAvatar}
-          onTeamChange={() => setTeamTransferring(true)}
-        />
-      </div>
+      <HeroSection
+        profile={profile}
+        playStyle={playStyle}
+        teamState={teamState}
+        onEdit={() => setEditOpen(true)}
+        onShare={handleShareProfile}
+        onPdf={() => setPdfExportOpen(true)}
+        onAvatarUpload={uploadAvatar}
+        onTeamChange={() => setTeamTransferring(true)}
+      />
 
       {/* Tab bar (sticky) */}
       <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} />

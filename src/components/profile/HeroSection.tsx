@@ -20,30 +20,10 @@ interface HeroSectionProps {
   onTeamChange?: () => void;
 }
 
-/* ── SVG Icon components ── */
-const IconShare = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
-  </svg>
-);
-const IconFile = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
-  </svg>
-);
-const IconEdit = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-  </svg>
-);
 const IconCamera = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" />
-  </svg>
-);
-const IconChevronRight = ({ color = "currentColor", size = 14 }: { color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 18l6-6-6-6" />
+    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+    <circle cx="12" cy="13" r="4" />
   </svg>
 );
 
@@ -77,21 +57,12 @@ function HeroSectionInner({
   };
 
   const preferredFootLabel =
-    profile.preferredFoot === "right"
-      ? "오른발"
-      : profile.preferredFoot === "left"
-        ? "왼발"
-        : profile.preferredFoot === "both"
-          ? "양발"
-          : null;
+    profile.preferredFoot === "right" ? "오른발" :
+    profile.preferredFoot === "left" ? "왼발" :
+    profile.preferredFoot === "both" ? "양발" : null;
 
-  const safeAvatarUrl = profile.avatarUrl?.startsWith("http")
-    ? profile.avatarUrl
-    : undefined;
-
-  const styleInfo = playStyle?.styleType
-    ? PLAY_STYLES[playStyle.styleType]
-    : null;
+  const safeAvatarUrl = profile.avatarUrl?.startsWith("http") ? profile.avatarUrl : undefined;
+  const styleInfo = playStyle?.styleType ? PLAY_STYLES[playStyle.styleType] : null;
 
   const fmt = (n: number) => {
     if (n >= 10000) return `${(n / 10000).toFixed(1)}만`;
@@ -104,113 +75,61 @@ function HeroSectionInner({
       ? `/profile/follows?tab=${tab}`
       : `/profile/follows?tab=${tab}&profileId=${profile.id}`;
 
-  const physicalTags = [
+  const physicalParts = [
     profile.birthYear ? `${profile.birthYear}년생` : null,
     profile.heightCm ? `${profile.heightCm}cm` : null,
     profile.weightKg ? `${profile.weightKg}kg` : null,
     preferredFootLabel,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
+
+  const showActionBar = onShare || onPdf || onEdit;
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* ═══════════════════════════════════════════
-          CARD 1 — Player Identity
-          ═══════════════════════════════════════════ */}
-      <div
-        className="relative overflow-hidden"
-        style={{
-          background: "var(--color-card)",
-          borderRadius: 16,
-          border: "1px solid rgba(255,255,255,0.05)",
-        }}
-      >
-        {/* Gold accent line — top edge */}
-        <div
-          style={{
-            height: 2,
-            background: "linear-gradient(90deg, transparent 0%, rgba(212,168,83,0.5) 30%, rgba(212,168,83,0.7) 50%, rgba(212,168,83,0.5) 70%, transparent 100%)",
-          }}
-        />
+    <div style={{ padding: "8px 14px 0" }}>
+      <div style={{
+        background: "#111111",
+        borderRadius: 24,
+        border: "1px solid rgba(255,255,255,0.06)",
+        overflow: "hidden",
+      }}>
+        {/* 상단: 사진 + 정보 */}
+        <div style={{ display: "flex", padding: 14, gap: 16 }}>
 
-        {/* Avatar row */}
-        <div className="flex items-center gap-4 px-5 pt-5 pb-4">
-          {/* Avatar — 88px square with gold ring */}
-          <div className="relative shrink-0">
-            <div
-              className="overflow-hidden"
-              style={{
-                width: 88,
-                height: 88,
-                borderRadius: 22,
-                padding: 2,
-                background: safeAvatarUrl
-                  ? "linear-gradient(135deg, rgba(212,168,83,0.6), rgba(212,168,83,0.15))"
-                  : "rgba(255,255,255,0.06)",
-              }}
-            >
-              <div
-                className="h-full w-full overflow-hidden"
-                style={{
-                  borderRadius: 20,
-                  background: "var(--color-card-alt)",
-                }}
-              >
-                {safeAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={safeAvatarUrl}
-                    alt={profile.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Position badge — bottom-right corner */}
-            {profile.position && (
-              <div
-                className="absolute -bottom-1 -right-1"
-                style={{
-                  padding: 2,
-                  borderRadius: 9,
-                  background: "var(--color-card)",
-                }}
-              >
-                <div
-                  className="flex items-center justify-center"
-                  style={{
-                    width: 28,
-                    height: 20,
-                    borderRadius: 7,
-                    background: "linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))",
-                    border: "1px solid rgba(212,168,83,0.25)",
-                    fontFamily: "var(--font-stat)",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "var(--color-accent)",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  {profile.position}
-                </div>
+          {/* 사진 — 120×150, 전체 둥글게 */}
+          <div style={{
+            width: 120, height: 150, flexShrink: 0,
+            borderRadius: 20, overflow: "hidden",
+            position: "relative",
+            background: "linear-gradient(170deg, #1a1a1a, #0c0c0c)",
+          }}>
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "radial-gradient(circle at 40% 55%, rgba(201,168,76,0.07), transparent 60%)",
+            }} />
+            {safeAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={safeAvatarUrl}
+                alt={profile.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover", position: "relative", zIndex: 1 }}
+              />
+            ) : (
+              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 1 }}>
+                <svg width="48" height="60" viewBox="0 0 120 140" fill="none" opacity={0.18}>
+                  <circle cx="60" cy="42" r="28" fill="rgba(201,168,76,0.25)" stroke="rgba(201,168,76,0.3)" strokeWidth="1" />
+                  <path d="M22 132 Q22 94 60 87 Q98 94 98 132" fill="rgba(201,168,76,0.12)" />
+                </svg>
               </div>
             )}
 
-            {/* Avatar upload button */}
+            {/* 아바타 업로드 버튼 */}
             {onAvatarUpload && (
               <>
                 <button
                   onClick={() => avatarRef.current?.click()}
                   disabled={avatarUploading}
-                  className="absolute inset-0 flex items-center justify-center rounded-[22px] opacity-0 transition-opacity hover:opacity-100 active:opacity-100"
-                  style={{ background: "rgba(0,0,0,0.5)" }}
+                  className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100 active:opacity-100"
+                  style={{ background: "rgba(0,0,0,0.5)", border: "none", cursor: "pointer", zIndex: 3, borderRadius: 20 }}
                   aria-label="프로필 사진 변경"
                 >
                   {avatarUploading ? (
@@ -219,393 +138,221 @@ function HeroSectionInner({
                     <IconCamera />
                   )}
                 </button>
-                <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                <input ref={avatarRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
               </>
             )}
           </div>
 
-          {/* Name + Handle + Badges */}
-          <div className="flex flex-1 flex-col gap-1 min-w-0">
-            {/* Name row */}
-            <div className="flex items-center gap-2">
-              <h1
-                className="m-0 truncate text-[20px] font-[800] leading-tight"
-                style={{
-                  fontFamily: "var(--font-body)",
-                  color: "var(--color-text-1)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {profile.name}
-              </h1>
+          {/* 우측 정보 컬럼 */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+            {/* 이름 + 포지션 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h1 style={{
+                fontFamily: "'Noto Sans KR', sans-serif",
+                fontSize: 22, fontWeight: 800,
+                color: "#f5f5f5", margin: 0,
+                letterSpacing: "-0.03em", lineHeight: 1.1,
+              }}>{profile.name}</h1>
+              {profile.position && (
+                <span style={{
+                  fontFamily: "'Oswald', sans-serif",
+                  fontSize: 11, fontWeight: 700,
+                  color: "#e8d48b",
+                  padding: "2px 8px", borderRadius: 6,
+                  background: "rgba(201,168,76,0.12)",
+                  border: "1px solid rgba(201,168,76,0.25)",
+                  letterSpacing: "0.04em",
+                  lineHeight: 1.6, flexShrink: 0,
+                }}>{profile.position}</span>
+              )}
             </div>
 
-            {/* Handle + City */}
-            <p
-              className="m-0 truncate"
-              style={{
-                fontSize: 13,
-                color: "var(--color-text-3)",
-                fontFamily: "var(--font-body)",
-              }}
-            >
+            {/* 핸들 + 지역 */}
+            <p style={{
+              fontFamily: "'Noto Sans KR', sans-serif",
+              fontSize: 12, color: "rgba(255,255,255,0.24)",
+              margin: "4px 0 8px", letterSpacing: "-0.01em",
+            }}>
               @{profile.handle}
-              {profile.city && (
-                <span style={{ opacity: 0.5 }}>{` · ${profile.city}`}</span>
-              )}
+              {profile.city ? ` · ${profile.city}` : ""}
             </p>
 
-            {/* Inline badges: MVP, Play style */}
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              {profile.mvpCount > 0 && (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 3,
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    background: "linear-gradient(135deg, rgba(212,168,83,0.15), rgba(212,168,83,0.06))",
-                    border: "1px solid rgba(212,168,83,0.25)",
-                    fontFamily: "var(--font-stat)",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "var(--color-accent)",
-                    letterSpacing: "0.02em",
-                  }}
-                >
-                  MVP{profile.mvpCount > 1 ? ` x${profile.mvpCount}` : ""}
+            {/* 팔로워 / 팔로잉 — 클릭 가능한 별도 라인 */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+              <Link href={followsHref("followers")} style={{ textDecoration: "none" }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "4px 10px", borderRadius: 20,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  cursor: "pointer",
+                }}>
+                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 13, fontWeight: 700, color: "#f5f5f5" }}>{fmt(profile.followers)}</span>
+                  <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.36)" }}>팔로워</span>
                 </span>
-              )}
-              {styleInfo && (
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "2px 8px",
-                    borderRadius: 6,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: "var(--color-text-2)",
-                    fontFamily: "var(--font-body)",
-                  }}
-                >
-                  {styleInfo.label}
+              </Link>
+              <Link href={followsHref("following")} style={{ textDecoration: "none" }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "4px 10px", borderRadius: 20,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  cursor: "pointer",
+                }}>
+                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 13, fontWeight: 700, color: "#f5f5f5" }}>{fmt(profile.following)}</span>
+                  <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.36)" }}>팔로잉</span>
                 </span>
-              )}
+              </Link>
             </div>
+
+            {/* 신체정보 — 인라인 텍스트 */}
+            {physicalParts.length > 0 && (
+              <p style={{
+                fontFamily: "'Noto Sans KR', sans-serif",
+                fontSize: 12, color: "rgba(255,255,255,0.52)",
+                margin: "0 0 10px", lineHeight: 1.6,
+                letterSpacing: "-0.01em",
+              }}>
+                {physicalParts.join(" · ")}
+              </p>
+            )}
+
+            {/* 플레이스타일 + MVP pills */}
+            {(styleInfo || profile.mvpCount > 0) && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                {styleInfo && (
+                  <span style={{
+                    padding: "5px 14px", borderRadius: 50,
+                    background: "rgba(201,168,76,0.08)",
+                    border: "1px solid rgba(201,168,76,0.18)",
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                    fontSize: 12, fontWeight: 700,
+                    color: "#e8d48b", letterSpacing: "-0.01em",
+                  }}>{styleInfo.label}</span>
+                )}
+                {profile.mvpCount > 0 && (
+                  <span style={{
+                    padding: "5px 10px", borderRadius: 50,
+                    background: "rgba(201,168,76,0.08)",
+                    border: "1px solid rgba(201,168,76,0.30)",
+                    fontFamily: "'Oswald', sans-serif",
+                    fontSize: 12, fontWeight: 700,
+                    color: "#e8d48b", letterSpacing: "0.02em",
+                  }}>MVP ×{profile.mvpCount}</span>
+                )}
+              </div>
+            )}
+
+            {/* 팀 섹션 */}
+            {teamState === "has-team" && profile.teamName && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{
+                  fontFamily: "'Noto Sans KR', sans-serif",
+                  fontSize: 12, fontWeight: 600,
+                  color: "rgba(255,255,255,0.52)", flex: 1,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>{profile.teamName}</span>
+                {onTeamChange && (
+                  <button
+                    onClick={onTeamChange}
+                    style={{
+                      fontSize: 10, color: "rgba(255,255,255,0.24)",
+                      fontFamily: "'Noto Sans KR', sans-serif",
+                      padding: "2px 8px", borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      background: "transparent", cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >변경</button>
+                )}
+              </div>
+            )}
+
+            {teamState === "no-team" && onTeamChange && (
+              <Link href="/team" style={{ textDecoration: "none" }}>
+                <div style={{
+                  padding: "10px 12px", borderRadius: 14,
+                  background: "rgba(201,168,76,0.08)",
+                  border: "1px solid rgba(201,168,76,0.18)",
+                  cursor: "pointer",
+                }}>
+                  <span style={{
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                    fontSize: 12, fontWeight: 700,
+                    color: "#e8d48b", display: "block", marginBottom: 4,
+                  }}>팀에 소속되어 보세요</span>
+                  <span style={{
+                    fontSize: 10, color: "#bfa255",
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                  }}>초대코드 가입 · 팀 만들기</span>
+                </div>
+              </Link>
+            )}
+
+            {teamState === "transferring" && (
+              <Link href="/team" style={{ textDecoration: "none" }}>
+                <div style={{
+                  padding: "10px 12px", borderRadius: 14,
+                  background: "rgba(96,165,250,0.08)",
+                  border: "1px solid rgba(96,165,250,0.20)",
+                }}>
+                  <span style={{
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                    fontSize: 12, fontWeight: 600,
+                    color: "#60a5fa", display: "block", marginBottom: 4,
+                  }}>새 팀으로 이동 중</span>
+                  <span style={{
+                    fontSize: 10, color: "rgba(96,165,250,0.5)",
+                    fontFamily: "'Noto Sans KR', sans-serif",
+                  }}>진학·이적 시 새 소속 설정</span>
+                </div>
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* ── Stats counter row ── */}
-        <div
-          className="mx-5 mb-5 flex items-center"
-          style={{
-            borderRadius: 12,
-            background: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.04)",
-            overflow: "hidden",
-          }}
-        >
-          {[
-            { label: "팔로워", value: profile.followers, href: followsHref("followers") },
-            { label: "팔로잉", value: profile.following, href: followsHref("following") },
-            { label: "조회수", value: profile.views, href: null },
-          ].map(({ label, value, href }, i) => {
-            const inner = (
-              <>
-                <span
-                  style={{
-                    fontFamily: "var(--font-stat)",
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: "var(--color-text-1)",
-                    lineHeight: 1,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {fmt(value)}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "var(--color-text-3)",
-                    fontFamily: "var(--font-body)",
-                    marginTop: 3,
-                    fontWeight: 500,
-                  }}
-                >
-                  {label}
-                </span>
-              </>
-            );
-
-            const cls = `flex flex-1 flex-col items-center py-3.5 transition-colors active:bg-white/[0.03]`;
-            const divider = i < 2 ? (
-              <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.05)" }} />
-            ) : null;
-
-            return (
-              <React.Fragment key={label}>
-                {href ? (
-                  <Link href={href} className={cls}>
-                    {inner}
-                  </Link>
-                ) : (
-                  <div className={cls}>{inner}</div>
-                )}
-                {divider}
-              </React.Fragment>
-            );
-          })}
-        </div>
+        {/* 액션 바 (본인 프로필) */}
+        {showActionBar && (
+          <div style={{
+            display: "flex",
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+          }}>
+            {onShare && (
+              <button onClick={onShare} style={{
+                flex: 1, padding: "10px 0",
+                background: "transparent", border: "none",
+                borderRight: (onPdf || onEdit) ? "1px solid rgba(255,255,255,0.06)" : "none",
+                color: "#e8d48b",
+                fontSize: 12, fontFamily: "'Noto Sans KR', sans-serif",
+                fontWeight: 600, cursor: "pointer",
+                letterSpacing: "-0.01em",
+              }}>공유</button>
+            )}
+            {onPdf && (
+              <button onClick={onPdf} style={{
+                flex: 1, padding: "10px 0",
+                background: "transparent", border: "none",
+                borderRight: onEdit ? "1px solid rgba(255,255,255,0.06)" : "none",
+                color: "rgba(255,255,255,0.24)",
+                fontSize: 12, fontFamily: "'Noto Sans KR', sans-serif",
+                fontWeight: 400, cursor: "pointer",
+                letterSpacing: "-0.01em",
+              }}>PDF</button>
+            )}
+            {onEdit && (
+              <button onClick={onEdit} style={{
+                flex: 1, padding: "10px 0",
+                background: "transparent", border: "none",
+                borderRight: "none",
+                color: "#e8d48b",
+                fontSize: 12, fontFamily: "'Noto Sans KR', sans-serif",
+                fontWeight: 700, cursor: "pointer",
+                letterSpacing: "-0.01em",
+              }}>편집</button>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* ═══════════════════════════════════════════
-          CARD 2 — Player Info (physical + team)
-          ═══════════════════════════════════════════ */}
-      {(physicalTags.length > 0 || teamState !== "no-team" || onTeamChange) && (
-        <div
-          style={{
-            background: "var(--color-card)",
-            borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.05)",
-            padding: "14px 16px",
-          }}
-        >
-          {/* Physical tags */}
-          {physicalTags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {physicalTags.map((v) => (
-                <span
-                  key={v}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    color: "var(--color-text-2)",
-                    fontFamily: "var(--font-body)",
-                    fontWeight: 500,
-                  }}
-                >
-                  {v}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Team section */}
-          {(teamState !== "no-team" || onTeamChange) && (
-            <>
-              {physicalTags.length > 0 && (
-                <div className="my-3" style={{ height: 1, background: "rgba(255,255,255,0.05)" }} />
-              )}
-
-              {teamState === "has-team" && (
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="flex shrink-0 items-center justify-center"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-3)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M12 8v8M8 12h8" />
-                    </svg>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span
-                      style={{
-                        fontFamily: "var(--font-body)",
-                        fontSize: 9,
-                        fontWeight: 600,
-                        color: "var(--color-text-3)",
-                        textTransform: "uppercase" as const,
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      현재 소속
-                    </span>
-                    <span
-                      className="truncate"
-                      style={{
-                        fontFamily: "var(--font-body)",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: "var(--color-text-1)",
-                        marginTop: 1,
-                      }}
-                    >
-                      {profile.teamName}
-                    </span>
-                  </div>
-                  {onTeamChange && (
-                    <button
-                      onClick={onTeamChange}
-                      className="ml-auto shrink-0 transition-colors active:bg-white/[0.05]"
-                      style={{
-                        padding: "5px 12px",
-                        borderRadius: 8,
-                        background: "rgba(255,255,255,0.04)",
-                        border: "1px solid rgba(255,255,255,0.06)",
-                        color: "var(--color-text-3)",
-                        fontSize: 11,
-                        fontFamily: "var(--font-body)",
-                        fontWeight: 500,
-                        cursor: "pointer",
-                      }}
-                    >
-                      변경
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {teamState === "no-team" && onTeamChange && (
-                <Link
-                  href="/team"
-                  className="flex items-center gap-2.5 py-0.5 transition-colors active:opacity-80"
-                >
-                  <div
-                    className="flex shrink-0 items-center justify-center"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "rgba(212,168,83,0.06)",
-                      border: "1px dashed rgba(212,168,83,0.25)",
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  </div>
-                  <span
-                    className="flex-1"
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "var(--color-accent)",
-                    }}
-                  >
-                    팀에 소속되어 보세요
-                  </span>
-                  <IconChevronRight color="rgba(212,168,83,0.35)" />
-                </Link>
-              )}
-
-              {teamState === "transferring" && onTeamChange && (
-                <Link
-                  href="/team"
-                  className="flex items-center gap-2.5 py-0.5 transition-colors active:opacity-80"
-                >
-                  <div
-                    className="flex shrink-0 items-center justify-center"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "rgba(96,165,250,0.06)",
-                      border: "1px dashed rgba(96,165,250,0.25)",
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
-                    </svg>
-                  </div>
-                  <div className="flex flex-1 flex-col min-w-0">
-                    <span style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "var(--color-blue)" }}>
-                      새 팀으로 이동하기
-                    </span>
-                    <span style={{ fontSize: 11, color: "rgba(96,165,250,0.5)", fontFamily: "var(--font-body)" }}>
-                      진학·이적 시 새 소속 설정
-                    </span>
-                  </div>
-                  <IconChevronRight color="rgba(96,165,250,0.35)" />
-                </Link>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════
-          ACTION BUTTONS (own profile only)
-          ═══════════════════════════════════════════ */}
-      {(onShare || onPdf || onEdit) && (
-        <div className="flex gap-2">
-          {onShare && (
-            <button
-              onClick={onShare}
-              className="flex flex-1 items-center justify-center gap-1.5 transition-colors active:bg-white/[0.04]"
-              style={{
-                padding: "10px 0",
-                borderRadius: 12,
-                background: "var(--color-card)",
-                border: "1px solid rgba(255,255,255,0.05)",
-                color: "var(--color-accent)",
-                fontSize: 12,
-                fontFamily: "var(--font-body)",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              <IconShare />
-              공유
-            </button>
-          )}
-          {onPdf && (
-            <button
-              onClick={onPdf}
-              className="flex flex-1 items-center justify-center gap-1.5 transition-colors active:bg-white/[0.04]"
-              style={{
-                padding: "10px 0",
-                borderRadius: 12,
-                background: "var(--color-card)",
-                border: "1px solid rgba(255,255,255,0.05)",
-                color: "var(--color-text-3)",
-                fontSize: 12,
-                fontFamily: "var(--font-body)",
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              <IconFile />
-              PDF
-            </button>
-          )}
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              className="flex flex-1 items-center justify-center gap-1.5 transition-colors active:bg-white/[0.04]"
-              style={{
-                padding: "10px 0",
-                borderRadius: 12,
-                background: "var(--color-card)",
-                border: "1px solid rgba(255,255,255,0.05)",
-                color: "var(--color-text-3)",
-                fontSize: 12,
-                fontFamily: "var(--font-body)",
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              <IconEdit />
-              편집
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

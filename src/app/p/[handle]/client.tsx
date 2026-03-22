@@ -283,7 +283,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         </button>
       </div>
 
-      <div className="px-4 pt-3">
       {/* Profile hero (read-only, no callbacks = no action bar) */}
       <HeroSection
         profile={profile}
@@ -293,7 +292,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
       {/* 액션 버튼 — 프로필 카드 바로 아래 */}
       {!data.isOwnProfile && (
-        <div className="mt-3 flex gap-2">
+        <div className="px-4 mt-3 flex gap-2">
           {viewerAccess?.canFollow && (
             <FollowButton targetId={profile.id} initialFollowing={!!data.isFollowing} size="md" />
           )}
@@ -380,7 +379,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         </div>
       )}
       {helperTexts.length > 0 && (
-        <div className="mt-2 flex flex-col gap-1 text-[12px] text-text-3">
+        <div className="px-4 mt-2 flex flex-col gap-1 text-[12px] text-text-3">
           {helperTexts.map((text) => (
             <p key={text}>{text}</p>
           ))}
@@ -389,7 +388,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
       {/* Contact info */}
       {data.contact && (
-        <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
+        <div className="px-4 mt-3 flex flex-wrap gap-2 text-[12px]">
           {data.contact.email && (
             <a href={`mailto:${data.contact.email}`} className="rounded-full bg-surface px-3 py-1 text-text-2 hover:text-accent">
               {data.contact.email}
@@ -404,12 +403,10 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       )}
 
       {/* Tabs */}
-      <div className="-mx-4 mt-4">
-        <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} stickyTop={48} />
-      </div>
+      <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} stickyTop={48} />
 
       {/* Tab content */}
-      <div>
+      <div className="px-4">
         {activeTab === "highlights" && (
           <HighlightsTabV5
             readOnly
@@ -427,8 +424,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           <CareerTabV5 readOnly profile={profile} seasons={seasons} achievements={achievements} />
         )}
       </div>
-
-      </div>{/* end px-4 */}
 
       <ShareSheet
         open={shareOpen}

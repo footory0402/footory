@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/auth-guard";
 import { getPresignedUploadUrl, getPresignedThumbnailUrl } from "@/lib/r2";
 import { checkRateLimit } from "@/lib/rate-limit";
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireAuth();
