@@ -221,16 +221,18 @@ export default function ProfilePage() {
   return (
     <div className="bg-bg">
       {/* Hero */}
-      <HeroSection
-        profile={profile}
-        playStyle={playStyle}
-        teamState={teamState}
-        onEdit={() => setEditOpen(true)}
-        onShare={handleShareProfile}
-        onPdf={() => setPdfExportOpen(true)}
-        onAvatarUpload={uploadAvatar}
-        onTeamChange={() => setTeamTransferring(true)}
-      />
+      <div className="mx-4 mt-4 rounded-xl overflow-hidden">
+        <HeroSection
+          profile={profile}
+          playStyle={playStyle}
+          teamState={teamState}
+          onEdit={() => setEditOpen(true)}
+          onShare={handleShareProfile}
+          onPdf={() => setPdfExportOpen(true)}
+          onAvatarUpload={uploadAvatar}
+          onTeamChange={() => setTeamTransferring(true)}
+        />
+      </div>
 
       {/* Tab bar (sticky) */}
       <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} />

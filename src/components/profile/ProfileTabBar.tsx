@@ -18,26 +18,28 @@ const TABS: { key: ProfileTabKey; label: string; icon: string }[] = [
 function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
   return (
     <div
-      className="sticky z-40 flex border-b border-white/[0.06] bg-bg/95 backdrop-blur-sm"
+      className="sticky z-40 bg-bg/95 backdrop-blur-sm px-4 py-2"
       style={{ top: 49 }}
     >
-      {TABS.map((tab) => {
-        const active = activeTab === tab.key;
-        return (
-          <button
-            key={tab.key}
-            onClick={() => onTabChange(tab.key)}
-            className={`flex flex-1 items-center justify-center gap-1 border-b-2 py-[10px] text-xs transition-colors ${
-              active
-                ? "border-accent text-accent font-bold"
-                : "border-transparent text-text-3"
-            }`}
-          >
-            <span className="text-xs">{tab.icon}</span>
-            {tab.label}
-          </button>
-        );
-      })}
+      <div className="flex rounded-xl bg-card p-1 gap-1">
+        {TABS.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => onTabChange(tab.key)}
+              className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-2 text-xs transition-all ${
+                active
+                  ? "bg-elevated text-accent font-bold"
+                  : "text-text-3"
+              }`}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
