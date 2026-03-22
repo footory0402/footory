@@ -137,11 +137,7 @@ export default function CareerTabV5({
         />
         {(currentSeason || pastSeasons.length > 0) ? (
           <div
-            style={{
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.06)",
-              overflow: "hidden",
-            }}
+            className="card-elevated overflow-hidden"
           >
             {currentSeason && (
               <HistoryRow
@@ -178,13 +174,8 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
     return (
       <Link
         href="/team"
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          borderRadius: 12,
-          border: "1px solid rgba(255,255,255,0.06)",
-          padding: "14px 16px",
-          display: "block",
-        }}
+        className="card-elevated block"
+        style={{ padding: "14px 16px" }}
       >
         <span
           style={{
@@ -242,12 +233,8 @@ function CurrentTeamCard({ profile }: { profile: Profile }) {
 
   return (
     <div
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        borderRadius: 12,
-        border: "1px solid rgba(255,255,255,0.06)",
-        padding: "14px 16px",
-      }}
+      className="card-elevated"
+      style={{ padding: "14px 16px" }}
     >
       <span
         style={{
@@ -318,13 +305,13 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
 
   return (
     <div
+      className="card-elevated"
       style={{
-        borderRadius: 12,
         padding: 14,
-        background: isTeam
-          ? "rgba(74,222,128,0.015)"
-          : "rgba(255,255,255,0.015)",
-        border: `1px solid ${isTeam ? "rgba(74,222,128,0.18)" : "rgba(255,255,255,0.06)"}`,
+        ...(isTeam && {
+          borderColor: "rgba(74,222,128,0.18)",
+          backgroundColor: "rgba(74,222,128,0.04)",
+        }),
       }}
     >
       {/* Header */}
@@ -462,6 +449,7 @@ function AwardCard({ award: a }: { award: AwardRecord }) {
         background: "rgba(212,168,83,0.08)",
         borderRadius: 12,
         border: "1px solid rgba(212,168,83,0.2)",
+        boxShadow: "0 2px 12px rgba(212,168,83,0.06)",
       }}
     >
       <div className="flex items-center gap-2">
@@ -641,14 +629,7 @@ function EmptyState({
   actionLabel?: string;
 }) {
   return (
-    <div
-      className="flex flex-col items-center gap-2 py-8 text-center"
-      style={{
-        borderRadius: 12,
-        border: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(255,255,255,0.015)",
-      }}
-    >
+    <div className="card-elevated flex flex-col items-center gap-2 py-8 text-center">
       <span className="text-2xl">{icon}</span>
       <p
         className="m-0"

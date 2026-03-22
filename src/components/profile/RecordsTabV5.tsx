@@ -41,13 +41,8 @@ export default function RecordsTabV5({
       {/* ── Play style compact card ── */}
       {styleInfo && playStyle ? (
         <div
-          className="flex items-center justify-between"
-          style={{
-            background: "rgba(255,255,255,0.02)",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.06)",
-            padding: "12px 14px",
-          }}
+          className="card-elevated flex items-center justify-between"
+          style={{ padding: "12px 14px" }}
         >
           <div className="flex items-center gap-[10px]">
             <div
@@ -108,14 +103,9 @@ export default function RecordsTabV5({
         </div>
       ) : onPlayStyleTest ? (
         <div
-          className="flex items-center justify-between cursor-pointer"
+          className="card-elevated flex items-center justify-between cursor-pointer"
           onClick={onPlayStyleTest}
-          style={{
-            background: "rgba(255,255,255,0.02)",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.06)",
-            padding: "12px 14px",
-          }}
+          style={{ padding: "12px 14px" }}
         >
           <div className="flex items-center gap-[10px]">
             <div
@@ -206,12 +196,7 @@ export default function RecordsTabV5({
           </div>
         ) : (
           <div
-            className="flex flex-col items-center gap-3 py-8 text-center"
-            style={{
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.06)",
-              background: "rgba(255,255,255,0.015)",
-            }}
+            className="card-elevated flex flex-col items-center gap-3 py-8 text-center"
           >
             <span className="text-2xl">📊</span>
             <p
@@ -262,13 +247,7 @@ export default function RecordsTabV5({
       {growthStats.length > 0 && (
         <div>
           <SectionHeader title="성장 추이" />
-          <div
-            style={{
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.06)",
-              overflow: "hidden",
-            }}
-          >
+          <div className="card-elevated overflow-hidden">
             {growthStats.map((stat, i) => {
               const meta = getStatMeta(stat.type);
               const displayUnit = normalizeStatUnit(stat.type, stat.unit);
@@ -445,14 +424,13 @@ function PhysicalTestCard({
 
   return (
     <div
-      className="relative"
+      className="card-elevated relative"
       style={{
-        borderRadius: 12,
         padding: "12px 12px 10px",
-        background: isTeam
-          ? "rgba(74,222,128,0.015)"
-          : "rgba(255,255,255,0.015)",
-        border: `1px solid ${isTeam ? "rgba(74,222,128,0.18)" : "rgba(255,255,255,0.06)"}`,
+        ...(isTeam && {
+          borderColor: "rgba(74,222,128,0.18)",
+          backgroundColor: "rgba(74,222,128,0.04)",
+        }),
       }}
       onClick={onUpdate}
       role={onUpdate ? "button" : undefined}

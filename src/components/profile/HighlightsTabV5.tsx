@@ -471,7 +471,7 @@ function FeaturedCard({
         className="relative cursor-pointer overflow-hidden"
         onClick={onPlay}
         style={{
-          borderRadius: 12,
+          borderRadius: 16,
           border: "1px solid rgba(212,168,83,0.2)",
           boxShadow: "0 4px 20px rgba(212,168,83,0.06)",
         }}
@@ -710,14 +710,9 @@ function ClipCard({
 }) {
   return (
     <div
-      className="relative cursor-pointer overflow-hidden"
+      className="card-elevated relative cursor-pointer overflow-hidden"
       onClick={onPlay}
-      style={{
-        aspectRatio: "3/4",
-        borderRadius: 12,
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid rgba(255,255,255,0.06)",
-      }}
+      style={{ aspectRatio: "3/4" }}
     >
       {/* Background / Thumbnail */}
       {clip.thumbnailUrl ? (
