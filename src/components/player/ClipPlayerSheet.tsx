@@ -2,6 +2,15 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
+function getVideoErrorMessage(code: number): { message: string; retryable: boolean } {
+  switch (code) {
+    case 2: return { message: "네트워크 오류로 영상을 불러올 수 없습니다", retryable: true };
+    case 3: return { message: "이 영상 형식은 기기에서 지원하지 않습니다", retryable: false };
+    case 4: return { message: "영상을 재생할 수 없습니다", retryable: true };
+    default: return { message: "영상을 불러올 수 없습니다", retryable: true };
+  }
+}
+
 export interface PlayableClip {
   id: string;
   videoUrl: string;
@@ -34,6 +43,8 @@ export default function ClipPlayerSheet({
   const [index, setIndex] = useState(initialIndex);
   const clips = localClips;
   const [paused, setPaused] = useState(false);
+  const [videoError, setVideoError] = useState<{ code: number; message: string } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -93,6 +104,8 @@ export default function ClipPlayerSheet({
     setPaused(false);
     setConfirmDelete(false);
     setShowControls(true);
+    setVideoError(null);
+    setRetryCount(0);
     scheduleHide();
   }, [index]);
 
@@ -118,11 +131,18 @@ export default function ClipPlayerSheet({
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
     v.addEventListener("loadedmetadata", onLoaded);
+    const onError = () => {
+      const code = v.error?.code ?? 0;
+      const { message } = getVideoErrorMessage(code);
+      setVideoError({ code, message });
+    };
+    v.addEventListener("error", onError);
     return () => {
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
       v.removeEventListener("loadedmetadata", onLoaded);
+      v.removeEventListener("error", onError);
     };
   }, [scheduleHide, index]);
 
@@ -141,6 +161,18 @@ export default function ClipPlayerSheet({
       if (hideTimer.current) clearTimeout(hideTimer.current);
     }
   }, [scheduleHide]);
+
+  const handleRetry = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !clip) return;
+    const count = retryCount + 1;
+    setRetryCount(count);
+    if (count > 3) return;
+    setVideoError(null);
+    const separator = clip.videoUrl.includes("?") ? "&" : "?";
+    v.src = `${clip.videoUrl}${separator}t=${Date.now()}`;
+    v.load();
+  }, [retryCount, clip]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const bar = e.currentTarget;
@@ -335,15 +367,46 @@ export default function ClipPlayerSheet({
               src={clip.videoUrl || undefined}
               autoPlay={!!clip.videoUrl}
               playsInline
+              preload="metadata"
               className="w-full"
               style={{
                 maxHeight: "52vh",
                 transform: swiping ? `translateX(${swipeX * 0.3}px)` : undefined,
                 transition: swiping ? "none" : "transform 0.2s ease",
                 opacity: swiping ? Math.max(0.5, 1 - Math.abs(swipeX) / 300) : 1,
+                visibility: videoError ? "hidden" : undefined,
+                height: videoError ? 0 : undefined,
+                overflow: videoError ? "hidden" : undefined,
               }}
               onClick={(e) => e.preventDefault()}
             />
+
+            {/* Video error UI */}
+            {videoError && (
+              <div className="flex aspect-video max-h-[52vh] w-full flex-col items-center justify-center gap-3 bg-[#111113]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.06]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#71717A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <p className="text-[13px] text-text-2 text-center px-6">{videoError.message}</p>
+                {getVideoErrorMessage(videoError.code).retryable && retryCount < 3 && (
+                  <button
+                    onClick={handleRetry}
+                    className="rounded-lg bg-white/[0.08] px-4 py-2 text-[12px] font-medium text-text-1 active:bg-white/[0.12]"
+                  >
+                    다시 시도
+                  </button>
+                )}
+                {retryCount >= 3 && (
+                  <p className="text-[11px] text-text-3 text-center px-6">
+                    문제가 계속되면 영상을 다시 업로드해 주세요
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Touch overlay */}
             <div
