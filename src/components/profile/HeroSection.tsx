@@ -14,7 +14,6 @@ interface HeroSectionProps {
   teamState: TeamState;
   onEdit?: () => void;
   onShare?: () => void;
-  onPdf?: () => void;
   onAvatarUpload?: (file: File) => Promise<void>;
   onTeamChange?: () => void;
 }
@@ -32,7 +31,6 @@ function HeroSectionInner({
   teamState,
   onEdit,
   onShare,
-  onPdf,
   onAvatarUpload,
   onTeamChange,
 }: HeroSectionProps) {
@@ -80,8 +78,6 @@ function HeroSectionInner({
     preferredFootLabel,
   ].filter(Boolean) as string[];
 
-  const showActionBar = onShare || onPdf || onEdit;
-
   return (
     <div style={{ padding: "6px 14px 0" }}>
       <div style={{
@@ -89,7 +85,56 @@ function HeroSectionInner({
         borderRadius: 22,
         border: "1px solid rgba(255,255,255,0.06)",
         overflow: "hidden",
+        position: "relative",
       }}>
+        {/* 우상단 액션 아이콘 */}
+        {(onEdit || onShare) && (
+          <div style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            display: "flex",
+            gap: 6,
+            zIndex: 4,
+          }}>
+            {onShare && (
+              <button
+                onClick={onShare}
+                style={{
+                  width: 32, height: 32,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer",
+                }}
+                aria-label="프로필 공유"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+              </button>
+            )}
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                style={{
+                  width: 32, height: 32,
+                  borderRadius: "50%",
+                  background: "rgba(212,168,83,0.12)",
+                  border: "1px solid rgba(212,168,83,0.25)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer",
+                }}
+                aria-label="프로필 편집"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e8d48b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
         {/* 상단: 사진 + 정보 */}
         <div style={{ display: "flex", padding: "10px 12px", gap: 12 }}>
 
@@ -312,47 +357,6 @@ function HeroSectionInner({
           </div>
         </div>
 
-        {/* 액션 바 (본인 프로필) */}
-        {showActionBar && (
-          <div style={{
-            display: "flex",
-            borderTop: "1px solid rgba(255,255,255,0.06)",
-          }}>
-            {onShare && (
-              <button onClick={onShare} style={{
-                flex: 1, padding: "9px 0",
-                background: "transparent", border: "none",
-                borderRight: (onPdf || onEdit) ? "1px solid rgba(255,255,255,0.06)" : "none",
-                color: "#e8d48b",
-                fontSize: 12, fontFamily: "'Noto Sans KR', sans-serif",
-                fontWeight: 600, cursor: "pointer",
-                letterSpacing: "-0.01em",
-              }}>공유</button>
-            )}
-            {onPdf && (
-              <button onClick={onPdf} style={{
-                flex: 1, padding: "9px 0",
-                background: "transparent", border: "none",
-                borderRight: onEdit ? "1px solid rgba(255,255,255,0.06)" : "none",
-                color: "rgba(255,255,255,0.40)",
-                fontSize: 12, fontFamily: "'Noto Sans KR', sans-serif",
-                fontWeight: 400, cursor: "pointer",
-                letterSpacing: "-0.01em",
-              }}>PDF</button>
-            )}
-            {onEdit && (
-              <button onClick={onEdit} style={{
-                flex: 1, padding: "9px 0",
-                background: "transparent", border: "none",
-                borderRight: "none",
-                color: "#e8d48b",
-                fontSize: 12, fontFamily: "'Noto Sans KR', sans-serif",
-                fontWeight: 700, cursor: "pointer",
-                letterSpacing: "-0.01em",
-              }}>편집</button>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -170,7 +170,6 @@ export default function ProfilePage() {
           teamState={teamState}
           onEdit={() => setEditOpen(true)}
           onShare={handleShareProfile}
-          onPdf={() => setPdfExportOpen(true)}
           onAvatarUpload={uploadAvatar}
         />
         <div className="mt-5 flex flex-col gap-4 px-4">
@@ -236,7 +235,6 @@ export default function ProfilePage() {
         teamState={teamState}
         onEdit={() => setEditOpen(true)}
         onShare={handleShareProfile}
-        onPdf={() => setPdfExportOpen(true)}
         onAvatarUpload={uploadAvatar}
         onTeamChange={() => setTeamTransferring(true)}
       />
