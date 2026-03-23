@@ -12,10 +12,6 @@ const MAX_DURATION = 120; // 120초 (2분)
 export default function VideoSelector() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { file, error, setFile, setError } = useUploadStore();
-  const compressStatus = useUploadStore((s) => s.compressStatus);
-  const compressProgress = useUploadStore((s) => s.compressProgress);
-  const originalSize = useUploadStore((s) => s.originalSize);
-  const compressedSize = useUploadStore((s) => s.compressedSize);
   const [preview, setPreview] = useState<string | null>(null);
   const [duration, setDuration] = useState<number>(0);
 
@@ -213,34 +209,6 @@ export default function VideoSelector() {
                 </svg>
               </button>
             </div>
-
-            {/* Compression status */}
-            {(compressStatus === "loading" || compressStatus === "compressing") && (
-              <div className="mt-2">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-text-3">
-                    {compressStatus === "loading" ? "최적화 준비 중..." : `최적화 중 ${compressProgress}%`}
-                  </span>
-                  <span className="text-[11px] text-text-3">업로드 준비 중</span>
-                </div>
-                <div className="h-1 rounded-full bg-white/10">
-                  <div
-                    className="h-1 rounded-full bg-accent/60 transition-all duration-300"
-                    style={{ width: `${compressProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            {compressStatus === "done" && compressedSize !== null && originalSize !== null && (
-              <div className="mt-2 flex items-center gap-1.5">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                <span className="text-[11px] text-[#4ade80]/70">
-                  최적화 완료 ({(originalSize / 1024 / 1024).toFixed(0)}MB → {(compressedSize / 1024 / 1024).toFixed(0)}MB)
-                </span>
-              </div>
-            )}
 
             {/* Usage indicators */}
             <div className="mt-2 flex gap-3">

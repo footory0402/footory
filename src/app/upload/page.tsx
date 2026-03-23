@@ -39,6 +39,16 @@ export default function UploadPage() {
   const store = useUploadStore();
 
   const [uploading, setUploading] = useState(false);
+  const r2Status = useUploadStore((s) => s.r2Status);
+  const compressStatus = useUploadStore((s) => s.compressStatus);
+
+  // 올리기 버튼 준비 상태 — 압축 or R2 백그라운드 업로드 진행 중
+  const isPreparing =
+    compressStatus === "loading" ||
+    compressStatus === "compressing" ||
+    r2Status === "uploading";
+  const isReady = r2Status === "done" || r2Status === "error";
+
   const role = profile?.role ?? null;
   const isParent = role === "parent";
   const canUpload = role === "player" || role === "parent";
@@ -169,23 +179,6 @@ export default function UploadPage() {
       {/* 영상 선택 */}
       <VideoSelector />
 
-      {/* Background upload progress */}
-      {store.file && store.r2Status === "uploading" && (
-        <div className="h-1 overflow-hidden rounded-full bg-white/5 -mt-1">
-          <div
-            className="h-full bg-accent/40 transition-all duration-300 ease-out"
-            style={{ width: `${Math.max(store.r2Progress, 3)}%` }}
-          />
-        </div>
-      )}
-      {store.file && store.r2Status === "done" && (
-        <div className="flex items-center gap-1.5 -mt-1">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          <span className="text-[11px] text-[#4ade80]/70">업로드 준비 완료</span>
-        </div>
-      )}
 
       {/* 태그 + 메모 + 올리기 (파일 선택 후) */}
       {store.file && (
@@ -253,10 +246,23 @@ export default function UploadPage() {
           <button
             type="button"
             onClick={handleUpload}
-            disabled={uploading}
-            className="w-full rounded-xl border border-accent/20 bg-accent py-4 text-[15px] font-bold text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)] transition-all active:scale-[0.99] disabled:opacity-70"
+            disabled={uploading || isPreparing}
+            className={`w-full rounded-xl py-4 text-[15px] font-bold transition-all active:scale-[0.99] ${
+              isPreparing || uploading
+                ? "border border-white/10 bg-white/8 text-text-3"
+                : "border border-accent/20 bg-accent text-bg shadow-[0_4px_20px_rgba(212,168,83,0.25)]"
+            }`}
           >
-            {uploading ? "업로드 시작 중..." : "올리기"}
+            {uploading ? (
+              "업로드 중..."
+            ) : isPreparing ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+                준비 중...
+              </span>
+            ) : (
+              "올리기"
+            )}
           </button>
         </div>
       )}
