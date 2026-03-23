@@ -37,6 +37,44 @@ export default function RecordsTabV5({
 
   return (
     <div className="pt-3 flex flex-col gap-4">
+      {/* 탭 설명 (스탯 없을 때) */}
+      {stats.length === 0 && (
+        <p style={{ fontSize: 11, color: "var(--color-text-3)", fontFamily: "var(--font-body)", margin: "0 0 4px", paddingLeft: 2 }}>
+          50m 달리기, 슈팅 속도 등 신체능력 수치를 기록해요
+        </p>
+      )}
+
+      {/* 빈 상태 빠른 추가 카드 */}
+      {onAddStat && stats.length === 0 && (
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--color-text-2)", fontFamily: "var(--font-body)", marginBottom: 10 }}>
+            기록해볼 항목
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {["sprint_50m", "kick_power", "juggling", "sargent_jump"].map((statType) => {
+              const meta = getStatMeta(statType);
+              return (
+                <button
+                  key={statType}
+                  onClick={() => onUpdateStat?.(statType)}
+                  style={{
+                    padding: "12px", borderRadius: 12, textAlign: "left", cursor: "pointer",
+                    background: "var(--color-card)", border: "1px solid rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-1)", fontFamily: "var(--font-body)", marginBottom: 2 }}>
+                    {meta.label}
+                  </p>
+                  <p style={{ fontSize: 10, color: "var(--color-text-3)", fontFamily: "var(--font-body)" }}>
+                    {meta.unit} · 탭하여 기록
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── 플레이 스타일 카드 ── */}
       {styleInfo && playStyle ? (
         <div

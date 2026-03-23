@@ -170,7 +170,41 @@ export default function HighlightsTabV5({
           />
         ) : !readOnly && hasClips ? (
           <FeaturedEmptyCTA onAdd={handleAdd} />
-        ) : !readOnly ? null : null}
+        ) : !readOnly ? (
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            gap: 12, padding: "32px 16px", textAlign: "center",
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: "50%",
+              background: "rgba(212,168,83,0.08)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-1)", marginBottom: 4, fontFamily: "var(--font-body)" }}>
+                첫 하이라이트를 올려보세요
+              </p>
+              <p style={{ fontSize: 12, color: "var(--color-text-3)", fontFamily: "var(--font-body)" }}>
+                스킬을 태그하면 포지션별로 정리돼요
+              </p>
+            </div>
+            <Link
+              href="/upload"
+              style={{
+                marginTop: 4, padding: "10px 20px", borderRadius: 12,
+                background: "var(--color-accent)", color: "var(--color-bg)",
+                fontSize: 13, fontWeight: 700, fontFamily: "var(--font-body)",
+                textDecoration: "none",
+              }}
+            >
+              영상 업로드 →
+            </Link>
+          </div>
+        ) : null}
 
         {/* ── Section header ── */}
         <div className="mt-5 mb-[10px] flex items-center justify-between">

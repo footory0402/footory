@@ -156,13 +156,35 @@ export default function CareerTabV5({
             ))}
           </div>
         ) : (
-          <EmptyState
-            icon="📋"
-            title="아직 소속 이력이 없어요"
-            description="이전 팀 경력을 추가해보세요"
-            onAction={onAddSeason}
-            actionLabel="이력 추가하기"
-          />
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            gap: 12, padding: "28px 16px", textAlign: "center",
+            background: "var(--color-card)", borderRadius: 16,
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}>
+            <span style={{ fontSize: 32 }}>🏟</span>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-1)", marginBottom: 4, fontFamily: "var(--font-body)" }}>
+                이번 시즌을 추가해보세요
+              </p>
+              <p style={{ fontSize: 12, color: "var(--color-text-3)", fontFamily: "var(--font-body)" }}>
+                소속팀과 포지션을 기록하면 커리어가 쌓여요
+              </p>
+            </div>
+            {onAddSeason && (
+              <button
+                onClick={onAddSeason}
+                style={{
+                  padding: "10px 20px", borderRadius: 12,
+                  background: "var(--color-accent)", color: "var(--color-bg)",
+                  fontSize: 13, fontWeight: 700, fontFamily: "var(--font-body)",
+                  border: "none", cursor: "pointer",
+                }}
+              >
+                + 시즌 추가
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
