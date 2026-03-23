@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUploadStore, type UploadStatus } from "@/stores/upload-store";
+import { startR2BackgroundUpload } from "@/lib/upload-service";
 
 const ACTIVE_STATUSES: UploadStatus[] = [
   "uploading_raw",
@@ -27,8 +28,12 @@ function getLabel(status: UploadStatus, progress: number): string {
       return "영상 처리 중...";
     case "done":
       return "업로드 완료! — 탭하여 확인하기";
-    case "error":
-      return "업로드 실패 — 탭하여 재시도";
+    case "error": {
+      const retryCount = useUploadStore.getState().r2RetryCount;
+      return retryCount >= 3
+        ? "업로드 실패 — 탭하여 다시 시작"
+        : "업로드 실패 — 탭하여 재시도";
+    }
     default:
       return "";
   }
@@ -71,7 +76,20 @@ export default function GlobalUploadIndicator() {
 
   const handleTap = () => {
     if (isError) {
-      router.push("/upload");
+      const s = useUploadStore.getState();
+      const retryCount = s.r2RetryCount;
+      if (retryCount >= 3) {
+        // 3회 초과 — 처음부터 다시
+        s.reset();
+        router.push("/upload");
+        return;
+      }
+      // 직접 재시도 — 새 presigned URL로 R2 업로드 재시작
+      s.setR2RetryCount(retryCount + 1);
+      s.setError(null);
+      s.setStatus("uploading");
+      s.setProgress(0);
+      startR2BackgroundUpload();
     } else if (isDone) {
       useUploadStore.getState().reset();
       router.push("/profile");
@@ -83,7 +101,8 @@ export default function GlobalUploadIndicator() {
     e.stopPropagation();
     if (!isActive) {
       setDismissed(true);
-      if (isDone || isError) useUploadStore.getState().reset();
+      if (isDone) useUploadStore.getState().reset();
+      // 에러 상태에서는 reset하지 않음 — 파일 보존하여 재시도 가능
     }
   };
 
