@@ -337,7 +337,7 @@ function ScoutSummarySection({ profile, stats, achievements }: {
 
 export default function PublicProfileClient({ profile: data }: { profile: PublicProfileData }) {
   const router = useRouter();
-  const isScoutViewer = data.viewerAccess?.role === "scout" && data.role === "player";
+  const isScoutViewer = data.role === "player"; // 모든 방문자에게 신체 요약 표시
   const [activeTab, setActiveTab] = useState<ProfileTabKey>(
     () => data.viewerAccess?.role === "scout" ? "records" : "highlights"
   );
