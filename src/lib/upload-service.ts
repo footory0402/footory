@@ -7,8 +7,8 @@ const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel payload 제한)
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
 const MAX_DIRECT_RETRIES = 3; // presigned URL 최대 재시도 횟수
 const MULTIPART_THRESHOLD = 15 * 1024 * 1024; // 15MB 이상이면 multipart (API 오버헤드 최소화)
-const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB per chunk (재시도 낭비 최소화 + 빠른 progress)
-const CONCURRENT_PARTS = 4; // 동시 업로드 파트 수 (모바일 안정성 + 처리량)
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk — R2/S3 최소 파트 크기 (last part 제외)
+const CONCURRENT_PARTS = 3; // 동시 업로드 파트 수 (모바일 안정성)
 
 /** 파일 크기 기반 동적 타임아웃 (50KB/s 기준, 최소 3분) */
 function calcUploadTimeout(fileSize: number): number {
@@ -557,6 +557,25 @@ async function uploadToR2(
   );
 }
 
+// ─── Screen Wake Lock (업로드 중 화면 꺼짐 방지) ───
+
+let wakeLock: WakeLockSentinel | null = null;
+
+async function acquireWakeLock() {
+  try {
+    if ("wakeLock" in navigator) {
+      wakeLock = await navigator.wakeLock.request("screen");
+    }
+  } catch {
+    // 미지원 기기 무시
+  }
+}
+
+function releaseWakeLock() {
+  wakeLock?.release().catch(() => {});
+  wakeLock = null;
+}
+
 // ─── Instant Upload (background R2 upload) ───
 
 let bgUploadGeneration = 0;
@@ -589,6 +608,7 @@ export function startR2BackgroundUpload() {
   s.setR2Progress(0);
 
   (async () => {
+    await acquireWakeLock();
     try {
       const fileContentType = resolveContentType(file);
 
@@ -655,6 +675,8 @@ export function startR2BackgroundUpload() {
       if (generation !== bgUploadGeneration) return;
       console.warn("[Upload] Background R2 upload failed:", e);
       useUploadStore.getState().setR2Status("error");
+    } finally {
+      releaseWakeLock();
     }
   })();
 }
@@ -665,6 +687,7 @@ export async function startUpload() {
   const store = useUploadStore.getState();
   if (!store.file || store.status !== "idle") return;
 
+  await acquireWakeLock();
   try {
     store.setStatus("uploading");
     store.setProgress(0);
@@ -806,6 +829,8 @@ export async function startUpload() {
   } catch (e) {
     store.setError(e instanceof Error ? e.message : "업로드 실패");
     store.setStatus("error");
+  } finally {
+    releaseWakeLock();
   }
 }
 
