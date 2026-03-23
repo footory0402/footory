@@ -181,6 +181,7 @@ export default function ProfilePage() {
           playStyle={null}
           hasFeatured={false}
           userId={profile.id}
+          isLoading={false}
           onAction={(action) => {
             if (action === "edit") setEditOpen(true);
           }}
@@ -245,6 +246,7 @@ export default function ProfilePage() {
         playStyle={playStyle}
         hasFeatured={hasFeatured}
         userId={profile.id}
+        isLoading={tagClipsLoading || statsLoading || seasonsLoading}
         onAction={(action) => {
           if (action === "edit") setEditOpen(true);
           else if (action === "highlights") setActiveTab("highlights");

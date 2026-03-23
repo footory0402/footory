@@ -4,9 +4,26 @@ import { useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-const PlayerRanking = dynamic(() => import("@/components/explore/PlayerRanking"), { ssr: false });
-const TeamRanking = dynamic(() => import("@/components/explore/TeamRanking"), { ssr: false });
-const TagGrid = dynamic(() => import("@/components/explore/TagGrid"), { ssr: false });
+function ListSkeleton() {
+  return (
+    <div className="space-y-3 pt-1">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 rounded-xl bg-card p-3 animate-pulse" style={{ border: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="h-11 w-11 rounded-full bg-white/[0.06] shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-28 rounded bg-white/[0.06]" />
+            <div className="h-2.5 w-16 rounded bg-white/[0.04]" />
+          </div>
+          <div className="h-4 w-6 rounded bg-white/[0.04]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const PlayerRanking = dynamic(() => import("@/components/explore/PlayerRanking"), { ssr: false, loading: ListSkeleton });
+const TeamRanking = dynamic(() => import("@/components/explore/TeamRanking"), { ssr: false, loading: ListSkeleton });
+const TagGrid = dynamic(() => import("@/components/explore/TagGrid"), { ssr: false, loading: () => <div className="h-32 animate-pulse rounded-xl bg-card" /> });
 const SearchOverlay = dynamic(() => import("@/components/explore/SearchOverlay"), { ssr: false });
 
 type FilterTab = "player" | "team" | "tag";

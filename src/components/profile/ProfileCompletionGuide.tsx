@@ -24,6 +24,17 @@ function getStorageKey(userId: string, role: string) {
   return `footory_profile_complete_${userId}_${role}`;
 }
 
+interface ProfileCompletionGuideProps {
+  profile: Profile;
+  stats: Stat[];
+  seasons: Season[];
+  playStyle: PlayStyle | null;
+  hasFeatured: boolean;
+  onAction: (action: string) => void;
+  userId: string;
+  isLoading?: boolean;
+}
+
 export default function ProfileCompletionGuide({
   profile,
   stats,
@@ -32,12 +43,15 @@ export default function ProfileCompletionGuide({
   hasFeatured,
   onAction,
   userId,
+  isLoading,
 }: ProfileCompletionGuideProps) {
   const storageKey = getStorageKey(userId, profile.role ?? "player");
-  const [dismissed, setDismissed] = React.useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(storageKey) === "1";
-  });
+  // null = 아직 hydration 전, true/false = localStorage 확인 완료
+  const [dismissed, setDismissed] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    setDismissed(localStorage.getItem(storageKey) === "1");
+  }, [storageKey]);
 
   const items: CompletionItem[] = useMemo(() => {
     if (profile.role === "scout") {
@@ -65,13 +79,15 @@ export default function ProfileCompletionGuide({
   const nextItem = items.find((i) => !i.done);
 
   React.useEffect(() => {
-    if (pct === 100 && !dismissed) {
+    if (pct === 100 && dismissed === false) {
       localStorage.setItem(storageKey, "1");
       setDismissed(true);
     }
   }, [pct, dismissed, storageKey]);
 
-  if (dismissed || pct === 100) return null;
+  // hydration 전이거나, 보조 데이터 로딩 중이거나, 이미 닫혔으면 숨김
+  if (dismissed === null || dismissed || (isLoading && pct === 0)) return null;
+  if (pct === 100) return null;
 
   return (
     <div style={{
