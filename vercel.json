@@ -1,6 +1,7 @@
 {
   "regions": ["icn1"],
   "functions": {
+    "src/app/api/upload/multipart/route.ts": { "maxDuration": 300 },
     "src/app/api/upload/direct/route.ts": { "maxDuration": 120 },
     "src/app/api/**/*.ts": { "maxDuration": 15 }
   },
