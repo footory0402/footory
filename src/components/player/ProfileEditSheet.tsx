@@ -13,6 +13,7 @@ interface ProfileEditSheetProps {
   onSave: (updates: Record<string, unknown>) => Promise<void>;
   onAvatarUpload: (file: File) => Promise<void>;
   onCheckHandle: (handle: string) => Promise<boolean>;
+  onPdf?: () => void;
 }
 
 export default function ProfileEditSheet({
@@ -22,6 +23,7 @@ export default function ProfileEditSheet({
   onSave,
   onAvatarUpload,
   onCheckHandle,
+  onPdf,
 }: ProfileEditSheetProps) {
   const [name, setName] = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
@@ -284,6 +286,14 @@ export default function ProfileEditSheet({
 
           {/* Sticky Actions */}
           <div className="shrink-0 border-t border-white/[0.06] bg-card px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            {onPdf && (
+              <button
+                onClick={() => { onClose(); setTimeout(onPdf!, 300); }}
+                className="mb-2 w-full rounded-lg bg-bg py-2.5 text-sm font-medium text-text-3 ring-1 ring-border"
+              >
+                PDF로 내보내기
+              </button>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={onClose}

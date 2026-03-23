@@ -208,6 +208,7 @@ export default function ProfilePage() {
             onSave={updateProfile}
             onAvatarUpload={uploadAvatar}
             onCheckHandle={checkHandle}
+            onPdf={() => setPdfExportOpen(true)}
           />
         )}
         {pdfExportOpen && (
@@ -283,6 +284,7 @@ export default function ProfilePage() {
           onSave={updateProfile}
           onAvatarUpload={uploadAvatar}
           onCheckHandle={checkHandle}
+          onPdf={() => setPdfExportOpen(true)}
         />
       )}
       {statInputOpen && (
