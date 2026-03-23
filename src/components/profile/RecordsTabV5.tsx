@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import VerifyBadge from "./VerifyBadge";
 import { getStatMeta } from "@/lib/constants";
 import {
   formatStatDelta,
@@ -209,13 +208,6 @@ export default function RecordsTabV5({
           }
         />
 
-        {/* Verify legend */}
-        {stats.length > 0 && !isEditMode && (
-          <div className="mb-[10px] flex gap-2">
-            <VerifyBadge source="team" verifier="팀 인증" compact />
-            <VerifyBadge source="self" compact />
-          </div>
-        )}
 
         {/* 편집 모드 안내 */}
         {isEditMode && stats.length > 0 && (
@@ -551,8 +543,6 @@ function PhysicalTestCard({
         )}
       </div>
 
-      {/* Verify badge */}
-      <VerifyBadge source={source} compact />
 
       {/* 탭하여 업데이트 힌트 — 일반 모드에서만 */}
       {onUpdate && !isEditMode && (

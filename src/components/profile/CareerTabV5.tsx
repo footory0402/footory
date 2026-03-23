@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import VerifyBadge from "./VerifyBadge";
 import TournamentTypeBadge from "./TournamentTypeBadge";
 import type { Profile, Season, Achievement } from "@/lib/types";
 
@@ -391,11 +390,6 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
             {t.name}
           </h3>
         </div>
-        <VerifyBadge
-          source={t.source}
-          verifier={t.verifier}
-          compact
-        />
       </div>
 
       {/* Stats row */}
@@ -520,7 +514,6 @@ function AwardCard({ award: a }: { award: AwardRecord }) {
           )}
         </span>
       </div>
-      <VerifyBadge source={a.source} verifier={a.verifier} compact />
     </div>
   );
 }
