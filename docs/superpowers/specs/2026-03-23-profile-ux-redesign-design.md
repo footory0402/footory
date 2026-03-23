@@ -53,11 +53,14 @@
 ## 섹션 2: 탭 명칭 & 역할 명확화
 
 ### 탭 이름 변경
-| 현재 | 변경 | 설명 |
-|------|------|------|
-| 하이라이트 | 하이라이트 | 변경 없음 |
-| 기록 | 스탯 | 신체능력 수치임을 명확히 |
-| 커리어 | 커리어 | 변경 없음 |
+| 현재 표시 | 변경 표시 | 내부 키 | 설명 |
+|---------|---------|--------|------|
+| 하이라이트 | 하이라이트 | `"highlights"` | 변경 없음 |
+| 기록 | 스탯 | `"records"` | **표시 라벨만 변경, 타입/키는 그대로** |
+| 커리어 | 커리어 | `"career"` | 변경 없음 |
+
+> ⚠️ `ProfileTabKey` 타입(`"highlights" | "records" | "career"`)은 변경하지 않음.
+> `profile/page.tsx`, `p/[handle]/client.tsx`의 `activeTab === "records"` 조건문은 그대로 유지.
 
 ### 탭 내 부제/설명 추가
 각 탭 상단에 작은 설명 텍스트 추가 (첫 방문 또는 빈 상태일 때만 표시):
@@ -85,10 +88,16 @@
 | PDF 버튼 노출 | ProfileEditSheet 내부 하단으로 이동 |
 
 ### 구현 세부사항
-- HeroSection props: `onEdit`, `onShare` 유지 / `onPdf` → ProfileEditSheet로 전달
+- HeroSection props: `onEdit`, `onShare` 유지 / `onPdf` prop 제거 (ProfileEditSheet 내부로 이동)
 - 편집 아이콘: 프로필 카드 우상단 `position: absolute, top: 10, right: 10`
 - 공유 아이콘: 편집 아이콘 왼쪽 (간격 8px)
 - 스카우터 뷰도 동일 적용
+
+### onPdf 처리 (선수 & 스카우터 공통)
+- `profile/page.tsx`의 선수 뷰와 스카우터 뷰 모두 HeroSection에서 `onPdf` prop 제거
+- `ProfileEditSheet` 하단에 "PDF 내보내기" 버튼 추가
+- `setPdfExportOpen(true)` 호출은 ProfileEditSheet 내부에서 처리
+- HeroSection의 `onPdf` prop 자체를 타입에서 제거
 
 ---
 
@@ -159,7 +168,14 @@ HeroSection 하단 (카드 외부, 본인 프로필에만 노출)
 - 퍼센트 텍스트: `font-stat` (Oswald)
 - 다음 추천 액션 1개 (미완성 항목 중 첫 번째)
 - 탭하면 해당 탭으로 이동 또는 해당 시트 오픈
-- 100% 완성 시: 가이드 숨김 (영구적으로, localStorage에 저장)
+- 100% 완성 시: 가이드 숨김 (영구적으로 localStorage에 저장)
+  - localStorage 키: `footory_profile_complete_{userId}_{role}` (역할별 분리)
+  - 선수가 스카우터로 역할 변경 시 별도 키로 초기화됨
+
+### 스카우터 뷰 완성도 가이드
+- 스카우터는 현재 `/profile/page.tsx`에서 별도 뷰(`isScoutProfile`)로 렌더링
+- 해당 뷰에 이미 "프로필 완성 CTA 카드"(빈 상태 시 `bio/city/teamName` 없을 때)가 있음
+- **중복 방지**: 기존 빈 상태 카드를 `ProfileCompletionGuide`로 교체 (별도 스카우터 항목으로)
 
 ### 데이터 흐름
 - `profile`, `stats`, `seasons`, `playStyle`, `featured` 데이터를 이미 profile/page.tsx가 보유
@@ -170,17 +186,19 @@ HeroSection 하단 (카드 외부, 본인 프로필에만 노출)
 
 ## 섹션 6: 공개 프로필 스카우터 뷰 개선 (`/p/[handle]`)
 
-### 현재 문제
-스카우터가 공개 프로필 진입 시 핵심 수치를 보려면 탭을 직접 눌러야 함.
+### 현재 상태 (기존 구현 파악 필요)
+`/p/[handle]/client.tsx`에 이미 `ScoutSummarySection` 컴포넌트가 구현되어 있음:
+- `isScoutViewer` 조건 시 신체 정보(나이/키/몸무게/발), 스탯 TOP 3, 대회/MVP 요약 표시
+- HeroSection 하단에 이미 렌더링 중
 
-### 변경
-HeroSection 하단에 "핵심 스탯 요약 바" 추가 (공개 프로필 + 선수 계정에만):
-```
-[100m: 13.2s]  [키: 172cm]  [몸무게: 63kg]  [포지션: MF]
-```
-- 존재하는 항목만 표시 (없으면 해당 칸 숨김)
-- 탭하면 스탯 탭으로 이동
-- 내 프로필(/profile)에는 표시 안 함 (이미 편집 UI가 있으므로)
+### 이번 작업 범위
+**신규 구현 없음** — 기존 `ScoutSummarySection`이 이미 요구사항을 충족.
+
+단, 아래 두 가지 확인 후 필요 시 개선:
+1. 스카우터가 아닌 일반 방문자도 핵심 신체 정보를 볼 수 있는지 확인 (`isScoutViewer` 조건 검토)
+2. 모든 방문자에게 기본 신체 요약(키/몸무게/포지션)을 HeroSection에 표시하는 것이 더 나은지 검토
+
+**결론**: 코드를 읽고 `isScoutViewer` 조건이 과도하게 제한적이면 조건 완화. 기존 컴포넌트 재작성 없음.
 
 ---
 
@@ -196,7 +214,7 @@ HeroSection 하단에 "핵심 스탯 요약 바" 추가 (공개 프로필 + 선�
 | `src/components/profile/ProfileTabBar.tsx` | 탭 이름 "기록" → "스탯" |
 | `src/components/profile/ProfileCompletionGuide.tsx` | 신규 생성 |
 | `src/app/profile/page.tsx` | ProfileCompletionGuide 통합, onPdf → editSheet로 이동 |
-| `src/app/p/[handle]/client.tsx` | 핵심 스탯 요약 바 추가 |
+| `src/app/p/[handle]/client.tsx` | `isScoutViewer` 조건 검토 및 완화 (필요 시) |
 
 ---
 
