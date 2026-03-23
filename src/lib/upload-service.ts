@@ -424,12 +424,14 @@ function xhrUpload(
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    activeXhr = xhr;
     let lastProgressTime = Date.now();
     let stallTimer: ReturnType<typeof setInterval> | null = null;
     const stallTimeout = calcStallTimeout(file.size);
 
     const cleanup = () => {
       if (stallTimer) { clearInterval(stallTimer); stallTimer = null; }
+      if (activeXhr === xhr) activeXhr = null;
     };
 
     // 멈춤 감지: 파일 크기 기반 타임아웃 동안 progress 이벤트 없으면 abort
@@ -582,6 +584,7 @@ function releaseWakeLock() {
 // ─── Instant Upload (background R2 upload) ───
 
 let bgUploadGeneration = 0;
+let activeXhr: XMLHttpRequest | null = null;
 
 function waitForR2Upload(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -612,6 +615,27 @@ export function startR2BackgroundUpload() {
 
   (async () => {
     await acquireWakeLock();
+
+    // visibilitychange 감지 — 앱 이탈 후 복귀 시 멈춤 확인
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      if (generation !== bgUploadGeneration) return;
+      const s = useUploadStore.getState();
+      if (s.r2Status !== "uploading") return;
+      const lastTime = s.lastProgressTime;
+      if (!lastTime) return;
+      const stalled = Date.now() - lastTime > 30_000;
+      if (stalled) {
+        console.warn("[Upload] Stalled upload detected after visibility change, retrying...");
+        if (activeXhr) {
+          activeXhr.abort();
+          activeXhr = null;
+        }
+        setTimeout(() => startR2BackgroundUpload(), 0);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     try {
       const fileContentType = resolveContentType(file);
 
@@ -666,6 +690,7 @@ export function startR2BackgroundUpload() {
         (pct) => {
           if (generation === bgUploadGeneration) {
             useUploadStore.getState().setR2Progress(pct);
+            useUploadStore.getState().setLastProgressTime(Date.now());
           }
         },
         getNewUrl
@@ -679,6 +704,7 @@ export function startR2BackgroundUpload() {
       console.warn("[Upload] Background R2 upload failed:", e);
       useUploadStore.getState().setR2Status("error");
     } finally {
+      document.removeEventListener("visibilitychange", handleVisibility);
       releaseWakeLock();
     }
   })();

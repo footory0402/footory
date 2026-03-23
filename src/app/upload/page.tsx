@@ -107,7 +107,7 @@ export default function UploadPage() {
     setUploading(true);
     startUpload(); // 백그라운드로 실행 — GlobalUploadIndicator가 진행 상태 표시
     // 150ms 후 이동 — 사용자가 "시작됨" 느낌을 받을 수 있도록 brief 딜레이
-    setTimeout(() => router.replace("/profile"), 150);
+    setTimeout(() => router.replace("/profile?tab=highlights"), 150);
   }, [router]);
 
   /* ── Guard: 로딩 중 ── */
