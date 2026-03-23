@@ -12,7 +12,7 @@ interface ProfileTabBarProps {
 
 const TABS: { key: ProfileTabKey; label: string }[] = [
   { key: "highlights", label: "하이라이트" },
-  { key: "records", label: "기록" },
+  { key: "records", label: "스탯" },
   { key: "career", label: "커리어" },
 ];
 
