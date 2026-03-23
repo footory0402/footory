@@ -50,7 +50,7 @@ export async function getPresignedUploadUrl(
     ContentType: contentType,
   });
 
-  const url = await getSignedUrl(client, command, { expiresIn: 600 });
+  const url = await getSignedUrl(client, command, { expiresIn: 3600 }); // 1시간
   return { url, key };
 }
 

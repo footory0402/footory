@@ -6,9 +6,12 @@ import { useUploadStore } from "@/stores/upload-store";
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel payload 제한)
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
 const MAX_DIRECT_RETRIES = 3; // presigned URL 최대 재시도 횟수
-const MULTIPART_THRESHOLD = 15 * 1024 * 1024; // 15MB 이상이면 multipart (API 오버헤드 최소화)
-const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB per chunk — R2/S3 최소 파트 크기 (last part 제외)
-const CONCURRENT_PARTS = 3; // 동시 업로드 파트 수 (모바일 안정성)
+// Hobby 플랜 10초 하드캡으로 multipart complete(ListParts+CompleteMultipartUpload)가
+// 항상 504 타임아웃. 단일 presigned PUT은 브라우저→R2 직접 전송 = Vercel 함수 미통과.
+// 100MB 파일도 단일 PUT으로 처리 (R2 최대 5GB 지원).
+const MULTIPART_THRESHOLD = 200 * 1024 * 1024; // 사실상 비활성화 (200MB 초과 시에만)
+const CHUNK_SIZE = 5 * 1024 * 1024; // 유지 (혹시라도 multipart 동작 시 R2 최소 요건)
+const CONCURRENT_PARTS = 3;
 
 /** 파일 크기 기반 동적 타임아웃 (50KB/s 기준, 최소 3분) */
 function calcUploadTimeout(fileSize: number): number {
