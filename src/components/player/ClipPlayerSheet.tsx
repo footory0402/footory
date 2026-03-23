@@ -5,8 +5,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 function getVideoErrorMessage(code: number): { message: string; retryable: boolean } {
   switch (code) {
     case 2: return { message: "네트워크 오류로 영상을 불러올 수 없습니다", retryable: true };
-    case 3: return { message: "이 영상 형식은 기기에서 지원하지 않습니다", retryable: false };
-    case 4: return { message: "영상을 재생할 수 없습니다", retryable: true };
+    case 3: return { message: "영상 파일이 손상되어 재생할 수 없습니다", retryable: false };
+    case 4: return { message: "지원하지 않는 영상 형식입니다", retryable: true };
     default: return { message: "영상을 불러올 수 없습니다", retryable: true };
   }
 }
@@ -165,9 +165,9 @@ export default function ClipPlayerSheet({
   const handleRetry = useCallback(() => {
     const v = videoRef.current;
     if (!v || !clip) return;
+    if (retryCount >= 3) return;
     const count = retryCount + 1;
     setRetryCount(count);
-    if (count > 3) return;
     setVideoError(null);
     const separator = clip.videoUrl.includes("?") ? "&" : "?";
     v.src = `${clip.videoUrl}${separator}t=${Date.now()}`;
