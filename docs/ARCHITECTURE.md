@@ -372,15 +372,20 @@ CREATE POLICY "팀 수정" ON teams FOR UPDATE USING (
 
 ## 4. 영상 파이프라인 (Cloudflare R2)
 
-### 4.1 업로드 플로우
+> ⚠️ **실제 구현은 초기 기획과 다름.** 상세 내용은 `docs/UPLOAD-ARCHITECTURE.md` 참고.
+
+### 4.1 업로드 플로우 (실제 구현 — v2.2)
 
 ```
-1. 클라이언트: 파일 선택 + 메타데이터 입력
-2. 클라이언트 → Supabase Edge Function: presigned URL 요청
-3. Edge Function → R2: presigned URL 생성 (PUT, 10분 유효)
-4. 클라이언트 → R2: 직접 업로드 (서버 부하 없음)
-5. 클라이언트 → Supabase: clips 테이블에 메타데이터 저장
-6. (비동기) Edge Function: 스마트 트리밍 + 썸네일 생성
+1. 파일 선택 → FFmpeg WASM 압축 시작 (5MB 이상, 지원 브라우저)
+2. 압축 완료 즉시 → GET /api/upload/presign → presigned PUT URL 발급 (유효 1시간)
+3. 브라우저 → R2 직접 PUT 전송 (Vercel 함수 미통과 — 타임아웃 없음)
+4. 사용자: 태그 + 메모 입력
+5. "올리기" 탭 → R2 이미 완료된 경우 DB만 저장 (즉시)
+6. 150ms 후 /profile 이동 → GlobalUploadIndicator가 백그라운드 상태 표시
+
+⛔ Supabase Edge Function 미사용 (Next.js API Routes로 대체)
+⛔ 멀티파트 업로드 사실상 비활성화 (Vercel 10초 하드캡 이슈 — 상세: UPLOAD-ARCHITECTURE.md)
 ```
 
 ### 4.2 R2 버킷 구조
