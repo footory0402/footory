@@ -18,6 +18,12 @@ const AddToWatchlistButton = dynamic(
   { ssr: false }
 );
 
+const ClipPlayerSheet = dynamic(
+  () => import("@/components/player/ClipPlayerSheet"),
+  { ssr: false }
+);
+import type { PlayableClip } from "@/components/player/ClipPlayerSheet";
+
 const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
 const CompareSheet = dynamic(() => import("@/components/player/CompareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -202,29 +208,61 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
   }));
 }
 
-// ── Scout-only 대표 영상 섹션 ──────────────────────────────────────────
+// ── 대표 영상 섹션 ──────────────────────────────────────────────────────
 function FeaturedVideoSection({ featured }: { featured: FeaturedClip[] }) {
+  const [playerOpen, setPlayerOpen] = useState(false);
   const clip = featured[0];
   if (!clip?.clips) return null;
   const { video_url, thumbnail_url, duration_seconds } = clip.clips;
   const secs = duration_seconds ?? 0;
   const mm = Math.floor(secs / 60);
   const ss = secs % 60;
+
+  const playable: PlayableClip = {
+    id: clip.clip_id,
+    videoUrl: video_url,
+    thumbnailUrl: thumbnail_url ?? null,
+    duration: duration_seconds ?? undefined,
+  };
+
   return (
     <div style={{ padding: "10px 14px 0" }}>
       <p style={{ fontSize: 11, fontFamily: "'Noto Sans KR', sans-serif", color: "rgba(255,255,255,0.36)", marginBottom: 8, letterSpacing: "-0.01em" }}>
         대표 영상
       </p>
-      <div style={{ borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9" }}>
-        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-        <video
-          src={video_url}
-          poster={thumbnail_url ?? undefined}
-          controls
-          preload="none"
-          playsInline
-          style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}
-        />
+      <button
+        onClick={() => setPlayerOpen(true)}
+        style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9", display: "block", padding: 0, border: "none", cursor: "pointer" }}
+        aria-label="대표 영상 재생"
+      >
+        {thumbnail_url ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={thumbnail_url}
+            alt="대표 영상 썸네일"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "#1a1a1e" }} />
+        )}
+        {/* Play button overlay */}
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.25)",
+        }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: "50%",
+            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
+            border: "1.5px solid rgba(255,255,255,0.18)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </div>
+        </div>
+        {/* Duration badge */}
         {duration_seconds != null && (
           <div style={{
             position: "absolute", bottom: 8, right: 8,
@@ -235,7 +273,15 @@ function FeaturedVideoSection({ featured }: { featured: FeaturedClip[] }) {
             {mm}:{String(ss).padStart(2, "0")}
           </div>
         )}
-      </div>
+      </button>
+
+      {playerOpen && (
+        <ClipPlayerSheet
+          clips={[playable]}
+          initialIndex={0}
+          onClose={() => setPlayerOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -557,6 +603,17 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             tagClips={tagClips}
             initialFeatured={data.featured}
             position={profile.position}
+            onShare={async (clipId) => {
+              const url = `${window.location.origin}/p/${profile.handle}`;
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: `${profile.name} — Footory`, url });
+                  return;
+                }
+                await navigator.clipboard.writeText(url);
+                toast.success("프로필 링크가 복사되었습니다.");
+              } catch { /* cancelled */ }
+            }}
           />
         )}
 

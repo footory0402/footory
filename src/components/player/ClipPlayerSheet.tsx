@@ -16,6 +16,7 @@ interface ClipPlayerSheetProps {
   onClose: () => void;
   onDelete?: (clipId: string) => Promise<boolean>;
   onEditTags?: (clipId: string) => void;
+  onShare?: (clipId: string) => void;
 }
 
 export default function ClipPlayerSheet({
@@ -24,6 +25,7 @@ export default function ClipPlayerSheet({
   onClose,
   onDelete,
   onEditTags,
+  onShare,
 }: ClipPlayerSheetProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -422,8 +424,22 @@ export default function ClipPlayerSheet({
             </div>
           )}
 
-          {/* ── Action Bar — 눈에 확 띄게 ── */}
+          {/* ── Action Bar ── */}
           <div className="mx-3 mb-3 mt-1 flex items-center gap-2 rounded-2xl bg-white/[0.04] p-2 ring-1 ring-white/[0.06]">
+            {/* Share */}
+            {onShare && (
+              <button
+                onClick={() => onShare(clip.id)}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/[0.06] py-3 text-[13px] font-medium text-text-2 active:bg-accent/15 active:text-accent transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                공유
+              </button>
+            )}
+
             {/* Tag edit */}
             {onEditTags && (
               <button
@@ -438,42 +454,41 @@ export default function ClipPlayerSheet({
               </button>
             )}
 
-            {/* Delete */}
-            {onDelete && (
-              <>
-                {!confirmDelete ? (
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500/[0.08] py-3 text-[13px] font-medium text-red-400 ring-1 ring-red-500/10 active:bg-red-500/20 transition-colors"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                    </svg>
-                    삭제
-                  </button>
-                ) : (
-                  <div className="flex flex-1 items-center gap-2 animate-fade-up">
-                    <button
-                      onClick={() => setConfirmDelete(false)}
-                      className="flex flex-1 items-center justify-center rounded-xl bg-white/[0.06] py-3 text-[13px] text-text-3 active:bg-white/10"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="flex flex-1 items-center justify-center rounded-xl bg-red-500/20 py-3 text-[13px] font-bold text-red-400 ring-1 ring-red-500/20 active:bg-red-500/30"
-                    >
-                      {deleting ? "삭제 중..." : "정말 삭제"}
-                    </button>
-                  </div>
-                )}
-              </>
+            {/* Delete — icon-only, low-key */}
+            {onDelete && !confirmDelete && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-text-3 active:bg-red-500/10 active:text-red-400 transition-colors"
+                aria-label="영상 삭제"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </button>
+            )}
+
+            {/* Delete confirm */}
+            {onDelete && confirmDelete && (
+              <div className="flex flex-1 items-center gap-2 animate-fade-up">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex flex-1 items-center justify-center rounded-xl bg-white/[0.06] py-3 text-[13px] text-text-3 active:bg-white/10"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex flex-1 items-center justify-center rounded-xl bg-red-500/20 py-3 text-[13px] font-bold text-red-400 ring-1 ring-red-500/20 active:bg-red-500/30"
+                >
+                  {deleting ? "삭제 중..." : "정말 삭제"}
+                </button>
+              </div>
             )}
 
             {/* No actions fallback — just close hint */}
-            {!onDelete && !onEditTags && (
+            {!onDelete && !onEditTags && !onShare && (
               <div className="flex flex-1 items-center justify-center py-3 text-[12px] text-text-3">
                 아래로 스와이프하여 닫기
               </div>

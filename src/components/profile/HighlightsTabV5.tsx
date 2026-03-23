@@ -28,6 +28,7 @@ interface HighlightsTabV5Props {
   position?: string | null;
   onDeleteClip?: (clipId: string) => Promise<boolean>;
   onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
+  onShare?: (clipId: string) => void;
   readOnly?: boolean;
   initialFeatured?: Array<{
     clip_id: string;
@@ -48,6 +49,7 @@ export default function HighlightsTabV5({
   position,
   onDeleteClip,
   onEditTags,
+  onShare,
   readOnly,
   initialFeatured,
 }: HighlightsTabV5Props) {
@@ -398,6 +400,7 @@ export default function HighlightsTabV5({
                 setPlayingIndex(null);
                 setPlayingSource(null);
               }}
+              onShare={onShare}
             />
           )}
         {playingSource === "grid" &&
@@ -420,6 +423,7 @@ export default function HighlightsTabV5({
                     }
                   : undefined
               }
+              onShare={onShare}
             />
           )}
 

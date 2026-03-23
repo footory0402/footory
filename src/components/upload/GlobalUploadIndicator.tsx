@@ -26,7 +26,7 @@ function getLabel(status: UploadStatus, progress: number): string {
     case "rendering":
       return "영상 처리 중...";
     case "done":
-      return "업로드 완료!";
+      return "업로드 완료! — 탭하여 확인하기";
     case "error":
       return "업로드 실패 — 탭하여 재시도";
     default:
@@ -74,6 +74,7 @@ export default function GlobalUploadIndicator() {
       router.push("/upload");
     } else if (isDone) {
       useUploadStore.getState().reset();
+      router.push("/profile");
     }
     // 업로드 중엔 탭해도 무시 — 업로드 방해 방지
   };

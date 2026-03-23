@@ -267,6 +267,17 @@ export default function ProfilePage() {
             position={profile.position}
             onDeleteClip={handleDeleteClip}
             onEditTags={handleEditTags}
+            onShare={async (clipId) => {
+              const url = `${window.location.origin}/p/${profile.handle}`;
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: `${profile.name} — Footory`, url });
+                  return;
+                }
+                await navigator.clipboard.writeText(url);
+                toast.success("프로필 링크가 복사되었습니다.");
+              } catch { /* cancelled */ }
+            }}
           />
         )}
         {activeTab === "records" && (
