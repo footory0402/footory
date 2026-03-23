@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import HeroSection from "@/components/profile/HeroSection";
 import ProfileTabBar, { type ProfileTabKey } from "@/components/profile/ProfileTabBar";
+import ProfileCompletionGuide from "@/components/profile/ProfileCompletionGuide";
 import HighlightsTabV5 from "@/components/profile/HighlightsTabV5";
 import ProfileSkeleton from "@/components/player/ProfileSkeleton";
 
@@ -60,6 +61,7 @@ export default function ProfilePage() {
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
   const { achievements } = useAchievements({ enabled: shouldLoadData });
+  const hasFeatured = Object.values(tagClips).some((arr) => arr.length > 0) || untaggedClips.length > 0;
 
   if (loading && !profile) return <ProfileSkeleton />;
 
@@ -172,22 +174,19 @@ export default function ProfilePage() {
           onShare={handleShareProfile}
           onAvatarUpload={uploadAvatar}
         />
+        <ProfileCompletionGuide
+          profile={profile}
+          stats={[]}
+          seasons={[]}
+          playStyle={null}
+          hasFeatured={false}
+          userId={profile.id}
+          onAction={(action) => {
+            if (action === "edit") setEditOpen(true);
+          }}
+        />
         <div className="mt-5 flex flex-col gap-4 px-4">
-          {(!profile.bio && !profile.city && !profile.teamName) ? (
-            <div className="card-elevated flex flex-col items-center gap-3 py-8 text-center">
-              <span className="text-4xl">👤</span>
-              <p className="text-sm font-semibold text-text-1">프로필을 완성해보세요</p>
-              <p className="text-xs text-text-3 leading-relaxed">
-                자기소개와 소속 기관을 추가하면<br />선수들에게 신뢰감을 줄 수 있어요
-              </p>
-              <button
-                onClick={() => setEditOpen(true)}
-                className="mt-1 rounded-full bg-accent px-5 py-2 text-sm font-bold text-bg"
-              >
-                프로필 편집
-              </button>
-            </div>
-          ) : (
+          {(profile.bio || profile.city || profile.teamName) ? (
             <div className="card-elevated p-4">
               <p className="text-xs font-semibold text-text-3 mb-3">스카우터 정보</p>
               <div className="space-y-2.5">
@@ -196,7 +195,7 @@ export default function ProfilePage() {
                 {profile.teamName && <div className="flex items-center gap-2 text-sm text-text-2"><span>🏟</span><span>{profile.teamName}</span></div>}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Sheets */}
@@ -238,6 +237,21 @@ export default function ProfilePage() {
         onShare={handleShareProfile}
         onAvatarUpload={uploadAvatar}
         onTeamChange={() => setTeamTransferring(true)}
+      />
+      <ProfileCompletionGuide
+        profile={profile}
+        stats={stats}
+        seasons={seasons}
+        playStyle={playStyle}
+        hasFeatured={hasFeatured}
+        userId={profile.id}
+        onAction={(action) => {
+          if (action === "edit") setEditOpen(true);
+          else if (action === "highlights") setActiveTab("highlights");
+          else if (action === "records") setActiveTab("records");
+          else if (action === "career") setActiveTab("career");
+          else if (action === "playstyle") setPlayStyleTestOpen(true);
+        }}
       />
 
       {/* Tab bar (sticky) */}
