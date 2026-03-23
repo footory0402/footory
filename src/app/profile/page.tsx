@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import HeroSection from "@/components/profile/HeroSection";
 import ProfileTabBar, { type ProfileTabKey } from "@/components/profile/ProfileTabBar";
@@ -28,7 +28,11 @@ import { useUploadStore } from "@/stores/upload-store";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>("highlights");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>(
+    initialTab === "records" ? "records" : initialTab === "career" ? "career" : "highlights"
+  );
   const [teamTransferring, setTeamTransferring] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);

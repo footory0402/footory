@@ -52,22 +52,9 @@ export default function FeedList({
   const [shareTarget, setShareTarget] = useState<FeedItemEnriched | null>(null);
   const [playerClips, setPlayerClips] = useState<PlayableClip[] | null>(null);
 
-  const handlePlay = useCallback(async (item: FeedItemEnriched) => {
+  const handlePlay = useCallback((item: FeedItemEnriched) => {
     const meta = item.metadata as Record<string, unknown>;
-    let videoUrl = typeof meta.video_url === "string" ? meta.video_url : null;
-
-    // 구버전 feed_items는 video_url 없음 → reference_id로 clip 조회
-    if (!videoUrl && item.reference_id) {
-      try {
-        const res = await fetch(`/api/clips/${item.reference_id}`);
-        if (res.ok) {
-          const data = await res.json();
-          videoUrl = data.clip?.video_url ?? null;
-        }
-      } catch {
-        // ignore
-      }
-    }
+    const videoUrl = typeof meta.video_url === "string" ? meta.video_url : null;
 
     if (!videoUrl) return;
     setPlayerClips([{
