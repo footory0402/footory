@@ -28,6 +28,12 @@
 4. `docs/PROGRESS.md` — 현재 진행 상황 (완료/진행중/미착수)
 5. `docs/sprints/` — 현재 스프린트 작업 명세
 
+## 도메인별 필수 문서
+> 아래 파일을 수정하거나 관련 기능을 작업할 때 반드시 해당 문서를 먼저 읽을 것.
+
+- **영상 업로드** (`src/lib/upload-service.ts`, `src/components/upload/`, `src/app/upload/`, `src/app/api/upload/`):
+  → `docs/UPLOAD-ARCHITECTURE.md` **반드시 읽을 것** — 핵심 상수(MULTIPART_THRESHOLD, CHUNK_SIZE 등) 변경 금지 이유, 과거 실수 목록 포함
+
 ## 코딩 규칙
 1. 모든 컴포넌트는 TypeScript (.tsx)
 2. 스타일은 Tailwind 유틸리티 + `src/app/globals.css`의 CSS 변수
