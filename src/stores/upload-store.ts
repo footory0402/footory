@@ -64,6 +64,8 @@ interface UploadState {
   r2Progress: number;
   r2Key: string | null;
   r2ClipId: string | null;
+  r2RetryCount: number;
+  lastProgressTime: number | null;
 
   setFile: (file: File | null) => void;
   setTags: (tags: string[]) => void;
@@ -101,6 +103,8 @@ interface UploadState {
   setR2Status: (s: "idle" | "uploading" | "done" | "error") => void;
   setR2Progress: (p: number) => void;
   setR2Upload: (key: string, clipId: string) => void;
+  setR2RetryCount: (n: number) => void;
+  setLastProgressTime: (t: number | null) => void;
 
   reset: () => void;
 }
@@ -146,6 +150,8 @@ const initial = {
   r2Progress: 0,
   r2Key: null as string | null,
   r2ClipId: null as string | null,
+  r2RetryCount: 0,
+  lastProgressTime: null as number | null,
 };
 
 export const useUploadStore = create<UploadState>((set) => ({
@@ -189,6 +195,8 @@ export const useUploadStore = create<UploadState>((set) => ({
   setR2Status: (r2Status) => set({ r2Status }),
   setR2Progress: (r2Progress) => set({ r2Progress }),
   setR2Upload: (r2Key, r2ClipId) => set({ r2Key, r2ClipId }),
+  setR2RetryCount: (r2RetryCount) => set({ r2RetryCount }),
+  setLastProgressTime: (lastProgressTime) => set({ lastProgressTime }),
 
   reset: () => set(initial),
 }));
