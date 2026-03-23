@@ -36,8 +36,11 @@ export default function VideoSelector() {
 
     video.onseeked = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = 640;
-      canvas.height = 360;
+      // 실제 영상 비율 유지 (최대 640px 기준 리사이즈)
+      const maxW = 640;
+      const ratio = video.videoWidth / video.videoHeight || 16 / 9;
+      canvas.width = maxW;
+      canvas.height = Math.round(maxW / ratio);
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -163,14 +166,15 @@ export default function VideoSelector() {
       {file && preview ? (
         /* ── Selected: thumbnail + info ── */
         <div className="relative overflow-hidden rounded-xl bg-card">
-          <div className="relative aspect-video w-full">
+          <div className="relative w-full bg-black" style={{ aspectRatio: "auto" }}>
             <Image
               src={preview}
               alt="미리보기"
-              fill
+              width={640}
+              height={360}
               unoptimized
               sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
-              className="object-cover"
+              className="w-full h-auto block"
             />
             {/* Duration badge */}
             <div className="absolute bottom-2 right-2 rounded-md bg-black/70 px-2 py-0.5 text-xs font-stat text-text-1">
