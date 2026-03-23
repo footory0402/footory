@@ -373,6 +373,13 @@ body {
   transform: scale(0.96);
 }
 
+/* Indeterminate progress bar (upload engine loading) */
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(200%); }
+  100% { transform: translateX(-100%); }
+}
+
 /* Confetti particles for upload complete */
 @keyframes confettiFall {
   0% {

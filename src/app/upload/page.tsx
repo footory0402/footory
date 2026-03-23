@@ -41,6 +41,8 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const r2Status = useUploadStore((s) => s.r2Status);
   const compressStatus = useUploadStore((s) => s.compressStatus);
+  const compressProgress = useUploadStore((s) => s.compressProgress);
+  const r2Progress = useUploadStore((s) => s.r2Progress);
 
   // 올리기 버튼 준비 상태 — 압축 or R2 백그라운드 업로드 진행 중
   const isPreparing =
@@ -241,6 +243,38 @@ export default function UploadPage() {
               </div>
             </div>
           )}
+
+          {/* 준비 상태 표시 */}
+          {isPreparing && (() => {
+            const isIndeterminate = compressStatus === "loading";
+            const pct = compressStatus === "compressing"
+              ? compressProgress
+              : r2Status === "uploading"
+                ? r2Progress
+                : 0;
+            const label = compressStatus === "loading"
+              ? "압축 엔진 로딩 중..."
+              : compressStatus === "compressing"
+                ? `영상 압축 중... ${compressProgress}%`
+                : r2Status === "uploading"
+                  ? `영상 준비 중... ${r2Progress}%`
+                  : "준비 중...";
+            return (
+              <div className="flex flex-col gap-2 animate-fade-up">
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                  {isIndeterminate ? (
+                    <div className="h-full w-1/3 animate-[indeterminate_1.5s_ease-in-out_infinite] rounded-full bg-accent/50" />
+                  ) : (
+                    <div
+                      className="h-full rounded-full bg-accent/60 transition-all duration-300"
+                      style={{ width: `${pct}%` }}
+                    />
+                  )}
+                </div>
+                <p className="text-center text-[11px] text-text-3">{label}</p>
+              </div>
+            );
+          })()}
 
           {/* 올리기 버튼 */}
           <button
