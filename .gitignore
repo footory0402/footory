@@ -65,3 +65,4 @@ next-env.d.ts
 !.dev.vars.example
 !.env.example
 .superpowers/
+.worktrees/
