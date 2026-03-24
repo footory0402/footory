@@ -49,6 +49,7 @@ export default function VideoOverlay({ spotlight, player }: VideoOverlayProps) {
         style={{
           left: `${x * 100}%`,
           top: `${y * 100}%`,
+          transform: "translate(-50%, -50%)",
           animation: "overlay-ring-in 0.2s ease-out forwards, overlay-fadeout 0.2s ease-in 0.8s forwards",
         }}
       >
