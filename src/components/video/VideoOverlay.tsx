@@ -45,7 +45,7 @@ export default function VideoOverlay({ spotlight, player }: VideoOverlayProps) {
     >
       {/* 스포트라이트 링 — 0.2s 등장 후 0.8s에 페이드아웃 */}
       <div
-        className="absolute -translate-x-1/2 -translate-y-1/2"
+        className="absolute"
         style={{
           left: `${x * 100}%`,
           top: `${y * 100}%`,

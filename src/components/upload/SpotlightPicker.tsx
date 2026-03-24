@@ -33,7 +33,7 @@ export default function SpotlightPicker({ file, trimStart }: SpotlightPickerProp
     video.src = url;
 
     video.onloadeddata = () => {
-      video.currentTime = trimStart && trimStart > 0 ? trimStart : 0.5;
+      video.currentTime = trimStart !== undefined && trimStart > 0 ? trimStart : 0.5;
     };
     video.onseeked = () => {
       const canvas = document.createElement("canvas");
@@ -44,10 +44,15 @@ export default function SpotlightPicker({ file, trimStart }: SpotlightPickerProp
         ctx.drawImage(video, 0, 0);
         setFrameUrl(canvas.toDataURL("image/jpeg", 0.8));
       }
-      URL.revokeObjectURL(url);
+      // revoke는 cleanup에서만 수행
     };
 
-    return () => URL.revokeObjectURL(url);
+    return () => {
+      video.onloadeddata = null;
+      video.onseeked = null;
+      video.src = "";
+      URL.revokeObjectURL(url);
+    };
   }, [file, trimStart]);
 
   const handleTap = useCallback(
