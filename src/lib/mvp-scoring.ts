@@ -134,8 +134,7 @@ export function getWeekStart(date: Date = new Date()): string {
 
 /**
  * Check if current time (KST) is within voting window.
- * 월말 마지막 7일간(24일~말일) 투표 가능.
- * 1일 00:00~05:59 KST는 집계 시간으로 투표 불가.
+ * 상시 투표 가능. 단, 1일 00:00~05:59 KST는 월간 집계 시간으로 투표 불가.
  */
 export function isVotingOpen(): boolean {
   const now = new Date();
@@ -143,18 +142,15 @@ export function isVotingOpen(): boolean {
   const day = kst.getUTCDate();
   const hour = kst.getUTCHours();
 
-  // 1일 00:00~05:59 KST = aggregation window
+  // 1일 00:00~05:59 KST = monthly aggregation window
   if (day === 1 && hour < 6) return false;
 
-  // 24일~말일 투표 가능
-  if (day >= 24) return true;
-
-  return false;
+  return true;
 }
 
 /**
- * Get remaining time until voting window closes (month end 23:59:59 KST).
- * Returns { hours, minutes, seconds } or null if not in voting window.
+ * Get remaining time until end of month (= next aggregation window).
+ * Returns { hours, minutes, seconds } or null during aggregation window.
  */
 export function getVotingTimeRemaining(now: Date = new Date()): {
   hours: number;
@@ -165,15 +161,14 @@ export function getVotingTimeRemaining(now: Date = new Date()): {
 
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
-  // Calculate end of month 23:59:59 KST
   const year = kst.getUTCFullYear();
   const month = kst.getUTCMonth();
-  // Last day of current month
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
-  const end = new Date(Date.UTC(year, month, lastDay, 23, 59, 59, 999));
+  // 월말 23:59:59 KST
+  const end = new Date(Date.UTC(year, month, lastDay, 14, 59, 59, 999)); // 23:59:59 KST = 14:59:59 UTC
 
-  const diffMs = end.getTime() - kst.getTime();
+  const diffMs = end.getTime() - now.getTime();
   if (diffMs <= 0) return null;
 
   const hours = Math.floor(diffMs / (1000 * 60 * 60));

@@ -37,5 +37,5 @@ async function MvpPageContent({ userId }: { userId: string }) {
 
   const viewerRole = (profile?.role ?? "player") as UserRole;
 
-  return <MvpPageClient initialData={initialData} viewerRole={viewerRole} />;
+  return <MvpPageClient initialData={initialData} viewerRole={viewerRole} userId={userId} />;
 }
