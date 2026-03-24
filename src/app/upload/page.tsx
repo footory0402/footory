@@ -6,6 +6,7 @@ import { useProfileContext } from "@/providers/ProfileProvider";
 import { startUpload } from "@/lib/upload-service";
 import VideoSelector from "@/components/upload/VideoSelector";
 import ChildSelector from "@/components/upload/ChildSelector";
+import SpotlightPicker from "@/components/upload/SpotlightPicker";
 import { useRouter, useSearchParams } from "next/navigation";
 
 /*
@@ -185,6 +186,12 @@ export default function UploadPage() {
       {/* 태그 + 메모 + 올리기 (파일 선택 후) */}
       {store.file && (
         <div className="flex flex-col gap-5 animate-fade-up">
+          {/* 주인공 위치 선택 */}
+          <SpotlightPicker
+            file={store.file}
+            trimStart={store.trimStart > 0 ? store.trimStart : undefined}
+          />
+
           {/* 태그 */}
           <div>
             <div className="mb-3 flex items-center gap-2">
