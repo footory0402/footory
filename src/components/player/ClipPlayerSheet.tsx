@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import VideoOverlay from "@/components/video/VideoOverlay";
 
 function getVideoErrorMessage(code: number): { message: string; retryable: boolean } {
   switch (code) {
@@ -17,6 +18,13 @@ export interface PlayableClip {
   thumbnailUrl?: string | null;
   tag?: string;
   duration?: number;
+  // spotlight overlay
+  spotlightX?: number | null;
+  spotlightY?: number | null;
+  playerName?: string;
+  playerPosition?: string | null;
+  playerBirthYear?: number | null;
+  teamName?: string | null;
 }
 
 interface ClipPlayerSheetProps {
@@ -50,6 +58,8 @@ export default function ClipPlayerSheet({
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const [playCount, setPlayCount] = useState(0);
 
   // Mount animation
   const [mounted, setMounted] = useState(false);
@@ -124,7 +134,7 @@ export default function ClipPlayerSheet({
       setDuration(v.duration || 0);
       setProgress(v.duration ? v.currentTime / v.duration : 0);
     };
-    const onPlay = () => { setPaused(false); scheduleHide(); };
+    const onPlay = () => { setPaused(false); scheduleHide(); setPlayCount((c) => c + 1); };
     const onPause = () => { setPaused(true); setShowControls(true); };
     const onLoaded = () => setDuration(v.duration || 0);
     v.addEventListener("timeupdate", onTime);
@@ -380,6 +390,20 @@ export default function ClipPlayerSheet({
               }}
               onClick={(e) => e.preventDefault()}
             />
+
+            {/* VideoOverlay — spotlight_x/y가 있을 때만 표시 */}
+            {clip.spotlightX != null && clip.spotlightY != null && clip.playerName && (
+              <VideoOverlay
+                key={playCount}
+                spotlight={{ x: clip.spotlightX, y: clip.spotlightY }}
+                player={{
+                  name: clip.playerName,
+                  position: clip.playerPosition,
+                  birthYear: clip.playerBirthYear,
+                  teamName: clip.teamName,
+                }}
+              />
+            )}
 
             {/* Video error UI */}
             {videoError && (
