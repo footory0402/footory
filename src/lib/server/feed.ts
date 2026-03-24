@@ -322,6 +322,7 @@ function mapRowToEnriched(row: FeedRow, teamName?: string | null): FeedItemEnric
     playerHandle: profile?.handle ?? "",
     playerAvatarUrl: profile?.avatar_url ?? null,
     playerPosition: profile?.position ?? "MF",
+    playerBirthYear: profile?.birth_year ?? null,
     teamName: teamName ?? null,
     kudosCount: row.kudos?.[0]?.count ?? 0,
     hasKudos: false, // will be set in attachKudosStatus

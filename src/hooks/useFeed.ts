@@ -13,6 +13,7 @@ export interface FeedItemEnriched {
   playerHandle: string;
   playerAvatarUrl: string | null;
   playerPosition: string;
+  playerBirthYear: number | null;
   teamName: string | null;
   kudosCount: number;
   hasKudos: boolean;
