@@ -180,6 +180,8 @@ export async function POST(req: NextRequest) {
           duration: clip.duration_seconds,
           tags: validTags,
           memo: clip.memo,
+          spotlight_x: clip.spotlight_x ?? null,
+          spotlight_y: clip.spotlight_y ?? null,
         },
       });
     };

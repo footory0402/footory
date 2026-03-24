@@ -63,6 +63,13 @@ export default function FeedList({
       thumbnailUrl: typeof meta.thumbnail_url === "string" ? meta.thumbnail_url : null,
       tag: Array.isArray(meta.tags) ? (meta.tags as string[])[0] : undefined,
       duration: typeof meta.duration === "number" ? meta.duration : undefined,
+      // spotlight overlay
+      spotlightX: typeof meta.spotlight_x === "number" ? meta.spotlight_x : null,
+      spotlightY: typeof meta.spotlight_y === "number" ? meta.spotlight_y : null,
+      playerName: item.playerName,
+      playerPosition: item.playerPosition,
+      playerBirthYear: item.playerBirthYear,
+      teamName: item.teamName,
     }]);
   }, []);
   const feedItemIds = useMemo(() => items.map((i) => i.id), [items]);

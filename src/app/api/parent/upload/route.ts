@@ -159,6 +159,8 @@ export async function POST(req: NextRequest) {
         duration: clip.duration_seconds,
         tags: validTags,
         uploaded_by_parent: true,
+        spotlight_x: clip.spotlight_x ?? null,
+        spotlight_y: clip.spotlight_y ?? null,
       },
     });
 
