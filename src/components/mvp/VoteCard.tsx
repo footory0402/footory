@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import Avatar from "@/components/ui/Avatar";
 import { PositionBadge } from "@/components/ui/Badge";
@@ -28,17 +28,20 @@ export default function VoteCard({
   onUnvote,
 }: VoteCardProps) {
   const [playing, setPlaying] = useState(false);
+  const [voteAnim, setVoteAnim] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleVote = () => {
+  const handleVote = useCallback(() => {
     if (hasVoted || !votingOpen || votesRemaining <= 0) return;
+    setVoteAnim(true);
+    setTimeout(() => setVoteAnim(false), 600);
     onVote?.(candidate.clipId);
-  };
+  }, [hasVoted, votingOpen, votesRemaining, onVote, candidate.clipId]);
 
-  const handleUnvote = () => {
+  const handleUnvote = useCallback(() => {
     if (!hasVoted || !votingOpen) return;
     onUnvote?.(candidate.clipId);
-  };
+  }, [hasVoted, votingOpen, onUnvote, candidate.clipId]);
 
   const handlePlay = () => {
     if (!candidate.videoUrl) return;
@@ -171,19 +174,40 @@ export default function VoteCard({
         </Link>
 
         {/* Vote button */}
-        <button
-          onClick={hasVoted ? handleUnvote : handleVote}
-          disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
-          className="shrink-0 rounded-lg px-4 text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
-          style={{
-            height: 34,
-            background: hasVoted ? "var(--accent-bg)" : "var(--accent-gradient)",
-            color: hasVoted ? "var(--color-accent)" : "var(--color-bg)",
-            border: hasVoted ? "1px solid var(--border-accent)" : "none",
-          }}
-        >
-          {hasVoted ? "✓ 취소" : "투표"}
-        </button>
+        <div className="relative shrink-0">
+          <button
+            onClick={hasVoted ? handleUnvote : handleVote}
+            disabled={(!hasVoted && (!votingOpen || votesRemaining <= 0)) || (hasVoted && !votingOpen)}
+            className="rounded-lg px-4 text-[13px] font-bold transition-all active:scale-[0.97] disabled:opacity-40"
+            style={{
+              height: 34,
+              background: hasVoted ? "var(--accent-bg)" : "var(--accent-gradient)",
+              color: hasVoted ? "var(--color-accent)" : "var(--color-bg)",
+              border: hasVoted ? "1px solid var(--border-accent)" : "none",
+              transform: voteAnim ? "scale(1.15)" : "scale(1)",
+              transition: "transform 0.15s cubic-bezier(0.34,1.56,0.64,1), background 0.2s",
+            }}
+          >
+            {voteAnim ? "❤️" : hasVoted ? "✓ 취소" : "투표"}
+          </button>
+          {/* 하트 버스트 파티클 */}
+          {voteAnim && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              {["🩷", "❤️", "💛", "🩷"].map((emoji, i) => (
+                <span
+                  key={i}
+                  className="absolute text-[10px]"
+                  style={{
+                    animation: `vote-burst-${i} 0.6s ease-out forwards`,
+                    opacity: 0,
+                  }}
+                >
+                  {emoji}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

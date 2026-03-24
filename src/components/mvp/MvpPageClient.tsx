@@ -8,6 +8,8 @@ import { SectionCard } from "@/components/ui/Card";
 import VoteCard, { VoteCardCompact } from "@/components/mvp/VoteCard";
 import type { VoteCardCandidate, ArchiveWeek, HallOfFameEntry } from "@/lib/types";
 import MvpRanking from "@/components/mvp/MvpRanking";
+import MvpResultBanner from "@/components/mvp/MvpResultBanner";
+import MvpAggregating from "@/components/mvp/MvpAggregating";
 import {
   canVoteMvp as canVoteMvpForRole,
   type UserRole,
@@ -31,11 +33,13 @@ type MvpTab = "ranking" | "archive" | "hallOfFame";
 interface MvpPageClientProps {
   initialData: MvpCandidatesPayload;
   viewerRole: UserRole;
+  userId: string;
 }
 
 export default function MvpPageClient({
   initialData,
   viewerRole,
+  userId,
 }: MvpPageClientProps) {
   const canVoteMvp = canVoteMvpForRole(viewerRole);
   const [candidates, setCandidates] = useState<VoteCardCandidate[]>(
@@ -46,6 +50,9 @@ export default function MvpPageClient({
   );
   const [votesRemaining, setVotesRemaining] = useState(initialData.votesRemaining);
   const [votingOpen, setVotingOpen] = useState(initialData.votingOpen);
+  const [showBanner, setShowBanner] = useState(
+    initialData.showResultsBanner && initialData.lastMonthResults.length > 0
+  );
   const [activeTab, setActiveTab] = useState<MvpTab>("ranking");
   const [showFullRanking, setShowFullRanking] = useState(false);
   const [archiveWeeks, setArchiveWeeks] = useState<ArchiveWeek[]>([]);
@@ -185,6 +192,24 @@ export default function MvpPageClient({
   const second = top3[1];
   const third = top3[2];
 
+  // 내 클립 순위
+  const myCandidate = viewerRole === "player"
+    ? candidates.find((c) => c.ownerId === userId)
+    : null;
+
+  // 집계 중 화면
+  if (!votingOpen) {
+    return (
+      <div className="px-4 py-3 pb-[calc(88px+env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold text-text-1">🏆 월간 MVP</h1>
+          <VotingStatusBadge votingOpen={false} />
+        </div>
+        <MvpAggregating />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 px-4 py-3 pb-[calc(88px+env(safe-area-inset-bottom))] sm:space-y-6 sm:py-4 sm:pb-24">
       <div className="flex items-center justify-between">
@@ -200,7 +225,80 @@ export default function MvpPageClient({
         <VotingStatusBadge votingOpen={votingOpen} />
       </div>
 
-      {votingOpen && (
+      {/* 전월 결과 발표 배너 (1~7일) */}
+      {showBanner && (
+        <MvpResultBanner
+          results={initialData.lastMonthResults}
+          lastMonthStart={initialData.lastMonthStart}
+          onDismiss={() => setShowBanner(false)}
+        />
+      )}
+
+      {/* ③ 탭바 — 상단 고정 */}
+      <div className="flex gap-1 card-elevated p-1">
+        {(
+          [
+            { key: "ranking", label: "📊 이번 달" },
+            { key: "archive", label: "📜 아카이브" },
+            { key: "hallOfFame", label: "🏅 명예의 전당" },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => startTransition(() => setActiveTab(tab.key))}
+            className="flex-1 rounded-lg px-2 py-2 text-[12px] font-bold transition-colors"
+            style={{
+              background: activeTab === tab.key ? "var(--accent-bg)" : "transparent",
+              color: activeTab === tab.key ? "var(--color-accent)" : "var(--color-text-3)",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "archive" && (
+        <MvpArchive weeks={archiveWeeks} loading={archiveLoading} />
+      )}
+
+      {activeTab === "hallOfFame" && (
+        <div className="card-elevated overflow-hidden">
+          <MvpHallOfFame entries={hallOfFame} loading={hofLoading} />
+        </div>
+      )}
+
+      {activeTab === "ranking" && (
+        <>
+      {/* ① 내 클립 현재 순위 배너 (선수만) */}
+      {myCandidate && (
+        <div
+          className="flex items-center gap-3 rounded-[12px] px-4 py-3"
+          style={{
+            background: "rgba(212,168,83,0.08)",
+            border: "1px solid rgba(212,168,83,0.2)",
+          }}
+        >
+          <span className="text-xl">
+            {myCandidate.rank === 1 ? "🥇" : myCandidate.rank === 2 ? "🥈" : myCandidate.rank === 3 ? "🥉" : "🏅"}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-text-3">내 클립 현재 순위</p>
+            <p className="text-sm font-bold text-text-1">
+              <span className="font-stat text-accent">{myCandidate.rank}위</span>
+              <span className="ml-1.5 text-[11px] font-normal text-text-3">
+                / {candidates.length}명 중
+              </span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-text-3">🗳 득표</p>
+            <p className="font-stat text-[15px] font-bold text-text-1">{myCandidate.voteCount}표</p>
+          </div>
+        </div>
+      )}
+
+      {/* ② 투표 하트 시각화 */}
+      {votingOpen && canVoteMvp && (
         <div
           className="flex items-center justify-between rounded-xl px-4 py-3"
           style={{
@@ -210,26 +308,22 @@ export default function MvpPageClient({
         >
           <span className="text-sm font-semibold text-text-1">🗳 내 투표</span>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {Array.from({ length: MAX_MONTHLY_VOTES }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{
-                    background:
-                      i < MAX_MONTHLY_VOTES - votesRemaining
-                        ? "var(--color-accent)"
-                        : "var(--color-card-alt)",
-                    border:
-                      i < MAX_MONTHLY_VOTES - votesRemaining
-                        ? "none"
-                        : "1px solid var(--color-border)",
-                  }}
-                />
-              ))}
+            <div className="flex gap-0.5">
+              {Array.from({ length: MAX_MONTHLY_VOTES }).map((_, i) => {
+                const used = i < MAX_MONTHLY_VOTES - votesRemaining;
+                return (
+                  <span
+                    key={i}
+                    className="text-[16px] transition-all duration-300"
+                    style={{ opacity: used ? 1 : 0.25 }}
+                  >
+                    {used ? "❤️" : "🤍"}
+                  </span>
+                );
+              })}
             </div>
-            <span className="text-[12px] text-text-2">
-              {MAX_MONTHLY_VOTES - votesRemaining}/{MAX_MONTHLY_VOTES} 사용
+            <span className="text-[11px] text-text-3">
+              {votesRemaining}개 남음
             </span>
           </div>
         </div>
@@ -274,16 +368,24 @@ export default function MvpPageClient({
           ) : (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <span className="text-4xl">🏆</span>
-              <p className="text-xs text-text-2">아직 이번 달 후보가 없어요</p>
-              <p className="text-[10px] text-text-3">
-                클립을 업로드하면 자동으로 MVP 후보에 올라갑니다
+              <p className="text-xs text-text-2">
+                {initialData.monthlyStats.clipCount > 0
+                  ? "이번 달 후보를 집계 중이에요"
+                  : "아직 이번 달 후보가 없어요"}
               </p>
-              <Link
-                href="/upload"
-                className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
-              >
-                첫 번째 클립을 올려보세요!
-              </Link>
+              <p className="text-[10px] text-text-3">
+                {initialData.monthlyStats.clipCount > 0
+                  ? "잠시 후 새로고침하면 후보 목록이 표시돼요"
+                  : "클립을 올리면 자동으로 MVP 후보에 올라가요"}
+              </p>
+              {initialData.monthlyStats.clipCount === 0 && (
+                <Link
+                  href="/upload"
+                  className="mt-1 rounded-full bg-accent px-5 py-2 text-xs font-semibold text-bg"
+                >
+                  클립 올리기
+                </Link>
+              )}
             </div>
           )}
         </SectionCard>
@@ -348,7 +450,7 @@ export default function MvpPageClient({
             </button>
           )}
 
-          {showFullRanking && (
+          {showFullRanking && candidates.length > 0 && (
             <div className="card-elevated overflow-hidden">
               <MvpRanking
                 candidates={candidates}
@@ -362,65 +464,10 @@ export default function MvpPageClient({
           )}
         </>
       )}
-
-      <div className="flex gap-1 card-elevated p-1">
-        {(
-          [
-            { key: "ranking", label: "📊 이번 달" },
-            { key: "archive", label: "📜 아카이브" },
-            { key: "hallOfFame", label: "🏅 명예의 전당" },
-          ] as const
-        ).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => startTransition(() => setActiveTab(tab.key))}
-            className="flex-1 rounded-lg px-2 py-2 text-[12px] font-bold transition-colors"
-            style={{
-              background:
-                activeTab === tab.key ? "var(--accent-bg)" : "transparent",
-              color:
-                activeTab === tab.key
-                  ? "var(--color-accent)"
-                  : "var(--color-text-3)",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === "ranking" && candidates.length > 0 && (
-        <div className="card-elevated overflow-hidden">
-          <MvpRanking
-            candidates={candidates}
-            votedClipIds={myVotedClipIds}
-            votingOpen={canVoteMvp && votingOpen}
-            votesRemaining={canVoteMvp ? votesRemaining : 0}
-            onVote={handleVote}
-            onUnvote={handleUnvote}
-          />
-        </div>
-      )}
-
-      {activeTab === "archive" && (
-        <MvpArchive weeks={archiveWeeks} loading={archiveLoading} />
-      )}
-
-      {activeTab === "hallOfFame" && (
-        <div className="card-elevated overflow-hidden">
-          <MvpHallOfFame entries={hallOfFame} loading={hofLoading} />
-        </div>
+        </>
       )}
     </div>
   );
-}
-
-function getDaysUntilVoting(): number {
-  const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const day = kst.getUTCDate();
-  if (day >= 24) return 0;
-  return 24 - day;
 }
 
 function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
@@ -428,14 +475,12 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
     hours: number;
     minutes: number;
     seconds: number;
-  } | null>(() => (votingOpen ? getVotingTimeRemaining() : null));
-  const [daysUntil, setDaysUntil] = useState(() => getDaysUntilVoting());
+  } | null>(() => getVotingTimeRemaining());
 
   useEffect(() => {
     const update = () => {
       if (document.visibilityState === "visible") {
         setTimeRemaining(getVotingTimeRemaining());
-        setDaysUntil(getDaysUntilVoting());
       }
     };
 
@@ -463,10 +508,13 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
             투표 진행중
           </span>
           {timeRemaining && (
-            <p className="mt-0.5 font-stat text-xl font-bold text-accent">
-              {String(timeRemaining.hours).padStart(2, "0")}:
-              {String(timeRemaining.minutes).padStart(2, "0")}:
-              {String(timeRemaining.seconds).padStart(2, "0")}
+            <p className="mt-0.5 text-[10px] text-text-3">
+              집계까지{" "}
+              <span className="font-stat font-bold text-accent">
+                {timeRemaining.hours > 24
+                  ? `D-${Math.floor(timeRemaining.hours / 24)}`
+                  : `${String(timeRemaining.hours).padStart(2, "0")}:${String(timeRemaining.minutes).padStart(2, "0")}:${String(timeRemaining.seconds).padStart(2, "0")}`}
+              </span>
             </p>
           )}
         </div>
@@ -480,13 +528,9 @@ function VotingStatusBadge({ votingOpen }: { votingOpen: boolean }) {
               border: "1px solid rgba(212,168,83,0.3)",
             }}
           >
-            클립 수집중
+            MVP 집계중
           </span>
-          {daysUntil > 0 && (
-            <p className="mt-0.5 text-[11px] text-text-3">
-              투표까지 <span className="font-stat font-bold text-accent">D-{daysUntil}</span>
-            </p>
-          )}
+          <p className="mt-0.5 text-[10px] text-text-3">잠시 후 재개</p>
         </div>
       )}
     </div>

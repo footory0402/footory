@@ -1,5 +1,11 @@
 {
   "regions": ["icn1"],
+  "crons": [
+    {
+      "path": "/api/mvp/finalize",
+      "schedule": "30 15 1 * *"
+    }
+  ],
   "functions": {
     "src/app/api/upload/multipart/route.ts": { "maxDuration": 300 },
     "src/app/api/upload/direct/route.ts": { "maxDuration": 120 },

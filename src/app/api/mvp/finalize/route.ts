@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getMonthStart, rankCandidates, getMvpTier } from "@/lib/mvp-scoring";
 
-export async function POST(request: NextRequest) {
+const MAX_RESULTS = 30;
+
+async function runFinalize(request: NextRequest) {
   // Authenticate via CRON_SECRET
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -32,12 +34,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Already finalized", monthStart });
   }
 
-  // Fetch clips from that week
+  // Fetch public clips from last month only
   const { data: clips } = await supabase
     .from("clips")
     .select("id, owner_id, video_url, thumbnail_url, created_at")
     .gte("created_at", monthStartDate.toISOString())
-    .lt("created_at", monthEndDate.toISOString());
+    .lt("created_at", monthEndDate.toISOString())
+    .eq("visibility", "public");
 
   if (!clips?.length) {
     return NextResponse.json({ message: "No clips for month", monthStart });
@@ -99,12 +102,12 @@ export async function POST(request: NextRequest) {
     comments_count: commentsCounts[clip.id] ?? 0,
   }));
 
-  // Rank candidates
+  // Rank candidates — top MAX_RESULTS (선수당 1명)
   const ranked = rankCandidates(clipsWithStats, voteCounts);
-  const top10 = ranked.slice(0, 10);
+  const topResults = ranked.slice(0, MAX_RESULTS);
 
   // Insert weekly_mvp_results
-  const results = top10.map((r, i) => ({
+  const results = topResults.map((r, i) => ({
     week_start: monthStart,
     rank: i + 1,
     clip_id: r.clipId,
@@ -124,8 +127,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Update 1st place: increment mvp_count, update mvp_tier
-  if (top10.length > 0) {
-    const winner = top10[0];
+  if (topResults.length > 0) {
+    const winner = topResults[0];
     const currentCount = profileMap[winner.ownerId]?.mvp_count ?? 0;
     const newCount = currentCount + 1;
     const newTier = getMvpTier(newCount);
@@ -147,20 +150,36 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send notification to winner
-    await supabase.from("notifications").insert({
-      user_id: winner.ownerId,
-      type: "mvp_win",
-      title: "이번 달 MVP로 선정되었습니다!",
-      body: `축하합니다! ${monthStart} 월간 MVP 1위를 차지했습니다.`,
-      action_url: "/mvp",
-    });
+    // Send notifications to top 3
+    const top3 = topResults.slice(0, 3);
+    const rankLabels = ["1위 MVP", "2위", "3위"];
+    await Promise.allSettled(
+      top3.map((r, i) =>
+        supabase.from("notifications").insert({
+          user_id: r.ownerId,
+          type: "mvp_win",
+          title: i === 0 ? "이번 달 MVP로 선정되었습니다! 🏆" : `이번 달 MVP ${rankLabels[i]}에 올랐어요!`,
+          body: `${getMonthStart(lastMonth).slice(0, 7)} 월간 MVP 결과가 발표되었습니다.`,
+          action_url: "/mvp",
+        })
+      )
+    );
   }
 
   return NextResponse.json({
     message: "Finalized",
     monthStart,
-    resultsCount: top10.length,
-    winner: top10[0]?.ownerId ?? null,
+    resultsCount: topResults.length,
+    winner: topResults[0]?.ownerId ?? null,
   });
+}
+
+// Vercel cron jobs use GET
+export async function GET(request: NextRequest) {
+  return runFinalize(request);
+}
+
+// Manual trigger via POST
+export async function POST(request: NextRequest) {
+  return runFinalize(request);
 }

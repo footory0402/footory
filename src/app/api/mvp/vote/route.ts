@@ -35,10 +35,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check voting window (24일~말일 KST)
+    // Check voting window (매월 1일 00:00~05:59 KST 집계 시간 중 투표 불가)
     if (!isVotingOpen()) {
       return NextResponse.json(
-        { error: "투표는 매월 24일부터 말일까지만 가능합니다" },
+        { error: "매월 1일 새벽에는 전월 MVP 집계 중입니다. 잠시 후 다시 시도해주세요." },
         { status: 403 }
       );
     }
@@ -170,7 +170,7 @@ export async function DELETE(req: NextRequest) {
 
     if (!isVotingOpen()) {
       return NextResponse.json(
-        { error: "투표 기간에만 취소할 수 있습니다" },
+        { error: "매월 1일 새벽 집계 시간 중에는 투표를 취소할 수 없습니다." },
         { status: 403 }
       );
     }

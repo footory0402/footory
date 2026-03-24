@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
         id: clip_id,
         owner_id: user.id,
         uploaded_by: user.id,
+        visibility: "public" as const,
         video_url,
         duration_seconds: duration_seconds != null ? Math.round(duration_seconds) : null,
         file_size_bytes: file_size_bytes ?? null,

@@ -191,6 +191,23 @@ body {
   from { width: 0; }
 }
 
+@keyframes vote-burst-0 {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-18px, -22px) scale(0.5); }
+}
+@keyframes vote-burst-1 {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(18px, -22px) scale(0.5); }
+}
+@keyframes vote-burst-2 {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-10px, -30px) scale(0.5); }
+}
+@keyframes vote-burst-3 {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(10px, -30px) scale(0.5); }
+}
+
 .animate-fade-up {
   animation: fadeUp 0.4s var(--ease-out) both;
 }
