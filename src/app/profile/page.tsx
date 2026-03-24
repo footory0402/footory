@@ -14,6 +14,8 @@ const CareerTabV5 = dynamic(() => import("@/components/profile/CareerTabV5"), { 
 const ProfileEditSheet = dynamic(() => import("@/components/player/ProfileEditSheet"), { ssr: false });
 const StatInputSheet = dynamic(() => import("@/components/stats/StatInputSheet"), { ssr: false });
 const SeasonAddSheet = dynamic(() => import("@/components/player/SeasonAddSheet"), { ssr: false });
+const TournamentAddSheet = dynamic(() => import("@/components/profile/TournamentAddSheet"), { ssr: false });
+const AwardAddSheet = dynamic(() => import("@/components/profile/AwardAddSheet"), { ssr: false });
 const ProfilePdfExport = dynamic(() => import("@/components/portfolio/ProfilePdfExport"), { ssr: false });
 const PlayStyleTest = dynamic(() => import("@/components/player/PlayStyleTest"), { ssr: false });
 
@@ -24,6 +26,8 @@ import { useStats } from "@/hooks/useStats";
 import { useClips, useTagClips } from "@/hooks/useClips";
 import { useSeasons } from "@/hooks/useSeasons";
 import { useAchievements } from "@/hooks/useAchievements";
+import { useTournaments } from "@/hooks/useTournaments";
+import { useAwards } from "@/hooks/useAwards";
 import { useUploadStore } from "@/stores/upload-store";
 
 export default function ProfilePage() {
@@ -38,6 +42,8 @@ export default function ProfilePage() {
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [statInputType, setStatInputType] = useState<string | undefined>();
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
+  const [tournamentAddOpen, setTournamentAddOpen] = useState(false);
+  const [awardAddOpen, setAwardAddOpen] = useState(false);
   const [pdfExportOpen, setPdfExportOpen] = useState(false);
   const [deletingStatId, setDeletingStatId] = useState<string | null>(null);
   const [playStyleTestOpen, setPlayStyleTestOpen] = useState(false);
@@ -65,6 +71,8 @@ export default function ProfilePage() {
   const { deleteClip } = useClips();
   const { seasons, addSeason, loading: seasonsLoading } = useSeasons({ enabled: shouldLoadData });
   const { achievements } = useAchievements({ enabled: shouldLoadData });
+  const { tournaments, addTournament } = useTournaments({ enabled: shouldLoadData });
+  const { awards, addAward } = useAwards({ enabled: shouldLoadData });
   const hasFeatured = Object.values(tagClips).some((arr) => arr.length > 0) || untaggedClips.length > 0;
 
   if (loading && !profile) return <ProfileSkeleton />;
@@ -301,7 +309,11 @@ export default function ProfilePage() {
             profile={profile}
             seasons={seasons}
             achievements={achievements}
+            tournaments={tournaments}
+            awards={awards}
             onAddSeason={() => setSeasonAddOpen(true)}
+            onAddTournament={() => setTournamentAddOpen(true)}
+            onAddAward={() => setAwardAddOpen(true)}
           />
         )}
       </div>
@@ -331,6 +343,26 @@ export default function ProfilePage() {
           open={seasonAddOpen}
           onClose={() => setSeasonAddOpen(false)}
           onSave={addSeason}
+        />
+      )}
+      {tournamentAddOpen && (
+        <TournamentAddSheet
+          open={tournamentAddOpen}
+          onClose={() => setTournamentAddOpen(false)}
+          onSave={async (input) => {
+            await addTournament(input);
+            toast.success("대회 기록이 추가되었습니다.");
+          }}
+        />
+      )}
+      {awardAddOpen && (
+        <AwardAddSheet
+          open={awardAddOpen}
+          onClose={() => setAwardAddOpen(false)}
+          onSave={async (input) => {
+            await addAward(input);
+            toast.success("수상 기록이 추가되었습니다.");
+          }}
         />
       )}
       {pdfExportOpen && (

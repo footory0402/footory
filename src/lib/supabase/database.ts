@@ -1236,6 +1236,72 @@ export interface Database {
         };
         Relationships: [];
       };
+      tournament_records: {
+        Row: {
+          id: string;
+          player_id: string;
+          name: string;
+          type: "공식대회" | "리그" | "친선";
+          date_text: string | null;
+          result: string | null;
+          goals: number;
+          assists: number;
+          is_mvp: boolean;
+          source: "team" | "self";
+          verifier_team_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          player_id: string;
+          name: string;
+          type?: "공식대회" | "리그" | "친선";
+          date_text?: string | null;
+          result?: string | null;
+          goals?: number;
+          assists?: number;
+          is_mvp?: boolean;
+          source?: "team" | "self";
+          verifier_team_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          type?: "공식대회" | "리그" | "친선";
+          date_text?: string | null;
+          result?: string | null;
+          goals?: number;
+          assists?: number;
+          is_mvp?: boolean;
+        };
+        Relationships: [];
+      };
+      awards: {
+        Row: {
+          id: string;
+          player_id: string;
+          title: string;
+          detail: string | null;
+          source: "team" | "self";
+          verifier: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          player_id: string;
+          title: string;
+          detail?: string | null;
+          source?: "team" | "self";
+          verifier?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          detail?: string | null;
+          verifier?: string | null;
+        };
+        Relationships: [];
+      };
       scout_watchlist: {
         Row: {
           id: string;
