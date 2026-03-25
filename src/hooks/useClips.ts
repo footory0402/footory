@@ -166,7 +166,15 @@ interface UseTagClipsOptions {
   enabled?: boolean;
 }
 
-type TagClipItem = { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null };
+type TagClipItem = {
+  id: string;
+  duration: number;
+  tag: string;
+  isTop: boolean;
+  videoUrl: string;
+  thumbnailUrl: string | null;
+  effects?: Record<string, boolean> | null;
+};
 
 export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
   const [tagClips, setTagClips] = useState<Record<string, TagClipItem[]>>({});
@@ -182,7 +190,7 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
 
       const { data: clips } = await supabase
         .from("clips")
-        .select("id, video_url, thumbnail_url, duration_seconds, clip_tags(tag_name, is_top)")
+        .select("id, video_url, thumbnail_url, duration_seconds, effects, clip_tags(tag_name, is_top)")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -194,6 +202,7 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
 
       clips.forEach((clip) => {
         const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
+        const clipEffects = (clip as unknown as { effects: Record<string, boolean> | null }).effects ?? null;
         if (clipTags.length === 0) {
           untagged.push({
             id: clip.id,
@@ -202,6 +211,7 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
             isTop: false,
             videoUrl: clip.video_url,
             thumbnailUrl: clip.thumbnail_url,
+            effects: clipEffects,
           });
           return;
         }
@@ -215,6 +225,7 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
             isTop: t.is_top,
             videoUrl: clip.video_url,
             thumbnailUrl: clip.thumbnail_url,
+            effects: clipEffects,
           });
         });
       });

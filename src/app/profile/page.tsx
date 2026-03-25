@@ -160,10 +160,11 @@ export default function ProfilePage() {
     }
   };
 
-  const mappedTagClips: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
+  const mappedTagClips: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null; effects?: Record<string, boolean> | null }[]> = {};
   for (const [key, clips] of Object.entries(tagClips)) {
     mappedTagClips[key] = clips.map((c) => ({
       id: c.id, duration: c.duration, tag: c.tag, isTop: c.isTop, videoUrl: c.videoUrl, thumbnailUrl: c.thumbnailUrl,
+      effects: c.effects ?? null,
     }));
   }
 

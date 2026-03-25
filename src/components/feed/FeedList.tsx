@@ -70,6 +70,10 @@ export default function FeedList({
       playerPosition: item.playerPosition,
       playerBirthYear: item.playerBirthYear,
       teamName: item.teamName,
+      // effects 추가
+      effects: meta.effects && typeof meta.effects === "object"
+        ? (meta.effects as PlayableClip["effects"])
+        : null,
     }]);
   }, []);
   const feedItemIds = useMemo(() => items.map((i) => i.id), [items]);

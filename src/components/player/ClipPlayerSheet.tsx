@@ -25,6 +25,13 @@ export interface PlayableClip {
   playerPosition?: string | null;
   playerBirthYear?: number | null;
   teamName?: string | null;
+  // css effects
+  effects?: {
+    color?: boolean;
+    cinematic?: boolean;
+    eafc?: boolean;
+    intro?: boolean;
+  } | null;
 }
 
 interface ClipPlayerSheetProps {

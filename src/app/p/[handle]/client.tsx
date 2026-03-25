@@ -40,6 +40,7 @@ interface FeaturedClip {
     video_url: string;
     thumbnail_url: string | null;
     duration_seconds: number | null;
+    effects?: Record<string, boolean> | null;
   } | null;
 }
 
@@ -50,6 +51,7 @@ interface TagClip {
   isTop: boolean;
   videoUrl: string;
   thumbnailUrl: string | null;
+  effects?: Record<string, boolean> | null;
 }
 
 interface PublicProfileData {
@@ -223,6 +225,7 @@ function FeaturedVideoSection({ featured }: { featured: FeaturedClip[] }) {
     videoUrl: video_url,
     thumbnailUrl: thumbnail_url ?? null,
     duration: duration_seconds ?? undefined,
+    effects: clip.clips?.effects ?? null,
   };
 
   return (
