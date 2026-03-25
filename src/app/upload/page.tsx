@@ -7,6 +7,7 @@ import { startUpload } from "@/lib/upload-service";
 import VideoSelector from "@/components/upload/VideoSelector";
 import ChildSelector from "@/components/upload/ChildSelector";
 import SpotlightPicker from "@/components/upload/SpotlightPicker";
+import EffectsToggle from "@/components/video/EffectsToggle";
 import { useRouter, useSearchParams } from "next/navigation";
 
 /*
@@ -44,6 +45,7 @@ export default function UploadPage() {
   const compressStatus = useUploadStore((s) => s.compressStatus);
   const compressProgress = useUploadStore((s) => s.compressProgress);
   const r2Progress = useUploadStore((s) => s.r2Progress);
+  const effects = useUploadStore((s) => s.effects);
 
   // 올리기 버튼 준비 상태 — 압축 or R2 백그라운드 업로드 진행 중
   const isPreparing =
@@ -191,6 +193,15 @@ export default function UploadPage() {
             file={store.file}
             trimStart={store.trimStart > 0 ? store.trimStart : undefined}
           />
+
+          {/* 영상 꾸미기 효과 */}
+          <div>
+            <h3 className="mb-3 text-[14px] font-semibold text-text-1">영상 꾸미기</h3>
+            <EffectsToggle
+              effects={effects}
+              onChange={(partial) => useUploadStore.getState().setEffects(partial)}
+            />
+          </div>
 
           {/* 태그 */}
           <div>
