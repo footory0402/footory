@@ -394,21 +394,30 @@ export default function ClipPlayerSheet({
                 visibility: videoError ? "hidden" : undefined,
                 height: videoError ? 0 : undefined,
                 overflow: videoError ? "hidden" : undefined,
+                // 색보정 필터 (effects.color)
+                filter: clip.effects?.color
+                  ? "saturate(1.2) contrast(1.05) brightness(1.02)"
+                  : undefined,
               }}
               onClick={(e) => e.preventDefault()}
             />
 
-            {/* VideoOverlay — spotlight_x/y가 있을 때만 표시 */}
-            {clip.spotlightX != null && clip.spotlightY != null && clip.playerName && (
+            {/* VideoOverlay — spotlight 또는 eafc/cinematic effects가 있을 때 표시 */}
+            {clip.playerName && (clip.spotlightX != null || clip.effects?.eafc || clip.effects?.cinematic) && (
               <VideoOverlay
                 key={playCount}
-                spotlight={{ x: clip.spotlightX, y: clip.spotlightY }}
+                spotlight={
+                  clip.spotlightX != null && clip.spotlightY != null
+                    ? { x: clip.spotlightX, y: clip.spotlightY }
+                    : null
+                }
                 player={{
                   name: clip.playerName,
                   position: clip.playerPosition,
                   birthYear: clip.playerBirthYear,
                   teamName: clip.teamName,
                 }}
+                effects={clip.effects}
               />
             )}
 
