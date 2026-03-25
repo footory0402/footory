@@ -33,7 +33,11 @@ interface HighlightsTabV5Props {
   readOnly?: boolean;
   initialFeatured?: Array<{
     clip_id: string;
-    clips?: { video_url: string; thumbnail_url?: string | null } | null;
+    clips?: {
+      video_url: string;
+      thumbnail_url?: string | null;
+      effects?: Record<string, boolean> | null;
+    } | null;
   }>;
 }
 
@@ -135,6 +139,7 @@ export default function HighlightsTabV5({
       id: f.clip_id,
       videoUrl: f.clips!.video_url,
       thumbnailUrl: f.clips?.thumbnail_url,
+      effects: f.clips?.effects ? (f.clips.effects as PlayableClip["effects"]) : null,
     }));
 
   const gridPlayable: PlayableClip[] = filteredClips

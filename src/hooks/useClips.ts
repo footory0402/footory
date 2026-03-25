@@ -119,6 +119,7 @@ interface FeaturedClip {
     duration_seconds: number | null;
     highlight_start: number | null;
     highlight_end: number | null;
+    effects?: Record<string, boolean> | null;
   };
 }
 
