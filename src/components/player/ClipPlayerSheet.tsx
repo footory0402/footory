@@ -48,7 +48,7 @@ export default function ClipPlayerSheet({
   initialIndex = 0,
   onClose,
   onDelete,
-  onEditTags: _onEditTags,
+  onEditTags,
   onShare,
 }: ClipPlayerSheetProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -64,6 +64,7 @@ export default function ClipPlayerSheet({
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const [playCount, setPlayCount] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -93,6 +94,7 @@ export default function ClipPlayerSheet({
       document.body.style.right = "";
       document.body.style.overflow = "";
       window.scrollTo(0, scrollY);
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
     };
   }, []);
 
@@ -227,7 +229,8 @@ export default function ClipPlayerSheet({
     if (!clip || !onDelete) return;
     if (!confirmDelete) {
       setConfirmDelete(true);
-      setTimeout(() => setConfirmDelete(false), 2000);
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      confirmTimer.current = setTimeout(() => setConfirmDelete(false), 2000);
       return;
     }
     setConfirmDelete(false);
@@ -380,6 +383,17 @@ export default function ClipPlayerSheet({
               </svg>
             </div>
             <span className="text-[10px] text-white/60">공유</span>
+          </button>
+        )}
+        {onEditTags && (
+          <button onClick={() => onEditTags(clip.id)} className="flex flex-col items-center gap-1">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white active:bg-white/20">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </div>
+            <span className="text-[10px] text-white/60">편집</span>
           </button>
         )}
         {onDelete && (
