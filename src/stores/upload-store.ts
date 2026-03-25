@@ -45,9 +45,9 @@ interface UploadState {
   duration: number | null; // 트리머에서 감지된 영상 길이 (초)
   spotlightX: number | null; // 스포트라이트 오버레이 좌표 (0~1 정규화)
   spotlightY: number | null; // 스포트라이트 오버레이 좌표 (0~1 정규화)
-  skillLabels: string[];     // v1.3 렌더 파이프라인용 - 현재 미사용
-  customLabels: string[];    // v1.3 렌더 파이프라인용 - 현재 미사용
-  effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean }; // v1.3 렌더 파이프라인용 - 현재 미사용
+  skillLabels: string[];
+  customLabels: string[];
+  effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
   visibility: ClipVisibility;
   renderJobId: string | null;
   renderProgress: number;
