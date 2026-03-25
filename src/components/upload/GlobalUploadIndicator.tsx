@@ -137,10 +137,12 @@ export default function GlobalUploadIndicator() {
 
         {/* ── 알림 카드 (헤더 바로 아래) ── */}
         <div className="flex justify-center px-2 pt-1.5">
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={handleTap}
-            className={`flex w-full max-w-[414px] items-center gap-2.5 rounded-xl px-3 py-2 shadow-xl backdrop-blur-xl ${
+            onKeyDown={(e) => e.key === "Enter" && handleTap()}
+            className={`flex w-full max-w-[414px] cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 shadow-xl backdrop-blur-xl ${
               isDone
                 ? "border border-accent/30 bg-[#0D0D10]/96"
                 : isError
@@ -189,7 +191,7 @@ export default function GlobalUploadIndicator() {
                 </svg>
               </button>
             )}
-          </button>
+          </div>
         </div>
       </div>
     </>
