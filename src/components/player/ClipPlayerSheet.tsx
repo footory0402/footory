@@ -65,6 +65,7 @@ export default function ClipPlayerSheet({
   const [showControls, setShowControls] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const [playCount, setPlayCount] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // 위아래 스와이프
   const [swipeY, setSwipeY] = useState(0);
@@ -224,6 +225,12 @@ export default function ClipPlayerSheet({
 
   const handleDelete = async () => {
     if (!clip || !onDelete) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 2000);
+      return;
+    }
+    setConfirmDelete(false);
     const ok = await onDelete(clip.id);
     if (ok) {
       const remaining = localClips.filter((c) => c.id !== clip.id);
@@ -377,13 +384,19 @@ export default function ClipPlayerSheet({
         )}
         {onDelete && (
           <button onClick={handleDelete} className="flex flex-col items-center gap-1">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white/60 active:bg-red-500/30 active:text-red-400">
+            <div className={`flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-sm active:scale-95 transition-all ${
+              confirmDelete
+                ? "bg-red-500/80 text-white"
+                : "bg-black/40 text-white/60 active:bg-red-500/30 active:text-red-400"
+            }`}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <polyline points="3 6 5 6 21 6"/>
                 <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
               </svg>
             </div>
-            <span className="text-[10px] text-white/40">삭제</span>
+            <span className={`text-[10px] ${confirmDelete ? "text-red-400" : "text-white/40"}`}>
+              {confirmDelete ? "확인?" : "삭제"}
+            </span>
           </button>
         )}
       </div>
@@ -412,7 +425,8 @@ export default function ClipPlayerSheet({
         <div
           className="relative h-6 flex items-center cursor-pointer mb-1"
           onClick={handleSeek}
-          onTouchMove={handleSeek}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => { e.stopPropagation(); handleSeek(e); }}
         >
           <div className="h-[3px] w-full rounded-full bg-white/20 overflow-hidden">
             <div className="h-full rounded-full bg-accent transition-[width] duration-100" style={{ width: `${progress * 100}%` }} />
