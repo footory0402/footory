@@ -23,7 +23,7 @@ export default function CardPreview({ data, template, onTemplateChange }: CardPr
   }, []);
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 overflow-auto bg-[#0a0a0c] p-4 md:gap-6 md:p-8">
+    <main className="flex min-h-[500px] flex-1 flex-col items-center justify-center gap-4 bg-[#0a0a0c] p-4 pb-8 md:gap-6 md:overflow-auto md:p-8">
       {/* Template Tabs + Preview Button */}
       <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
         <div className="flex gap-1 rounded-xl bg-[#1a1a1e] p-1 ring-1 ring-white/6 md:gap-1.5">

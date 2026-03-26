@@ -34,7 +34,7 @@ export default function EditorPage() {
         mp4Status={mp4Status}
         mp4Progress={mp4Progress}
       />
-      <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
+      <div className="flex flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
         <EditorForm
           data={data}
           onChange={setData}

@@ -9,6 +9,7 @@ import ChildSelector from "@/components/upload/ChildSelector";
 import SpotlightPicker from "@/components/upload/SpotlightPicker";
 import EffectsToggle from "@/components/video/EffectsToggle";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 /*
  * v2.2 — Instagram-style upload
@@ -166,6 +167,23 @@ export default function UploadPage() {
           {isParent ? "영상 올려주기" : "영상 업로드"}
         </h1>
       </div>
+
+      {/* 프로필 카드 에디터 배너 */}
+      {!store.file && (
+        <Link
+          href="/editor"
+          className="flex items-center gap-3 rounded-xl border border-accent/15 bg-accent/8 px-4 py-3 transition-colors active:bg-accent/12"
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-lg">🎴</span>
+          <div className="flex-1">
+            <p className="text-[13px] font-semibold text-accent">선수 프로필 카드 만들기</p>
+            <p className="text-[11px] text-text-3">영상 인트로에 넣을 선수 카드를 제작하세요</p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </Link>
+      )}
 
       {/* 챌린지 배너 */}
       {challengeTag && !store.file && (
