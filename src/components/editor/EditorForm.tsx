@@ -1,0 +1,361 @@
+"use client";
+
+import { useCallback, useRef } from "react";
+import { Upload, User, ClipboardList, Radar, Eraser, Loader2 } from "lucide-react";
+import { POSITIONS, CLUBS, FOOT_OPTIONS } from "./constants";
+import { STAT_LABELS, type PlayerData, type PlayerStats } from "./types";
+import type { RemovalStatus } from "./useBackgroundRemoval";
+
+interface EditorFormProps {
+  data: PlayerData;
+  onChange: (data: PlayerData) => void;
+  onRemoveBackground?: () => void;
+  bgRemovalStatus?: RemovalStatus;
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-3">
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[1.5px] text-text-3">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputClass =
+  "w-full rounded-lg border border-white/8 bg-[#1a1a1e] px-3 py-2 text-sm text-text-1 outline-none transition-colors placeholder:text-text-3/50 focus:border-accent/40";
+
+const selectClass =
+  "w-full rounded-lg border border-white/8 bg-[#1a1a1e] px-3 py-2 text-sm text-text-1 outline-none transition-colors focus:border-accent/40 cursor-pointer";
+
+const STAT_KEYS: (keyof PlayerStats)[] = [
+  "pace", "shooting", "passing", "dribbling", "defense", "physical",
+];
+
+export default function EditorForm({ data, onChange, onRemoveBackground, bgRemovalStatus = "idle" }: EditorFormProps) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const update = useCallback(
+    (key: keyof PlayerData, value: PlayerData[keyof PlayerData]) => {
+      onChange({ ...data, [key]: value });
+    },
+    [data, onChange],
+  );
+
+  const updateStat = useCallback(
+    (key: keyof PlayerStats, value: number) => {
+      onChange({ ...data, stats: { ...data.stats, [key]: value } });
+    },
+    [data, onChange],
+  );
+
+  const handlePhoto = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) update("photoUrl", ev.target.result as string);
+      };
+      reader.readAsDataURL(file);
+    },
+    [update],
+  );
+
+  return (
+    <aside className="w-[360px] shrink-0 overflow-y-auto border-r border-white/6 bg-[#111114] p-5">
+      {/* Section: Player Info */}
+      <div className="mb-4 flex items-center gap-2 text-sm font-bold text-text-1">
+        <User className="h-4 w-4 text-accent" />
+        선수 정보
+      </div>
+
+      {/* Photo Upload */}
+      <FormField label="사진">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/10 bg-white/3 py-5 text-sm text-text-3 transition-colors hover:border-accent/30 hover:bg-accent/5"
+        >
+          {data.photoUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={data.photoUrl}
+                alt=""
+                className="h-12 w-12 rounded-lg object-cover"
+              />
+              <span>사진 변경</span>
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              선수 사진 업로드
+            </>
+          )}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePhoto}
+          className="hidden"
+        />
+        {data.photoUrl && onRemoveBackground && (
+          <button
+            type="button"
+            onClick={onRemoveBackground}
+            disabled={bgRemovalStatus === "loading" || bgRemovalStatus === "processing"}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/8 bg-white/4 py-2 text-xs font-semibold text-text-2 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
+          >
+            {bgRemovalStatus === "loading" || bgRemovalStatus === "processing" ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {bgRemovalStatus === "loading" ? "모델 로딩..." : "배경 제거 중..."}
+              </>
+            ) : bgRemovalStatus === "done" ? (
+              <>
+                <Eraser className="h-3.5 w-3.5" />
+                배경 다시 제거
+              </>
+            ) : (
+              <>
+                <Eraser className="h-3.5 w-3.5" />
+                배경 제거
+              </>
+            )}
+          </button>
+        )}
+      </FormField>
+
+      {/* Name */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <FormField label="성">
+          <input
+            className={inputClass}
+            value={data.lastName}
+            onChange={(e) => update("lastName", e.target.value)}
+            placeholder="최"
+          />
+        </FormField>
+        <FormField label="이름">
+          <input
+            className={inputClass}
+            value={data.firstName}
+            onChange={(e) => update("firstName", e.target.value)}
+            placeholder="강"
+          />
+        </FormField>
+      </div>
+
+      {/* Number + Position */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <FormField label="등번호">
+          <input
+            className={inputClass}
+            type="number"
+            value={data.number}
+            onChange={(e) => update("number", e.target.value)}
+            placeholder="9"
+          />
+        </FormField>
+        <FormField label="포지션">
+          <select
+            className={selectClass}
+            value={data.position}
+            onChange={(e) => update("position", e.target.value)}
+          >
+            {POSITIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      </div>
+
+      {/* Club */}
+      <FormField label="소속 구단">
+        <select
+          className={selectClass}
+          value={data.club}
+          onChange={(e) => update("club", e.target.value)}
+        >
+          {CLUBS.map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </FormField>
+
+      {/* Custom Club */}
+      {data.club === "직접 입력" && (
+        <div className="mb-3 rounded-lg border border-white/6 bg-white/3 p-3">
+          <FormField label="구단명">
+            <input
+              className={inputClass}
+              value={data.customClubName}
+              onChange={(e) => update("customClubName", e.target.value)}
+              placeholder="우리 팀 이름"
+            />
+          </FormField>
+          <div className="grid grid-cols-2 gap-2.5">
+            <FormField label="메인 컬러">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={data.customClubColor}
+                  onChange={(e) => update("customClubColor", e.target.value)}
+                  className="h-8 w-8 cursor-pointer rounded border border-white/10 bg-transparent"
+                />
+                <input
+                  className={inputClass}
+                  value={data.customClubColor}
+                  onChange={(e) => update("customClubColor", e.target.value)}
+                  placeholder="#37474F"
+                  maxLength={7}
+                />
+              </div>
+            </FormField>
+            <FormField label="액센트 컬러">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={data.customClubAccent}
+                  onChange={(e) => update("customClubAccent", e.target.value)}
+                  className="h-8 w-8 cursor-pointer rounded border border-white/10 bg-transparent"
+                />
+                <input
+                  className={inputClass}
+                  value={data.customClubAccent}
+                  onChange={(e) => update("customClubAccent", e.target.value)}
+                  placeholder="#78909C"
+                  maxLength={7}
+                />
+              </div>
+            </FormField>
+          </div>
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="my-5 h-px bg-white/6" />
+
+      {/* Section: Detail Info */}
+      <div className="mb-4 flex items-center gap-2 text-sm font-bold text-text-1">
+        <ClipboardList className="h-4 w-4 text-accent" />
+        상세 정보
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        <FormField label="나이">
+          <input
+            className={inputClass}
+            value={data.age}
+            onChange={(e) => update("age", e.target.value)}
+            placeholder="13"
+          />
+        </FormField>
+        <FormField label="생년월일">
+          <input
+            className={inputClass}
+            value={data.birthDate}
+            onChange={(e) => update("birthDate", e.target.value)}
+            placeholder="2014.03.22"
+          />
+        </FormField>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        <FormField label="키 (cm)">
+          <input
+            className={inputClass}
+            type="number"
+            value={data.height}
+            onChange={(e) => update("height", e.target.value)}
+            placeholder="160"
+          />
+        </FormField>
+        <FormField label="몸무게 (kg)">
+          <input
+            className={inputClass}
+            type="number"
+            value={data.weight}
+            onChange={(e) => update("weight", e.target.value)}
+            placeholder="42"
+          />
+        </FormField>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        <FormField label="주발">
+          <select
+            className={selectClass}
+            value={data.foot}
+            onChange={(e) => update("foot", e.target.value)}
+          >
+            {FOOT_OPTIONS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="국적">
+          <input
+            className={inputClass}
+            value={data.nationality}
+            onChange={(e) => update("nationality", e.target.value)}
+            placeholder="KOREA"
+          />
+        </FormField>
+      </div>
+
+      {/* Divider */}
+      <div className="my-5 h-px bg-white/6" />
+
+      {/* Section: Stats */}
+      <div className="mb-4 flex items-center gap-2 text-sm font-bold text-text-1">
+        <Radar className="h-4 w-4 text-accent" />
+        능력치
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {STAT_KEYS.map((key) => {
+          const label = STAT_LABELS[key];
+          const value = data.stats[key];
+          return (
+            <div key={key} className="flex items-center gap-3">
+              <span className="w-14 text-[11px] font-semibold text-text-3">
+                {label.ko}
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={99}
+                value={value}
+                onChange={(e) => updateStat(key, Number(e.target.value))}
+                className="flex-1 accent-accent"
+                style={{ height: 4 }}
+              />
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={value}
+                onChange={(e) => {
+                  const v = Math.min(99, Math.max(1, Number(e.target.value) || 1));
+                  updateStat(key, v);
+                }}
+                className="w-12 rounded-md border border-white/8 bg-[#1a1a1e] px-2 py-1 text-center text-xs font-bold text-accent outline-none focus:border-accent/40"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}

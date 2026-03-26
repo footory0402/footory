@@ -10,7 +10,7 @@ import BottomTab from "./BottomTab";
 import GlobalUploadIndicator from "@/components/upload/GlobalUploadIndicator";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
-const BARE_ROUTES = ["/login", "/onboarding", "/signup", "/auth/"];
+const BARE_ROUTES = ["/login", "/onboarding", "/signup", "/auth/", "/editor"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

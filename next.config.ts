@@ -46,6 +46,14 @@ const nextConfig: NextConfig = {
       ],
     },
     {
+      // ffmpeg.wasm requires SharedArrayBuffer → COOP/COEP headers
+      source: "/editor/:path*",
+      headers: [
+        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+      ],
+    },
+    {
       source: "/api/((?!discover).*)",
       headers: [
         { key: "Cache-Control", value: "private, no-cache" },

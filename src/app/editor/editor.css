@@ -1,0 +1,77 @@
+/* Pretendard self-host for card capture reliability */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+
+/* Override card font to Pretendard for consistent capture */
+#card-capture-target {
+  font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Range slider styling for stat inputs */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a853;
+  margin-top: -5px;
+  box-shadow: 0 0 6px rgba(212, 168, 83, 0.4);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a853;
+  border: none;
+  box-shadow: 0 0 6px rgba(212, 168, 83, 0.4);
+}
+
+/* Card intro animation preview */
+@keyframes cardIntro {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(20px);
+    filter: brightness(0.3) blur(4px);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-4px);
+    filter: brightness(1.1) blur(0px);
+  }
+  50% {
+    transform: scale(1) translateY(0);
+    filter: brightness(1) blur(0px);
+  }
+  70% {
+    transform: scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: brightness(1) blur(0px);
+  }
+}
+
+.animate-card-intro {
+  animation: cardIntro 2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
