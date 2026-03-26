@@ -1325,6 +1325,39 @@ export interface Database {
         };
         Relationships: [];
       };
+      player_cards: {
+        Row: {
+          id: string;
+          profile_id: string;
+          template: "fifa" | "broadcast" | "minimal";
+          club_name: string | null;
+          main_color: string;
+          accent_color: string;
+          card_data: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          template?: "fifa" | "broadcast" | "minimal";
+          club_name?: string | null;
+          main_color?: string;
+          accent_color?: string;
+          card_data?: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          template?: "fifa" | "broadcast" | "minimal";
+          club_name?: string | null;
+          main_color?: string;
+          accent_color?: string;
+          card_data?: Record<string, unknown>;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

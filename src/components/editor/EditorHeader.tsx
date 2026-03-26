@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Play, Loader2, Check, AlertCircle } from "lucide-react";
+import { Download, Play, Loader2, Check, AlertCircle, Save } from "lucide-react";
 import type { ExportStatus } from "./useExport";
 
 interface EditorHeaderProps {
   onExportPng: () => void;
   onExportMp4: () => void;
+  onSave: () => void;
   pngStatus: ExportStatus;
   mp4Status: ExportStatus;
   mp4Progress: number;
+  saveStatus: "idle" | "saving" | "saved";
 }
 
 function StatusIcon({ status }: { status: ExportStatus }) {
@@ -23,9 +25,11 @@ function StatusIcon({ status }: { status: ExportStatus }) {
 export default function EditorHeader({
   onExportPng,
   onExportMp4,
+  onSave,
   pngStatus,
   mp4Status,
   mp4Progress,
+  saveStatus,
 }: EditorHeaderProps) {
   const isBusy = pngStatus !== "idle" && pngStatus !== "done" && pngStatus !== "error";
   const isMp4Busy = mp4Status !== "idle" && mp4Status !== "done" && mp4Status !== "error";
@@ -48,6 +52,28 @@ export default function EditorHeader({
       </div>
 
       <div className="flex items-center gap-1.5 md:gap-2.5">
+        {/* Save */}
+        <button
+          onClick={onSave}
+          disabled={saveStatus === "saving"}
+          className="flex items-center gap-1 rounded-lg border border-accent/20 bg-accent/10 px-2.5 py-1.5 text-[11px] font-semibold text-accent transition-colors hover:bg-accent/15 disabled:opacity-50 md:gap-1.5 md:px-4 md:py-2 md:text-[13px]"
+        >
+          {saveStatus === "saving" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : saveStatus === "saved" ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Save className="h-3.5 w-3.5" />
+          )}
+          <span className="hidden sm:inline">
+            {saveStatus === "saving" ? "저장 중..." : saveStatus === "saved" ? "저장됨" : "카드 저장"}
+          </span>
+          <span className="sm:hidden">
+            {saveStatus === "saved" ? "✓" : "저장"}
+          </span>
+        </button>
+
+        {/* PNG Export */}
         <button
           onClick={onExportPng}
           disabled={isBusy}
@@ -61,6 +87,8 @@ export default function EditorHeader({
             {pngStatus === "capturing" ? "..." : pngStatus === "done" ? "✓" : "PNG"}
           </span>
         </button>
+
+        {/* MP4 Export */}
         <button
           onClick={onExportMp4}
           disabled={isMp4Busy}
