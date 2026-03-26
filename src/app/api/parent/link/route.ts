@@ -21,7 +21,7 @@ export async function GET() {
 
     const { data: links, error } = await supabase
       .from("parent_links")
-      .select("id, child_id, created_at, profiles!parent_links_child_id_fkey(id, handle, name, avatar_url, position, level)")
+      .select("id, child_id, created_at, profiles!parent_links_child_id_fkey(id, handle, name, avatar_url, position, level, height, number)")
       .eq("parent_id", user.id);
 
     if (error) {
@@ -34,6 +34,7 @@ export async function GET() {
         const child = link.profiles as unknown as {
           id: string; handle: string; name: string;
           avatar_url: string | null; position: string | null; level: number;
+          height: number | null; number: number | null;
         };
 
         const clips = await supabase.from("clips").select("id", { count: "exact", head: true }).eq("owner_id", child.id);
@@ -45,6 +46,8 @@ export async function GET() {
           name: child.name,
           avatarUrl: child.avatar_url,
           position: child.position,
+          height: child.height,
+          number: child.number,
           level: child.level,
           medalCount: 0,
           clipCount: clips.count ?? 0,
