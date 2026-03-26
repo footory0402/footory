@@ -175,6 +175,8 @@ type TagClipItem = {
   videoUrl: string;
   thumbnailUrl: string | null;
   effects?: Record<string, boolean> | null;
+  spotlightX?: number | null;
+  spotlightY?: number | null;
 };
 
 export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
@@ -191,7 +193,7 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
 
       const { data: clips } = await supabase
         .from("clips")
-        .select("id, video_url, thumbnail_url, duration_seconds, effects, clip_tags(tag_name, is_top)")
+        .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, clip_tags(tag_name, is_top)")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -204,6 +206,8 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
       clips.forEach((clip) => {
         const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
         const clipEffects = (clip as unknown as { effects: Record<string, boolean> | null }).effects ?? null;
+        const clipSpotlightX = (clip as unknown as { spotlight_x: number | null }).spotlight_x ?? null;
+        const clipSpotlightY = (clip as unknown as { spotlight_y: number | null }).spotlight_y ?? null;
         if (clipTags.length === 0) {
           untagged.push({
             id: clip.id,
@@ -213,6 +217,8 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
             videoUrl: clip.video_url,
             thumbnailUrl: clip.thumbnail_url,
             effects: clipEffects,
+            spotlightX: clipSpotlightX,
+            spotlightY: clipSpotlightY,
           });
           return;
         }
@@ -227,6 +233,8 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
             videoUrl: clip.video_url,
             thumbnailUrl: clip.thumbnail_url,
             effects: clipEffects,
+            spotlightX: clipSpotlightX,
+            spotlightY: clipSpotlightY,
           });
         });
       });

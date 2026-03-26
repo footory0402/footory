@@ -102,10 +102,11 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
         </div>
       )}
 
-      {/* 네임태그 카드 — 하단 중앙 */}
+      {/* 네임태그 카드 — 하단 중앙 (seekbar 위로 올림, 애니메이션이 translateX(-50%) 포함) */}
       <div
-        className="absolute bottom-4 left-1/2 -translate-x-1/2"
+        className="absolute bottom-32"
         style={{
+          left: "50%",
           width: "82%",
           maxWidth: 320,
           animation: "overlay-nametag-in 0.2s ease-out 0.2s both",

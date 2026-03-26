@@ -295,7 +295,12 @@ export default function HighlightsTab({
         {!readOnly && editingClipId && onEditTags && (
           <TagEditSheet
             clipId={editingClipId}
-            currentTags={[]}
+            currentTags={
+              Object.entries(tagClips)
+                .filter(([, clips]) => clips.some((c) => c.id === editingClipId))
+                .map(([tagId]) => tagsToShow.find((t) => t.id === tagId)?.dbName ?? tagId)
+                .filter(Boolean) as string[]
+            }
             onClose={() => setEditingClipId(null)}
             onSave={onEditTags}
           />

@@ -20,6 +20,8 @@ interface TagClip {
   videoUrl: string;
   thumbnailUrl: string | null;
   effects?: Record<string, boolean> | null;
+  spotlightX?: number | null;
+  spotlightY?: number | null;
 }
 
 interface HighlightsTabV5Props {
@@ -27,6 +29,9 @@ interface HighlightsTabV5Props {
   untaggedClips?: TagClip[];
   tagClipsLoading?: boolean;
   position?: string | null;
+  playerName?: string | null;
+  playerBirthYear?: number | null;
+  playerTeamName?: string | null;
   onDeleteClip?: (clipId: string) => Promise<boolean>;
   onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
   onShare?: (clipId: string) => void;
@@ -52,6 +57,9 @@ export default function HighlightsTabV5({
   untaggedClips = [],
   tagClipsLoading,
   position,
+  playerName,
+  playerBirthYear,
+  playerTeamName,
   onDeleteClip,
   onEditTags,
   onShare,
@@ -151,6 +159,12 @@ export default function HighlightsTabV5({
       duration: c.duration,
       tag: c.tag,
       effects: c.effects ?? null,
+      spotlightX: c.spotlightX ?? null,
+      spotlightY: c.spotlightY ?? null,
+      playerName: playerName ?? undefined,
+      playerPosition: position ?? undefined,
+      playerBirthYear: playerBirthYear ?? undefined,
+      teamName: playerTeamName ?? undefined,
     }));
 
   const hasClips = dedupedClips.length > 0 || featured.length > 0;
@@ -448,7 +462,12 @@ export default function HighlightsTabV5({
         {!readOnly && editingClipId && onEditTags && (
           <TagEditSheet
             clipId={editingClipId}
-            currentTags={[]}
+            currentTags={
+              Object.entries(tagClips)
+                .filter(([, clips]) => clips.some((c) => c.id === editingClipId))
+                .map(([tagId]) => tagsToShow.find((t) => t.id === tagId)?.dbName ?? tagId)
+                .filter(Boolean) as string[]
+            }
             onClose={() => setEditingClipId(null)}
             onSave={onEditTags}
           />

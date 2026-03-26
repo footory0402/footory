@@ -292,8 +292,8 @@ export default function ClipPlayerSheet({
       )}
 
       {/* ── VideoOverlay ── */}
-      {clip.playerName && (clip.spotlightX != null || effects?.eafc || effects?.cinematic) && (
-        <div className="absolute inset-0 z-20 pointer-events-none">
+      {clip.playerName && (
+        <div className="absolute inset-0 z-[45] pointer-events-none">
           <VideoOverlay
             key={playCount}
             spotlight={clip.spotlightX != null && clip.spotlightY != null
