@@ -54,6 +54,23 @@ export async function getPresignedUploadUrl(
   return { url, key };
 }
 
+export async function getPresignedCardPhotoUrl(
+  userId: string
+): Promise<{ url: string; key: string }> {
+  const key = `card-photos/${userId}/photo.jpg`;
+  const bucket = process.env.R2_BUCKET_NAME || "footory-videos";
+
+  const client = getR2Client();
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: "image/jpeg",
+  });
+
+  const url = await getSignedUrl(client, command, { expiresIn: 600 });
+  return { url, key };
+}
+
 export async function getPresignedThumbnailUrl(
   userId: string,
   clipId: string

@@ -63,6 +63,7 @@ export default function EditorPage() {
           if (profile.weight_kg) profileDefaults.weight = String(profile.weight_kg);
           profileDefaults.foot = mapFoot(profile.preferred_foot);
           if (profile.birth_year) profileDefaults.birthDate = String(profile.birth_year);
+          if (profile.avatar_url) profileDefaults.photoUrl = profile.avatar_url;
         }
 
         if (card) {
@@ -103,7 +104,10 @@ export default function EditorPage() {
   const handleSave = useCallback(async () => {
     setSaveStatus("saving");
     try {
-      await fetch("/api/player-card", {
+      const hasNewPhoto = data.photoUrl && data.photoUrl.startsWith("data:");
+      const r2Url = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+
+      const res = await fetch("/api/player-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,6 +115,7 @@ export default function EditorPage() {
           clubName: data.customClubName || data.club,
           mainColor: data.customClubColor,
           accentColor: data.customClubAccent,
+          needPhotoUploadUrl: hasNewPhoto,
           cardData: {
             firstName: data.firstName,
             lastName: data.lastName,
@@ -124,9 +129,52 @@ export default function EditorPage() {
             weight: data.weight,
             foot: data.foot,
             nationality: data.nationality,
+            // Store R2 URL if already uploaded, otherwise will upload below
+            photoUrl: data.photoUrl && !data.photoUrl.startsWith("data:") ? data.photoUrl : undefined,
           },
         }),
       });
+
+      const result = await res.json();
+
+      // Upload photo to R2 if we have a new base64 photo
+      if (hasNewPhoto && result.photoUploadUrl) {
+        // Convert base64 to blob
+        const base64 = data.photoUrl.split(",")[1];
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: "image/jpeg" });
+
+        await fetch(result.photoUploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "image/jpeg" },
+          body: blob,
+        });
+
+        // Update card with R2 photo URL
+        const photoKey = `card-photos/${result.card.profile_id}/photo.jpg`;
+        const photoR2Url = `${r2Url}/${photoKey}?t=${Date.now()}`;
+
+        await fetch("/api/player-card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            template,
+            clubName: data.customClubName || data.club,
+            mainColor: data.customClubColor,
+            accentColor: data.customClubAccent,
+            cardData: {
+              ...result.card.card_data,
+              photoUrl: photoR2Url,
+            },
+          }),
+        });
+
+        // Update local state with R2 URL
+        setData((prev) => ({ ...prev, photoUrl: photoR2Url }));
+      }
+
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch {

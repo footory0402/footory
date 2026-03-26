@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
+import { getPresignedCardPhotoUrl } from "@/lib/r2";
 
 // GET: Load saved card (own or child's via ?profileId=xxx)
 export async function GET(request: NextRequest) {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     const { user, supabase } = auth;
 
     const body = await request.json();
-    const { profileId, template, clubName, mainColor, accentColor, cardData } = body;
+    const { profileId, template, clubName, mainColor, accentColor, cardData, needPhotoUploadUrl } = body;
 
     const targetId = profileId || user.id;
 
@@ -95,7 +96,15 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ card });
+
+      // Generate photo upload URL if requested
+      let photoUploadUrl: string | undefined;
+      if (needPhotoUploadUrl) {
+        const presign = await getPresignedCardPhotoUrl(targetId);
+        photoUploadUrl = presign.url;
+      }
+
+      return NextResponse.json({ card, photoUploadUrl });
     } else {
       // Insert
       const { data: card, error } = await supabase
@@ -112,7 +121,14 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ card }, { status: 201 });
+
+      let photoUploadUrl: string | undefined;
+      if (needPhotoUploadUrl) {
+        const presign = await getPresignedCardPhotoUrl(targetId);
+        photoUploadUrl = presign.url;
+      }
+
+      return NextResponse.json({ card, photoUploadUrl }, { status: 201 });
     }
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
