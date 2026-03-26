@@ -832,6 +832,7 @@ export async function startUpload() {
           thumbnail_url: null,
           highlight_start: store.highlightStart,
           highlight_end: highlightEnd,
+          effects: store.effects,
         };
 
     const clipRes = await apiFetch(
