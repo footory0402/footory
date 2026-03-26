@@ -54,6 +54,14 @@ const nextConfig: NextConfig = {
       ],
     },
     {
+      // 업로드 시 인트로 카드 합성에도 SharedArrayBuffer 필요
+      source: "/upload/:path*",
+      headers: [
+        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+      ],
+    },
+    {
       source: "/api/((?!discover).*)",
       headers: [
         { key: "Cache-Control", value: "private, no-cache" },
