@@ -21,6 +21,20 @@ export default function EditorPage() {
 
   // Load saved card + profile data on mount
   useEffect(() => {
+    // Map broad position (FW/MF/DF/GK) to specific position for card
+    const mapPosition = (pos: string | null): string => {
+      if (!pos) return "ST";
+      const map: Record<string, string> = { FW: "ST", MF: "CM", DF: "CB", GK: "GK" };
+      return map[pos] || pos;
+    };
+
+    // Map foot to Korean
+    const mapFoot = (foot: string | null): string => {
+      if (!foot) return "오른발";
+      const map: Record<string, string> = { right: "오른발", left: "왼발", both: "양발" };
+      return map[foot] || foot;
+    };
+
     fetch("/api/player-card")
       .then((r) => {
         if (!r.ok) return null;
@@ -35,18 +49,19 @@ export default function EditorPage() {
         const profileDefaults: Partial<PlayerData> = {};
         if (profile) {
           if (profile.name) {
-            const parts = profile.name.split(" ");
-            if (parts.length >= 2) {
-              profileDefaults.lastName = parts[0];
-              profileDefaults.firstName = parts.slice(1).join(" ");
+            // Korean names: first char = last name, rest = first name
+            const name = profile.name.trim();
+            if (name.length >= 2) {
+              profileDefaults.lastName = name.charAt(0);
+              profileDefaults.firstName = name.substring(1);
             } else {
-              profileDefaults.lastName = profile.name;
+              profileDefaults.lastName = name;
             }
           }
-          if (profile.position) profileDefaults.position = profile.position;
+          profileDefaults.position = mapPosition(profile.position);
           if (profile.height_cm) profileDefaults.height = String(profile.height_cm);
           if (profile.weight_kg) profileDefaults.weight = String(profile.weight_kg);
-          if (profile.preferred_foot) profileDefaults.foot = profile.preferred_foot;
+          profileDefaults.foot = mapFoot(profile.preferred_foot);
           if (profile.birth_year) profileDefaults.birthDate = String(profile.birth_year);
         }
 

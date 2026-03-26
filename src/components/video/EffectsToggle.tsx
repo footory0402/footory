@@ -22,6 +22,7 @@ const EFFECT_ITEMS = [
 
 export default function EffectsToggle({ effects, onChange }: EffectsToggleProps) {
   const [hasCard, setHasCard] = useState<boolean | null>(null);
+  const [cardInfo, setCardInfo] = useState<{ name: string; template: string; color: string } | null>(null);
 
   // Check if player card exists when intro toggle is relevant
   useEffect(() => {
@@ -31,7 +32,18 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
         return r.json();
       })
       .then((res) => {
-        setHasCard(!!res?.card);
+        if (res?.card) {
+          setHasCard(true);
+          const cd = res.card.card_data as Record<string, string>;
+          const templateLabels: Record<string, string> = { fifa: "FIFA", broadcast: "방송", minimal: "미니멀" };
+          setCardInfo({
+            name: `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "이름 없음",
+            template: templateLabels[res.card.template] || res.card.template,
+            color: res.card.accent_color || "#D4A853",
+          });
+        } else {
+          setHasCard(false);
+        }
       })
       .catch(() => setHasCard(false));
   }, []);
@@ -79,7 +91,27 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
               </div>
             </button>
 
-            {/* No card warning */}
+            {/* Intro card: saved card preview or warning */}
+            {isIntro && isOn && hasCard && cardInfo && (
+              <Link
+                href="/editor"
+                className="mt-1 flex items-center gap-3 rounded-xl border border-white/[0.06] bg-card px-4 py-3 transition-colors active:bg-surface"
+              >
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-[11px] font-bold text-white"
+                  style={{ background: cardInfo.color }}
+                >
+                  🎴
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-text-1 truncate">{cardInfo.name}</p>
+                  <p className="text-[10px] text-text-3">{cardInfo.template} 스타일 · 탭하여 수정</p>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-3">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </Link>
+            )}
             {showCardWarning && (
               <Link
                 href="/editor"
