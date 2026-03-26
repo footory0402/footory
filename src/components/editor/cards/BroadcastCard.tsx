@@ -1,24 +1,21 @@
 import { STADIUM_BG } from "../constants";
-import { STAT_LABELS, type PlayerData, type PlayerStats } from "../types";
+import type { PlayerData } from "../types";
 import { getClubColors } from "../utils";
-import RadarChart from "./RadarChart";
-
-const STAT_KEYS: (keyof PlayerStats)[] = [
-  "pace", "shooting", "passing", "dribbling", "defense", "physical",
-];
 
 export default function BroadcastCard({ data }: { data: PlayerData }) {
   const club = getClubColors(data);
-  const overall = Math.round(
-    STAT_KEYS.reduce((sum, k) => sum + data.stats[k], 0) / STAT_KEYS.length,
-  );
 
   const infoRows: [string, string][] = [
     ["NAME", `${data.lastName || "LAST"} ${data.firstName || "FIRST"}`],
-    ["NUMBER", data.number || "9"],
+    ["NUMBER", `#${data.number || "9"}`],
     ["POSITION", data.position || "ST"],
     ["CLUB", data.club || "FC Seoul U12"],
     ["BIRTH", data.birthDate || "-"],
+    ["AGE", data.age ? `${data.age}세` : "-"],
+    ["HEIGHT", data.height ? `${data.height}cm` : "-"],
+    ["WEIGHT", data.weight ? `${data.weight}kg` : "-"],
+    ["FOOT", data.foot || "-"],
+    ["NAT", data.nationality || "KOREA"],
   ];
 
   return (
@@ -45,9 +42,9 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
 
       <div className="relative z-10 flex h-full">
         {/* Left: Player Photo */}
-        <div className="flex w-[180px] items-end pl-6">
+        <div className="flex w-[200px] items-end pl-6">
           <div
-            className="flex h-[240px] w-[155px] items-end justify-center overflow-hidden rounded-t-lg"
+            className="flex h-[260px] w-[170px] items-end justify-center overflow-hidden rounded-t-lg"
             style={{
               background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -66,8 +63,8 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
           </div>
         </div>
 
-        {/* Center: Info */}
-        <div className="flex w-[240px] flex-col justify-between py-6">
+        {/* Right: Info */}
+        <div className="flex flex-1 flex-col justify-between py-5 pr-6">
           <div>
             <div className="mb-2 flex items-center gap-2">
               <span
@@ -75,12 +72,6 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
                 style={{ background: club.accent }}
               >
                 PLAYER REVIEW
-              </span>
-              <span
-                className="font-[var(--font-stat)] text-2xl font-black"
-                style={{ color: club.accent }}
-              >
-                {overall}
               </span>
             </div>
             <div className="mb-0.5 text-xs font-medium uppercase tracking-[4px] text-white/50">
@@ -97,10 +88,10 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
           </div>
 
           {/* Data rows */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {infoRows.map(([label, value], i) => (
-              <div key={i} className="flex h-[24px] items-center text-[11px]">
-                <span className="w-16 text-[9px] font-semibold tracking-[2px] text-white/35">
+              <div key={i} className="flex h-[22px] items-center text-[11px]">
+                <span className="w-16 text-[8px] font-semibold tracking-[2px] text-white/35">
                   {label}
                 </span>
                 <span
@@ -111,24 +102,6 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
                   }}
                 >
                   {value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right: Radar Chart */}
-        <div className="flex flex-1 flex-col items-center justify-center pr-4">
-          <RadarChart stats={data.stats} accentColor={club.accent} size={160} />
-          {/* Stat numbers below radar */}
-          <div className="mt-1 grid grid-cols-3 gap-x-3 gap-y-0.5">
-            {STAT_KEYS.map((key) => (
-              <div key={key} className="flex items-center gap-1">
-                <span className="text-[7px] font-bold tracking-wide text-white/35">
-                  {STAT_LABELS[key].en}
-                </span>
-                <span className="text-[9px] font-bold" style={{ color: club.accent }}>
-                  {data.stats[key]}
                 </span>
               </div>
             ))}

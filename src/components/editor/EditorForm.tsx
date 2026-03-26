@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { Upload, User, ClipboardList, Radar, Eraser, Loader2 } from "lucide-react";
+import { Upload, User, ClipboardList, Eraser, Loader2 } from "lucide-react";
 import { POSITIONS, CLUBS, FOOT_OPTIONS } from "./constants";
-import { STAT_LABELS, type PlayerData, type PlayerStats } from "./types";
+import type { PlayerData } from "./types";
 import type { RemovalStatus } from "./useBackgroundRemoval";
 
 interface EditorFormProps {
@@ -30,23 +30,12 @@ const inputClass =
 const selectClass =
   "w-full rounded-lg border border-white/8 bg-[#1a1a1e] px-3 py-2 text-sm text-text-1 outline-none transition-colors focus:border-accent/40 cursor-pointer";
 
-const STAT_KEYS: (keyof PlayerStats)[] = [
-  "pace", "shooting", "passing", "dribbling", "defense", "physical",
-];
-
 export default function EditorForm({ data, onChange, onRemoveBackground, bgRemovalStatus = "idle" }: EditorFormProps) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const update = useCallback(
-    (key: keyof PlayerData, value: PlayerData[keyof PlayerData]) => {
+    (key: keyof PlayerData, value: string) => {
       onChange({ ...data, [key]: value });
-    },
-    [data, onChange],
-  );
-
-  const updateStat = useCallback(
-    (key: keyof PlayerStats, value: number) => {
-      onChange({ ...data, stats: { ...data.stats, [key]: value } });
     },
     [data, onChange],
   );
@@ -65,7 +54,7 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
   );
 
   return (
-    <aside className="w-[360px] shrink-0 overflow-y-auto border-r border-white/6 bg-[#111114] p-5">
+    <aside className="w-full shrink-0 overflow-y-auto border-b border-white/6 bg-[#111114] p-5 md:w-[360px] md:border-b-0 md:border-r">
       {/* Section: Player Info */}
       <div className="mb-4 flex items-center gap-2 text-sm font-bold text-text-1">
         <User className="h-4 w-4 text-accent" />
@@ -312,49 +301,6 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
             placeholder="KOREA"
           />
         </FormField>
-      </div>
-
-      {/* Divider */}
-      <div className="my-5 h-px bg-white/6" />
-
-      {/* Section: Stats */}
-      <div className="mb-4 flex items-center gap-2 text-sm font-bold text-text-1">
-        <Radar className="h-4 w-4 text-accent" />
-        능력치
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {STAT_KEYS.map((key) => {
-          const label = STAT_LABELS[key];
-          const value = data.stats[key];
-          return (
-            <div key={key} className="flex items-center gap-3">
-              <span className="w-14 text-[11px] font-semibold text-text-3">
-                {label.ko}
-              </span>
-              <input
-                type="range"
-                min={1}
-                max={99}
-                value={value}
-                onChange={(e) => updateStat(key, Number(e.target.value))}
-                className="flex-1 accent-accent"
-                style={{ height: 4 }}
-              />
-              <input
-                type="number"
-                min={1}
-                max={99}
-                value={value}
-                onChange={(e) => {
-                  const v = Math.min(99, Math.max(1, Number(e.target.value) || 1));
-                  updateStat(key, v);
-                }}
-                className="w-12 rounded-md border border-white/8 bg-[#1a1a1e] px-2 py-1 text-center text-xs font-bold text-accent outline-none focus:border-accent/40"
-              />
-            </div>
-          );
-        })}
       </div>
     </aside>
   );
