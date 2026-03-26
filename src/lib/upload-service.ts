@@ -722,7 +722,28 @@ export async function startUpload() {
     store.setProgress(0);
 
     // 압축 파일 우선 사용 (용량 절감)
-    const uploadFile = store.compressedFile ?? store.file!;
+    let uploadFile: File = store.compressedFile ?? store.file!;
+
+    // 인트로 카드 합성 (effects.intro가 켜져 있으면)
+    if (store.effects.intro) {
+      try {
+        store.setStatus("composing");
+        store.setProgress(0);
+        const { composeIntroCard } = await import("./intro-composer");
+        const result = await composeIntroCard(uploadFile, (pct) => {
+          store.setProgress(pct);
+        });
+        if (!result.skipped) {
+          uploadFile = result.file;
+        } else {
+          console.warn("[Upload] Intro card skipped:", result.reason);
+        }
+      } catch (err) {
+        console.warn("[Upload] Intro compose failed:", err);
+      }
+      store.setStatus("uploading");
+      store.setProgress(0);
+    }
     const fileContentType = resolveContentType(uploadFile);
     let key = "";
     let clipId = "";

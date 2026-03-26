@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export type UploadStatus =
   | "idle"
+  | "composing"
   | "uploading"
   | "thumbnail"
   | "saving"

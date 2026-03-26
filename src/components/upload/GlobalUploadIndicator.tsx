@@ -6,6 +6,7 @@ import { useUploadStore, type UploadStatus } from "@/stores/upload-store";
 import { startR2BackgroundUpload } from "@/lib/upload-service";
 
 const ACTIVE_STATUSES: UploadStatus[] = [
+  "composing",
   "uploading_raw",
   "uploading",
   "thumbnail",
@@ -16,6 +17,8 @@ const ACTIVE_STATUSES: UploadStatus[] = [
 
 function getLabel(status: UploadStatus, progress: number): string {
   switch (status) {
+    case "composing":
+      return progress === 0 ? "인트로 카드 합성 준비 중..." : `인트로 카드 합성 중 ${progress}%`;
     case "uploading_raw":
     case "uploading":
       return progress === 0 ? "업로드 준비 중..." : `업로드 중 ${progress}%`;
