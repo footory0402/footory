@@ -725,6 +725,7 @@ export async function startUpload() {
     let uploadFile: File = store.compressedFile ?? store.file!;
 
     // 인트로 카드 합성 (effects.intro가 켜져 있으면)
+    let introComposed = false;
     if (store.effects.intro) {
       try {
         store.setStatus("composing");
@@ -735,6 +736,11 @@ export async function startUpload() {
         });
         if (!result.skipped) {
           uploadFile = result.file;
+          introComposed = true;
+          // 합성된 파일은 새로 업로드해야 하므로 기존 백그라운드 업로드 무효화
+          const s = useUploadStore.getState();
+          s.setR2Status("idle");
+          s.setR2Progress(0);
         } else {
           console.warn("[Upload] Intro card skipped:", result.reason);
         }
