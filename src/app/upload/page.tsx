@@ -212,9 +212,9 @@ export default function UploadPage() {
             trimStart={store.trimStart > 0 ? store.trimStart : undefined}
           />
 
-          {/* 영상 꾸미기 효과 */}
+          {/* 인트로 카드 */}
           <div>
-            <h3 className="mb-3 text-[14px] font-semibold text-text-1">영상 꾸미기</h3>
+            <h3 className="mb-3 text-[14px] font-semibold text-text-1">인트로 카드</h3>
             <EffectsToggle
               effects={effects}
               onChange={(partial) => useUploadStore.getState().setEffects(partial)}
