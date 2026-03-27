@@ -17,6 +17,14 @@
 - **상태**: Zustand 5 (업로드), React hooks (나머지)
 - **영상처리**: FFmpeg 클라이언트사이드 압축
 
+## 테스트 필수 규칙
+**기능 수정/추가 후 반드시 브라우저에서 실제 테스트할 것.**
+- Playwright 또는 agent-browser로 해당 기능의 전체 플로우 확인
+- 스크린샷 캡처하여 UI 정상 렌더링 확인
+- API 응답 확인 (evaluate로 fetch 테스트)
+- 테스트 미완료 시 배포 금지
+- 특히 영상 업로드/합성 같은 복잡한 플로우는 단계별로 검증
+
 ## 코딩 규칙
 1. 모든 컴포넌트 `.tsx` — TypeScript 필수
 2. 스타일은 Tailwind + CSS 변수 (`globals.css`) — 인라인 style 금지

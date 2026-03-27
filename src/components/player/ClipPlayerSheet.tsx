@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
+import type { HudPlayerData } from "@/components/video/hud/types";
+import dynamic from "next/dynamic";
+
+const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
 
 function getVideoErrorMessage(code: number): { message: string; retryable: boolean } {
   switch (code) {
@@ -81,6 +85,11 @@ export default function ClipPlayerSheet({
   const effects = clip?.effects;
   const touchHandled = useRef(false);
 
+  // Intro card overlay
+  const [showIntro, setShowIntro] = useState(false);
+  const [introData, setIntroData] = useState<HudPlayerData | null>(null);
+  const introShownRef = useRef<Set<string>>(new Set());
+
   // Lock body scroll
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -100,7 +109,36 @@ export default function ClipPlayerSheet({
     };
   }, []);
 
-  // Reset on clip change
+  // Load intro card data once
+  useEffect(() => {
+    if (introData) return;
+    fetch("/api/player-card")
+      .then((r) => r.ok ? r.json() : null)
+      .then((res) => {
+        if (!res?.card) return;
+        const cd = res.card.card_data;
+        setIntroData({
+          firstName: cd.firstName || "",
+          lastName: cd.lastName || "",
+          number: cd.number || "9",
+          position: cd.position || "ST",
+          club: cd.club === "직접 입력" ? (cd.customClubName || res.card.club_name || "") : (cd.club || ""),
+          age: cd.age || "",
+          birthDate: cd.birthDate || "",
+          height: cd.height || "",
+          weight: cd.weight || "",
+          foot: cd.foot || "",
+          nationality: cd.nationality || "KOREA",
+          photoUrl: cd.photoUrl || res.profile?.avatar_url || "",
+          mainColor: res.card.main_color || "#37474F",
+          accentColor: res.card.accent_color || "#78909C",
+        });
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reset on clip change + show intro if applicable
   useEffect(() => {
     setProgress(0);
     setCurrentTime(0);
@@ -110,8 +148,23 @@ export default function ClipPlayerSheet({
     setRetryCount(0);
     setShowControls(true);
     scheduleHide();
+
+    // Show intro card for clips with intro effect (only once per clip)
+    if (clip?.effects?.intro && introData && !introShownRef.current.has(clip.id)) {
+      introShownRef.current.add(clip.id);
+      setShowIntro(true);
+      // Pause video during intro
+      setTimeout(() => {
+        videoRef.current?.pause();
+      }, 50);
+      // Hide intro after 3 seconds, then play video
+      setTimeout(() => {
+        setShowIntro(false);
+        videoRef.current?.play();
+      }, 3000);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+  }, [index, introData]);
 
   const scheduleHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -270,6 +323,18 @@ export default function ClipPlayerSheet({
             transform: "scale(1.1)",
           }}
         />
+      )}
+
+      {/* ── 인트로 카드 오버레이 ── */}
+      {showIntro && introData && (
+        <div
+          className="absolute inset-0 z-[60] flex items-center justify-center bg-black"
+          style={{ animation: "fullscreen-player-in 0.5s ease-out" }}
+        >
+          <div className="h-full w-full" style={{ aspectRatio: "16/9" }}>
+            <IntroCard data={introData} />
+          </div>
+        </div>
       )}
 
       {/* ── 영상 ── */}

@@ -21,6 +21,7 @@ interface TagClip {
   isTop: boolean;
   videoUrl: string;
   thumbnailUrl: string | null;
+  effects?: Record<string, boolean> | null;
 }
 
 interface HighlightsTabProps {
@@ -121,6 +122,7 @@ export default function HighlightsTab({
       thumbnailUrl: c.thumbnailUrl,
       duration: c.duration,
       tag: c.tag,
+      effects: c.effects as PlayableClip["effects"],
     }));
 
   const hasClips = dedupedClips.length > 0 || featured.length > 0;
