@@ -109,15 +109,15 @@ export default function ClipPlayerSheet({
     };
   }, []);
 
-  // Load intro card data once
+  // Load intro card data and show intro immediately when ready
   useEffect(() => {
-    if (introData) return;
+    let cancelled = false;
     fetch("/api/player-card")
       .then((r) => r.ok ? r.json() : null)
       .then((res) => {
-        if (!res?.card) return;
+        if (cancelled || !res?.card) return;
         const cd = res.card.card_data;
-        setIntroData({
+        const data: HudPlayerData = {
           firstName: cd.firstName || "",
           lastName: cd.lastName || "",
           number: cd.number || "9",
@@ -129,16 +129,32 @@ export default function ClipPlayerSheet({
           weight: cd.weight || "",
           foot: cd.foot || "",
           nationality: cd.nationality || "KOREA",
-          photoUrl: cd.photoUrl || res.profile?.avatar_url || "",
+          photoUrl: (cd.photoUrl && !cd.photoUrl.startsWith("blob:")) ? cd.photoUrl : (res.profile?.avatar_url || ""),
           mainColor: res.card.main_color || "#37474F",
           accentColor: res.card.accent_color || "#78909C",
-        });
+        };
+        setIntroData(data);
+
+        // Show intro for current clip immediately
+        const currentClip = clipsProp[initialIndex];
+        if (currentClip && !introShownRef.current.has(currentClip.id)) {
+          introShownRef.current.add(currentClip.id);
+          videoRef.current?.pause();
+          setShowIntro(true);
+          setTimeout(() => {
+            if (!cancelled) {
+              setShowIntro(false);
+              videoRef.current?.play();
+            }
+          }, 3000);
+        }
       })
       .catch(() => {});
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reset on clip change + show intro if applicable
+  // Reset on clip change
   useEffect(() => {
     setProgress(0);
     setCurrentTime(0);
@@ -149,18 +165,18 @@ export default function ClipPlayerSheet({
     setShowControls(true);
     scheduleHide();
 
-    // Show intro card if player card exists (only once per clip)
+    // Show intro for subsequent clips (introData already loaded)
     if (introData && clip && !introShownRef.current.has(clip.id)) {
       introShownRef.current.add(clip.id);
+      videoRef.current?.pause();
       setShowIntro(true);
-      // Hide intro after 3 seconds, then play video
       setTimeout(() => {
         setShowIntro(false);
         videoRef.current?.play();
       }, 3000);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, introData]);
+  }, [index]);
 
   const scheduleHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
