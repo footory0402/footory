@@ -149,9 +149,8 @@ export default function ClipPlayerSheet({
     setShowControls(true);
     scheduleHide();
 
-    // Show intro card for clips with intro effect (only once per clip)
-    const shouldShowIntro = clip?.effects?.intro && introData && !introShownRef.current.has(clip?.id ?? "");
-    if (shouldShowIntro && clip) {
+    // Show intro card if player card exists (only once per clip)
+    if (introData && clip && !introShownRef.current.has(clip.id)) {
       introShownRef.current.add(clip.id);
       setShowIntro(true);
       // Hide intro after 3 seconds, then play video
