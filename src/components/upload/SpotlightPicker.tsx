@@ -29,27 +29,42 @@ export default function SpotlightPicker({ file, trimStart }: SpotlightPickerProp
     video.preload = "auto";
     video.muted = true;
     video.playsInline = true;
+    // crossOrigin 설정하지 않음 — blob URL에서는 불필요하고 오히려 차단 유발
     const url = URL.createObjectURL(file);
     video.src = url;
 
-    video.onloadeddata = () => {
-      video.currentTime = trimStart !== undefined && trimStart > 0 ? trimStart : 0.5;
-    };
-    video.onseeked = () => {
+    let captured = false;
+    const captureFrame = () => {
+      if (captured) return;
+      if (!video.videoWidth || !video.videoHeight) return;
+      captured = true;
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0);
-        setFrameUrl(canvas.toDataURL("image/jpeg", 0.8));
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        if (dataUrl && dataUrl.length > 100) {
+          setFrameUrl(dataUrl);
+        }
       }
-      // revoke는 cleanup에서만 수행
+    };
+
+    video.onloadeddata = () => {
+      const seekTo = trimStart !== undefined && trimStart > 0 ? trimStart : 0.1;
+      video.currentTime = seekTo;
+    };
+    video.onseeked = captureFrame;
+    // Fallback: 일부 모바일에서 onseeked가 안 불리면 timeupdate로 캡처
+    video.ontimeupdate = () => {
+      if (video.currentTime > 0) captureFrame();
     };
 
     return () => {
       video.onloadeddata = null;
       video.onseeked = null;
+      video.ontimeupdate = null;
       video.src = "";
       URL.revokeObjectURL(url);
     };
