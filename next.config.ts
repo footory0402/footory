@@ -53,14 +53,8 @@ const nextConfig: NextConfig = {
         { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
       ],
     },
-    {
-      // 업로드 시 인트로 카드 합성에도 SharedArrayBuffer 필요
-      source: "/upload/:path*",
-      headers: [
-        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-        { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
-      ],
-    },
+    // /upload COOP/COEP 제거 — blob URL을 깨뜨림 (SpotlightPicker 등)
+    // 인트로 합성은 재생 시 오버레이로 전환했으므로 SharedArrayBuffer 불필요
     {
       // 하이라이트 편집 시 ffmpeg.wasm 사용
       source: "/edit/:path*",

@@ -331,8 +331,81 @@ export default function ClipPlayerSheet({
           className="absolute inset-0 z-[60] flex items-center justify-center bg-black"
           style={{ animation: "fullscreen-player-in 0.5s ease-out" }}
         >
-          <div className="h-full w-full" style={{ aspectRatio: "16/9" }}>
-            <IntroCard data={introData} />
+          <div className="flex h-full w-full flex-col items-center justify-center p-6">
+            {/* 선수 정보 카드 — 모바일 세로 최적화 */}
+            <div
+              className="flex w-full max-w-[340px] flex-col items-center rounded-2xl p-6"
+              style={{
+                background: `linear-gradient(135deg, ${introData.mainColor} 0%, #0a0a0a 50%, ${introData.accentColor}44 100%)`,
+                border: "1px solid rgba(255,255,255,0.08)",
+                boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${introData.accentColor}22`,
+              }}
+            >
+              {/* Number + Position */}
+              <div className="flex w-full items-start justify-between">
+                <div>
+                  <div className="font-[var(--font-stat)] text-[48px] font-black leading-none text-white" style={{ textShadow: `2px 2px 20px ${introData.accentColor}66` }}>
+                    {introData.number || "9"}
+                  </div>
+                  <div className="mt-1 text-[11px] font-semibold uppercase tracking-[3px] text-white/50">
+                    {introData.position || "ST"}
+                  </div>
+                </div>
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-[8px] font-bold text-white"
+                  style={{ background: `linear-gradient(135deg, ${introData.mainColor}, ${introData.accentColor})` }}
+                >
+                  {introData.club.replace(/\s*U\d+/, "").substring(0, 5)}
+                </div>
+              </div>
+
+              {/* Photo */}
+              <div
+                className="mt-4 flex h-[120px] w-[120px] items-center justify-center overflow-hidden rounded-full"
+                style={{ border: `2px solid ${introData.accentColor}44`, background: "rgba(255,255,255,0.05)" }}
+              >
+                {introData.photoUrl && !introData.photoUrl.startsWith("blob:") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={introData.photoUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                )}
+              </div>
+
+              {/* Name */}
+              <div className="mt-3 text-center">
+                <div className="text-[28px] font-black text-white">
+                  {introData.lastName}{introData.firstName}
+                </div>
+                <div
+                  className="mt-1 inline-block rounded px-2.5 py-0.5 text-[10px] font-bold text-white"
+                  style={{ background: `${introData.accentColor}33` }}
+                >
+                  {introData.club}
+                </div>
+              </div>
+
+              {/* Info grid */}
+              <div className="mt-4 grid w-full grid-cols-2 gap-px overflow-hidden rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+                {[
+                  { label: "생년월일", value: introData.birthDate || "-" },
+                  { label: "나이", value: introData.age ? `${introData.age}세` : "-" },
+                  { label: "키", value: introData.height ? `${introData.height}cm` : "-" },
+                  { label: "몸무게", value: introData.weight ? `${introData.weight}kg` : "-" },
+                ].map((item, i) => (
+                  <div key={i} className="px-3 py-2" style={{ background: "rgba(10,10,12,0.85)" }}>
+                    <div className="text-[7px] font-semibold uppercase tracking-[1px] text-white/30">{item.label}</div>
+                    <div className="mt-0.5 text-[11px] font-bold" style={{ color: introData.accentColor }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className="mt-3 text-[8px] tracking-[3px] text-white/20">FOOTORY.COM</div>
+            </div>
           </div>
         </div>
       )}
