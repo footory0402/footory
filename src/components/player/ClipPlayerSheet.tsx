@@ -150,13 +150,10 @@ export default function ClipPlayerSheet({
     scheduleHide();
 
     // Show intro card for clips with intro effect (only once per clip)
-    if (clip?.effects?.intro && introData && !introShownRef.current.has(clip.id)) {
+    const shouldShowIntro = clip?.effects?.intro && introData && !introShownRef.current.has(clip?.id ?? "");
+    if (shouldShowIntro && clip) {
       introShownRef.current.add(clip.id);
       setShowIntro(true);
-      // Pause video during intro
-      setTimeout(() => {
-        videoRef.current?.pause();
-      }, 50);
       // Hide intro after 3 seconds, then play video
       setTimeout(() => {
         setShowIntro(false);
@@ -416,7 +413,7 @@ export default function ClipPlayerSheet({
           key={clip.id}
           ref={videoRef}
           src={clip.videoUrl}
-          autoPlay
+          autoPlay={!showIntro}
           playsInline
           preload="metadata"
           loop

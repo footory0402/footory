@@ -60,8 +60,18 @@ export default function SpotlightPicker({ file, trimStart }: SpotlightPickerProp
     video.ontimeupdate = () => {
       if (video.currentTime > 0) captureFrame();
     };
+    // 모바일에서 preload/자동 로드가 안 될 수 있으므로 명시적 load
+    video.load();
+
+    // Fallback timeout: 3초 후에도 프레임 못 캡처하면 직접 시도
+    const fallbackTimer = setTimeout(() => {
+      if (!captured && video.readyState >= 2) {
+        captureFrame();
+      }
+    }, 3000);
 
     return () => {
+      clearTimeout(fallbackTimer);
       video.onloadeddata = null;
       video.onseeked = null;
       video.ontimeupdate = null;
