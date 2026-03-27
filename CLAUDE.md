@@ -63,55 +63,51 @@ R2_BUCKET_NAME=footory-videos
 R2_PUBLIC_URL=
 ```
 
-## 에디터 기능 (신규 추가 예정)
+## 에디터 기능 (Phase 1 — 구현 완료)
 
-### 목표
-학부모가 선수 정보를 입력하면 프로급 선수 프로필 카드(FIFA 스타일)를
-자동 생성하고, 애니메이션 MP4 영상으로 내보낼 수 있는 웹 에디터.
+### 개요
+선수 프로필 카드를 생성/저장하고, 영상 업로드 시 인트로로 자동 합성.
+로그인 없이도 에디터 접근 가능 (/editor는 public 경로).
 
-### 참고 영상
-유소년 축구 하이라이트 영상의 구성:
-- 선수 인트로 카드 (이름, 등번호, 포지션, 구단 로고, 경기장 배경)
-- Player Review 카드 (이름/번호/나이/생년월일/키/몸무게/주발/포지션/클럽/국적)
-- 경기 하이라이트 + HUD 오버레이 (선수 썸네일, 스탯바, 골 카운터)
-
-### 에디터 기술 전략
-- Phase 1 (지금): 인트로/프로필 카드 → Canvas + ffmpeg.wasm으로 브라우저에서 MP4 생성 (서버 비용 0)
-- Phase 2 (나중): 경기 영상 HUD 오버레이 → 서버사이드 FFmpeg
-- 배경 제거: @imgly/background-removal (브라우저 ONNX) 또는 rembg
-
-### 에디터 UI 구성
-- 2단 레이아웃: 좌(입력폼 360px) / 우(실시간 카드 미리보기)
+### 구현된 기능
 - 3가지 템플릿: FIFA 스타일(세로) / 방송 스타일(가로) / 미니멀(세로)
-- 구단별 컬러 자동 매핑 (FC Seoul=#C0392B, Jeonbuk=#2E7D32, Ulsan=#1565C0 등)
+- 프로필 자동 채움: 에디터 진입 시 로그인된 사용자의 프로필 데이터 자동 로드
+- 카드 저장/불러오기: player_cards 테이블 (프로필당 1장, upsert)
+- 사진 R2 업로드: card-photos/{userId}/photo.jpg로 저장
+- 배경 제거: @imgly/background-removal (브라우저 ONNX)
+- 컬러 자유 선택: 프로구단 프리셋 + 커스텀 컬러피커 항상 노출
 - 내보내기: PNG 이미지 + MP4 영상(애니메이션)
+- 모바일 반응형 레이아웃 (세로 스택 + 카드 자동 축소)
 
-### 선수 프로필 데이터
-firstName, lastName, number, position(GK/CB/LB/RB/CDM/CM/CAM/LW/RW/ST/CF),
-club, age, birthDate, height(cm), weight(kg), foot(오른발/왼발/양발),
-nationality, photoUrl
+### 영상 업로드 연동 (클라이언트사이드 합성)
+- 업로드 시 "인트로 카드" 토글 ON → 저장된 카드 자동 합성
+- card-renderer.ts: Canvas로 카드 PNG 렌더링
+- intro-composer.ts: ffmpeg.wasm으로 카드 2초 + 원본 영상 concat
+- GlobalUploadIndicator에서 "인트로 카드 합성 중" 단계 표시
+- SharedArrayBuffer 미지원 시 합성 건너뛰고 원본 업로드
 
-### 에디터 파일 위치 규칙
-- 페이지: app/editor/
-- 컴포넌트: components/editor/
-- API: app/api/editor/
-- 기존 코드(로그인, 홈, 영상 업로드 등)는 절대 수정하지 않음
+### 부모용 자녀 프로필 관리
+- /upload/child/[id]: 자녀 기본정보(포지션/등번호/키/몸무게) 편집 + 시즌 기록 CRUD
+- /api/parent/child/[id]: 부모-자녀 링크 검증 후 프로필 GET/PUT
+- /api/parent/child/[id]/seasons: 시즌 기록 GET/POST/DELETE
+- ChildSelector: 자녀별 "편집" 버튼 + 프로필 미완성 뱃지
+
+### 파일 위치
+- 에디터 페이지: app/editor/
+- 에디터 컴포넌트: components/editor/
+- 카드 API: app/api/player-card/
+- 카드 렌더러: lib/card-renderer.ts
+- 인트로 합성: lib/intro-composer.ts
+- 자녀 관리 API: app/api/parent/child/[id]/
+- 자녀 편집 페이지: app/upload/child/[id]/
 
 ### ffmpeg.wasm 주의사항
-- SharedArrayBuffer 필요 → next.config.js에 /editor 경로 COOP/COEP 헤더 추가
-- 모바일 미지원 → "PC에서 이용해주세요" 안내 필요
+- SharedArrayBuffer 필요 → /editor, /upload 경로에 COOP/COEP 헤더 추가됨
+- 모바일에서도 동작 (COOP/COEP 헤더 적용 완료)
 
-### 카드 캡처 주의사항
-- html-to-image로 PNG 내보내기
-- 외부 이미지 CORS → R2 버킷 CORS 설정에 에디터 도메인 추가
-- 폰트 → Pretendard self-host 권장 (외부 폰트는 캡처 시 누락 가능)
-
-### 에디터 UI 레퍼런스
-프로젝트 루트의 docs/footory-editor.jsx 파일을 참고할 것.
-3가지 카드 템플릿(FIFA/방송/미니멀)의 디자인 토큰,
-레이아웃 구조, 구단별 컬러 매핑이 구현되어 있음.
-이 파일의 디자인을 Tailwind CSS로 전환하여 사용.
-```
+### DB 테이블
+- player_cards: id, profile_id(UNIQUE), template, club_name, main_color, accent_color, card_data(JSONB)
+- RLS: 본인 + 연동 부모만 접근 가능
 
 ## 영상 편집 기능 (Phase 2)
 
