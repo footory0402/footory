@@ -61,6 +61,14 @@ export async function PATCH(
         .eq("id", id);
     }
 
+    // Update video_url if provided (from highlight generation)
+    if ("video_url" in body && typeof body.video_url === "string") {
+      await supabase
+        .from("clips")
+        .update({ video_url: body.video_url })
+        .eq("id", id);
+    }
+
     // Update memo if provided
     if ("memo" in body) {
       const memo = typeof body.memo === "string" ? body.memo.slice(0, 200) : null;

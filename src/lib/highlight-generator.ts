@@ -329,8 +329,9 @@ export async function generateHighlightVideo(
   data: HudPlayerData,
   _config: HudConfig,
   videoUrl: string,
-  onProgress: ProgressCallback
-): Promise<void> {
+  onProgress: ProgressCallback,
+  clipId?: string,
+): Promise<Blob> {
   if (typeof SharedArrayBuffer === "undefined") {
     throw new Error("SharedArrayBuffer 미지원 — PC Chrome에서 시도해주세요");
   }
@@ -453,17 +454,63 @@ export async function generateHighlightVideo(
     "-c", "copy", "-movflags", "+faststart", "final.mp4",
   ]);
 
-  onProgress(95);
+  onProgress(92);
 
-  // ─── Download result ───
+  // ─── Read final video ───
   const finalData = await ffmpeg.readFile("final.mp4");
   const finalBlob = new Blob([new Uint8Array(finalData as unknown as ArrayBuffer)], { type: "video/mp4" });
-  const url = URL.createObjectURL(finalBlob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `footory-highlight-${Date.now()}.mp4`;
-  a.click();
-  URL.revokeObjectURL(url);
+
+  // ─── Upload to R2 via presigned URL ───
+  if (clipId) {
+    onProgress(94);
+    try {
+      const presignRes = await fetch("/api/upload/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: "video/mp4",
+          fileName: `highlight-${clipId}.mp4`,
+          fileSize: finalBlob.size,
+          clipId,
+          prefix: "highlights",
+        }),
+      });
+
+      if (presignRes.ok) {
+        const { url: uploadUrl, key } = await presignRes.json();
+        onProgress(96);
+
+        // Upload to R2
+        await fetch(uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "video/mp4" },
+          body: finalBlob,
+        });
+
+        onProgress(98);
+
+        // Update clip video_url with highlight version
+        const r2Url = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+        const highlightUrl = `${r2Url}/${key}`;
+
+        await fetch(`/api/clips/${clipId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ video_url: highlightUrl }),
+        });
+      }
+    } catch (err) {
+      console.warn("[Highlight] R2 upload failed, falling back to download:", err);
+      // Fallback: download locally
+      const url = URL.createObjectURL(finalBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `footory-highlight-${Date.now()}.mp4`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }
 
   onProgress(100);
+  return finalBlob;
 }

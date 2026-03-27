@@ -41,6 +41,7 @@ interface ClipPlayerSheetProps {
   onDelete?: (clipId: string) => Promise<boolean>;
   onEditTags?: (clipId: string) => void;
   onShare?: (clipId: string) => void;
+  onHighlightEdit?: (clipId: string) => void;
 }
 
 export default function ClipPlayerSheet({
@@ -50,6 +51,7 @@ export default function ClipPlayerSheet({
   onDelete,
   onEditTags,
   onShare,
+  onHighlightEdit,
 }: ClipPlayerSheetProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localClips, setLocalClips] = useState(clipsProp);
@@ -383,6 +385,17 @@ export default function ClipPlayerSheet({
               </svg>
             </div>
             <span className="text-[10px] text-white/60">공유</span>
+          </button>
+        )}
+        {onHighlightEdit && (
+          <button onClick={() => onHighlightEdit(clip.id)} className="flex flex-col items-center gap-1">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-accent active:bg-accent/30">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+            </div>
+            <span className="text-[10px] text-accent/80">하이라이트</span>
           </button>
         )}
         {onEditTags && (

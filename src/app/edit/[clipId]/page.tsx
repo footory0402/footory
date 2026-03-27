@@ -84,8 +84,16 @@ export default function VideoEditPage() {
         playerData,
         hudConfig,
         clipData.video_url,
-        (pct) => setGenProgress(pct)
+        (pct) => setGenProgress(pct),
+        clipId,
       );
+      // Reload clip data to show updated video
+      const res = await fetch(`/api/clips/${clipId}`);
+      if (res.ok) {
+        const { clip } = await res.json();
+        if (clip) setClipData({ video_url: clip.video_url, duration_seconds: clip.duration_seconds });
+      }
+      setActiveSection("highlight");
     } catch (err) {
       console.error("Generation failed:", err);
       alert("영상 생성에 실패했습니다. PC에서 다시 시도해주세요.");
@@ -93,7 +101,7 @@ export default function VideoEditPage() {
       setGenerating(false);
       setGenProgress(0);
     }
-  }, [playerData, hudConfig, clipData]);
+  }, [playerData, hudConfig, clipData, clipId]);
 
   if (loading) {
     return (

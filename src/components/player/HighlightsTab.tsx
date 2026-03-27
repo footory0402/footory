@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import VideoThumb from "./VideoThumb";
 import ClipPlayerSheet, { type PlayableClip } from "./ClipPlayerSheet";
@@ -51,6 +52,7 @@ export default function HighlightsTab({
   readOnly,
   initialFeatured,
 }: HighlightsTabProps) {
+  const router = useRouter();
   const { featured: hookFeatured, fetchFeatured, addFeatured, removeFeatured } = useFeaturedClips();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -277,6 +279,11 @@ export default function HighlightsTab({
               setPlayingIndex(null);
               setPlayingSource(null);
               setEditingClipId(clipId);
+            } : undefined}
+            onHighlightEdit={!readOnly ? (clipId) => {
+              setPlayingIndex(null);
+              setPlayingSource(null);
+              router.push(`/edit/${clipId}`);
             } : undefined}
           />
         )}
