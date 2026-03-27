@@ -1,35 +1,33 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import HudOverlay from "@/components/video/hud/HudOverlay";
 import IntroCard from "@/components/video/hud/IntroCard";
 import PlayerReviewCard from "@/components/video/hud/PlayerReviewCard";
 import OutroCard from "@/components/video/hud/OutroCard";
-import { DEFAULT_HUD_CONFIG, type HudPlayerData, type HudConfig } from "@/components/video/hud/types";
+import { DEFAULT_HUD_CONFIG, type HudPlayerData } from "@/components/video/hud/types";
 
 type PreviewSection = "intro" | "review" | "highlight" | "outro";
 
 export default function VideoEditPage() {
   const { clipId } = useParams<{ clipId: string }>();
   const router = useRouter();
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [playerData, setPlayerData] = useState<HudPlayerData | null>(null);
   const [clipData, setClipData] = useState<{ video_url: string; duration_seconds: number } | null>(null);
-  const [hudConfig, setHudConfig] = useState<HudConfig>(DEFAULT_HUD_CONFIG);
   const [activeSection, setActiveSection] = useState<PreviewSection>("intro");
   const [reviewProgress, setReviewProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [genProgress, setGenProgress] = useState(0);
+  const [done, setDone] = useState(false);
 
   // Load player card + clip data
   useEffect(() => {
     Promise.all([
       fetch("/api/player-card").then((r) => r.ok ? r.json() : null),
-      fetch(`/api/clips`).then((r) => r.ok ? r.json() : null),
-    ]).then(([cardRes, clipsRes]) => {
+      fetch(`/api/clips/${clipId}`).then((r) => r.ok ? r.json() : null),
+    ]).then(([cardRes, clipRes]) => {
       if (cardRes?.card) {
         const cd = cardRes.card.card_data;
         setPlayerData({
@@ -37,7 +35,7 @@ export default function VideoEditPage() {
           lastName: cd.lastName || "",
           number: cd.number || "9",
           position: cd.position || "ST",
-          club: cd.club || cd.customClubName || cardRes.card.club_name || "",
+          club: cd.club === "직접 입력" ? (cd.customClubName || cardRes.card.club_name || "") : (cd.club || ""),
           age: cd.age || "",
           birthDate: cd.birthDate || "",
           height: cd.height || "",
@@ -49,9 +47,8 @@ export default function VideoEditPage() {
           accentColor: cardRes.card.accent_color || "#78909C",
         });
       }
-      if (clipsRes?.clips) {
-        const clip = clipsRes.clips.find((c: { id: string }) => c.id === clipId);
-        if (clip) setClipData({ video_url: clip.video_url, duration_seconds: clip.duration_seconds });
+      if (clipRes?.clip) {
+        setClipData({ video_url: clipRes.clip.video_url, duration_seconds: clipRes.clip.duration_seconds });
       }
       setLoading(false);
     });
@@ -78,30 +75,22 @@ export default function VideoEditPage() {
     setGenProgress(0);
 
     try {
-      // Dynamic import to keep bundle small
       const { generateHighlightVideo } = await import("@/lib/highlight-generator");
       await generateHighlightVideo(
         playerData,
-        hudConfig,
+        DEFAULT_HUD_CONFIG,
         clipData.video_url,
         (pct) => setGenProgress(pct),
         clipId,
       );
-      // Reload clip data to show updated video
-      const res = await fetch(`/api/clips/${clipId}`);
-      if (res.ok) {
-        const { clip } = await res.json();
-        if (clip) setClipData({ video_url: clip.video_url, duration_seconds: clip.duration_seconds });
-      }
-      setActiveSection("highlight");
+      setDone(true);
     } catch (err) {
       console.error("Generation failed:", err);
       alert("영상 생성에 실패했습니다. PC에서 다시 시도해주세요.");
     } finally {
       setGenerating(false);
-      setGenProgress(0);
     }
-  }, [playerData, hudConfig, clipData, clipId]);
+  }, [playerData, clipData, clipId]);
 
   if (loading) {
     return (
@@ -114,12 +103,34 @@ export default function VideoEditPage() {
   if (!playerData) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0a0a0c] px-4 text-center">
-        <p className="text-sm text-text-3">먼저 선수카드를 만들어주세요</p>
+        <span className="text-3xl">🎴</span>
+        <p className="text-[15px] font-semibold text-text-1">선수카드가 필요해요</p>
+        <p className="text-[13px] text-text-3">하이라이트 영상을 만들려면 먼저 선수카드를 만들어주세요</p>
         <button
           onClick={() => router.push("/editor")}
-          className="rounded-xl bg-accent px-6 py-3 text-sm font-bold text-black"
+          className="mt-2 rounded-xl bg-accent px-6 py-3 text-[14px] font-bold text-black"
         >
           카드 만들러 가기
+        </button>
+      </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#0a0a0c] px-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D4A853" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <p className="text-[17px] font-bold text-text-1">하이라이트 완성!</p>
+        <p className="text-[13px] text-text-3">영상이 저장되었습니다</p>
+        <button
+          onClick={() => router.push("/profile?tab=highlights")}
+          className="mt-2 rounded-xl bg-accent px-6 py-3 text-[14px] font-bold text-black"
+        >
+          프로필에서 확인
         </button>
       </div>
     );
@@ -140,57 +151,46 @@ export default function VideoEditPage() {
         <button
           onClick={handleGenerate}
           disabled={generating || !clipData}
-          className="rounded-lg bg-gradient-to-r from-accent to-[#c49a3d] px-4 py-2 text-[13px] font-bold text-black shadow-lg disabled:opacity-50"
+          className="rounded-lg bg-accent px-4 py-2 text-[13px] font-bold text-black disabled:opacity-50"
         >
           {generating ? `생성 중 ${genProgress}%` : "영상 생성"}
         </button>
       </header>
 
       {/* Preview area */}
-      <div className="flex flex-1 flex-col">
-        {/* Video / Card Preview */}
-        <div className="relative mx-auto w-full max-w-[640px] overflow-hidden bg-black" style={{ aspectRatio: "16/9" }}>
+      <div className="flex flex-1 flex-col px-4 pt-4">
+        {/* Card / Video Preview */}
+        <div className="relative mx-auto w-full max-w-[640px] overflow-hidden rounded-xl bg-black" style={{ aspectRatio: "16/9" }}>
           {activeSection === "intro" && <IntroCard data={playerData} />}
           {activeSection === "review" && <PlayerReviewCard data={playerData} progress={reviewProgress} />}
           {activeSection === "outro" && <OutroCard accentColor={playerData.accentColor} />}
-          {activeSection === "highlight" && (
-            <>
-              {clipData ? (
-                <video
-                  ref={videoRef}
-                  src={clipData.video_url}
-                  className="h-full w-full object-contain"
-                  controls
-                  playsInline
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-text-3">
-                  영상을 불러올 수 없습니다
-                </div>
-              )}
-              <HudOverlay data={playerData} config={hudConfig} />
-            </>
+          {activeSection === "highlight" && clipData && (
+            <video
+              src={clipData.video_url}
+              className="h-full w-full object-contain"
+              controls
+              playsInline
+            />
           )}
         </div>
 
-        {/* Timeline bar */}
-        <div className="mx-auto mt-3 flex w-full max-w-[640px] gap-1 px-4">
+        {/* Timeline */}
+        <div className="mx-auto mt-3 flex w-full max-w-[640px] gap-1">
           {(["intro", "review", "highlight", "outro"] as PreviewSection[]).map((section) => {
             const labels: Record<PreviewSection, string> = {
-              intro: "인트로 5초",
-              review: "리뷰 5초",
-              highlight: "경기 영상",
-              outro: "아웃트로 3초",
+              intro: "인트로",
+              review: "리뷰",
+              highlight: "경기영상",
+              outro: "아웃트로",
             };
-            const isActive = activeSection === section;
             return (
               <button
                 key={section}
                 onClick={() => setActiveSection(section)}
-                className={`rounded-lg px-3 py-2 text-[11px] font-semibold transition-all ${
-                  isActive
+                className={`rounded-lg px-3 py-2 text-[12px] font-semibold transition-all ${
+                  activeSection === section
                     ? "bg-accent text-black"
-                    : "bg-[#1a1a1e] text-text-3 hover:text-text-1"
+                    : "bg-[#1a1a1e] text-text-3"
                 } ${section === "highlight" ? "flex-1" : ""}`}
               >
                 {labels[section]}
@@ -199,68 +199,23 @@ export default function VideoEditPage() {
           })}
         </div>
 
-        {/* HUD Config Panel */}
-        {activeSection === "highlight" && (
-          <div className="mx-auto mt-4 w-full max-w-[640px] px-4">
-            <h3 className="mb-3 text-[13px] font-bold text-text-1">HUD 설정</h3>
-            <div className="flex flex-col gap-1">
-              {[
-                { key: "showTopBar" as const, label: "상단 타이틀바" },
-                { key: "showMiniCard" as const, label: "좌하단 선수 미니카드" },
-                { key: "showInfoBar" as const, label: "하단 정보바" },
-                { key: "showGoalCounter" as const, label: "골 카운터" },
-              ].map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setHudConfig((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
-                  className="flex items-center justify-between rounded-xl bg-card px-4 py-3"
-                >
-                  <span className="text-[13px] font-medium text-text-1">{item.label}</span>
-                  <div
-                    className={`relative h-6 w-11 rounded-full transition-colors ${
-                      hudConfig[item.key] ? "bg-accent" : "bg-[#2a2a2e]"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                        hudConfig[item.key] ? "translate-x-[22px]" : "translate-x-0.5"
-                      }`}
-                    />
-                  </div>
-                </button>
-              ))}
-
-              {/* Goal count input */}
-              {hudConfig.showGoalCounter && (
-                <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-3">
-                  <span className="flex-1 text-[13px] font-medium text-text-1">골 수</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setHudConfig((p) => ({ ...p, goalCount: Math.max(0, p.goalCount - 1) }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-text-2 active:bg-white/10"
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center font-[var(--font-stat)] text-[18px] font-bold text-accent">
-                      {hudConfig.goalCount}
-                    </span>
-                    <button
-                      onClick={() => setHudConfig((p) => ({ ...p, goalCount: p.goalCount + 1 }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-text-2 active:bg-white/10"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+        {/* Info */}
+        <div className="mx-auto mt-4 w-full max-w-[640px] rounded-xl border border-white/[0.06] bg-card p-4">
+          <p className="text-[13px] font-semibold text-text-1">완성 영상 구조</p>
+          <div className="mt-2 flex items-center gap-1 text-[11px] text-text-3">
+            <span className="rounded bg-accent/15 px-2 py-0.5 font-semibold text-accent">인트로 5초</span>
+            <span className="text-text-3">→</span>
+            <span className="rounded bg-accent/15 px-2 py-0.5 font-semibold text-accent">리뷰 5초</span>
+            <span className="text-text-3">→</span>
+            <span className="flex-1 rounded bg-white/[0.06] px-2 py-0.5 text-center font-semibold text-text-2">경기 영상</span>
+            <span className="text-text-3">→</span>
+            <span className="rounded bg-accent/15 px-2 py-0.5 font-semibold text-accent">아웃트로 3초</span>
           </div>
-        )}
+        </div>
 
         {/* Generation progress */}
         {generating && (
-          <div className="mx-auto mt-4 w-full max-w-[640px] px-4">
+          <div className="mx-auto mt-4 w-full max-w-[640px]">
             <div className="overflow-hidden rounded-full bg-white/[0.06]">
               <div
                 className="h-2 rounded-full bg-accent transition-all duration-300"
@@ -268,7 +223,12 @@ export default function VideoEditPage() {
               />
             </div>
             <p className="mt-2 text-center text-[11px] text-text-3">
-              하이라이트 영상 생성 중... {genProgress}%
+              {genProgress < 15 ? "ffmpeg 로딩 중..." :
+               genProgress < 35 ? "인트로 카드 생성 중..." :
+               genProgress < 55 ? "Player Review 생성 중..." :
+               genProgress < 80 ? "영상 인코딩 중..." :
+               genProgress < 95 ? "최종 합성 중..." :
+               "R2에 업로드 중..."}
             </p>
           </div>
         )}

@@ -66,7 +66,7 @@ export default function MinimalCard({ data }: { data: PlayerData }) {
             color: club.color,
           }}
         >
-          {data.club || "FC Seoul U12"}
+          {data.club === "직접 입력" ? (data.customClubName || "MY TEAM") : (data.club || "FC Seoul U12")}
         </div>
       </div>
 

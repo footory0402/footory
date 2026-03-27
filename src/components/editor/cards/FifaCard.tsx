@@ -76,7 +76,7 @@ export default function FifaCard({ data }: { data: PlayerData }) {
           {/* Name */}
           <div className="min-w-0 flex-1">
             <div className="text-[12px] font-medium uppercase tracking-[5px] text-white/40">
-              {data.firstName || "FIRST"}
+              {data.firstName || ""}
             </div>
             <div className="text-[28px] font-black uppercase leading-tight tracking-wider text-white">
               {data.lastName || "LAST"}
@@ -85,7 +85,7 @@ export default function FifaCard({ data }: { data: PlayerData }) {
               className="mt-1.5 inline-block rounded px-2 py-0.5 text-[9px] font-bold tracking-wide text-white"
               style={{ background: `${club.accent}33` }}
             >
-              {data.club || "FC Seoul U12"}
+              {data.club === "직접 입력" ? (data.customClubName || "MY TEAM") : (data.club || "FC Seoul U12")}
             </div>
           </div>
         </div>

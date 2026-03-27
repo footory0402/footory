@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { DEFAULT_PLAYER_DATA, type PlayerData } from "@/components/editor/types";
 import { type TemplateId } from "@/components/editor/constants";
-import { useExportPng, useExportMp4 } from "@/components/editor/useExport";
 import { useBackgroundRemoval } from "@/components/editor/useBackgroundRemoval";
 import EditorForm from "@/components/editor/EditorForm";
 import CardPreview from "@/components/editor/CardPreview";
@@ -15,8 +14,6 @@ export default function EditorPage() {
   const [loaded, setLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  const { exportPng, status: pngStatus } = useExportPng();
-  const { exportMp4, status: mp4Status, progress: mp4Progress } = useExportMp4();
   const { removeBackground, status: bgRemovalStatus } = useBackgroundRemoval();
 
   // Load saved card + profile data on mount
@@ -69,10 +66,16 @@ export default function EditorPage() {
         if (card) {
           // Restore saved card data
           const cardData = card.card_data as Record<string, string>;
+          // Normalize foot value to Korean
+          const normalizedFoot = mapFoot(cardData.foot || profileDefaults.foot || null);
+          // Skip blob URLs (not persistent) — fall back to profile avatar
+          const savedPhoto = cardData.photoUrl && !cardData.photoUrl.startsWith("blob:") ? cardData.photoUrl : undefined;
           setData({
             ...DEFAULT_PLAYER_DATA,
             ...profileDefaults,
             ...cardData,
+            photoUrl: savedPhoto || profileDefaults.photoUrl || "",
+            foot: normalizedFoot,
             // Always use saved colors
             customClubColor: card.main_color || "#37474F",
             customClubAccent: card.accent_color || "#78909C",
@@ -192,23 +195,21 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <EditorHeader
-        onExportPng={exportPng}
-        onExportMp4={exportMp4}
-        onSave={handleSave}
-        pngStatus={pngStatus}
-        mp4Status={mp4Status}
-        mp4Progress={mp4Progress}
-        saveStatus={saveStatus}
-      />
+      <EditorHeader onSave={handleSave} saveStatus={saveStatus} />
       <div className="flex flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+        {/* Mobile: Card first, then form. Desktop: Form left, Card right */}
+        <div className="md:hidden">
+          <CardPreview data={data} template={template} onTemplateChange={setTemplate} />
+        </div>
         <EditorForm
           data={data}
           onChange={setData}
           onRemoveBackground={handleRemoveBackground}
           bgRemovalStatus={bgRemovalStatus}
         />
-        <CardPreview data={data} template={template} onTemplateChange={setTemplate} />
+        <div className="hidden md:flex md:flex-1">
+          <CardPreview data={data} template={template} onTemplateChange={setTemplate} />
+        </div>
       </div>
     </div>
   );

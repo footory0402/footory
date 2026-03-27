@@ -9,7 +9,7 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
     ["NAME", `${data.lastName || "LAST"} ${data.firstName || "FIRST"}`],
     ["NUMBER", `#${data.number || "9"}`],
     ["POSITION", data.position || "ST"],
-    ["CLUB", data.club || "FC Seoul U12"],
+    ["CLUB", data.club === "직접 입력" ? (data.customClubName || "MY TEAM") : (data.club || "FC Seoul U12")],
     ["BIRTH", data.birthDate || "-"],
     ["AGE", data.age ? `${data.age}세` : "-"],
     ["HEIGHT", data.height ? `${data.height}cm` : "-"],
