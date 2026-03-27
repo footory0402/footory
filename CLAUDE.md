@@ -113,7 +113,39 @@ nationality, photoUrl
 이 파일의 디자인을 Tailwind CSS로 전환하여 사용.
 ```
 
-아까 만든 `.jsx` 파일을 프로젝트 루트에 넣어두고, Claude Code 킥오프 프롬프트에도 한 마디 추가하면 됩니다:
-```
-footory-editor.jsx 파일도 확인해.
-카드 디자인의 레퍼런스로 활용해줘.
+## 영상 편집 기능 (Phase 2)
+
+### 목표
+학부모가 경기 영상을 업로드하면, 프로필 카드 인트로 + HUD 오버레이 + 아웃트로를
+자동 합성한 하이라이트 영상을 생성.
+
+### 완성 영상 구조 (참고: test_test_player.mp4)
+1. 인트로 (5초) — Phase 1에서 만든 선수 카드 애니메이션
+2. Player Review (5초) — 상세 프로필 카드 애니메이션
+3. 경기 하이라이트 (사용자 영상) + HUD 오버레이:
+   - 좌하단: 선수 미니카드 (사진 + 이름 + 등번호)
+   - 하단바: CLUB | POSITION | BIRTH DATE | HEIGHT/WEIGHT | FOOT
+   - 우하단: GOAL 카운터 + 포메이션 다이어그램
+   - 상단: "YOUTHLIGHT FOOTBALL HIGHLIGHT" 타이틀바
+4. 아웃트로 (3초) — Footory 로고 + SNS 공유 CTA
+
+### 기술 방식
+- 인트로/아웃트로: Phase 1의 브라우저 렌더링 결과물 사용
+- HUD 오버레이 합성: 서버사이드 FFmpeg
+  - 방법: FFmpeg drawtext + overlay 필터로 원본 영상 위에 HUD 합성
+  - 또는: Puppeteer로 HUD를 투명 PNG 시퀀스로 렌더 → FFmpeg overlay
+- 인트로 + 경기영상 + 아웃트로 concat: FFmpeg concat demuxer
+- 렌더 서버: Railway 또는 Fly.io ($5~15/월)
+- 결과물 저장: Cloudflare R2
+
+### 영상 편집 에디터 UI
+- 타임라인 바: [인트로|경기영상|아웃트로] 구간 시각화
+- 경기 영상 트리머: 시작점/끝점 드래그로 구간 선택
+- HUD 편집: 골 수 입력, 표시할 정보 on/off 토글
+- 미리보기: 영상 플레이어 + HUD 오버레이 실시간 프리뷰
+
+### Phase 2 파일 위치 규칙
+- 렌더 서버: 별도 레포 또는 /render-server/ 디렉토리
+- HUD 컴포넌트: components/video/hud/
+- 영상 편집 에디터: app/edit/[clipId]/
+- 렌더 API: app/api/render/
