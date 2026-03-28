@@ -103,21 +103,39 @@ export default function UploadPage() {
         <h1 className="text-[17px] font-bold text-text-1">영상 업로드</h1>
       </div>
 
-      {/* 카드 에디터 배너 (파일 선택 전) */}
+      {/* 에디터 배너들 (파일 선택 전) */}
       {!store.file && (
-        <Link
-          href="/editor"
-          className="flex items-center gap-3 rounded-xl border border-accent/15 bg-accent/8 px-4 py-3 transition-colors active:bg-accent/12"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-lg">🎴</span>
-          <div className="flex-1">
-            <p className="text-[13px] font-semibold text-accent">선수 프로필 카드 만들기</p>
-            <p className="text-[11px] text-text-3">영상 인트로에 넣을 선수 카드를 제작하세요</p>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </Link>
+        <div className="flex flex-col gap-2">
+          {/* 영상 에디터 배너 */}
+          <Link
+            href="/editor/video"
+            className="flex items-center gap-3 rounded-xl border border-[#C0392B]/20 bg-[#C0392B]/8 px-4 py-3 transition-colors active:bg-[#C0392B]/12"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#C0392B]/15 text-lg">🎬</span>
+            <div className="flex-1">
+              <p className="text-[13px] font-semibold text-[#E74C3C]">영상 에디터</p>
+              <p className="text-[11px] text-text-3">클립 마킹 · HUD 오버레이 · 하이라이트 생성</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </Link>
+
+          {/* 카드 에디터 배너 */}
+          <Link
+            href="/editor"
+            className="flex items-center gap-3 rounded-xl border border-accent/15 bg-accent/8 px-4 py-3 transition-colors active:bg-accent/12"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-lg">🎴</span>
+            <div className="flex-1">
+              <p className="text-[13px] font-semibold text-accent">선수 프로필 카드 만들기</p>
+              <p className="text-[11px] text-text-3">영상 인트로에 넣을 선수 카드를 제작하세요</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </Link>
+        </div>
       )}
 
       {/* 영상 선택 */}
