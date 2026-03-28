@@ -8,7 +8,7 @@ import IntroCard from "@/components/video/hud/IntroCard";
 
 interface VideoPlayerProps {
   src: string;
-  playerData: HudPlayerData;
+  playerData?: HudPlayerData | null;
   onTimeUpdate: (currentTime: number, duration: number) => void;
   /** 외부에서 seek 요청 시 이 값이 바뀜 */
   seekTo?: number;
@@ -90,10 +90,10 @@ export default function VideoPlayer({
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* 16:9 video container */}
-      <div className="relative w-full overflow-hidden rounded-xl bg-black" style={{ aspectRatio: "16/9" }}>
-        {showIntro ? (
+    <div className="flex h-full flex-col">
+      {/* Video container — fills parent */}
+      <div className="relative flex-1 min-h-0 overflow-hidden bg-black">
+        {showIntro && playerData ? (
           <div className="absolute inset-0">
             <IntroCard data={playerData} />
           </div>
@@ -114,7 +114,7 @@ export default function VideoPlayer({
             />
 
             {/* HUD overlay */}
-            {hudVisible && <HudOverlay data={playerData} config={config} />}
+            {hudVisible && playerData && <HudOverlay data={playerData} config={config} />}
 
             {/* Buffering indicator */}
             {buffering && (
@@ -141,8 +141,8 @@ export default function VideoPlayer({
         )}
       </div>
 
-      {/* Controls row */}
-      <div className="flex items-center gap-2 px-1">
+      {/* Controls row — 영상 아래 컴팩트 */}
+      <div className="flex shrink-0 items-center gap-2 px-2 py-1.5 bg-[#0D0D0F]">
         {/* Play/Pause */}
         <button
           onClick={togglePlay}

@@ -35,11 +35,11 @@ export default function HudOverlay({ data, config }: HudOverlayProps) {
             }}
           />
 
-          {/* Main bar */}
+          {/* Main bar — 반투명으로 영상이 비치게 */}
           <div
-            className="flex items-stretch"
+            className="flex items-stretch backdrop-blur-sm"
             style={{
-              background: "linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.97))",
+              background: "linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.65))",
             }}
           >
             {config.showMiniCard && <MiniCard data={data} />}

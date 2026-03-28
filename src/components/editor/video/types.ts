@@ -7,6 +7,9 @@ export interface ClipSegment {
   eventTag: EventTag;
   /** "여기!" 클릭 시점 (초) */
   markedAt?: number;
+  /** 클립별 선수 스포트라이트 위치 (0-1 normalized) */
+  spotlightX?: number;
+  spotlightY?: number;
 }
 
 export interface EventDef {

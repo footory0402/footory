@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
 import { SKILL_TAGS } from "@/lib/constants";
+import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const VALID_TAGS: string[] = SKILL_TAGS.map((t) => t.dbName);
 
@@ -122,6 +123,32 @@ export async function PATCH(
   }
 }
 
+function extractR2Key(url: string): string | null {
+  const publicUrl = process.env.R2_PUBLIC_URL;
+  if (!publicUrl || !url.startsWith(publicUrl)) return null;
+  return url.slice(publicUrl.length).replace(/^\//, "");
+}
+
+async function deleteR2Objects(keys: (string | null)[]) {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const bucket = process.env.R2_BUCKET_NAME || "footory-videos";
+  if (!accountId || !accessKeyId || !secretAccessKey) return;
+
+  const client = new S3Client({
+    region: "auto",
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId, secretAccessKey },
+  });
+
+  await Promise.allSettled(
+    keys.filter(Boolean).map((key) =>
+      client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key! }))
+    )
+  );
+}
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -132,10 +159,10 @@ export async function DELETE(
     if (auth instanceof NextResponse) return auth;
     const { user, supabase } = auth;
 
-    // Verify ownership
+    // Verify ownership and get URLs for R2 cleanup
     const { data: clip } = await supabase
       .from("clips")
-      .select("owner_id")
+      .select("owner_id, video_url, thumbnail_url")
       .eq("id", id)
       .single();
 
@@ -166,6 +193,11 @@ export async function DELETE(
 
     const { error } = await supabase.from("clips").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Best-effort R2 file deletion (failures don't affect response)
+    const videoKey = clip.video_url ? extractR2Key(clip.video_url) : null;
+    const thumbKey = clip.thumbnail_url ? extractR2Key(clip.thumbnail_url) : null;
+    await deleteR2Objects([videoKey, thumbKey]);
 
     return NextResponse.json({ success: true });
   } catch {

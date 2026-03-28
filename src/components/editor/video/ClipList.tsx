@@ -1,15 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import {
   type EventTag,
   type ClipSegment,
   EVENTS,
   EVENT_TAG_COLORS,
+  MIN_CLIP_DURATION,
 } from "./types";
 
 interface ClipListProps {
   clips: ClipSegment[];
   selectedClipId?: string;
+  duration: number;
   onSelectClip: (clip: ClipSegment) => void;
   onRemoveClip: (id: string) => void;
   onUpdateClip: (id: string, updates: Partial<ClipSegment>) => void;
@@ -22,9 +25,74 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+function parseTimeInput(val: string): number | null {
+  // "1:05" or "65" or "0:05"
+  const colonMatch = val.match(/^(\d+):(\d{1,2})$/);
+  if (colonMatch) {
+    return parseInt(colonMatch[1]) * 60 + parseInt(colonMatch[2]);
+  }
+  const num = parseFloat(val);
+  return isNaN(num) ? null : num;
+}
+
+/** 시간 입력 인라인 컴포넌트 */
+function TimeInput({
+  value,
+  max,
+  minValue,
+  onChange,
+}: {
+  value: number;
+  max: number;
+  minValue: number;
+  onChange: (t: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setText(formatTime(value));
+          setEditing(true);
+        }}
+        className="rounded bg-white/8 px-1.5 py-0.5 font-mono text-xs text-white/70 transition-colors hover:bg-white/15 active:bg-white/20"
+      >
+        {formatTime(value)}
+      </button>
+    );
+  }
+
+  return (
+    <input
+      autoFocus
+      type="text"
+      value={text}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        const parsed = parseTimeInput(text);
+        if (parsed !== null) {
+          onChange(Math.max(minValue, Math.min(max, parsed)));
+        }
+        setEditing(false);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") setEditing(false);
+      }}
+      className="w-14 rounded border border-accent/50 bg-black/50 px-1.5 py-0.5 text-center font-mono text-xs text-white outline-none focus:border-accent"
+    />
+  );
+}
+
 export default function ClipList({
   clips,
   selectedClipId,
+  duration,
   onSelectClip,
   onRemoveClip,
   onUpdateClip,
@@ -38,6 +106,7 @@ export default function ClipList({
         <span className="text-xs font-bold tracking-wider text-white/50">
           마킹된 클립 ({clips.length})
         </span>
+        <span className="text-[10px] text-white/25">시간을 탭하면 직접 수정 가능</span>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -50,18 +119,16 @@ export default function ClipList({
             <div
               key={clip.id}
               onClick={() => onSelectClip(clip)}
-              className="flex cursor-pointer items-center gap-2.5 rounded-lg p-2.5 transition-all"
+              className="flex cursor-pointer items-center gap-2 rounded-lg p-2.5 transition-all"
               style={{
                 background: isSelected ? `${color}15` : "rgba(255,255,255,0.03)",
                 border: `1px solid ${isSelected ? `${color}44` : "rgba(255,255,255,0.06)"}`,
               }}
             >
-              {/* Index */}
+              {/* Index + Emoji */}
               <span className="w-5 shrink-0 text-center text-xs font-bold text-white/30">
                 {i + 1}
               </span>
-
-              {/* Emoji */}
               <span className="text-base">{ev?.emoji}</span>
 
               {/* Tag label */}
@@ -72,10 +139,22 @@ export default function ClipList({
                 {ev?.label}
               </span>
 
-              {/* Time range */}
-              <span className="font-mono text-xs text-white/50">
-                {formatTime(clip.startTime)} → {formatTime(clip.endTime)}
-              </span>
+              {/* 시간 범위 — 탭하면 직접 입력 */}
+              <div className="flex items-center gap-1">
+                <TimeInput
+                  value={clip.startTime}
+                  max={clip.endTime - MIN_CLIP_DURATION}
+                  minValue={0}
+                  onChange={(t) => onUpdateClip(clip.id, { startTime: t })}
+                />
+                <span className="text-[10px] text-white/30">→</span>
+                <TimeInput
+                  value={clip.endTime}
+                  max={duration}
+                  minValue={clip.startTime + MIN_CLIP_DURATION}
+                  onChange={(t) => onUpdateClip(clip.id, { endTime: t })}
+                />
+              </div>
 
               {/* Duration */}
               <span className="text-[10px] text-white/30">
@@ -106,11 +185,11 @@ export default function ClipList({
                   e.stopPropagation();
                   onRemoveClip(clip.id);
                 }}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded transition-colors hover:bg-red-500/20"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-red-500/20 active:bg-red-500/30"
                 aria-label="클립 삭제"
               >
                 <svg
-                  className="h-3 w-3 text-red-400/60"
+                  className="h-3.5 w-3.5 text-red-400/60"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

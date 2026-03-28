@@ -5,6 +5,7 @@ import VideoOverlay from "@/components/video/VideoOverlay";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
 import { useBackClose } from "@/hooks/useBackClose";
+import ClipActionsSheet from "@/components/player/ClipActionsSheet";
 
 const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
 
@@ -71,9 +72,8 @@ export default function ClipPlayerSheet({
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(null);
-  const confirmTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const [playCount, setPlayCount] = useState(0);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   // 위아래 스와이프
   const [swipeY, setSwipeY] = useState(0);
@@ -111,7 +111,6 @@ export default function ClipPlayerSheet({
       document.body.style.right = "";
       document.body.style.overflow = "";
       window.scrollTo(0, scrollY);
-      if (confirmTimer.current) clearTimeout(confirmTimer.current);
     };
   }, []);
 
@@ -315,24 +314,19 @@ export default function ClipPlayerSheet({
     swipeStart.current = null;
   };
 
-  const handleDelete = async () => {
-    if (!clip || !onDelete) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      if (confirmTimer.current) clearTimeout(confirmTimer.current);
-      confirmTimer.current = setTimeout(() => setConfirmDelete(false), 2000);
-      return;
-    }
-    setConfirmDelete(false);
-    const ok = await onDelete(clip.id);
+  const handleDeleteConfirmed = useCallback(async (clipId: string): Promise<boolean> => {
+    if (!onDelete) return false;
+    const ok = await onDelete(clipId);
     if (ok) {
-      const remaining = localClips.filter((c) => c.id !== clip.id);
-      if (remaining.length === 0) { onClose(); return; }
+      setShowActions(false);
+      const remaining = localClips.filter((c) => c.id !== clipId);
+      if (remaining.length === 0) { onClose(); return true; }
       const nextIndex = index >= remaining.length ? remaining.length - 1 : index;
       setLocalClips(remaining);
       setIndex(nextIndex);
     }
-  };
+    return ok;
+  }, [onDelete, localClips, index, onClose]);
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -583,21 +577,16 @@ export default function ClipPlayerSheet({
             <span className="text-[10px] text-white/60">편집</span>
           </button>
         )}
-        {onDelete && (
-          <button onClick={handleDelete} className="flex flex-col items-center gap-1">
-            <div className={`flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-sm active:scale-95 transition-all ${
-              confirmDelete
-                ? "bg-red-500/80 text-white"
-                : "bg-black/40 text-white/60 active:bg-red-500/30 active:text-red-400"
-            }`}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+        {(onDelete || onShare || onEditTags || onHighlightEdit) && (
+          <button onClick={() => setShowActions(true)} className="flex flex-col items-center gap-1">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white active:bg-white/20">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="1.5"/>
+                <circle cx="12" cy="12" r="1.5"/>
+                <circle cx="12" cy="19" r="1.5"/>
               </svg>
             </div>
-            <span className={`text-[10px] ${confirmDelete ? "text-red-400" : "text-white/40"}`}>
-              {confirmDelete ? "확인?" : "삭제"}
-            </span>
+            <span className="text-[10px] text-white/60">더보기</span>
           </button>
         )}
       </div>
@@ -639,6 +628,18 @@ export default function ClipPlayerSheet({
           <span>{fmt(duration)}</span>
         </div>
       </div>
+
+      {/* ── 클립 액션 시트 ── */}
+      {showActions && clip && (
+        <ClipActionsSheet
+          clipId={clip.id}
+          onClose={() => setShowActions(false)}
+          onDelete={handleDeleteConfirmed}
+          onShare={onShare}
+          onEditTags={onEditTags}
+          onHighlightEdit={onHighlightEdit}
+        />
+      )}
 
       {/* ── 클립 도트 ── */}
       {clips.length > 1 && clips.length <= 12 && (

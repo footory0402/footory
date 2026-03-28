@@ -6,6 +6,7 @@ import {
   type ClipSegment,
   EVENTS,
   DEFAULT_CLIP_DURATION,
+  MIN_CLIP_DURATION,
   MAX_CLIPS,
 } from "./types";
 
@@ -28,7 +29,9 @@ export default function ClipMarker({
   const handleMark = () => {
     if (isFull || duration === 0) return;
 
-    const half = DEFAULT_CLIP_DURATION / 2;
+    // 짧은 영상에서는 마킹 범위를 자동 축소 (영상 길이의 50% or 10초 중 작은 값)
+    const clipDuration = Math.min(DEFAULT_CLIP_DURATION, Math.max(MIN_CLIP_DURATION, duration * 0.5));
+    const half = clipDuration / 2;
     const startTime = Math.max(0, currentTime - half);
     const endTime = Math.min(duration, currentTime + half);
 
@@ -82,7 +85,7 @@ export default function ClipMarker({
       <p className="mt-2 text-[10px] text-white/30">
         {isFull
           ? `최대 ${MAX_CLIPS}개 클립까지 마킹 가능합니다`
-          : `이벤트를 선택하고 "여기!"를 누르면 현재 시점 ±5초가 클립으로 추가됩니다 (${clipCount}/${MAX_CLIPS})`}
+          : `이벤트를 선택하고 "여기!"를 눌러주세요 · 클립 시간은 리스트에서 직접 수정 가능 (${clipCount}/${MAX_CLIPS})`}
       </p>
     </div>
   );
