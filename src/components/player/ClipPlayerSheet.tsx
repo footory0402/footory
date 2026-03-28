@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
+import { useBackClose } from "@/hooks/useBackClose";
 
 const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
 
@@ -89,6 +90,11 @@ export default function ClipPlayerSheet({
   const [showIntro, setShowIntro] = useState(false);
   const [introData, setIntroData] = useState<HudPlayerData | null>(null);
   const introShownRef = useRef<Set<string>>(new Set());
+  // 인트로 카드 API 로딩 완료 전까지 영상 재생 차단
+  const [introReady, setIntroReady] = useState(false);
+
+  // 뒤로가기로 영상 플레이어 닫기
+  useBackClose(true, onClose);
 
   // Lock body scroll
   useEffect(() => {
@@ -109,13 +115,18 @@ export default function ClipPlayerSheet({
     };
   }, []);
 
-  // Load intro card data and show intro immediately when ready
+  // Load intro card data — 영상 재생 전에 완료시켜 race condition 제거
   useEffect(() => {
     let cancelled = false;
     fetch("/api/player-card")
       .then((r) => r.ok ? r.json() : null)
       .then((res) => {
-        if (cancelled || !res?.card) return;
+        if (cancelled) return;
+        if (!res?.card) {
+          // 카드 없음 → 인트로 없이 즉시 영상 재생
+          setIntroReady(true);
+          return;
+        }
         const cd = res.card.card_data;
         const data: HudPlayerData = {
           firstName: cd.firstName || "",
@@ -135,24 +146,35 @@ export default function ClipPlayerSheet({
         };
         setIntroData(data);
 
-        // Show intro for current clip immediately
+        // 인트로 카드 표시 → 3초 후 영상 재생
         const currentClip = clipsProp[initialIndex];
         if (currentClip && !introShownRef.current.has(currentClip.id)) {
           introShownRef.current.add(currentClip.id);
-          videoRef.current?.pause();
           setShowIntro(true);
           setTimeout(() => {
             if (!cancelled) {
               setShowIntro(false);
-              videoRef.current?.play();
+              setIntroReady(true);
+              videoRef.current?.play()?.catch(() => {});
             }
           }, 3000);
+        } else {
+          setIntroReady(true);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setIntroReady(true);
+      });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // introReady가 true가 되면 영상 재생 시작 (autoPlay는 마운트 시점만 작동)
+  useEffect(() => {
+    if (introReady && !showIntro && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [introReady, showIntro]);
 
   // Reset on clip change
   useEffect(() => {
@@ -168,10 +190,11 @@ export default function ClipPlayerSheet({
     // Show intro for subsequent clips (introData already loaded)
     if (introData && clip && !introShownRef.current.has(clip.id)) {
       introShownRef.current.add(clip.id);
-      videoRef.current?.pause();
+      setIntroReady(false);
       setShowIntro(true);
       setTimeout(() => {
         setShowIntro(false);
+        setIntroReady(true);
         videoRef.current?.play();
       }, 3000);
     }
@@ -428,26 +451,27 @@ export default function ClipPlayerSheet({
           key={clip.id}
           ref={videoRef}
           src={clip.videoUrl}
-          autoPlay={!showIntro}
           playsInline
-          preload="metadata"
+          preload="auto"
+          muted
           loop
           className="absolute inset-0 z-10 h-full w-full"
           style={{
             objectFit: "contain",
+            opacity: showIntro ? 0 : 1,
+            transition: showIntro ? "none" : "opacity 0.3s ease",
             transform: swiping ? `translateY(${swipeY * 0.2}px)` : undefined,
-            transition: swiping ? "none" : "transform 0.2s ease",
             filter: effects?.color ? "saturate(1.2) contrast(1.05) brightness(1.02)" : undefined,
           }}
           onClick={(e) => { e.preventDefault(); if (!touchHandled.current) handleTap(); }}
         />
       )}
 
-      {/* ── VideoOverlay ── */}
-      {clip.playerName && (
+      {/* ── VideoOverlay — 인트로 카드 끝난 뒤 표시 ── */}
+      {clip.playerName && introReady && !showIntro && (
         <div className="absolute inset-0 z-[45] pointer-events-none">
           <VideoOverlay
-            key={playCount}
+            key={`${clip.id}-${playCount}`}
             spotlight={clip.spotlightX != null && clip.spotlightY != null
               ? { x: clip.spotlightX, y: clip.spotlightY }
               : null}
@@ -588,15 +612,12 @@ export default function ClipPlayerSheet({
           pointerEvents: showControls ? "auto" : "none",
         }}
       >
-        {/* 선수 정보 */}
-        <div className="mb-3 pr-16">
-          {clip.playerName && (
-            <p className="text-[15px] font-bold text-white">{clip.playerName}</p>
-          )}
-          {clip.tag && (
+        {/* 태그 표시 (선수명은 VideoOverlay 네임태그에서 표시) */}
+        {clip.tag && (
+          <div className="mb-3 pr-16">
             <p className="text-[12px] text-white/60">{clip.tag}</p>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Seekbar */}
         <div

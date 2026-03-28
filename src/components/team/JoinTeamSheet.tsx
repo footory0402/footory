@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Button from "@/components/ui/Button";
 import { useTeamActions } from "@/hooks/useTeam";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface JoinTeamSheetProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface JoinTeamSheetProps {
 }
 
 export default function JoinTeamSheet({ open, onClose, onJoined }: JoinTeamSheetProps) {
+  useBackClose(open, onClose);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

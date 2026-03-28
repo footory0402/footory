@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect } from "react";
 import { useClips } from "@/hooks/useClips";
 import { SKILL_TAGS } from "@/lib/constants";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface ClipPickerSheetProps {
   open: boolean;
@@ -39,6 +40,7 @@ export default function ClipPickerSheet({
   onSelect,
   excludeClipIds,
 }: ClipPickerSheetProps) {
+  useBackClose(open, onClose);
   const { clips, loading, fetchClips } = useClips();
 
   useEffect(() => {

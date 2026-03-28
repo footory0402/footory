@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Button from "@/components/ui/Button";
 import { useTeamActions } from "@/hooks/useTeam";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface CreateTeamSheetProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface CreateTeamSheetProps {
 }
 
 export default function CreateTeamSheet({ open, onClose, onCreated }: CreateTeamSheetProps) {
+  useBackClose(open, onClose);
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
   const [description, setDescription] = useState("");

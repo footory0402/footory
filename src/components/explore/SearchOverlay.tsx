@@ -9,6 +9,7 @@ import FollowButton from "@/components/social/FollowButton";
 import { POSITION_COLORS, SKILL_TAGS } from "@/lib/constants";
 import type { Position } from "@/lib/constants";
 import { useSearch } from "@/hooks/useDiscover";
+import { useBackClose } from "@/hooks/useBackClose";
 
 const PlayerRanking = dynamic(() => import("./PlayerRanking"), { ssr: false });
 const RisingPlayers = dynamic(() => import("./RisingPlayers"), { ssr: false });
@@ -60,14 +61,8 @@ export default function SearchOverlay({ open, onClose }: SearchOverlayProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, close]);
 
-  // C10: 브라우저 뒤로가기로 오버레이 닫기
-  useEffect(() => {
-    if (!open) return;
-    history.pushState({ searchOverlay: true }, "");
-    const onPopState = () => close();
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [open, close]);
+  // 브라우저 뒤로가기로 오버레이 닫기
+  useBackClose(open, close);
 
   if (!open) return null;
 

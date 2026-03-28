@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { SKILL_TAGS } from "@/lib/constants";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface TagEditSheetProps {
   clipId: string;
@@ -11,6 +12,7 @@ interface TagEditSheetProps {
 }
 
 export default function TagEditSheet({ clipId, currentTags, onClose, onSave }: TagEditSheetProps) {
+  useBackClose(true, onClose);
   const [tags, setTags] = useState<string[]>(currentTags);
   const [saving, setSaving] = useState(false);
 

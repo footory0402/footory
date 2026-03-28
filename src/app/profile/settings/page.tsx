@@ -139,7 +139,7 @@ export default function SettingsPage() {
       <div className="mb-6 flex items-center gap-3">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
           aria-label="설정 뒤로가기"
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >

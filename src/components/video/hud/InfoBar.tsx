@@ -1,43 +1,40 @@
 import type { HudPlayerData } from "./types";
 
-/** 하단 정보바: CLUB | POSITION | BIRTH DATE | HEIGHT/WEIGHT | FOOT */
+/** 하단 스탯바 — CLUB | POSITION | BIRTH DATE | HEIGHT/WEIGHT | FOOT */
 export default function InfoBar({ data }: { data: HudPlayerData }) {
+  const clubFull = data.clubFull ?? data.club;
+  const heightWeight = `${data.height || "-"}CM / ${data.weight || "-"}KG`;
+
   const items = [
-    { label: "FOOTBALL CLUB", value: data.club },
+    { label: "FOOTBALL CLUB", value: clubFull },
     { label: "POSITION", value: data.position },
     { label: "BIRTH DATE", value: data.birthDate || "-" },
-    { label: "HEIGHT / WEIGHT", value: `${data.height || "-"}CM / ${data.weight || "-"}KG` },
+    { label: "HEIGHT / WEIGHT", value: heightWeight },
     { label: "FOOT", value: data.foot },
   ];
 
   return (
-    <div className="absolute inset-x-0 bottom-0">
-      {/* Labels row */}
-      <div className="flex">
-        {items.map((item, i) => (
+    <div className="flex flex-1 items-center py-[clamp(2px,0.4vw,6px)]">
+      {items.map((item, i) => (
+        <div
+          key={i}
+          className="flex flex-1 flex-col items-center px-[clamp(2px,0.3vw,4px)] text-center"
+          style={{ borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.08)" : "none" }}
+        >
           <div
-            key={i}
-            className="flex-1 py-0.5 text-center text-[6px] font-semibold tracking-[1px] text-white/50"
-            style={{ background: "rgba(0,0,0,0.7)" }}
+            className="font-semibold tracking-[1px] text-white/35"
+            style={{ fontSize: "clamp(4px,0.55vw,7px)", marginBottom: 2 }}
           >
             {item.label}
           </div>
-        ))}
-      </div>
-      {/* Values row */}
-      <div className="flex">
-        {items.map((item, i) => (
           <div
-            key={i}
-            className="flex-1 py-1 text-center text-[8px] font-bold tracking-wide text-white"
-            style={{
-              background: i % 2 === 0 ? data.mainColor : "rgba(0,0,0,0.8)",
-            }}
+            className="font-bold tracking-[0.5px]"
+            style={{ fontSize: "clamp(6px,0.8vw,10px)", color: data.accentColor }}
           >
             {item.value}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

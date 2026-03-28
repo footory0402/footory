@@ -7,6 +7,7 @@ import { MEASUREMENTS, POSITION_COLORS, type RadarStatId, type Position } from "
 import { calcRadarStats, EMPTY_RADAR_STATS } from "@/lib/radar-calc";
 import type { Profile, Stat } from "@/lib/types";
 import { formatStatValue, isTimeStatUnit, normalizeStatUnit } from "@/lib/stat-display";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface CompareSheetProps {
   open: boolean;
@@ -28,6 +29,7 @@ interface MyData {
 }
 
 export default function CompareSheet({ open, onClose, target }: CompareSheetProps) {
+  useBackClose(open, onClose);
   const [myData, setMyData] = useState<MyData>({
     profile: null,
     stats: [],

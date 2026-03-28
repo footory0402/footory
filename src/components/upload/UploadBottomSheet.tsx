@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface Props {
   open: boolean;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function UploadBottomSheet({ open, onClose }: Props) {
+  useBackClose(open, onClose);
   const router = useRouter();
   const sheetRef = useRef<HTMLDivElement>(null);
 

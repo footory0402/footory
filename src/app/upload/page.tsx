@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
 import VideoSelector from "@/components/upload/VideoSelector";
@@ -30,6 +30,24 @@ export default function UploadPage() {
     if (!canUpload) return;
     useUploadStore.getState().setContext("general");
   }, [canUpload]);
+
+  // 파일 선택 상태에서 갤럭시 ◁ / iOS 스와이프 백 → 파일 해제 (이전 페이지로 안 나감)
+  const handleFileBack = useCallback(() => {
+    useUploadStore.getState().setFile(null);
+  }, []);
+
+  useEffect(() => {
+    const hasFile = !!store.file;
+    if (!hasFile) return;
+    history.pushState({ uploadFile: true }, "");
+    const onPop = () => {
+      if (useUploadStore.getState().file) {
+        useUploadStore.getState().setFile(null);
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [!!store.file]);
 
   /* ── Guard: 로딩 중 ── */
   if (loading && !role) {

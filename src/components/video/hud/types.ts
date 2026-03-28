@@ -4,7 +4,11 @@ export interface HudPlayerData {
   lastName: string;
   number: string;
   position: string;
+  /** 포지션 약자 (FW, MF, DF, GK) */
+  positionShort?: string;
   club: string;
+  /** 팀 풀네임 (예: "FC SEOUL U12") */
+  clubFull?: string;
   age: string;
   birthDate: string;
   height: string;

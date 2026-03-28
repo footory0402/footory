@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface AwardAddSheetProps {
   open: boolean;
@@ -9,6 +10,7 @@ interface AwardAddSheetProps {
 }
 
 export default function AwardAddSheet({ open, onClose, onSave }: AwardAddSheetProps) {
+  useBackClose(open, onClose);
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
   const [verifier, setVerifier] = useState("");

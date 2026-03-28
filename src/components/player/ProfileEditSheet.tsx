@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { Profile } from "@/lib/types";
 import { POSITIONS, POSITION_LABELS, HANDLE_REGEX, type Position } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface ProfileEditSheetProps {
   profile: Profile;
@@ -25,6 +26,7 @@ export default function ProfileEditSheet({
   onCheckHandle,
   onPdf,
 }: ProfileEditSheetProps) {
+  useBackClose(open, onClose);
   const [name, setName] = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
   const [position, setPosition] = useState<Position | "">(profile.position ?? "");

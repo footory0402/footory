@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { toast } from "@/components/ui/Toast";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface ShareSheetProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface ShareSheetProps {
 }
 
 export default function ShareSheet({ open, onClose, shareUrl, url, title }: ShareSheetProps) {
+  useBackClose(open, onClose);
   const resolvedUrl = shareUrl ?? url ?? "";
   const sheetRef = useRef<HTMLDivElement>(null);
 

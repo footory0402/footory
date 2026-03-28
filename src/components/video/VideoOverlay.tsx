@@ -65,7 +65,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
             left: `${spotlight.x * 100}%`,
             top: `${spotlight.y * 100}%`,
             transform: "translate(-50%, -50%)",
-            animation: "overlay-ring-in 0.2s ease-out forwards, overlay-fadeout 0.2s ease-in 0.8s forwards",
+            animation: "overlay-ring-in 0.2s ease-out forwards, overlay-fadeout 0.3s ease-in 2.5s forwards",
           }}
         >
           {/* 링 */}
@@ -79,7 +79,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
                 "radial-gradient(circle, rgba(212,168,83,0.08) 0%, transparent 70%)",
               boxShadow:
                 "0 0 0 0 rgba(212,168,83,0.4), 0 0 16px rgba(212,168,83,0.3)",
-              animation: "overlay-pulse 0.8s ease-out 0.8s forwards",
+              animation: "overlay-pulse 0.8s ease-out 0.6s forwards",
             }}
           />
 
@@ -109,7 +109,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
           left: "50%",
           width: "82%",
           maxWidth: 320,
-          animation: "overlay-nametag-in 0.2s ease-out 0.2s both",
+          animation: "overlay-nametag-in 0.2s ease-out 0.2s both, overlay-fadeout 0.3s ease-in 2.5s forwards",
         }}
       >
         <div
@@ -127,7 +127,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
             display: "flex",
             alignItems: "center",
             gap: 10,
-            animation: "overlay-fadeout 0.2s ease-in 0.8s forwards",
+            animation: "overlay-fadeout 0.3s ease-in 2.5s forwards",
             boxShadow: effects?.eafc
               ? "0 4px 20px rgba(212,168,83,0.15), inset 0 1px 0 rgba(212,168,83,0.1)"
               : undefined,

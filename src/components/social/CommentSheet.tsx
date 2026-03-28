@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
 import MentionInput, { renderMentionText } from "./MentionInput";
 import Link from "next/link";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface CommentSheetProps {
   feedItemId: string;
@@ -71,6 +72,7 @@ function CommentRow({
 }
 
 export default function CommentSheet({ feedItemId, open, onClose, onCommentCountChange }: CommentSheetProps) {
+  useBackClose(open, onClose);
   const { comments, loading, fetchComments, addComment, deleteComment, totalCount } = useComments(feedItemId);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface SeasonAddSheetProps {
   open: boolean;
@@ -17,6 +18,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
 export default function SeasonAddSheet({ open, onClose, onSave }: SeasonAddSheetProps) {
+  useBackClose(open, onClose);
   const [year, setYear] = useState(currentYear);
   const [teamName, setTeamName] = useState("");
   const [league, setLeague] = useState("");

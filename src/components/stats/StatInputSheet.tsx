@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { MEASUREMENTS, getStatMeta, getStatWarning } from "@/lib/constants";
 import { useProfile } from "@/hooks/useProfile";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface StatInputSheetProps {
   open: boolean;
@@ -20,6 +21,7 @@ function resolveInitialStep(initialStatType?: string): Step {
 }
 
 export default function StatInputSheet({ open, onClose, onSave, initialStatType }: StatInputSheetProps) {
+  useBackClose(open, onClose);
   const [step, setStep] = useState<Step>(() => resolveInitialStep(initialStatType));
   const [selectedType, setSelectedType] = useState<string>(
     MEASUREMENTS.find((m) => m.id === initialStatType) ? (initialStatType ?? "") : ""

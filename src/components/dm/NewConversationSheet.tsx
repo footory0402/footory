@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import type { FollowUser } from "@/hooks/useFollow";
+import { useBackClose } from "@/hooks/useBackClose";
 
 export default function NewConversationSheet({
   open,
@@ -13,6 +14,7 @@ export default function NewConversationSheet({
   onClose: () => void;
   onSelect: (userId: string) => void;
 }) {
+  useBackClose(open, onClose);
   const [search, setSearch] = useState("");
   const [following, setFollowing] = useState<FollowUser[]>([]);
   const [loading, setLoading] = useState(false);

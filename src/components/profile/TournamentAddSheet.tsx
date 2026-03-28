@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TournamentRecord } from "./CareerTabV5";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface TournamentAddSheetProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface TournamentAddSheetProps {
 const TYPES: TournamentRecord["type"][] = ["공식대회", "리그", "친선"];
 
 export default function TournamentAddSheet({ open, onClose, onSave }: TournamentAddSheetProps) {
+  useBackClose(open, onClose);
   const [name, setName] = useState("");
   const [type, setType] = useState<TournamentRecord["type"]>("공식대회");
   const [dateText, setDateText] = useState("");

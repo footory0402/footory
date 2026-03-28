@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ReportCategory } from "@/lib/types";
+import { useBackClose } from "@/hooks/useBackClose";
 
 const CATEGORIES: { value: ReportCategory; label: string }[] = [
   { value: "harassment", label: "괴롭힘/욕설" },
@@ -28,6 +29,7 @@ export default function ReportModal({
   commentId,
   clipId,
 }: ReportModalProps) {
+  useBackClose(open, onClose);
   const [category, setCategory] = useState<ReportCategory | null>(null);
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);

@@ -47,8 +47,8 @@ export default function DmPage() {
       <div className="sticky top-[42px] z-30 flex items-center justify-between border-b border-border bg-bg/95 px-4 py-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/profile")}
-            aria-label="프로필로 돌아가기"
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
+            aria-label="뒤로가기"
             className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

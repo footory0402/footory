@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Button from "@/components/ui/Button";
+import { useBackClose } from "@/hooks/useBackClose";
 
 interface LinkChildSheetProps {
   open: boolean;
@@ -10,6 +11,7 @@ interface LinkChildSheetProps {
 }
 
 export default function LinkChildSheet({ open, onClose, onLink }: LinkChildSheetProps) {
+  useBackClose(open, onClose);
   const [handle, setHandle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -148,6 +148,10 @@ export default function HighlightsTabV5({
       videoUrl: f.clips!.video_url,
       thumbnailUrl: f.clips?.thumbnail_url,
       effects: f.clips?.effects ? (f.clips.effects as PlayableClip["effects"]) : null,
+      playerName: playerName ?? undefined,
+      playerPosition: position ?? undefined,
+      playerBirthYear: playerBirthYear ?? undefined,
+      teamName: playerTeamName ?? undefined,
     }));
 
   const gridPlayable: PlayableClip[] = filteredClips

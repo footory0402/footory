@@ -211,7 +211,13 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
 }
 
 // ── 대표 영상 섹션 ──────────────────────────────────────────────────────
-function FeaturedVideoSection({ featured }: { featured: FeaturedClip[] }) {
+function FeaturedVideoSection({ featured, playerName, playerPosition, playerBirthYear, teamName }: {
+  featured: FeaturedClip[];
+  playerName?: string;
+  playerPosition?: string | null;
+  playerBirthYear?: number | null;
+  teamName?: string | null;
+}) {
   const [playerOpen, setPlayerOpen] = useState(false);
   const clip = featured[0];
   if (!clip?.clips) return null;
@@ -226,6 +232,10 @@ function FeaturedVideoSection({ featured }: { featured: FeaturedClip[] }) {
     thumbnailUrl: thumbnail_url ?? null,
     duration: duration_seconds ?? undefined,
     effects: clip.clips?.effects ?? null,
+    playerName,
+    playerPosition,
+    playerBirthYear,
+    teamName,
   };
 
   return (
@@ -589,7 +599,13 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
       {/* 스카우터 전용: 대표 영상 + 신체 요약 카드 */}
       {isScoutViewer && data.featured.length > 0 && (
-        <FeaturedVideoSection featured={data.featured} />
+        <FeaturedVideoSection
+          featured={data.featured}
+          playerName={data.name}
+          playerPosition={data.position}
+          playerBirthYear={data.birth_year}
+          teamName={data.teamName}
+        />
       )}
       {isScoutViewer && (
         <ScoutSummarySection profile={profile} stats={stats} achievements={achievements} />
