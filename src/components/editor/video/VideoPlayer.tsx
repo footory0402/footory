@@ -13,16 +13,12 @@ interface VideoPlayerProps {
   /** 외부에서 seek 요청 시 이 값이 바뀜 */
   seekTo?: number;
   hudConfig?: HudConfig;
+  onHudVisibleChange?: (visible: boolean) => void;
+  hudVisible?: boolean;
   /** 인트로 프리뷰 모드 (영상 대신 IntroCard 표시) */
   showIntro?: boolean;
-}
-
-export interface VideoPlayerRef {
-  currentTime: number;
-  duration: number;
-  play: () => void;
-  pause: () => void;
-  seek: (t: number) => void;
+  /** 외부에서 일시정지 요청 (클립 마킹 시) */
+  requestPause?: number;
 }
 
 export default function VideoPlayer({
@@ -31,7 +27,10 @@ export default function VideoPlayer({
   onTimeUpdate,
   seekTo,
   hudConfig,
+  onHudVisibleChange,
+  hudVisible = true,
   showIntro = false,
+  requestPause,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -46,6 +45,13 @@ export default function VideoPlayer({
       videoRef.current.currentTime = seekTo;
     }
   }, [seekTo]);
+
+  // 외부 일시정지 요청
+  useEffect(() => {
+    if (requestPause !== undefined && videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+    }
+  }, [requestPause]);
 
   const handleTimeUpdate = useCallback(() => {
     const v = videoRef.current;
@@ -71,10 +77,10 @@ export default function VideoPlayer({
     }
   }, []);
 
-  const handleSeekBar = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const skipBy = useCallback((seconds: number) => {
     const v = videoRef.current;
     if (!v) return;
-    v.currentTime = Number(e.target.value);
+    v.currentTime = Math.max(0, Math.min(v.duration, v.currentTime + seconds));
   }, []);
 
   const formatTime = (s: number) => {
@@ -88,7 +94,6 @@ export default function VideoPlayer({
       {/* 16:9 video container */}
       <div className="relative w-full overflow-hidden rounded-xl bg-black" style={{ aspectRatio: "16/9" }}>
         {showIntro ? (
-          /* 인트로 카드 프리뷰 */
           <div className="absolute inset-0">
             <IntroCard data={playerData} />
           </div>
@@ -104,11 +109,12 @@ export default function VideoPlayer({
               onPause={() => setIsPlaying(false)}
               onWaiting={() => setBuffering(true)}
               onCanPlay={() => setBuffering(false)}
+              onClick={togglePlay}
               playsInline
             />
 
             {/* HUD overlay */}
-            <HudOverlay data={playerData} config={config} />
+            {hudVisible && <HudOverlay data={playerData} config={config} />}
 
             {/* Buffering indicator */}
             {buffering && (
@@ -119,33 +125,28 @@ export default function VideoPlayer({
           </>
         )}
 
-        {/* Play/Pause overlay button */}
-        <button
-          onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity hover:opacity-100"
-          aria-label={isPlaying ? "일시정지" : "재생"}
-        >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
-            {isPlaying ? (
-              <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="4" width="4" height="16" rx="1" />
-                <rect x="14" y="4" width="4" height="16" rx="1" />
-              </svg>
-            ) : (
+        {/* Play/Pause center overlay */}
+        {!isPlaying && !showIntro && (
+          <button
+            onClick={togglePlay}
+            className="absolute inset-0 z-10 flex items-center justify-center"
+            aria-label="재생"
+          >
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
               <svg className="h-6 w-6 translate-x-0.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
-            )}
-          </div>
-        </button>
+            </div>
+          </button>
+        )}
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center gap-3 px-1">
-        {/* Play/Pause button */}
+      {/* Controls row */}
+      <div className="flex items-center gap-2 px-1">
+        {/* Play/Pause */}
         <button
           onClick={togglePlay}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20 active:scale-95"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition-colors hover:bg-white/10 active:scale-95"
           aria-label={isPlaying ? "일시정지" : "재생"}
         >
           {isPlaying ? (
@@ -160,21 +161,37 @@ export default function VideoPlayer({
           )}
         </button>
 
-        {/* Seek bar */}
-        <input
-          type="range"
-          min={0}
-          max={duration || 1}
-          step={0.1}
-          value={currentTime}
-          onChange={handleSeekBar}
-          className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-white/20 accent-[#D4A853]"
-        />
+        {/* -5s / +5s */}
+        <button
+          onClick={() => skipBy(-5)}
+          className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 active:scale-95"
+        >
+          -5초
+        </button>
+        <button
+          onClick={() => skipBy(5)}
+          className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 transition-colors hover:bg-white/10 active:scale-95"
+        >
+          +5초
+        </button>
+
+        <div className="flex-1" />
 
         {/* Time display */}
-        <span className="shrink-0 font-mono text-xs text-white/50">
+        <span className="shrink-0 font-mono text-xs text-white/40">
           {formatTime(currentTime)} / {formatTime(duration)}
         </span>
+
+        {/* HUD toggle */}
+        <label className="flex cursor-pointer items-center gap-1.5 select-none">
+          <input
+            type="checkbox"
+            checked={hudVisible}
+            onChange={(e) => onHudVisibleChange?.(e.target.checked)}
+            className="h-3.5 w-3.5 rounded accent-[#E74C3C]"
+          />
+          <span className="text-xs text-white/50">HUD</span>
+        </label>
       </div>
     </div>
   );

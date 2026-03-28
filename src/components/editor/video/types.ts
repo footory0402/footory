@@ -5,14 +5,30 @@ export interface ClipSegment {
   startTime: number;  // seconds
   endTime: number;    // seconds
   eventTag: EventTag;
+  /** "여기!" 클릭 시점 (초) */
+  markedAt?: number;
 }
+
+export interface EventDef {
+  id: EventTag;
+  label: string;
+  emoji: string;
+}
+
+export const EVENTS: EventDef[] = [
+  { id: "goal",    label: "골",       emoji: "⚽" },
+  { id: "assist",  label: "어시스트", emoji: "🅰️" },
+  { id: "dribble", label: "드리블",   emoji: "💨" },
+  { id: "save",    label: "세이브",   emoji: "🧤" },
+  { id: "other",   label: "기타",     emoji: "⭐" },
+];
 
 export const EVENT_TAG_LABELS: Record<EventTag, string> = {
   goal:    "⚽ 골",
-  assist:  "🎯 어시스트",
-  dribble: "🏃 드리블",
+  assist:  "🅰️ 어시스트",
+  dribble: "💨 드리블",
   save:    "🧤 세이브",
-  other:   "✨ 기타",
+  other:   "⭐ 기타",
 };
 
 export const EVENT_TAG_COLORS: Record<EventTag, string> = {

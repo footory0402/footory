@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import type { HudConfig } from "@/components/video/hud/types";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
@@ -9,29 +10,42 @@ import type { ClipSegment } from "@/components/editor/video/types";
 import VideoPlayer from "@/components/editor/video/VideoPlayer";
 import ClipMarker from "@/components/editor/video/ClipMarker";
 import ClipTimeline from "@/components/editor/video/ClipTimeline";
+import ClipList from "@/components/editor/video/ClipList";
 import HudConfigPanel from "@/components/editor/video/HudConfigPanel";
-import { useEffect } from "react";
-
 import { buildHudData } from "@/lib/hud-data-builder";
 
 export default function VideoEditorPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  // Player card
   const [playerData, setPlayerData] = useState<HudPlayerData | null>(null);
   const [cardLoading, setCardLoading] = useState(true);
   const [cardError, setCardError] = useState(false);
 
-  const [clips, setClips] = useState<ClipSegment[]>([]);
-  const [selectedClipId, setSelectedClipId] = useState<string | undefined>();
-  const [seekTo, setSeekTo] = useState<number | undefined>();
+  // Video
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [seekTo, setSeekTo] = useState<number | undefined>();
+  const [requestPause, setRequestPause] = useState<number | undefined>();
+
+  // Clips
+  const [clips, setClips] = useState<ClipSegment[]>([]);
+  const [selectedClipId, setSelectedClipId] = useState<string | undefined>();
+
+  // HUD
   const [hudConfig, setHudConfig] = useState<HudConfig>(DEFAULT_HUD_CONFIG);
+  const [hudVisible, setHudVisible] = useState(true);
   const [showIntro, setShowIntro] = useState(false);
 
-  // Load player card on mount
+  // Update goal count from clips
+  useEffect(() => {
+    const goalCount = clips.filter((c) => c.eventTag === "goal").length;
+    setHudConfig((prev) => (prev.goalCount !== goalCount ? { ...prev, goalCount } : prev));
+  }, [clips]);
+
+  // Load player card
   useEffect(() => {
     fetch("/api/player-card")
       .then((r) => (r.ok ? r.json() : null))
@@ -54,6 +68,7 @@ export default function VideoEditorPage() {
       return url;
     });
     setClips([]);
+    setSelectedClipId(undefined);
     setCurrentTime(0);
     setDuration(0);
   }, []);
@@ -64,8 +79,10 @@ export default function VideoEditorPage() {
   }, []);
 
   const handleAddClip = useCallback((clip: ClipSegment) => {
-    setClips((prev) => [...prev, clip]);
+    setClips((prev) => [...prev, clip].sort((a, b) => a.startTime - b.startTime));
     setSelectedClipId(clip.id);
+    // Auto-pause on mark
+    setRequestPause(Date.now());
   }, []);
 
   const handleRemoveClip = useCallback((id: string) => {
@@ -76,13 +93,23 @@ export default function VideoEditorPage() {
   const handleSelectClip = useCallback((clip: ClipSegment) => {
     setSelectedClipId(clip.id);
     setSeekTo(clip.startTime);
-    // seekTo 중복 방지: 잠깐 후 reset
     setTimeout(() => setSeekTo(undefined), 100);
   }, []);
 
   const handleClipChange = useCallback((updated: ClipSegment) => {
     setClips((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
   }, []);
+
+  const handleUpdateClip = useCallback((id: string, updates: Partial<ClipSegment>) => {
+    setClips((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
+    );
+  }, []);
+
+  const handleGenerate = useCallback(() => {
+    // TODO: server-side rendering
+    alert(`${clips.length}개 클립으로 하이라이트 영상 생성 (서버 렌더링 — 준비 중)`);
+  }, [clips.length]);
 
   // ── 카드 미저장 안내 ──
   if (!cardLoading && cardError) {
@@ -114,9 +141,14 @@ export default function VideoEditorPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="font-[var(--font-brand)] text-lg font-bold tracking-wider text-white">
-            영상 에디터
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-[var(--font-brand)] text-lg font-bold tracking-wider text-white">
+              영상 에디터
+            </h1>
+            <span className="rounded bg-[#D4A853]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D4A853]">
+              영상 편집
+            </span>
+          </div>
         </div>
 
         {/* File drop zone */}
@@ -131,15 +163,16 @@ export default function VideoEditorPage() {
               if (file) handleFileSelect(file);
             }}
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/6">
-              <svg className="h-8 w-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                  d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.89L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
+            <div className="text-4xl opacity-30">🎬</div>
             <div className="text-center">
-              <p className="font-semibold text-white/80">경기 영상을 선택하세요</p>
-              <p className="mt-1 text-xs text-white/40">MP4, MOV, AVI 등 — 탭하거나 드래그</p>
+              <p className="font-semibold text-white/80">경기 영상을 드래그하거나 선택하세요</p>
+              <p className="mt-1 text-xs text-white/40">MP4, MOV 지원</p>
+            </div>
+            <div
+              className="rounded-lg px-7 py-2.5 text-sm font-bold text-white"
+              style={{ background: "linear-gradient(135deg, #C0392B, #E74C3C)" }}
+            >
+              파일 선택
             </div>
           </div>
 
@@ -175,12 +208,18 @@ export default function VideoEditorPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="font-[var(--font-brand)] text-base font-bold tracking-wider text-white">
-            영상 에디터
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-[var(--font-brand)] text-base font-bold tracking-wider text-white">
+              영상 에디터
+            </h1>
+            <span className="rounded bg-[#D4A853]/15 px-2 py-0.5 text-[10px] font-semibold text-[#D4A853]">
+              영상 편집
+            </span>
+          </div>
         </div>
+
         <div className="flex items-center gap-2">
-          {/* Intro preview toggle */}
+          {/* Intro preview */}
           <button
             onClick={() => setShowIntro((v) => !v)}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all"
@@ -192,7 +231,6 @@ export default function VideoEditorPage() {
           >
             인트로 미리보기
           </button>
-          {/* Clip count badge */}
           {clips.length > 0 && (
             <span className="rounded-full bg-[#D4A853]/20 px-2 py-0.5 text-xs font-bold text-[#D4A853]">
               {clips.length}클립
@@ -203,7 +241,7 @@ export default function VideoEditorPage() {
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-4 p-4">
+        <div className="mx-auto flex max-w-[900px] flex-col gap-3 p-4">
           {/* Video player */}
           {playerData && (
             <VideoPlayer
@@ -212,16 +250,23 @@ export default function VideoEditorPage() {
               onTimeUpdate={handleTimeUpdate}
               seekTo={seekTo}
               hudConfig={hudConfig}
+              hudVisible={hudVisible}
+              onHudVisibleChange={setHudVisible}
               showIntro={showIntro}
+              requestPause={requestPause}
             />
           )}
 
-          {/* HUD config */}
-          <HudConfigPanel config={hudConfig} onChange={setHudConfig} />
+          {/* Clip marker (event tags + "여기!" button) */}
+          <ClipMarker
+            currentTime={currentTime}
+            duration={duration}
+            clipCount={clips.length}
+            onAddClip={handleAddClip}
+          />
 
           {/* Timeline */}
-          <div className="rounded-xl bg-white/4 p-3">
-            <div className="mb-2 text-xs font-semibold text-white/50 tracking-wide">타임라인</div>
+          <div className="rounded-xl border border-white/8 bg-[#111] p-3">
             <ClipTimeline
               duration={duration}
               currentTime={currentTime}
@@ -233,29 +278,18 @@ export default function VideoEditorPage() {
             />
           </div>
 
-          {/* Clip marker */}
-          <div className="rounded-xl bg-white/4 p-3">
-            <div className="mb-3 text-xs font-semibold text-white/50 tracking-wide">클립 마킹</div>
-            <ClipMarker
-              currentTime={currentTime}
-              duration={duration}
-              clips={sortedClips}
-              onAddClip={handleAddClip}
-              onRemoveClip={handleRemoveClip}
-              onSelectClip={handleSelectClip}
-              selectedClipId={selectedClipId}
-            />
-          </div>
+          {/* Clip list + generate */}
+          <ClipList
+            clips={sortedClips}
+            selectedClipId={selectedClipId}
+            onSelectClip={handleSelectClip}
+            onRemoveClip={handleRemoveClip}
+            onUpdateClip={handleUpdateClip}
+            onGenerate={handleGenerate}
+          />
 
-          {/* 생성 버튼 (추후 서버 렌더링) */}
-          {clips.length > 0 && (
-            <button
-              disabled
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-4 text-sm font-semibold text-white/30 cursor-not-allowed"
-            >
-              영상 생성 (서버 렌더링 — 준비 중)
-            </button>
-          )}
+          {/* HUD config (collapsible area) */}
+          <HudConfigPanel config={hudConfig} onChange={setHudConfig} />
         </div>
       </div>
     </div>
