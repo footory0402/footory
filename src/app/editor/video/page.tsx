@@ -10,6 +10,11 @@ import VideoPlayer from "@/components/editor/video/VideoPlayer";
 import ClipTimeline from "@/components/editor/video/ClipTimeline";
 import { EVENTS, EVENT_TAG_COLORS, MIN_CLIP_DURATION } from "@/components/editor/video/types";
 import { buildHudData } from "@/lib/hud-data-builder";
+import ConfirmView from "@/components/editor/video/ConfirmView";
+import ProcessingView from "@/components/editor/video/ProcessingView";
+import type { ProcessingStep } from "@/components/editor/video/ProcessingView";
+import DoneView from "@/components/editor/video/DoneView";
+import { preloadFFmpeg, concatHighlight } from "@/lib/highlight-concat";
 
 export default function VideoEditorPage() {
   const router = useRouter();
@@ -38,6 +43,18 @@ export default function VideoEditorPage() {
   const [showGuide, setShowGuide] = useState(true);
   const [justMarked, setJustMarked] = useState(false);
 
+  // Phase state machine
+  type Phase = "onboarding" | "marking" | "confirm" | "processing" | "done";
+  const [phase, setPhase] = useState<Phase>("onboarding");
+
+  // Processing state
+  const [procStep, setProcStep] = useState<ProcessingStep>("loading");
+  const [trimProgress, setTrimProgress] = useState(0);
+  const [procError, setProcError] = useState<string | undefined>();
+
+  // Video file ref (to pass to concat)
+  const videoFileRef = useRef<File | null>(null);
+
   useEffect(() => {
     const goalCount = clips.filter((c) => c.eventTag === "goal").length;
     setHudConfig((prev) => (prev.goalCount !== goalCount ? { ...prev, goalCount } : prev));
@@ -51,8 +68,19 @@ export default function VideoEditorPage() {
       .finally(() => setCardLoading(false));
   }, []);
 
+  // Auto-transition to marking when video is loaded
+  useEffect(() => {
+    if (videoSrc && phase === "onboarding") setPhase("marking");
+  }, [videoSrc, phase]);
+
+  // Preload FFmpeg when marking starts
+  useEffect(() => {
+    if (phase === "marking") preloadFFmpeg().catch(() => {});
+  }, [phase]);
+
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith("video/")) return;
+    videoFileRef.current = file;
     const url = URL.createObjectURL(file);
     setVideoSrc((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
     setClips([]); setSelectedClipId(undefined); setCurrentTime(0); setDuration(0);
@@ -102,8 +130,73 @@ export default function VideoEditorPage() {
     setClips((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
   }, []);
 
+  const handleGenerate = useCallback(async () => {
+    if (!videoFileRef.current || clips.length === 0) return;
+    setPhase("processing");
+    setProcError(undefined);
+    setTrimProgress(0);
+
+    try {
+      await concatHighlight({
+        videoFile: videoFileRef.current,
+        clips: [...clips].sort((a, b) => a.startTime - b.startTime),
+        onStep: setProcStep,
+        onTrimProgress: setTrimProgress,
+      });
+      setPhase("done");
+    } catch (e: any) {
+      setProcError(e.message ?? "알 수 없는 오류");
+    }
+  }, [clips]);
+
   const selectedClip = clips.find((c) => c.id === selectedClipId);
   const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
+
+  // ═══ Phase routing ═══
+  if (phase === "confirm") {
+    return (
+      <ConfirmView
+        clips={sortedClips}
+        videoFile={videoFileRef.current!}
+        playerName={playerData ? `${playerData.lastName}${playerData.firstName}` : "선수"}
+        playerNumber={playerData?.number}
+        onBack={() => setPhase("marking")}
+        onGenerate={handleGenerate}
+        onUpdateClip={(id, updates) => setClips((prev) => prev.map((c) => c.id === id ? { ...c, ...updates } : c))}
+        onRemoveClip={handleRemoveClip}
+        onReorderClips={setClips}
+      />
+    );
+  }
+
+  if (phase === "processing") {
+    return (
+      <ProcessingView
+        step={procStep}
+        trimProgress={trimProgress}
+        totalClips={clips.length}
+        error={procError}
+        onRetry={() => { setProcError(undefined); handleGenerate(); }}
+      />
+    );
+  }
+
+  if (phase === "done") {
+    const totalDuration = clips.reduce((sum, c) => sum + (c.endTime - c.startTime), 0);
+    return (
+      <DoneView
+        clipCount={clips.length}
+        totalDuration={totalDuration}
+        onReset={() => {
+          setVideoSrc(null);
+          setClips([]);
+          setSelectedClipId(undefined);
+          setPhase("onboarding");
+          videoFileRef.current = null;
+        }}
+      />
+    );
+  }
 
   // ════════════════════════════════════════════
   //  영상 미선택 — 가이드 포함 온보딩 화면
@@ -122,6 +215,13 @@ export default function VideoEditorPage() {
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6">
+          {/* 스텝 인디케이터 */}
+          <div className="flex justify-center gap-1.5 mb-4">
+            <div className="h-1 w-8 rounded-full bg-accent" />
+            <div className="h-1 w-8 rounded-full bg-white/10" />
+            <div className="h-1 w-8 rounded-full bg-white/10" />
+          </div>
+
           {/* 메인 CTA */}
           <div
             className="flex w-full max-w-sm cursor-pointer flex-col items-center gap-5 rounded-3xl p-8 transition-all active:scale-[0.98]"
@@ -138,7 +238,7 @@ export default function VideoEditorPage() {
             </div>
             <div className="text-center">
               <p className="text-[16px] font-bold text-white">경기 영상 불러오기</p>
-              <p className="mt-1.5 text-[13px] text-white/40">MP4, MOV 파일</p>
+              <p className="mt-1.5 text-[13px] text-white/40">MP4, MOV · 최대 300MB</p>
             </div>
             <div className="rounded-xl bg-accent px-8 py-2.5 text-[14px] font-bold text-black">
               파일 선택
@@ -151,7 +251,7 @@ export default function VideoEditorPage() {
             <div className="flex gap-3">
               {[
                 { step: "1", icon: "▶", title: "영상 재생", desc: "경기 영상을 재생하세요" },
-                { step: "2", icon: "⚡", title: "장면 선택", desc: "좋은 장면에서 탭!" },
+                { step: "2", icon: "⚡", title: "장면 선택", desc: "원하는 구간에서 탭!" },
                 { step: "3", icon: "✂", title: "구간 조절", desc: "드래그로 길이 조절" },
               ].map((item) => (
                 <div
@@ -192,13 +292,28 @@ export default function VideoEditorPage() {
           </button>
           <span className="text-[14px] font-bold text-white">하이라이트 만들기</span>
         </div>
-        {clips.length > 0 && (
-          <div className="flex items-center gap-1.5 rounded-full px-3 py-1"
-            style={{ background: "rgba(212,168,83,0.12)", border: "1px solid rgba(212,168,83,0.2)" }}>
-            <div className="h-1.5 w-1.5 rounded-full bg-accent" />
-            <span className="text-[12px] font-bold text-accent">{clips.length}개 장면</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {clips.length > 0 && (
+            <div className="flex items-center gap-1.5 rounded-full px-3 py-1"
+              style={{ background: "rgba(212,168,83,0.12)", border: "1px solid rgba(212,168,83,0.2)" }}>
+              <div className="h-1.5 w-1.5 rounded-full bg-accent" />
+              <span className="text-[12px] font-bold text-accent">{clips.length}개 구간</span>
+            </div>
+          )}
+          {/* 다음 버튼 */}
+          <button
+            onClick={() => clips.length > 0 && setPhase("confirm")}
+            disabled={clips.length === 0}
+            className="rounded-xl px-4 py-1.5 text-[12px] font-bold transition-all active:scale-95 disabled:opacity-25"
+            style={{
+              background: clips.length >= 3 ? "#D4A853" : "transparent",
+              color: clips.length >= 3 ? "#000" : "#D4A853",
+              border: clips.length >= 3 ? "none" : "1px solid rgba(212,168,83,0.3)",
+            }}
+          >
+            다음 →
+          </button>
+        </div>
       </div>
 
       {/* ── 영상 플레이어 ── */}
@@ -216,14 +331,29 @@ export default function VideoEditorPage() {
           />
         </div>
 
-        {/* 첫 사용 가이드 오버레이 */}
-        {showGuide && clips.length === 0 && (
+        {/* 적응형 가이드 — 0 clips */}
+        {clips.length === 0 && showGuide && (
           <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-16">
             <div className="animate-bounce rounded-2xl bg-black/70 px-5 py-3 backdrop-blur-md"
               style={{ border: "1px solid rgba(212,168,83,0.2)" }}>
               <p className="text-[13px] text-white/90">
-                <span className="font-bold text-accent">▶ 재생</span> 후 좋은 장면에서
-                <span className="font-bold text-accent"> ⚡ 이 장면!</span>을 눌러주세요
+                <span className="font-bold text-accent/60">Step 1/2</span>
+                {" · 영상을 재생하면서 원하는 구간에서 "}
+                <span className="font-bold text-accent">⚡ 이 장면!</span>을 눌러주세요
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 첫 마킹 후 다음 유도 */}
+        {justMarked && clips.length === 1 && (
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-16">
+            <div className="rounded-2xl bg-black/70 px-5 py-3 backdrop-blur-md"
+              style={{ border: "1px solid rgba(46,204,113,0.3)" }}>
+              <p className="text-[13px] text-white/90">
+                <span className="text-green-400">✓ 구간 추가 완료!</span>
+                {" 더 추가하거나 우측 상단 "}
+                <span className="font-bold text-accent">다음 →</span>을 눌러주세요
               </p>
             </div>
           </div>
@@ -233,7 +363,7 @@ export default function VideoEditorPage() {
         {justMarked && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="animate-scale-up rounded-2xl bg-accent/90 px-6 py-3 shadow-2xl">
-              <p className="text-[15px] font-black text-black">✓ 장면 추가됨!</p>
+              <p className="text-[15px] font-black text-black">✓ 구간 추가!</p>
             </div>
           </div>
         )}
