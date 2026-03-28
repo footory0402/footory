@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import type { HudPlayerData, HudConfig } from "@/components/video/hud/types";
+import type { HudConfig } from "@/components/video/hud/types";
+import type { HudPlayerData } from "@/components/video/hud/types";
 import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import type { ClipSegment } from "@/components/editor/video/types";
 import VideoPlayer from "@/components/editor/video/VideoPlayer";
@@ -11,35 +12,7 @@ import ClipTimeline from "@/components/editor/video/ClipTimeline";
 import HudConfigPanel from "@/components/editor/video/HudConfigPanel";
 import { useEffect } from "react";
 
-// PlayerData → HudPlayerData 변환
-function toHudData(card: Record<string, unknown>): HudPlayerData {
-  const d = (card.card_data ?? {}) as Record<string, unknown>;
-  const positionMap: Record<string, string> = {
-    ST: "FW", CF: "FW", LW: "FW", RW: "FW",
-    CM: "MF", CAM: "MF", CDM: "MF", LM: "MF", RM: "MF",
-    CB: "DF", LB: "DF", RB: "DF", LWB: "DF", RWB: "DF",
-    GK: "GK",
-  };
-  const pos = String(d.position ?? "ST");
-  return {
-    firstName:    String(d.firstName ?? ""),
-    lastName:     String(d.lastName ?? ""),
-    number:       String(d.number ?? "9"),
-    position:     pos,
-    positionShort: positionMap[pos] ?? pos,
-    club:          String(d.club ?? ""),
-    clubFull:      String(d.club ?? ""),
-    age:           String(d.age ?? ""),
-    birthDate:     String(d.birthDate ?? ""),
-    height:        String(d.height ?? ""),
-    weight:        String(d.weight ?? ""),
-    foot:          String(d.foot ?? "RIGHT"),
-    nationality:   String(d.nationality ?? "KOREA"),
-    photoUrl:      String(d.photoUrl ?? ""),
-    mainColor:     String(card.main_color ?? d.customClubColor ?? "#C0392B"),
-    accentColor:   String(card.accent_color ?? d.customClubAccent ?? "#E74C3C"),
-  };
-}
+import { buildHudData } from "@/lib/hud-data-builder";
 
 export default function VideoEditorPage() {
   const router = useRouter();
@@ -64,7 +37,7 @@ export default function VideoEditorPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((res) => {
         if (res?.card) {
-          setPlayerData(toHudData(res.card));
+          setPlayerData(buildHudData(res.card));
         } else {
           setCardError(true);
         }

@@ -10,7 +10,7 @@ import EditorHeader from "@/components/editor/EditorHeader";
 
 export default function EditorPage() {
   const [data, setData] = useState<PlayerData>(DEFAULT_PLAYER_DATA);
-  const [template, setTemplate] = useState<TemplateId>("fifa");
+  const [template, setTemplate] = useState<TemplateId>("broadcast");
   const [loaded, setLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
@@ -82,7 +82,7 @@ export default function EditorPage() {
             club: cardData.club || "직접 입력",
             customClubName: card.club_name || cardData.customClubName || "",
           });
-          setTemplate(card.template || "fifa");
+          setTemplate(card.template || "broadcast");
         } else {
           // No saved card — use profile defaults
           setData({

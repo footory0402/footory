@@ -61,31 +61,31 @@ export async function composeIntroCard(
 
     report(50);
 
-    // 6. Create intro video from card image (2 seconds)
+    // 6. Create intro video from card image (2 seconds, 16:9 960×540)
     await ffmpeg.exec([
       "-loop", "1",
       "-i", "card.png",
       "-c:v", "libx264",
       "-t", "2",
       "-pix_fmt", "yuv420p",
-      "-vf", "scale=720:1040:force_original_aspect_ratio=decrease,pad=720:1040:(ow-iw)/2:(oh-ih)/2:black",
+      "-vf", "scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black",
       "-r", "30",
       "intro.mp4",
     ]);
 
     report(70);
 
-    // 7. Create concat file
-    await ffmpeg.writeFile("list.txt",
-      new TextEncoder().encode("file 'intro.mp4'\nfile 'input.mp4'\n")
-    );
-
-    // 8. Concatenate intro + original
+    // 7. Concatenate — filter_complex로 해상도 자동 맞춤
     await ffmpeg.exec([
-      "-f", "concat",
-      "-safe", "0",
-      "-i", "list.txt",
-      "-c", "copy",
+      "-i", "intro.mp4",
+      "-i", "input.mp4",
+      "-filter_complex",
+      "[0:v]scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black[v0];" +
+      "[1:v]scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black[v1];" +
+      "[v0][v1]concat=n=2:v=1[outv]",
+      "-map", "[outv]",
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
       "-movflags", "+faststart",
       "output.mp4",
     ]);
