@@ -10,6 +10,10 @@ export interface ClipSegment {
   /** 클립별 선수 스포트라이트 위치 (0-1 normalized) */
   spotlightX?: number;
   spotlightY?: number;
+  /** EA FC 다이아몬드 마커 X 위치 (0-1 normalized) */
+  markerX?: number;
+  /** EA FC 다이아몬드 마커 Y 위치 (0-1 normalized) */
+  markerY?: number;
 }
 
 export interface EventDef {
