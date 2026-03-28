@@ -19,6 +19,8 @@ interface VideoPlayerProps {
   showIntro?: boolean;
   /** 외부에서 일시정지 요청 (클립 마킹 시) */
   requestPause?: number;
+  /** 외부 컨트롤 사용 시 내장 컨트롤 숨김 */
+  hideControls?: boolean;
 }
 
 export default function VideoPlayer({
@@ -31,6 +33,7 @@ export default function VideoPlayer({
   hudVisible = true,
   showIntro = false,
   requestPause,
+  hideControls = false,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -141,8 +144,8 @@ export default function VideoPlayer({
         )}
       </div>
 
-      {/* Controls row — 영상 아래 컴팩트 */}
-      <div className="flex shrink-0 items-center gap-2 px-2 py-1.5 bg-[#0D0D0F]">
+      {/* Controls row — hideControls일 때 숨김 */}
+      <div className={`flex shrink-0 items-center gap-2 px-2 py-1.5 bg-[#0D0D0F] ${hideControls ? "hidden" : ""}`}>
         {/* Play/Pause */}
         <button
           onClick={togglePlay}

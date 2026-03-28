@@ -82,8 +82,16 @@ export default function VideoEditorPage() {
   }, [currentTime, duration, clips.length]);
 
   const handleRemoveClip = useCallback((id: string) => {
-    setClips((prev) => prev.filter((c) => c.id !== id));
-    setSelectedClipId((prev) => (prev === id ? undefined : prev));
+    setClips((prev) => {
+      const remaining = prev.filter((c) => c.id !== id);
+      // 삭제 후 남은 클립 중 첫 번째 자동 선택
+      if (remaining.length > 0) {
+        setTimeout(() => setSelectedClipId(remaining[0].id), 0);
+      } else {
+        setSelectedClipId(undefined);
+      }
+      return remaining;
+    });
   }, []);
 
   const handleClipChange = useCallback((updated: ClipSegment) => {
@@ -204,6 +212,7 @@ export default function VideoEditorPage() {
             hudConfig={hudConfig}
             hudVisible={true}
             requestPause={requestPause}
+            hideControls
           />
         </div>
 
