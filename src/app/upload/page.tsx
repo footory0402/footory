@@ -122,7 +122,7 @@ export default function UploadPage() {
               <div className="flex-1">
                 <p className="text-[15px] font-bold text-white">경기 영상으로 하이라이트 만들기</p>
                 <p className="mt-1 text-[12px] leading-relaxed text-text-3">
-                  주말 경기 풀영상에서 골·어시스트 장면을 골라<br />나만의 하이라이트를 만들어 보세요
+                  주말 경기 풀영상에서 원하는 구간을 골라<br />나만의 하이라이트를 만들어 보세요
                 </p>
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function UploadPage() {
             <div className="flex items-center gap-1.5 text-[11px] text-text-3">
               <span className="rounded-md bg-[#C0392B]/20 px-2 py-1 font-semibold text-[#E74C3C]">영상 선택</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              <span className="rounded-md bg-[#C0392B]/20 px-2 py-1 font-semibold text-[#E74C3C]">장면 마킹</span>
+              <span className="rounded-md bg-[#C0392B]/20 px-2 py-1 font-semibold text-[#E74C3C]">구간 선택</span>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               <span className="rounded-md bg-[#C0392B]/20 px-2 py-1 font-semibold text-[#E74C3C]">완성!</span>
             </div>
