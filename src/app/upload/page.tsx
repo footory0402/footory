@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
 import VideoSelector from "@/components/upload/VideoSelector";
@@ -15,6 +15,7 @@ export default function UploadPage() {
   const { profile, loading } = useProfileContext();
   const store = useUploadStore();
   const effects = useUploadStore((s) => s.effects);
+  const [showQuickUpload, setShowQuickUpload] = useState(false);
 
   const role = profile?.role ?? null;
   const canUpload = role === "player" || role === "parent";
@@ -92,54 +93,84 @@ export default function UploadPage() {
       {/* 헤더 */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => (store.file ? useUploadStore.getState().setFile(null) : router.back())}
-          aria-label={store.file ? "파일 선택 해제" : "뒤로가기"}
+          onClick={() => {
+            if (store.file) { useUploadStore.getState().setFile(null); }
+            else if (showQuickUpload) { setShowQuickUpload(false); }
+            else { router.back(); }
+          }}
+          aria-label={store.file ? "파일 선택 해제" : showQuickUpload ? "선택 화면으로" : "뒤로가기"}
           className="flex h-11 w-11 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <h1 className="text-[17px] font-bold text-text-1">영상 업로드</h1>
+        <h1 className="text-[17px] font-bold text-text-1">영상 올리기</h1>
       </div>
 
-      {/* 에디터 배너들 (파일 선택 전) */}
-      {!store.file && (
-        <div className="flex flex-col gap-2">
-          {/* 영상 에디터 배너 */}
+      {/* 시나리오 분기 (파일 미선택 상태) */}
+      {!store.file && !showQuickUpload && (
+        <div className="flex flex-col gap-3">
+          {/* 메인 CTA: 하이라이트 만들기 */}
           <Link
             href="/editor/video"
-            className="flex items-center gap-3 rounded-xl border border-[#C0392B]/20 bg-[#C0392B]/8 px-4 py-3 transition-colors active:bg-[#C0392B]/12"
+            className="flex flex-col gap-4 rounded-2xl border border-[#C0392B]/25 p-5 transition-colors active:opacity-80"
+            style={{ background: "linear-gradient(135deg, rgba(192,57,43,0.12), rgba(231,76,60,0.06))" }}
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#C0392B]/15 text-lg">🎬</span>
-            <div className="flex-1">
-              <p className="text-[13px] font-semibold text-[#E74C3C]">영상 에디터</p>
-              <p className="text-[11px] text-text-3">클립 마킹 · HUD 오버레이 · 하이라이트 생성</p>
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#C0392B]/20 text-xl">⚽</span>
+              <div className="flex-1">
+                <p className="text-[15px] font-bold text-white">경기 영상으로 하이라이트 만들기</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-text-3">
+                  주말 경기 풀영상에서 골·어시스트 장면을 골라<br />나만의 하이라이트를 만들어 보세요
+                </p>
+              </div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
+
+            {/* 3단계 플로우 */}
+            <div className="flex items-center gap-1.5 text-[11px] text-text-3">
+              <span className="rounded-md bg-[#C0392B]/20 px-2 py-1 font-semibold text-[#E74C3C]">영상 선택</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <span className="rounded-md bg-[#C0392B]/20 px-2 py-1 font-semibold text-[#E74C3C]">장면 마킹</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <span className="rounded-md bg-[#C0392B]/20 px-2 py-1 font-semibold text-[#E74C3C]">완성!</span>
+            </div>
+
+            <div className="flex items-center justify-end gap-1 text-[12px] font-semibold text-[#E74C3C]">
+              경기 영상 불러오기
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
           </Link>
 
-          {/* 카드 에디터 배너 */}
-          <Link
-            href="/editor"
-            className="flex items-center gap-3 rounded-xl border border-accent/15 bg-accent/8 px-4 py-3 transition-colors active:bg-accent/12"
+          {/* 구분선 */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-white/8" />
+            <span className="text-[11px] text-text-3">또는</span>
+            <div className="h-px flex-1 bg-white/8" />
+          </div>
+
+          {/* 보조 CTA: 짧은 영상 바로 올리기 */}
+          <button
+            type="button"
+            onClick={() => setShowQuickUpload(true)}
+            className="flex items-center gap-3 rounded-xl border border-white/8 bg-card px-4 py-3.5 text-left transition-colors active:bg-card-alt"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-lg">🎴</span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/6 text-lg">📱</span>
             <div className="flex-1">
-              <p className="text-[13px] font-semibold text-accent">선수 프로필 카드 만들기</p>
-              <p className="text-[11px] text-text-3">영상 인트로에 넣을 선수 카드를 제작하세요</p>
+              <p className="text-[13px] font-semibold text-text-1">짧은 영상 바로 올리기</p>
+              <p className="mt-0.5 text-[11px] text-text-3">이미 편집된 스킬 영상을 바로 프로필에 올려요 · 2분 이내</p>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-3">
               <path d="M9 18l6-6-6-6" />
             </svg>
-          </Link>
+          </button>
         </div>
       )}
 
-      {/* 영상 선택 */}
-      <VideoSelector />
+      {/* 영상 선택 (보조 CTA 클릭 후 or 이미 파일 선택됨) */}
+      {(showQuickUpload || store.file) && <VideoSelector />}
 
       {/* 카드 + 링 표시 (파일 선택 후) */}
       {store.file && (

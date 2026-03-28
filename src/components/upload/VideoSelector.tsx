@@ -266,7 +266,7 @@ export default function VideoSelector() {
           </div>
           <div className="flex flex-col items-center gap-1.5">
             <span className="text-sm font-medium text-text-2">
-              하이라이트 영상을 선택하세요
+              스킬 영상을 선택하세요
             </span>
             <div className="flex items-center gap-2 text-[11px] text-text-3">
               <span className="flex items-center gap-1">
