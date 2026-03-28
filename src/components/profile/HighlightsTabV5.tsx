@@ -310,43 +310,42 @@ export default function HighlightsTabV5({
           </div>
         )}
 
-        {/* ── 2-column 3:4 grid ── */}
+        {/* ── 3-column 1:1 grid (Instagram style) ── */}
         {tagClipsLoading ? (
-          <div className="grid grid-cols-2 gap-[10px]">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="-mx-4 grid grid-cols-3 gap-[2px]">
+            {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="animate-pulse rounded-xl"
+                className="animate-pulse"
                 style={{
-                  aspectRatio: "3/4",
+                  aspectRatio: "1/1",
                   background: "var(--color-card)",
                 }}
               />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-[10px]">
+          <div className="-mx-4 grid grid-cols-3 gap-[2px]">
             {/* Upload card */}
             {!readOnly && (
               <Link
                 href="/upload"
-                className="flex flex-col items-center justify-center gap-2"
+                className="flex flex-col items-center justify-center gap-1"
                 style={{
-                  aspectRatio: "3/4",
-                  borderRadius: 12,
-                  border: "1.5px dashed rgba(212,168,83,0.2)",
+                  aspectRatio: "1/1",
                   background: "rgba(212,168,83,0.02)",
+                  border: "1px dashed rgba(212,168,83,0.15)",
                   cursor: "pointer",
                 }}
               >
                 <div
                   className="flex items-center justify-center"
                   style={{
-                    width: 44,
-                    height: 44,
+                    width: 36,
+                    height: 36,
                     borderRadius: "50%",
                     background: "rgba(212,168,83,0.08)",
-                    fontSize: 20,
+                    fontSize: 18,
                     color: "rgba(212,168,83,0.5)",
                   }}
                 >
@@ -354,7 +353,7 @@ export default function HighlightsTabV5({
                 </div>
                 <span
                   style={{
-                    fontSize: 11,
+                    fontSize: 10,
                     color: "rgba(212,168,83,0.5)",
                     fontFamily: "var(--font-body)",
                   }}
@@ -764,7 +763,7 @@ function TagPill({
   );
 }
 
-/* ── Clip card (v5: 3:4 ratio, tags + info overlay) ── */
+/* ── Clip card (Instagram style: 1:1 square) ── */
 function ClipCard({
   clip,
   index,
@@ -778,9 +777,9 @@ function ClipCard({
 }) {
   return (
     <div
-      className="card-elevated relative cursor-pointer overflow-hidden"
+      className="relative cursor-pointer overflow-hidden"
       onClick={onPlay}
-      style={{ aspectRatio: "3/4" }}
+      style={{ aspectRatio: "1/1", background: "#111" }}
     >
       {/* Background / Thumbnail */}
       {clip.thumbnailUrl ? (
@@ -788,7 +787,7 @@ function ClipCard({
           src={clip.thumbnailUrl}
           alt=""
           fill
-          sizes="(max-width: 430px) 45vw, 200px"
+          sizes="(max-width: 430px) 33vw, 140px"
           className="object-cover"
         />
       ) : (
@@ -801,12 +800,11 @@ function ClipCard({
           <div
             className="flex items-center justify-center"
             style={{
-              width: 40,
-              height: 40,
+              width: 32,
+              height: 32,
               borderRadius: "50%",
               background: "rgba(255,255,255,0.07)",
-              backdropFilter: "blur(4px)",
-              fontSize: 16,
+              fontSize: 14,
               color: "rgba(255,255,255,0.5)",
             }}
           >
@@ -815,76 +813,39 @@ function ClipCard({
         </div>
       )}
 
-      {/* Duration (top-right) */}
-      <div className="absolute right-2 top-2 flex gap-1">
-        <span
-          style={{
-            background: "rgba(0,0,0,0.7)",
-            borderRadius: 3,
-            padding: "2px 5px",
-            fontSize: 9,
-            color: "var(--color-text-2)",
-            fontFamily: "var(--font-stat)",
-          }}
-        >
-          {formatDuration(Math.round(clip.duration))}
-        </span>
-      </div>
-
-      {/* Tags (top-left) */}
-      {clip.tagLabel && (
-        <div className="absolute left-2 top-2 flex gap-[3px]">
-          <span
-            style={{
-              padding: "1px 5px",
-              borderRadius: 3,
-              fontSize: 8,
-              background: "rgba(212,168,83,0.15)",
-              color: "var(--color-accent)",
-              fontFamily: "var(--font-body)",
-              fontWeight: 500,
-            }}
-          >
-            #{clip.tagLabel}
-          </span>
-        </div>
-      )}
-
-      {/* Bottom info overlay */}
+      {/* Duration (bottom-right) */}
       <div
-        className="absolute bottom-0 left-0 right-0"
+        className="absolute bottom-[5px] right-[5px]"
         style={{
-          padding: "24px 10px 10px",
-          background: "linear-gradient(transparent, rgba(0,0,0,0.85))",
+          background: "rgba(0,0,0,0.75)",
+          borderRadius: 3,
+          padding: "1px 4px",
+          fontSize: 10,
+          color: "#fff",
+          fontFamily: "var(--font-stat)",
+          lineHeight: 1.4,
         }}
       >
-        <p
-          className="m-0 mb-[3px]"
+        {formatDuration(Math.round(clip.duration))}
+      </div>
+
+      {/* Tag badge (top-left) — compact */}
+      {clip.tagLabel && (
+        <div
+          className="absolute left-[5px] top-[5px]"
           style={{
+            padding: "1px 4px",
+            borderRadius: 3,
+            fontSize: 8,
+            background: "rgba(212,168,83,0.2)",
+            color: "var(--color-accent)",
             fontFamily: "var(--font-body)",
-            fontSize: 10,
-            fontWeight: 600,
-            color: "rgba(255,255,255,0.7)",
-            lineHeight: 1.3,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            fontWeight: 500,
           }}
         >
-          {clip.tag || "미분류"}
-        </p>
-        <div className="flex items-center justify-between">
-          <span
-            style={{
-              fontSize: 9,
-              color: "var(--color-text-3)",
-              fontFamily: "var(--font-body)",
-            }}
-          >
-            {formatDuration(Math.round(clip.duration))}
-          </span>
+          #{clip.tagLabel}
         </div>
-      </div>
+      )}
 
       {/* Edit tags button (untagged only) */}
       {!clip.tagLabel && onEditTags && (
@@ -893,7 +854,7 @@ function ClipCard({
             e.stopPropagation();
             onEditTags();
           }}
-          className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full"
+          className="absolute bottom-[5px] left-[5px] flex h-5 w-5 items-center justify-center rounded-full"
           style={{
             background: "rgba(212,168,83,0.8)",
             color: "#000",
@@ -901,8 +862,8 @@ function ClipCard({
           aria-label="태그 추가"
         >
           <svg
-            width="10"
-            height="10"
+            width="9"
+            height="9"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
