@@ -27,10 +27,9 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
         if (res?.card) {
           setHasCard(true);
           const cd = res.card.card_data as Record<string, string>;
-          const templateLabels: Record<string, string> = { fifa: "FIFA", broadcast: "방송", minimal: "미니멀" };
           setCardInfo({
             name: `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "이름 없음",
-            template: templateLabels[res.card.template] || res.card.template,
+            template: "방송 스타일",
             color: res.card.accent_color || "#D4A853",
           });
         } else {
@@ -91,7 +90,7 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-text-1 truncate">{cardInfo.name}</p>
-            <p className="text-[10px] text-text-3">{cardInfo.template} 스타일 · 탭하여 수정</p>
+            <p className="text-[10px] text-text-3">{cardInfo.template} · 탭하여 수정</p>
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-3">
             <path d="M9 18l6-6-6-6" />

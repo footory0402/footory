@@ -13,7 +13,7 @@ export default function EditorHeader({ onSave, saveStatus }: EditorHeaderProps) 
   const router = useRouter();
 
   return (
-    <header className="flex items-center justify-between border-b border-white/6 bg-[#111114] px-3 py-2.5 md:px-6 md:py-3.5">
+    <header className="flex items-center justify-between border-b border-white/6 bg-[#0a0a0c] px-3 py-2 md:bg-[#111114] md:px-6 md:py-3.5">
       <div className="flex items-center gap-2 md:gap-3">
         <button
           onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
@@ -24,45 +24,42 @@ export default function EditorHeader({ onSave, saveStatus }: EditorHeaderProps) 
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-dim text-xs font-black text-white md:h-8 md:w-8 md:text-sm">
+        <div className="flex items-center gap-1.5">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-accent to-accent-dim text-[10px] font-black text-white md:h-7 md:w-7 md:text-xs">
             F
           </div>
-          <span className="hidden text-lg font-extrabold tracking-tight sm:inline">
-            <span className="text-accent">Foot</span>
-            <span className="text-text-1">ory</span>
+          <span className="text-[13px] font-bold tracking-tight md:text-lg">
+            <span className="text-accent">카드</span>
+            <span className="text-text-2"> 편집</span>
           </span>
-        </Link>
-        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold tracking-widest text-amber-400 md:px-2.5 md:text-[10px]">
-          EDITOR
-        </span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 md:gap-2">
         <Link
           href="/editor/video"
-          className="flex items-center gap-1.5 rounded-lg bg-white/8 px-3 py-2 text-[12px] font-semibold text-white/70 transition-colors hover:bg-white/12"
+          className="flex items-center gap-1 rounded-lg bg-white/6 px-2.5 py-1.5 text-[11px] font-semibold text-white/60 transition-colors active:bg-white/10 md:gap-1.5 md:px-3 md:py-2 md:text-[12px]"
         >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-3 w-3 md:h-3.5 md:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.89L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
-          영상 에디터
+          <span className="hidden sm:inline">영상 에디터</span>
         </Link>
-      <button
-        onClick={onSave}
-        disabled={saveStatus === "saving"}
-        className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-[13px] font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-50 md:px-5"
-      >
-        {saveStatus === "saving" ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : saveStatus === "saved" ? (
-          <Check className="h-4 w-4" />
-        ) : (
-          <Save className="h-4 w-4" />
-        )}
-        {saveStatus === "saving" ? "저장 중..." : saveStatus === "saved" ? "저장됨!" : "카드 저장"}
-      </button>
+        <button
+          onClick={onSave}
+          disabled={saveStatus === "saving"}
+          className="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-bold text-black transition-opacity active:opacity-90 disabled:opacity-50 md:gap-1.5 md:px-5 md:py-2 md:text-[13px]"
+        >
+          {saveStatus === "saving" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : saveStatus === "saved" ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Save className="h-3.5 w-3.5" />
+          )}
+          {saveStatus === "saving" ? "저장 중" : saveStatus === "saved" ? "완료!" : "저장"}
+        </button>
       </div>
     </header>
   );

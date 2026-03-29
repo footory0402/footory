@@ -30,7 +30,7 @@ export function buildHudData(card: Record<string, unknown>): HudPlayerData {
     weight:         cardData.weight       ?? "",
     foot:           cardData.foot         ?? "",
     nationality:    cardData.nationality  ?? "",
-    photoUrl:       cardData.photoUrl     ?? "",
+    photoUrl:       (cardData.photoUrl && !cardData.photoUrl.startsWith("blob:")) ? cardData.photoUrl : "",
     mainColor:      (card.main_color as string)   || "#37474F",
     accentColor:    (card.accent_color as string) || "#78909C",
   };

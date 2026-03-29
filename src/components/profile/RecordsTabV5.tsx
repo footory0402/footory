@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { getStatMeta } from "@/lib/constants";
+import { getStatMeta, getPercentileTier } from "@/lib/constants";
 import {
   formatStatDelta,
   formatStatValue,
@@ -18,6 +18,11 @@ interface RecordsTabV5Props {
   onUpdateStat?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
   onPlayStyleTest?: () => void;
+  percentiles?: Record<string, number>;
+  ageAvgs?: Record<string, number>;
+  peerCounts?: Record<string, number>;
+  ageGroup?: string;
+  percentileLoading?: boolean;
 }
 
 export default function RecordsTabV5({
@@ -27,6 +32,10 @@ export default function RecordsTabV5({
   onUpdateStat,
   onDeleteStat,
   onPlayStyleTest,
+  percentiles,
+  ageAvgs,
+  peerCounts,
+  percentileLoading,
 }: RecordsTabV5Props) {
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -272,6 +281,10 @@ export default function RecordsTabV5({
                 isEditMode={isEditMode}
                 onUpdate={!isEditMode && onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
                 onDelete={isEditMode && onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
+                percentile={percentiles?.[stat.type]}
+                ageAvg={ageAvgs?.[stat.type]}
+                peerCount={peerCounts?.[stat.type]}
+                percentileLoading={percentileLoading}
               />
             ))}
           </div>
@@ -477,11 +490,19 @@ function PhysicalTestCard({
   isEditMode,
   onUpdate,
   onDelete,
+  percentile,
+  ageAvg,
+  peerCount,
+  percentileLoading,
 }: {
   stat: Stat;
   isEditMode: boolean;
   onUpdate?: () => void;
   onDelete?: () => void;
+  percentile?: number;
+  ageAvg?: number;
+  peerCount?: number;
+  percentileLoading?: boolean;
 }) {
   const meta = getStatMeta(stat.type);
   const displayUnit = normalizeStatUnit(stat.type, stat.unit);
@@ -494,6 +515,9 @@ function PhysicalTestCard({
 
   const source: "team" | "self" = stat.verified ? "team" : "self";
   const isTeam = source === "team";
+
+  const tier = percentile != null ? getPercentileTier(percentile) : null;
+  const showPercentile = !percentileLoading && percentile != null && (peerCount == null || peerCount >= 3);
 
   const measuredDate = stat.measuredAt
     ? (() => {
@@ -581,6 +605,78 @@ function PhysicalTestCard({
         )}
       </div>
 
+
+      {/* ── 퍼센타일 섹션 ── */}
+      {percentileLoading ? (
+        /* 로딩 shimmer */
+        <div
+          className="animate-pulse rounded-full"
+          style={{ height: 7, background: "rgba(255,255,255,0.08)", marginTop: 8 }}
+        />
+      ) : peerCount != null && peerCount < 3 ? (
+        /* 데이터 부족 */
+        <p style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--color-text-3)", marginTop: 8, marginBottom: 0 }}>
+          데이터 수집 중
+        </p>
+      ) : showPercentile ? (
+        <div style={{ marginTop: 8 }}>
+          {/* 바 + 뱃지 행 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {/* 퍼센타일 바 */}
+            <div style={{ flex: 1, position: "relative", height: 7, borderRadius: 4, background: "rgba(255,255,255,0.08)", overflow: "visible" }}>
+              <div
+                style={{
+                  height: "100%",
+                  borderRadius: 4,
+                  width: `${percentile}%`,
+                  background: tier
+                    ? (tier.color === "#D4A853"
+                        ? "linear-gradient(90deg, #D4A853, #F5C542)"
+                        : "linear-gradient(90deg, rgba(161,161,170,0.5), rgba(161,161,170,0.7))")
+                    : "linear-gradient(90deg, rgba(74,222,128,0.3), rgba(74,222,128,0.5))",
+                  boxShadow: tier?.color === "#D4A853" ? "0 0 6px rgba(212,168,83,0.4)" : "none",
+                }}
+              />
+              {/* 평균 마커 (50%) */}
+              <div style={{ position: "absolute", top: -4, left: "50%", transform: "translateX(-50%)", width: 1, height: 15, borderLeft: "1px dashed rgba(161,161,170,0.4)" }} />
+            </div>
+            {/* 등급 뱃지 */}
+            {tier ? (
+              <span
+                style={{
+                  flexShrink: 0,
+                  borderRadius: 999,
+                  padding: "2px 7px",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-body)",
+                  background: tier.color === "#D4A853"
+                    ? "rgba(212,168,83,0.15)"
+                    : "rgba(161,161,170,0.10)",
+                  color: tier.color,
+                  border: tier.color === "#D4A853"
+                    ? "1px solid rgba(212,168,83,0.3)"
+                    : "1px solid rgba(161,161,170,0.2)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {tier.emoji} {tier.label}
+              </span>
+            ) : (
+              <span style={{ flexShrink: 0, fontSize: 9, fontFamily: "var(--font-body)", color: "#4ADE80" }}>
+                성장 중
+              </span>
+            )}
+          </div>
+          {/* 동나이 평균 비교 텍스트 */}
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--color-text-3)", marginTop: 4, marginBottom: 0 }}>
+            {ageAvg != null && (
+              <>동나이 평균 {formatStatValue(ageAvg, stat.type, stat.unit)}{!isTime && displayUnit} · </>
+            )}
+            상위 {Math.max(1, 100 - percentile!)}%
+          </p>
+        </div>
+      ) : null}
 
       {/* 탭하여 업데이트 힌트 — 일반 모드에서만 */}
       {onUpdate && !isEditMode && (

@@ -30,9 +30,9 @@ export async function generateProfilePdf(
   options: PdfOptions
 ): Promise<Blob> {
   // Dynamic imports to reduce bundle size
-  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+  const [{ default: jsPDF }, { toPng }] = await Promise.all([
     import("jspdf"),
-    import("html2canvas"),
+    import("html-to-image"),
   ]);
 
   // Create a hidden div for rendering
@@ -158,19 +158,18 @@ export async function generateProfilePdf(
   document.body.appendChild(container);
 
   try {
-    const canvas = await html2canvas(container, {
+    const imgDataUrl = await toPng(container, {
       backgroundColor: "#0C0C0E",
-      scale: 2,
-      useCORS: true,
-      logging: false,
+      pixelRatio: 2,
+      skipAutoScale: true,
     });
 
     const pdf = new jsPDF("p", "mm", "a4");
-    const imgData = canvas.toDataURL("image/png");
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    // html-to-image는 pixelRatio 적용된 이미지를 반환하므로 원본 컨테이너 비율로 계산
+    const pdfHeight = (container.offsetHeight * pdfWidth) / container.offsetWidth;
 
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.addImage(imgDataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
 
     return pdf.output("blob");
   } finally {

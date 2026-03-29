@@ -1,6 +1,6 @@
 /**
  * 저장된 선수카드 데이터를 IntroCard React 컴포넌트로 렌더링하여 PNG Blob을 반환합니다.
- * html2canvas로 DOM → Canvas 캡처 방식 사용 (16:9, 960×540).
+ * html-to-image로 DOM → PNG 캡처 방식 사용 (16:9, 960×540).
  */
 
 // 출력 해상도 — 16:9
@@ -25,7 +25,7 @@ export async function fetchAndRenderCard(): Promise<Blob | null> {
 
 /**
  * 카드 DB 레코드를 받아 IntroCard React 컴포넌트를 화면 밖 DOM에 마운트하고
- * html2canvas로 캡처해 PNG Blob으로 반환합니다.
+ * html-to-image로 캡처해 PNG Blob으로 반환합니다.
  */
 async function renderIntroCardToBlob(card: Record<string, unknown>): Promise<Blob> {
   // 1. card_data → HudPlayerData 변환
@@ -66,25 +66,17 @@ async function renderIntroCardToBlob(card: Record<string, unknown>): Promise<Blo
       requestAnimationFrame(() => requestAnimationFrame(() => r()))
     );
 
-    // 5. html2canvas 캡처
-    const html2canvas = (await import("html2canvas")).default;
-    const canvas = await html2canvas(container, {
+    // 5. html-to-image 캡처 (oklab/oklch 등 최신 CSS 지원)
+    const { toBlob } = await import("html-to-image");
+    const blob = await toBlob(container, {
       width: CARD_W,
       height: CARD_H,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: null,
-      scale: 1,
-      logging: false,
+      pixelRatio: 1,
+      skipAutoScale: true,
     });
+    if (!blob) throw new Error("toBlob 실패");
 
-    // 6. PNG Blob 변환
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("toBlob 실패"))),
-        "image/png"
-      );
-    });
+    return blob;
   } finally {
     unmountRoot?.();
     document.body.removeChild(container);

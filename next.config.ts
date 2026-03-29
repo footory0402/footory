@@ -47,11 +47,19 @@ const nextConfig: NextConfig = {
       ],
     },
     {
-      // ffmpeg.wasm requires SharedArrayBuffer → COOP/COEP headers
-      source: "/editor/:path*",
+      // /editor/video uses ffmpeg.wasm (SharedArrayBuffer) — strict COEP
+      source: "/editor/video/:path*",
       headers: [
         { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
         { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+      ],
+    },
+    {
+      // /editor (card editor) — credentialless allows cross-origin images (Supabase avatars)
+      source: "/editor",
+      headers: [
+        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
       ],
     },
     // /upload COOP/COEP 제거 — blob URL을 깨뜨림 (SpotlightPicker 등)

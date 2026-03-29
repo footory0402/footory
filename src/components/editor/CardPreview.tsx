@@ -1,20 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Eye } from "lucide-react";
-import { TEMPLATES, type TemplateId } from "./constants";
+import { Eye, RotateCcw } from "lucide-react";
 import type { PlayerData } from "./types";
-import FifaCard from "./cards/FifaCard";
 import BroadcastCard from "./cards/BroadcastCard";
-import MinimalCard from "./cards/MinimalCard";
 
 interface CardPreviewProps {
   data: PlayerData;
-  template: TemplateId;
-  onTemplateChange: (id: TemplateId) => void;
 }
 
-export default function CardPreview({ data, template, onTemplateChange }: CardPreviewProps) {
+export default function CardPreview({ data }: CardPreviewProps) {
   const [isAnimating, setIsAnimating] = useState(false);
 
   const playPreview = useCallback(() => {
@@ -23,51 +18,62 @@ export default function CardPreview({ data, template, onTemplateChange }: CardPr
   }, []);
 
   return (
-    <main className="flex min-h-[500px] flex-1 flex-col items-center justify-center gap-4 bg-[#0a0a0c] p-4 pb-8 md:gap-6 md:overflow-auto md:p-8">
-      {/* Template Tabs + Preview Button */}
-      <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
-        <div className="flex gap-1 rounded-xl bg-[#1a1a1e] p-1 ring-1 ring-white/6 md:gap-1.5">
-          {TEMPLATES.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => onTemplateChange(t.id)}
-              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-all md:px-4 md:py-2 md:text-xs ${
-                template === t.id
-                  ? "bg-accent text-black shadow-sm"
-                  : "text-text-3 hover:text-text-1"
-              }`}
-            >
-              {t.name}
-            </button>
-          ))}
+    <div className="flex flex-col items-center bg-[#0a0a0c] md:min-h-[500px] md:flex-1 md:justify-center md:overflow-auto md:p-8">
+      {/* Mobile: compact card with controlled height */}
+      <div className="relative w-full px-3 pt-3 pb-1 md:hidden">
+        {/* Card wrapper — clip to scaled height, prevent dead space */}
+        <div
+          className="relative mx-auto overflow-hidden"
+          style={{
+            /* 640 * 0.57 ≈ 365px (fits 390 - 24px padding), 360 * 0.57 ≈ 205px */
+            width: "calc(640px * 0.57)",
+            height: "calc(360px * 0.57)",
+          }}
+        >
+          <div
+            id="card-capture-target"
+            className={`origin-top-left scale-[0.57] ${isAnimating ? "animate-card-intro" : ""}`}
+          >
+            <BroadcastCard data={data} />
+          </div>
         </div>
+
+        {/* Overlay preview button */}
         <button
           onClick={playPreview}
           disabled={isAnimating}
-          className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-[11px] font-semibold text-text-2 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50 md:py-2 md:text-xs"
+          className="absolute bottom-3 right-5 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-medium text-white/70 backdrop-blur-sm transition-colors active:bg-black/80 disabled:opacity-40"
         >
-          <Eye className="h-3.5 w-3.5" />
+          {isAnimating ? (
+            <RotateCcw className="h-3 w-3 animate-spin" />
+          ) : (
+            <Eye className="h-3 w-3" />
+          )}
           미리보기
         </button>
       </div>
 
-      {/* Card — scale down on mobile */}
-      <div
-        className="origin-top transition-transform duration-300"
-        style={{
-          filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))",
-          transform: template === "broadcast" ? "scale(var(--card-scale, 1))" : undefined,
-        }}
-      >
-        <div
-          id="card-capture-target"
-          className={`${isAnimating ? "animate-card-intro" : ""} ${template === "broadcast" ? "scale-[0.55] origin-top md:scale-100" : "scale-[0.85] origin-top md:scale-100"}`}
+      {/* Desktop: spacious layout */}
+      <div className="hidden md:flex md:flex-col md:items-center md:gap-6">
+        <button
+          onClick={playPreview}
+          disabled={isAnimating}
+          className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
         >
-          {template === "fifa" && <FifaCard data={data} />}
-          {template === "broadcast" && <BroadcastCard data={data} />}
-          {template === "minimal" && <MinimalCard data={data} />}
+          <Eye className="h-3.5 w-3.5" />
+          미리보기
+        </button>
+        <div
+          style={{ filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))" }}
+        >
+          <div
+            id="card-capture-target"
+            className={isAnimating ? "animate-card-intro" : ""}
+          >
+            <BroadcastCard data={data} />
+          </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

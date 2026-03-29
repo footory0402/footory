@@ -54,7 +54,7 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
   );
 
   return (
-    <aside className="w-full shrink-0 overflow-y-auto border-b border-white/6 bg-[#111114] p-5 md:w-[360px] md:border-b-0 md:border-r">
+    <aside className="w-full shrink-0 overflow-y-auto bg-[#0a0a0c] px-4 pt-3 pb-8 md:w-[360px] md:border-r md:border-white/6 md:bg-[#111114] md:p-5">
       {/* Section: Player Info */}
       <div className="mb-4 flex items-center gap-2 text-sm font-bold text-text-1">
         <User className="h-4 w-4 text-accent" />

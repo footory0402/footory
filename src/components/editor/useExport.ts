@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import html2canvas from "html2canvas";
+import { toBlob as htmlToBlob, toPng } from "html-to-image";
 
 export type ExportStatus = "idle" | "capturing" | "encoding" | "done" | "error";
 
@@ -18,16 +18,14 @@ export function useExportPng() {
 
     setStatus("capturing");
     try {
-      const canvas = await html2canvas(el, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      const dataUrl = await toPng(el, {
+        pixelRatio: 2,
+        skipAutoScale: true,
       });
 
       const link = document.createElement("a");
       link.download = `footory-card-${Date.now()}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = dataUrl;
       link.click();
       setStatus("done");
     } catch {
@@ -66,17 +64,12 @@ export function useExportMp4() {
         cardEl.style.transform = `scale(${scale})`;
         cardEl.style.opacity = `${opacity}`;
 
-        const canvas = await html2canvas(cardEl, {
+        const blob = await htmlToBlob(cardEl, {
+          pixelRatio: 2,
           backgroundColor: "#0a0a0c",
-          scale: 2,
-          useCORS: true,
-          logging: false,
+          skipAutoScale: true,
         });
-
-        const blob = await new Promise<Blob>((resolve) =>
-          canvas.toBlob((b) => resolve(b!), "image/png"),
-        );
-        frames.push(blob);
+        if (blob) frames.push(blob);
         setProgress(Math.round(((i + 1) / totalFrames) * 50));
       }
 

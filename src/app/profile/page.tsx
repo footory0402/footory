@@ -47,6 +47,13 @@ export default function ProfilePage() {
   const [pdfExportOpen, setPdfExportOpen] = useState(false);
   const [deletingStatId, setDeletingStatId] = useState<string | null>(null);
   const [playStyleTestOpen, setPlayStyleTestOpen] = useState(false);
+  const [percentileData, setPercentileData] = useState<{
+    percentiles: Record<string, number>;
+    ageAvgs: Record<string, number>;
+    peerCounts: Record<string, number>;
+    ageGroup: string;
+  } | null>(null);
+  const [percentileLoading, setPercentileLoading] = useState(false);
   const { profile, loading, error, updateProfile, uploadAvatar, checkHandle } = useProfile();
   const isScoutProfile = profile?.role === "scout";
   const { playStyle, savePlayStyle } = usePlayStyle(profile?.id);
@@ -58,6 +65,18 @@ export default function ProfilePage() {
   }, [profile?.role, router]);
 
   const shouldLoadData = !!profile && !isScoutProfile;
+
+  // 스탯 탭 첫 활성화 시 퍼센타일 데이터 fetch (1회 캐시)
+  useEffect(() => {
+    if (activeTab === "records" && shouldLoadData && !percentileData && !percentileLoading) {
+      setPercentileLoading(true);
+      fetch("/api/stats/percentile")
+        .then((r) => r.json())
+        .then((data) => setPercentileData(data))
+        .catch(() => {/* 실패 시 graceful degradation — 퍼센타일 미표시 */})
+        .finally(() => setPercentileLoading(false));
+    }
+  }, [activeTab, shouldLoadData, percentileData, percentileLoading]);
   const { stats, addStat, deleteStat, loading: statsLoading } = useStats({ enabled: shouldLoadData });
   const { tagClips, untaggedClips, loading: tagClipsLoading, fetchTagClips } = useTagClips({ enabled: shouldLoadData });
 
@@ -308,6 +327,11 @@ export default function ProfilePage() {
             onUpdateStat={(type) => { setStatInputType(type); setStatInputOpen(true); }}
             onDeleteStat={handleDeleteStat}
             onPlayStyleTest={() => setPlayStyleTestOpen(true)}
+            percentiles={percentileData?.percentiles}
+            ageAvgs={percentileData?.ageAvgs}
+            peerCounts={percentileData?.peerCounts}
+            ageGroup={percentileData?.ageGroup}
+            percentileLoading={percentileLoading}
           />
         )}
         {activeTab === "career" && (

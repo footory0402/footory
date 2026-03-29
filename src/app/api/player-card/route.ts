@@ -54,7 +54,12 @@ export async function POST(request: NextRequest) {
     const { user, supabase } = auth;
 
     const body = await request.json();
-    const { profileId, template, clubName, mainColor, accentColor, cardData, needPhotoUploadUrl } = body;
+    const { profileId, template, clubName, mainColor, accentColor, needPhotoUploadUrl } = body;
+    // Strip blob: URLs from cardData — they're session-specific and not persistent
+    const cardData = body.cardData ? { ...body.cardData } : {};
+    if (cardData.photoUrl && cardData.photoUrl.startsWith("blob:")) {
+      delete cardData.photoUrl;
+    }
 
     const targetId = profileId || user.id;
 
@@ -84,7 +89,7 @@ export async function POST(request: NextRequest) {
       const { data: card, error } = await supabase
         .from("player_cards")
         .update({
-          template: template || "fifa",
+          template: template || "broadcast",
           club_name: clubName || null,
           main_color: mainColor || "#37474F",
           accent_color: accentColor || "#78909C",
@@ -111,7 +116,7 @@ export async function POST(request: NextRequest) {
         .from("player_cards")
         .insert({
           profile_id: targetId,
-          template: template || "fifa",
+          template: template || "broadcast",
           club_name: clubName || null,
           main_color: mainColor || "#37474F",
           accent_color: accentColor || "#78909C",

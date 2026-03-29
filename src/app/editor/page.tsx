@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { DEFAULT_PLAYER_DATA, type PlayerData } from "@/components/editor/types";
-import { type TemplateId } from "@/components/editor/constants";
 import { useBackgroundRemoval } from "@/components/editor/useBackgroundRemoval";
 import EditorForm from "@/components/editor/EditorForm";
 import CardPreview from "@/components/editor/CardPreview";
@@ -10,7 +9,6 @@ import EditorHeader from "@/components/editor/EditorHeader";
 
 export default function EditorPage() {
   const [data, setData] = useState<PlayerData>(DEFAULT_PLAYER_DATA);
-  const [template, setTemplate] = useState<TemplateId>("broadcast");
   const [loaded, setLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
@@ -82,7 +80,6 @@ export default function EditorPage() {
             club: cardData.club || "직접 입력",
             customClubName: card.club_name || cardData.customClubName || "",
           });
-          setTemplate(card.template || "broadcast");
         } else {
           // No saved card — use profile defaults
           setData({
@@ -114,7 +111,7 @@ export default function EditorPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          template,
+          template: "broadcast",
           clubName: data.customClubName || data.club,
           mainColor: data.customClubColor,
           accentColor: data.customClubAccent,
@@ -163,7 +160,7 @@ export default function EditorPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            template,
+            template: "broadcast",
             clubName: data.customClubName || data.club,
             mainColor: data.customClubColor,
             accentColor: data.customClubAccent,
@@ -183,7 +180,7 @@ export default function EditorPage() {
     } catch {
       setSaveStatus("idle");
     }
-  }, [data, template]);
+  }, [data]);
 
   if (!loaded) {
     return (
@@ -197,9 +194,15 @@ export default function EditorPage() {
     <div className="flex h-full flex-col">
       <EditorHeader onSave={handleSave} saveStatus={saveStatus} />
       <div className="flex flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
-        {/* Mobile: Card first, then form. Desktop: Form left, Card right */}
+        {/* Mobile: Card → Form seamlessly stacked. Desktop: Form left, Card right */}
         <div className="md:hidden">
-          <CardPreview data={data} template={template} onTemplateChange={setTemplate} />
+          <CardPreview data={data} />
+          {/* Seamless transition line */}
+          <div className="mx-4 flex items-center gap-2.5">
+            <div className="h-px flex-1 bg-white/6" />
+            <span className="text-[10px] font-medium tracking-widest text-text-3/50">EDIT</span>
+            <div className="h-px flex-1 bg-white/6" />
+          </div>
         </div>
         <EditorForm
           data={data}
@@ -208,7 +211,7 @@ export default function EditorPage() {
           bgRemovalStatus={bgRemovalStatus}
         />
         <div className="hidden md:flex md:flex-1">
-          <CardPreview data={data} template={template} onTemplateChange={setTemplate} />
+          <CardPreview data={data} />
         </div>
       </div>
     </div>
