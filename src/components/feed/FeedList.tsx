@@ -66,6 +66,7 @@ export default function FeedList({
       // spotlight overlay
       spotlightX: typeof meta.spotlight_x === "number" ? meta.spotlight_x : null,
       spotlightY: typeof meta.spotlight_y === "number" ? meta.spotlight_y : null,
+      freezeAt: typeof meta.freeze_at === "number" ? meta.freeze_at : null,
       playerName: item.playerName,
       playerPosition: item.playerPosition,
       playerBirthYear: item.playerBirthYear,

@@ -29,6 +29,7 @@ export interface PlayableClip {
   // spotlight overlay
   spotlightX?: number | null;
   spotlightY?: number | null;
+  freezeAt?: number | null;
   playerName?: string;
   playerPosition?: string | null;
   playerBirthYear?: number | null;
@@ -94,6 +95,11 @@ export default function ClipPlayerSheet({
   const introShownRef = useRef<Set<string>>(new Set());
   // 인트로 카드 API 로딩 완료 전까지 영상 재생 차단
   const [introReady, setIntroReady] = useState(false);
+
+  // Freeze frame state
+  const [isFreezing, setIsFreezing] = useState(false);
+  const freezeFiredRef = useRef<Set<string>>(new Set());
+  const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 뒤로가기로 영상 플레이어 닫기
   useBackClose(true, onClose);
@@ -206,6 +212,8 @@ export default function ClipPlayerSheet({
     setVideoError(null);
     setRetryCount(0);
     setShowControls(true);
+    setIsFreezing(false);
+    if (freezeTimerRef.current) { clearTimeout(freezeTimerRef.current); freezeTimerRef.current = null; }
     scheduleHide();
 
     // Show intro for subsequent clips (introData already loaded)
@@ -237,6 +245,25 @@ export default function ClipPlayerSheet({
       setCurrentTime(v.currentTime);
       setDuration(v.duration || 0);
       setProgress(v.duration ? v.currentTime / v.duration : 0);
+
+      // Freeze frame detection
+      const currentClip = clips[index];
+      if (
+        currentClip?.freezeAt != null &&
+        currentClip.spotlightX != null &&
+        !freezeFiredRef.current.has(currentClip.id) &&
+        !v.paused &&
+        v.currentTime >= currentClip.freezeAt
+      ) {
+        freezeFiredRef.current.add(currentClip.id);
+        v.pause();
+        setIsFreezing(true);
+        freezeTimerRef.current = setTimeout(() => {
+          setIsFreezing(false);
+          freezeTimerRef.current = null;
+          v.play().catch(() => {});
+        }, 1000);
+      }
     };
     const onPlay = () => { setPaused(false); scheduleHide(); setPlayCount((c) => c + 1); };
     const onPause = () => { setPaused(true); setShowControls(true); };
@@ -263,9 +290,11 @@ export default function ClipPlayerSheet({
   const handleTap = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
+    // 프리즈 중에는 탭 무시
+    if (isFreezing) return;
     if (v.paused) { v.play(); setPaused(false); setShowControls(true); scheduleHide(); }
     else { v.pause(); setPaused(true); setShowControls(true); }
-  }, [scheduleHide]);
+  }, [scheduleHide, isFreezing]);
 
   const handleRetry = useCallback(() => {
     const v = videoRef.current;
@@ -483,11 +512,11 @@ export default function ClipPlayerSheet({
         />
       )}
 
-      {/* ── 스포트라이트 링 — 인트로 카드 끝난 뒤 표시 ── */}
+      {/* ── 스포트라이트 링 — 프리즈 프레임 시 또는 인트로 카드 끝난 뒤 표시 ── */}
       {clip.playerName && introReady && !showIntro && clip.spotlightX != null && clip.spotlightY != null && (
         <div className="absolute inset-0 z-[45] pointer-events-none">
           <VideoOverlay
-            key={`${clip.id}-${playCount}`}
+            key={isFreezing ? `${clip.id}-freeze` : `${clip.id}-${playCount}`}
             spotlight={{ x: clip.spotlightX, y: clip.spotlightY }}
             player={{
               name: clip.playerName,
@@ -497,6 +526,7 @@ export default function ClipPlayerSheet({
             }}
             effects={effects}
             hideNametag={!!introData}
+            freezeMode={isFreezing}
           />
         </div>
       )}
@@ -530,8 +560,8 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── 일시정지 오버레이 ── */}
-      {paused && (
+      {/* ── 일시정지 오버레이 (프리즈 중에는 숨김) ── */}
+      {paused && !isFreezing && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm ring-2 ring-white/10">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>

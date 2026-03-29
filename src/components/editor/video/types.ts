@@ -14,6 +14,8 @@ export interface ClipSegment {
   markerX?: number;
   /** EA FC 다이아몬드 마커 Y 위치 (0-1 normalized) */
   markerY?: number;
+  /** 프리즈 프레임 시점 (영상 절대 시간, 초) */
+  freezeAt?: number;
 }
 
 export interface EventDef {

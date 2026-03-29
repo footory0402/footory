@@ -26,6 +26,8 @@ interface VideoOverlayProps {
   } | null;
   /** HUD 오버레이가 있으면 네임태그 숨김 (스포트라이트 링만 표시) */
   hideNametag?: boolean;
+  /** 프리즈 프레임 모드 — 자동 fade-out 비활성화 (1초간 표시 후 부모가 제거) */
+  freezeMode?: boolean;
 }
 
 function calcAgeGroup(birthYear: number): string {
@@ -39,7 +41,7 @@ function getTeamInitial(teamName: string): string {
   return parts[0].slice(0, 2);
 }
 
-export default function VideoOverlay({ spotlight, player, effects, hideNametag }: VideoOverlayProps) {
+export default function VideoOverlay({ spotlight, player, effects, hideNametag, freezeMode }: VideoOverlayProps) {
   const infoChunks: string[] = [];
   if (player.position) infoChunks.push(player.position);
   if (player.birthYear) infoChunks.push(calcAgeGroup(player.birthYear));
@@ -67,7 +69,9 @@ export default function VideoOverlay({ spotlight, player, effects, hideNametag }
             left: `${spotlight.x * 100}%`,
             top: `${spotlight.y * 100}%`,
             transform: "translate(-50%, -50%)",
-            animation: "overlay-ring-in 0.2s ease-out forwards, overlay-fadeout 0.3s ease-in 2.5s forwards",
+            animation: freezeMode
+              ? "overlay-ring-in 0.2s ease-out forwards"
+              : "overlay-ring-in 0.2s ease-out forwards, overlay-fadeout 0.3s ease-in 2.5s forwards",
           }}
         >
           {/* 링 */}
@@ -111,7 +115,9 @@ export default function VideoOverlay({ spotlight, player, effects, hideNametag }
           left: "50%",
           width: "90%",
           maxWidth: 400,
-          animation: "overlay-nametag-in 0.2s ease-out 0.2s both, overlay-fadeout 0.3s ease-in 2.5s forwards",
+          animation: freezeMode
+            ? "overlay-nametag-in 0.2s ease-out 0.2s both"
+            : "overlay-nametag-in 0.2s ease-out 0.2s both, overlay-fadeout 0.3s ease-in 2.5s forwards",
         }}
       >
         <div
@@ -129,7 +135,7 @@ export default function VideoOverlay({ spotlight, player, effects, hideNametag }
             display: "flex",
             alignItems: "center",
             gap: 14,
-            animation: "overlay-fadeout 0.3s ease-in 2.5s forwards",
+            animation: freezeMode ? "none" : "overlay-fadeout 0.3s ease-in 2.5s forwards",
             boxShadow: effects?.eafc
               ? "0 4px 20px rgba(212,168,83,0.15), inset 0 1px 0 rgba(212,168,83,0.1)"
               : undefined,

@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { ClipSegment } from "./types";
 import { EVENTS, EVENT_TAG_COLORS } from "./types";
-import ClipThumbnail from "./ClipThumbnail";
 
 interface ConfirmViewProps {
   clips: ClipSegment[];
@@ -32,11 +31,6 @@ export default function ConfirmView({
   onBack, onGenerate, onUpdateClip, onRemoveClip, onReorderClips,
 }: ConfirmViewProps) {
   const totalDuration = clips.reduce((sum, c) => sum + (c.endTime - c.startTime), 0);
-  const [expandedClipId, setExpandedClipId] = useState<string | null>(null);
-
-  const handleMarkerChange = useCallback((clipId: string, x: number | undefined, y: number | undefined) => {
-    onUpdateClip(clipId, { markerX: x, markerY: y });
-  }, [onUpdateClip]);
 
   const moveClip = useCallback((index: number, direction: -1 | 1) => {
     const newIndex = index + direction;
@@ -54,16 +48,16 @@ export default function ConfirmView({
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          <span className="text-[13px] font-semibold">구간 수정하기</span>
+          <span className="text-[13px] font-semibold">주인공 표시로</span>
         </button>
-        <span className="text-[12px] text-white/30">Step 2/2</span>
+        <span className="text-[12px] text-white/30">Step 3/3</span>
       </div>
 
       {/* 스텝 인디케이터 */}
       <div className="flex justify-center gap-1.5 pb-4">
         <div className="h-1 w-8 rounded-full bg-accent" />
         <div className="h-1 w-8 rounded-full bg-accent" />
-        <div className="h-1 w-8 rounded-full bg-white/10" />
+        <div className="h-1 w-8 rounded-full bg-accent" />
       </div>
 
       {/* 타이틀 */}
@@ -79,7 +73,6 @@ export default function ConfirmView({
             const ev = EVENTS.find((e) => e.id === clip.eventTag);
             const color = EVENT_TAG_COLORS[clip.eventTag];
             const duration = Math.round(clip.endTime - clip.startTime);
-            const isExpanded = expandedClipId === clip.id;
 
             return (
               <div
@@ -90,23 +83,6 @@ export default function ConfirmView({
                   border: `1px solid ${color}20`,
                 }}
               >
-                {/* 썸네일 — 확장 가능 영역 */}
-                <div
-                  className="relative cursor-pointer"
-                  onClick={() => setExpandedClipId(isExpanded ? null : clip.id)}
-                >
-                  <ClipThumbnail
-                    videoFile={videoFile}
-                    captureTime={clip.markedAt ?? clip.startTime}
-                    markerX={clip.markerX}
-                    markerY={clip.markerY}
-                    playerName={playerName}
-                    playerNumber={playerNumber}
-                    onMarkerChange={(x, y) => handleMarkerChange(clip.id, x, y)}
-                    expanded={isExpanded}
-                  />
-                </div>
-
                 {/* 정보 바 */}
                 <div className="flex items-center gap-2 px-3 py-2.5">
                   {/* 순서 변경 */}
@@ -123,10 +99,16 @@ export default function ConfirmView({
                     >▼</button>
                   </div>
 
-                  {/* 이벤트 태그 */}
+                  {/* 이벤트 태그 + 마커 아이콘 */}
                   <div className="flex items-center gap-1.5">
                     <span className="text-[14px]">{ev?.emoji}</span>
                     <span className="text-[13px] font-semibold text-white">{ev?.label}</span>
+                    {clip.markerX != null && clip.freezeAt != null && (
+                      <span className="rounded-md px-1.5 py-0.5 text-[10px] font-bold text-accent"
+                        style={{ background: "rgba(212,168,83,0.12)", border: "1px solid rgba(212,168,83,0.2)" }}>
+                        📍 주인공
+                      </span>
+                    )}
                   </div>
 
                   {/* 시간 정보 */}
@@ -164,7 +146,7 @@ export default function ConfirmView({
 
         {/* 힌트 */}
         <p className="mt-3 pb-2 text-center text-[11px] text-white/25">
-          썸네일을 탭하면 선수 표시 영역이 확대됩니다
+          주인공 표시를 수정하려면 뒤로가기를 눌러주세요
         </p>
       </div>
 

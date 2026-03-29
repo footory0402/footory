@@ -22,6 +22,7 @@ interface TagClip {
   effects?: Record<string, boolean> | null;
   spotlightX?: number | null;
   spotlightY?: number | null;
+  freezeAt?: number | null;
 }
 
 interface HighlightsTabV5Props {
@@ -168,6 +169,7 @@ export default function HighlightsTabV5({
       effects: c.effects ?? null,
       spotlightX: c.spotlightX ?? null,
       spotlightY: c.spotlightY ?? null,
+      freezeAt: c.freezeAt ?? null,
       playerName: playerName ?? undefined,
       playerPosition: position ?? undefined,
       playerBirthYear: playerBirthYear ?? undefined,

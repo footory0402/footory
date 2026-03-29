@@ -11,6 +11,7 @@ import ClipTimeline from "@/components/editor/video/ClipTimeline";
 import { EVENTS, EVENT_TAG_COLORS, MIN_CLIP_DURATION } from "@/components/editor/video/types";
 import { buildHudData } from "@/lib/hud-data-builder";
 import ConfirmView from "@/components/editor/video/ConfirmView";
+import SpotlightSetupView from "@/components/editor/video/SpotlightSetupView";
 import ProcessingView from "@/components/editor/video/ProcessingView";
 import type { ProcessingStep } from "@/components/editor/video/ProcessingView";
 import DoneView from "@/components/editor/video/DoneView";
@@ -45,7 +46,7 @@ export default function VideoEditorPage() {
   const [justMarked, setJustMarked] = useState(false);
 
   // Phase state machine
-  type Phase = "onboarding" | "marking" | "confirm" | "processing" | "done";
+  type Phase = "onboarding" | "marking" | "spotlight" | "confirm" | "processing" | "done";
   const [phase, setPhase] = useState<Phase>("onboarding");
 
   // Processing state
@@ -180,6 +181,18 @@ export default function VideoEditorPage() {
   const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
 
   // ═══ Phase routing ═══
+  if (phase === "spotlight") {
+    return (
+      <SpotlightSetupView
+        clips={sortedClips}
+        videoSrc={videoSrc!}
+        onUpdateClip={handleUpdateClip}
+        onDone={() => setPhase("confirm")}
+        onBack={() => setPhase("marking")}
+      />
+    );
+  }
+
   if (phase === "confirm") {
     return (
       <ConfirmView
@@ -190,7 +203,7 @@ export default function VideoEditorPage() {
         hasPlayerCard={!!playerData}
         includeIntro={includeIntro}
         onToggleIntro={setIncludeIntro}
-        onBack={() => setPhase("marking")}
+        onBack={() => setPhase("spotlight")}
         onGenerate={handleGenerate}
         onUpdateClip={(id, updates) => setClips((prev) => prev.map((c) => c.id === id ? { ...c, ...updates } : c))}
         onRemoveClip={handleRemoveClip}
@@ -337,7 +350,7 @@ export default function VideoEditorPage() {
             onClick={() => {
               if (clips.length === 0) return;
               if (!isLoggedIn) { router.push("/login"); return; }
-              setPhase("confirm");
+              setPhase("spotlight");
             }}
             disabled={clips.length === 0}
             className="rounded-xl px-4 py-1.5 text-[12px] font-bold transition-all active:scale-95 disabled:opacity-25"

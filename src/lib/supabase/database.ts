@@ -130,6 +130,7 @@ export interface Database {
           duration_sec: number | null;
           spotlight_x: number | null;
           spotlight_y: number | null;
+          freeze_at: number | null;
           slowmo_start: number | null;
           slowmo_end: number | null;
           slowmo_speed: number | null;
@@ -162,6 +163,7 @@ export interface Database {
           duration_sec?: number | null;
           spotlight_x?: number | null;
           spotlight_y?: number | null;
+          freeze_at?: number | null;
           slowmo_start?: number | null;
           slowmo_end?: number | null;
           slowmo_speed?: number | null;
@@ -191,6 +193,7 @@ export interface Database {
           duration_sec?: number | null;
           spotlight_x?: number | null;
           spotlight_y?: number | null;
+          freeze_at?: number | null;
           slowmo_start?: number | null;
           slowmo_end?: number | null;
           slowmo_speed?: number | null;

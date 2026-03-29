@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       // v1.3 렌더 파이프라인 필드
       raw_key, skill_labels, custom_labels,
       trim_start, trim_end, duration_sec,
-      spotlight_x, spotlight_y,
+      spotlight_x, spotlight_y, freeze_at,
       slowmo_start, slowmo_end, slowmo_speed,
       bgm_id, effects,
       status: reqStatus,
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
       duration_sec?: number;
       spotlight_x?: number;
       spotlight_y?: number;
+      freeze_at?: number;
       slowmo_start?: number;
       slowmo_end?: number;
       slowmo_speed?: number;
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
         ...(duration_sec !== undefined && { duration_sec }),
         ...(spotlight_x !== undefined && { spotlight_x }),
         ...(spotlight_y !== undefined && { spotlight_y }),
+        ...(freeze_at !== undefined && { freeze_at }),
         ...(slowmo_start !== undefined && { slowmo_start }),
         ...(slowmo_end !== undefined && { slowmo_end }),
         ...(slowmo_speed !== undefined && { slowmo_speed }),
