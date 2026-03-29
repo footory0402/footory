@@ -19,6 +19,13 @@
       ]
     },
     {
+      "source": "/ffmpeg/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
+    },
+    {
       "source": "/icon-(.*).png",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }

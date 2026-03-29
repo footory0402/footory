@@ -81,10 +81,10 @@ export default async function HighlightSharePage({ params }: Props) {
       className="flex min-h-screen flex-col items-center justify-center"
       style={{ background: "#070709", padding: "16px" }}
     >
-      {/* Video player */}
+      {/* Video player — 가로/세로 영상 모두 지원 */}
       <div
-        className="w-full max-w-[414px] overflow-hidden"
-        style={{ borderRadius: 16, background: "#0D0D10" }}
+        className="w-full overflow-hidden"
+        style={{ maxWidth: "min(100%, 800px)", borderRadius: 16, background: "#0D0D10" }}
       >
         <video
           src={clip.video_url}
@@ -92,14 +92,21 @@ export default async function HighlightSharePage({ params }: Props) {
           controls
           playsInline
           autoPlay
-          style={{ width: "100%", display: "block", maxHeight: "70vh", background: "#000" }}
+          style={{
+            width: "100%",
+            display: "block",
+            maxHeight: "75vh",
+            objectFit: "contain",
+            background: "#000",
+          }}
         />
       </div>
 
       {/* Player info + tags */}
       <div
-        className="mt-4 w-full max-w-[414px]"
+        className="mt-4 w-full"
         style={{
+          maxWidth: "min(100%, 800px)",
           background: "#1C1C22",
           borderRadius: 12,
           border: "1px solid rgba(255,255,255,0.07)",

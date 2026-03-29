@@ -2,11 +2,15 @@
  * 인트로 카드 + 원본 영상을 ffmpeg.wasm으로 합성합니다.
  * 카드 PNG를 2초간 보여준 후 원본 영상으로 이어집니다.
  *
+ * video-compressor.ts의 loadFFmpeg singleton을 재사용하여
+ * WASM 이중 로드(~25MB)를 방지합니다.
+ *
  * 모바일 제한: SharedArrayBuffer 필요 → COOP/COEP 헤더가 없으면 동작 안 함.
  * 이 경우 합성을 건너뛰고 원본 그대로 업로드합니다.
  */
 
 import { fetchAndRenderCard } from "./card-renderer";
+import { loadFFmpeg } from "./video-compressor";
 
 export interface ComposeResult {
   file: File;
@@ -41,13 +45,13 @@ export async function composeIntroCard(
 
   report(15);
 
-  // 3. Load ffmpeg
+  // 3. Load ffmpeg (singleton — video-compressor와 동일 인스턴스 공유)
   try {
-    const { FFmpeg } = await import("@ffmpeg/ffmpeg");
     const { fetchFile } = await import("@ffmpeg/util");
 
-    const ffmpeg = new FFmpeg();
-    await ffmpeg.load();
+    const ffmpeg = await loadFFmpeg((ratio) => {
+      report(15 + Math.round(ratio * 15)); // 15~30%
+    });
 
     report(30);
 
@@ -61,11 +65,12 @@ export async function composeIntroCard(
 
     report(50);
 
-    // 6. Create intro video from card image (2 seconds, 16:9 960×540)
+    // 6. Create intro video from card image (2 seconds, ultrafast)
     await ffmpeg.exec([
       "-loop", "1",
       "-i", "card.png",
       "-c:v", "libx264",
+      "-preset", "ultrafast",
       "-t", "2",
       "-pix_fmt", "yuv420p",
       "-vf", "scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black",
@@ -75,7 +80,7 @@ export async function composeIntroCard(
 
     report(70);
 
-    // 7. Concatenate — filter_complex로 해상도 자동 맞춤
+    // 7. Concatenate — filter_complex로 해상도 자동 맞춤 (ultrafast)
     await ffmpeg.exec([
       "-i", "intro.mp4",
       "-i", "input.mp4",
@@ -85,6 +90,7 @@ export async function composeIntroCard(
       "[v0][v1]concat=n=2:v=1[outv]",
       "-map", "[outv]",
       "-c:v", "libx264",
+      "-preset", "ultrafast",
       "-pix_fmt", "yuv420p",
       "-movflags", "+faststart",
       "output.mp4",
@@ -92,10 +98,16 @@ export async function composeIntroCard(
 
     report(90);
 
-    // 9. Read output
+    // 8. Read output
     const outputData = await ffmpeg.readFile("output.mp4");
     const outputBlob = new Blob([new Uint8Array(outputData as unknown as ArrayBuffer)], { type: "video/mp4" });
     const outputFile = new File([outputBlob], originalFile.name, { type: "video/mp4" });
+
+    // 9. 임시 파일 정리
+    try { await ffmpeg.deleteFile("card.png"); } catch {}
+    try { await ffmpeg.deleteFile("input.mp4"); } catch {}
+    try { await ffmpeg.deleteFile("intro.mp4"); } catch {}
+    try { await ffmpeg.deleteFile("output.mp4"); } catch {}
 
     report(100);
 

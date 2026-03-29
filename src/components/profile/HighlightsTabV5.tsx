@@ -79,6 +79,9 @@ export default function HighlightsTabV5({
     "featured" | "grid" | null
   >(null);
   const [editingClipId, setEditingClipId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [deletingClipId, setDeletingClipId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (readOnly) return;
@@ -268,21 +271,41 @@ export default function HighlightsTabV5({
             </span>
           </div>
           {!readOnly && (
-            <Link
-              href="/upload"
-              style={{
-                padding: "4px 10px",
-                borderRadius: 6,
-                background: "rgba(212,168,83,0.08)",
-                border: "1px solid rgba(212,168,83,0.2)",
-                color: "var(--color-accent)",
-                fontSize: 10,
-                fontFamily: "var(--font-body)",
-                fontWeight: 500,
-              }}
-            >
-              + 영상 추가
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/upload"
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  background: "rgba(212,168,83,0.08)",
+                  border: "1px solid rgba(212,168,83,0.2)",
+                  color: "var(--color-accent)",
+                  fontSize: 10,
+                  fontFamily: "var(--font-body)",
+                  fontWeight: 500,
+                }}
+              >
+                + 영상 추가
+              </Link>
+              {dedupedClips.length > 0 && (
+                <button
+                  onClick={() => setEditMode((v) => !v)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    background: editMode ? "rgba(212,168,83,0.08)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${editMode ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.08)"}`,
+                    color: editMode ? "var(--color-accent)" : "var(--color-text-3)",
+                    fontSize: 10,
+                    fontFamily: "var(--font-body)",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  {editMode ? "완료" : "편집"}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -369,12 +392,19 @@ export default function HighlightsTabV5({
                 clip={clip}
                 index={i}
                 onPlay={() => {
+                  if (editMode) return;
                   setPlayingIndex(i);
                   setPlayingSource("grid");
                 }}
                 onEditTags={
-                  !readOnly && onEditTags
+                  !readOnly && !editMode && onEditTags
                     ? () => setEditingClipId(clip.id)
+                    : undefined
+                }
+                isEditMode={editMode}
+                onDeleteInEditMode={
+                  editMode && onDeleteClip
+                    ? () => setDeletingClipId(clip.id)
                     : undefined
                 }
               />
@@ -474,6 +504,94 @@ export default function HighlightsTabV5({
             onClose={() => setEditingClipId(null)}
             onSave={onEditTags}
           />
+        )}
+
+        {/* Delete confirm bottom sheet (edit mode) */}
+        {deletingClipId && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={() => { if (!isDeleting) setDeletingClipId(null); }}
+            />
+            <div
+              className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px]"
+              style={{
+                transform: "translateX(-50%)",
+                background: "var(--color-card)",
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "20px 20px 0 0",
+                padding: "24px 20px calc(24px + env(safe-area-inset-bottom))",
+              }}
+            >
+              <div className="flex flex-col items-center">
+                <div
+                  className="mb-4 flex items-center justify-center"
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: "50%",
+                    background: "rgba(239,68,68,0.1)",
+                  }}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgb(239,68,68)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-1)", fontFamily: "var(--font-body)", marginBottom: 6 }}>
+                  클립을 삭제할까요?
+                </p>
+                <p style={{ fontSize: 12, color: "var(--color-text-3)", fontFamily: "var(--font-body)", marginBottom: 24 }}>
+                  이 작업은 되돌릴 수 없어요.
+                </p>
+                <button
+                  disabled={isDeleting}
+                  onClick={async () => {
+                    if (!onDeleteClip || !deletingClipId) return;
+                    setIsDeleting(true);
+                    const ok = await onDeleteClip(deletingClipId);
+                    setIsDeleting(false);
+                    setDeletingClipId(null);
+                    if (ok && dedupedClips.length <= 1) setEditMode(false);
+                  }}
+                  className="mb-3 flex w-full items-center justify-center"
+                  style={{
+                    height: 48,
+                    borderRadius: 12,
+                    background: "rgb(239,68,68)",
+                    color: "#fff",
+                    fontSize: 15,
+                    fontWeight: 700,
+                    fontFamily: "var(--font-body)",
+                    opacity: isDeleting ? 0.6 : 1,
+                    cursor: isDeleting ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {isDeleting ? (
+                    <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                  ) : "삭제"}
+                </button>
+                <button
+                  disabled={isDeleting}
+                  onClick={() => setDeletingClipId(null)}
+                  style={{
+                    width: "100%",
+                    height: 44,
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.06)",
+                    color: "var(--color-text-2)",
+                    fontSize: 15,
+                    fontFamily: "var(--font-body)",
+                    cursor: "pointer",
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </ErrorBoundary>
@@ -769,16 +887,20 @@ function ClipCard({
   index,
   onPlay,
   onEditTags,
+  isEditMode,
+  onDeleteInEditMode,
 }: {
   clip: TagClip & { tagLabel?: string; tagEmoji?: string };
   index: number;
   onPlay: () => void;
   onEditTags?: () => void;
+  isEditMode?: boolean;
+  onDeleteInEditMode?: () => void;
 }) {
   return (
     <div
       className="relative cursor-pointer overflow-hidden"
-      onClick={onPlay}
+      onClick={isEditMode ? onDeleteInEditMode : onPlay}
       style={{ aspectRatio: "1/1", background: "#111" }}
     >
       {/* Background / Thumbnail */}
@@ -829,8 +951,35 @@ function ClipCard({
         {formatDuration(Math.round(clip.duration))}
       </div>
 
+      {/* Edit mode delete badge (top-left) */}
+      {isEditMode && (
+        <div
+          className="absolute left-[4px] top-[4px] z-10 flex items-center justify-center"
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            background: "rgb(239,68,68)",
+            border: "1.5px solid rgba(0,0,0,0.4)",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
+          }}
+        >
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </div>
+      )}
+
+      {/* Edit mode dim overlay */}
+      {isEditMode && (
+        <div
+          className="absolute inset-0"
+          style={{ background: "rgba(0,0,0,0.25)" }}
+        />
+      )}
+
       {/* Tag badge (top-left) — compact */}
-      {clip.tagLabel && (
+      {clip.tagLabel && !isEditMode && (
         <div
           className="absolute left-[5px] top-[5px]"
           style={{

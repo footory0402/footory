@@ -24,6 +24,8 @@ interface VideoOverlayProps {
     cinematic?: boolean; // 시네마틱바 (상하단 검정 레터박스)
     intro?: boolean;     // 인트로 애니메이션 (이미 동작 중)
   } | null;
+  /** HUD 오버레이가 있으면 네임태그 숨김 (스포트라이트 링만 표시) */
+  hideNametag?: boolean;
 }
 
 function calcAgeGroup(birthYear: number): string {
@@ -37,7 +39,7 @@ function getTeamInitial(teamName: string): string {
   return parts[0].slice(0, 2);
 }
 
-export default function VideoOverlay({ spotlight, player, effects }: VideoOverlayProps) {
+export default function VideoOverlay({ spotlight, player, effects, hideNametag }: VideoOverlayProps) {
   const infoChunks: string[] = [];
   if (player.position) infoChunks.push(player.position);
   if (player.birthYear) infoChunks.push(calcAgeGroup(player.birthYear));
@@ -102,13 +104,13 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
         </div>
       )}
 
-      {/* 네임태그 카드 — 하단 중앙 (seekbar 위로 올림, 애니메이션이 translateX(-50%) 포함) */}
-      <div
-        className="absolute bottom-32"
+      {/* 네임태그 카드 — 하단 중앙 (HUD 있으면 숨김) */}
+      {!hideNametag && <div
+        className="absolute bottom-36"
         style={{
           left: "50%",
-          width: "82%",
-          maxWidth: 320,
+          width: "90%",
+          maxWidth: 400,
           animation: "overlay-nametag-in 0.2s ease-out 0.2s both, overlay-fadeout 0.3s ease-in 2.5s forwards",
         }}
       >
@@ -122,11 +124,11 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
             border: effects?.eafc
               ? "1.5px solid rgba(212,168,83,0.6)"
               : "1.5px solid rgba(212,168,83,0.35)",
-            borderRadius: 12,
-            padding: "10px 14px",
+            borderRadius: 14,
+            padding: "14px 18px",
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 14,
             animation: "overlay-fadeout 0.3s ease-in 2.5s forwards",
             boxShadow: effects?.eafc
               ? "0 4px 20px rgba(212,168,83,0.15), inset 0 1px 0 rgba(212,168,83,0.1)"
@@ -137,8 +139,8 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
           {player.teamName && (
             <div
               style={{
-                width: 36,
-                height: 36,
+                width: 44,
+                height: 44,
                 borderRadius: "50%",
                 background: effects?.eafc
                   ? "linear-gradient(135deg, #D4A853 0%, #C49040 50%, #A07830 100%)"
@@ -147,7 +149,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: 700,
                 color: "#0A0A0C",
                 letterSpacing: "-0.5px",
@@ -165,7 +167,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
             <p
               style={{
                 fontFamily: "var(--font-body, 'Noto Sans KR', sans-serif)",
-                fontSize: effects?.eafc ? 16 : 15,
+                fontSize: effects?.eafc ? 20 : 18,
                 fontWeight: effects?.eafc ? 800 : 700,
                 color: "#FAFAFA",
                 lineHeight: 1.3,
@@ -179,7 +181,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
             {infoLine && (
               <p
                 style={{
-                  fontSize: 11,
+                  fontSize: 14,
                   color: effects?.eafc ? "#D4A853" : "#A1A1AA",
                   lineHeight: 1.4,
                   overflow: "hidden",
@@ -192,7 +194,7 @@ export default function VideoOverlay({ spotlight, player, effects }: VideoOverla
             )}
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

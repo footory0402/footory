@@ -134,7 +134,7 @@ const initial = {
   spotlightY: null as number | null,
   skillLabels: [] as string[],
   customLabels: [] as string[],
-  effects: { color: false, cinematic: false, eafc: false, intro: false },
+  effects: { color: false, cinematic: false, eafc: false, intro: true },
   visibility: "followers" as ClipVisibility,
   renderJobId: null as string | null,
   renderProgress: 0,

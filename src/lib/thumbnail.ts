@@ -30,8 +30,9 @@ export function captureVideoThumbnail(
     video.onseeked = () => {
       clearTimeout(timeout);
       const canvas = document.createElement("canvas");
-      canvas.width = 320;
-      canvas.height = 180;
+      // 레티나(2x~3x) 디스플레이에서 선명하게 보이도록 640×360
+      canvas.width = 640;
+      canvas.height = 360;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         URL.revokeObjectURL(url);

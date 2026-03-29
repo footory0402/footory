@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
 import type { HudPlayerData } from "@/components/video/hud/types";
+import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
 import { useBackClose } from "@/hooks/useBackClose";
 import ClipActionsSheet from "@/components/player/ClipActionsSheet";
 
 const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
+const HudOverlay = dynamic(() => import("@/components/video/hud/HudOverlay"), { ssr: false });
 
 function getVideoErrorMessage(code: number): { message: string; retryable: boolean } {
   switch (code) {
@@ -122,7 +124,27 @@ export default function ClipPlayerSheet({
       .then((res) => {
         if (cancelled) return;
         if (!res?.card) {
-          // 카드 없음 → 인트로 없이 즉시 영상 재생
+          // 카드 없음 → 클립 프로필 정보로 기본 HUD 데이터 생성 (인트로 카드는 스킵)
+          const currentClip = clipsProp[initialIndex];
+          if (currentClip?.playerName) {
+            const nameParts = currentClip.playerName.split(/\s+/);
+            setIntroData({
+              firstName: nameParts.length > 1 ? nameParts[0] : "",
+              lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : currentClip.playerName,
+              number: "",
+              position: currentClip.playerPosition || "FW",
+              club: currentClip.teamName || "",
+              age: "",
+              birthDate: currentClip.playerBirthYear ? `${currentClip.playerBirthYear}` : "",
+              height: "",
+              weight: "",
+              foot: "",
+              nationality: "KOREA",
+              photoUrl: res?.profile?.avatar_url || "",
+              mainColor: "#37474F",
+              accentColor: "#D4A853",
+            });
+          }
           setIntroReady(true);
           return;
         }
@@ -363,7 +385,7 @@ export default function ClipPlayerSheet({
           <div className="flex h-full w-full flex-col items-center justify-center p-6">
             {/* 선수 정보 카드 — 모바일 세로 최적화 */}
             <div
-              className="flex w-full max-w-[340px] flex-col items-center rounded-2xl p-6"
+              className="flex w-full max-w-[360px] flex-col items-center rounded-2xl p-7"
               style={{
                 background: `linear-gradient(135deg, ${introData.mainColor} 0%, #0a0a0a 50%, ${introData.accentColor}44 100%)`,
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -376,12 +398,12 @@ export default function ClipPlayerSheet({
                   <div className="font-[var(--font-stat)] text-[48px] font-black leading-none text-white" style={{ textShadow: `2px 2px 20px ${introData.accentColor}66` }}>
                     {introData.number || "9"}
                   </div>
-                  <div className="mt-1 text-[11px] font-semibold uppercase tracking-[3px] text-white/50">
+                  <div className="mt-1 text-[13px] font-semibold uppercase tracking-[3px] text-white/50">
                     {introData.position || "ST"}
                   </div>
                 </div>
                 <div
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-[8px] font-bold text-white"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-[10px] font-bold text-white"
                   style={{ background: `linear-gradient(135deg, ${introData.mainColor}, ${introData.accentColor})` }}
                 >
                   {introData.club.replace(/\s*U\d+/, "").substring(0, 5)}
@@ -390,7 +412,7 @@ export default function ClipPlayerSheet({
 
               {/* Photo */}
               <div
-                className="mt-4 flex h-[120px] w-[120px] items-center justify-center overflow-hidden rounded-full"
+                className="mt-4 flex h-[140px] w-[140px] items-center justify-center overflow-hidden rounded-full"
                 style={{ border: `2px solid ${introData.accentColor}44`, background: "rgba(255,255,255,0.05)" }}
               >
                 {introData.photoUrl && !introData.photoUrl.startsWith("blob:") ? (
@@ -405,12 +427,12 @@ export default function ClipPlayerSheet({
               </div>
 
               {/* Name */}
-              <div className="mt-3 text-center">
-                <div className="text-[28px] font-black text-white">
+              <div className="mt-4 text-center">
+                <div className="text-[32px] font-black text-white">
                   {introData.lastName}{introData.firstName}
                 </div>
                 <div
-                  className="mt-1 inline-block rounded px-2.5 py-0.5 text-[10px] font-bold text-white"
+                  className="mt-1.5 inline-block rounded px-3 py-1 text-[12px] font-bold text-white"
                   style={{ background: `${introData.accentColor}33` }}
                 >
                   {introData.club}
@@ -425,15 +447,15 @@ export default function ClipPlayerSheet({
                   { label: "키", value: introData.height ? `${introData.height}cm` : "-" },
                   { label: "몸무게", value: introData.weight ? `${introData.weight}kg` : "-" },
                 ].map((item, i) => (
-                  <div key={i} className="px-3 py-2" style={{ background: "rgba(10,10,12,0.85)" }}>
-                    <div className="text-[7px] font-semibold uppercase tracking-[1px] text-white/30">{item.label}</div>
-                    <div className="mt-0.5 text-[11px] font-bold" style={{ color: introData.accentColor }}>{item.value}</div>
+                  <div key={i} className="px-3.5 py-2.5" style={{ background: "rgba(10,10,12,0.85)" }}>
+                    <div className="text-[9px] font-semibold uppercase tracking-[1px] text-white/30">{item.label}</div>
+                    <div className="mt-0.5 text-[13px] font-bold" style={{ color: introData.accentColor }}>{item.value}</div>
                   </div>
                 ))}
               </div>
 
               {/* Footer */}
-              <div className="mt-3 text-[8px] tracking-[3px] text-white/20">FOOTORY.COM</div>
+              <div className="mt-4 text-[10px] tracking-[3px] text-white/20">FOOTORY.COM</div>
             </div>
           </div>
         </div>
@@ -461,14 +483,12 @@ export default function ClipPlayerSheet({
         />
       )}
 
-      {/* ── VideoOverlay — 인트로 카드 끝난 뒤 표시 ── */}
-      {clip.playerName && introReady && !showIntro && (
+      {/* ── 스포트라이트 링 — 인트로 카드 끝난 뒤 표시 ── */}
+      {clip.playerName && introReady && !showIntro && clip.spotlightX != null && clip.spotlightY != null && (
         <div className="absolute inset-0 z-[45] pointer-events-none">
           <VideoOverlay
             key={`${clip.id}-${playCount}`}
-            spotlight={clip.spotlightX != null && clip.spotlightY != null
-              ? { x: clip.spotlightX, y: clip.spotlightY }
-              : null}
+            spotlight={{ x: clip.spotlightX, y: clip.spotlightY }}
             player={{
               name: clip.playerName,
               position: clip.playerPosition,
@@ -476,6 +496,17 @@ export default function ClipPlayerSheet({
               teamName: clip.teamName,
             }}
             effects={effects}
+            hideNametag={!!introData}
+          />
+        </div>
+      )}
+
+      {/* ── HUD 오버레이 — 방송 스타일 (항상 표시) ── */}
+      {introData && introReady && !showIntro && (
+        <div className="absolute inset-0 z-[44] pointer-events-none">
+          <HudOverlay
+            data={introData}
+            config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
           />
         </div>
       )}

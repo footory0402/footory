@@ -5,8 +5,8 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
-// Single-threaded ESM core (COOP/COEP 헤더 불필요)
-const CORE_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
+// 셀프호스팅 WASM — unpkg CDN 의존 제거, 같은 도메인에서 캐시됨
+const CORE_URL = "/ffmpeg";
 
 let ffmpeg: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
@@ -74,9 +74,7 @@ export function loadFFmpeg(
 export interface CompressOptions {
   /** 720p 기준 해상도 (기본 720) */
   targetShortSide?: number;
-  /** 비트레이트 (기본 '2M') */
-  bitrate?: string;
-  /** CRF (기본 28) */
+  /** CRF 값 — 낮을수록 고품질 (기본 28, 권장 23~30) */
   crf?: number;
   /** 트림 시작 (초) */
   trimStart?: number;
@@ -106,7 +104,6 @@ export async function compressVideo(
 ): Promise<CompressResult> {
   const {
     targetShortSide = 720,
-    bitrate = "2M",
     crf = 28,
     trimStart,
     trimEnd,
@@ -167,14 +164,13 @@ export async function compressVideo(
     const scaleFilter = `scale='if(gte(iw,ih),-2,${s})':'if(gte(iw,ih),${s},-2)'`;
     args.push("-vf", scaleFilter);
 
-    // H.264 인코딩
+    // H.264 인코딩 (WASM에서는 ultrafast가 2~3배 빠르고 품질 차이 미미)
+    // CRF 단독 사용 — bitrate와 동시 지정 시 상충하므로 제거
     args.push(
       "-c:v",
       "libx264",
       "-preset",
-      "fast",
-      "-b:v",
-      bitrate,
+      "ultrafast",
       "-crf",
       String(crf)
     );

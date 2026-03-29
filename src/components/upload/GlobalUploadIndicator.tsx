@@ -32,10 +32,14 @@ function getLabel(status: UploadStatus, progress: number): string {
     case "done":
       return "업로드 완료! — 탭하여 확인하기";
     case "error": {
-      const retryCount = useUploadStore.getState().r2RetryCount;
-      return retryCount >= 3
-        ? "업로드 실패 — 탭하여 다시 시작"
-        : "업로드 실패 — 탭하여 재시도";
+      const s = useUploadStore.getState();
+      const retryCount = s.r2RetryCount;
+      const errMsg = s.error;
+      const prefix = retryCount >= 3 ? "탭하여 다시 시작" : "탭하여 재시도";
+      if (errMsg && errMsg !== "업로드 실패") {
+        return `${errMsg} — ${prefix}`;
+      }
+      return `업로드 실패 — ${prefix}`;
     }
     default:
       return "";

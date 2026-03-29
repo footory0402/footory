@@ -6,10 +6,10 @@ import { useUploadStore } from "@/stores/upload-store";
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel payload 제한)
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
 const MAX_DIRECT_RETRIES = 3; // presigned URL 최대 재시도 횟수
-// Hobby 플랜 10초 하드캡으로 multipart complete(ListParts+CompleteMultipartUpload)가
-// 항상 504 타임아웃. 단일 presigned PUT은 브라우저→R2 직접 전송 = Vercel 함수 미통과.
-// 100MB 파일도 단일 PUT으로 처리 (R2 최대 5GB 지원).
-const MULTIPART_THRESHOLD = 200 * 1024 * 1024; // 사실상 비활성화 (200MB 초과 시에만)
+// Multipart: 50MB 이상 파일에 적용 — 청크 단위 재시도로 신뢰성 향상.
+// Hobby 플랜(10초 하드캡)에서는 complete API가 실패할 수 있으므로
+// multipart 실패 시 단일 PUT 폴백 로직을 uploadToR2에서 처리.
+const MULTIPART_THRESHOLD = 50 * 1024 * 1024; // 50MB
 const CHUNK_SIZE = 5 * 1024 * 1024; // 유지 (혹시라도 multipart 동작 시 R2 최소 요건)
 const CONCURRENT_PARTS = 3;
 
@@ -476,23 +476,34 @@ async function uploadToR2(
   onProgress: (pct: number) => void,
   getNewPresignedUrl?: () => Promise<string>
 ): Promise<void> {
-  // 10MB 이상이면 Multipart Upload 사용 (빠르고 progress 정확)
+  // 50MB 이상이면 Multipart Upload 시도 (청크 단위 재시도로 신뢰성 향상)
   if (file.size >= MULTIPART_THRESHOLD) {
     try {
       await multipartUploadToR2(file, key, contentType, onProgress);
       return;
     } catch (err) {
       const msg = (err as Error).message;
-      console.warn("[Upload] Multipart failed, no fallback for large files:", msg);
-      throw new Error(
-        "영상 업로드에 실패했어요.\n" +
-          "Wi-Fi 환경에서 다시 시도해주세요.\n" +
-          `(${msg})`
-      );
+      console.warn("[Upload] Multipart failed, falling back to single PUT:", msg);
+      // Multipart 실패 (Hobby 플랜 타임아웃 등) → 단일 PUT으로 폴백
+      onProgress(0);
+      // 새 presigned URL 발급 후 단일 PUT 시도
+      const fallbackUrl = getNewPresignedUrl ? await getNewPresignedUrl() : url;
+      try {
+        await xhrUpload(fallbackUrl, file, contentType, calcUploadTimeout(file.size), onProgress);
+        return;
+      } catch (fallbackErr) {
+        const fallbackMsg = (fallbackErr as Error).message;
+        console.warn("[Upload] Single PUT fallback also failed:", fallbackMsg);
+        throw new Error(
+          "영상 업로드에 실패했어요.\n" +
+            "Wi-Fi 환경에서 다시 시도해주세요.\n" +
+            `(${fallbackMsg})`
+        );
+      }
     }
   }
 
-  // 10MB 미만: 기존 단일 PUT 방식 (XHR → fetch → proxy)
+  // 50MB 미만: 기존 단일 PUT 방식 (XHR → fetch → proxy)
   const timeout = calcUploadTimeout(file.size);
   const errors: string[] = [];
 
@@ -655,7 +666,10 @@ export function startR2BackgroundUpload() {
       if (generation !== bgUploadGeneration) return;
       if (!presignRes.ok) {
         const errBody = await presignRes.json().catch(() => ({}));
-        throw new Error(errBody.error ?? "Presign 실패");
+        if (presignRes.status === 401) {
+          throw new Error("로그인이 필요합니다");
+        }
+        throw new Error(errBody.error ?? `업로드 준비 실패 (${presignRes.status})`);
       }
 
       const { url, key, clipId } = await presignRes.json();
@@ -701,8 +715,14 @@ export function startR2BackgroundUpload() {
       useUploadStore.getState().setR2Status("done");
     } catch (e) {
       if (generation !== bgUploadGeneration) return;
-      console.warn("[Upload] Background R2 upload failed:", e);
-      useUploadStore.getState().setR2Status("error");
+      const msg = e instanceof Error ? e.message : "업로드 실패";
+      console.warn("[Upload] Background R2 upload failed:", msg);
+      const st = useUploadStore.getState();
+      st.setR2Status("error");
+      st.setError(msg);
+      // 주의: 여기서 setStatus("error") 호출하면 안 됨
+      // 백그라운드 업로드 실패는 startUpload()에서 폴백 처리함
+      // status를 error로 바꾸면 startUpload() 진입 자체가 차단됨
     } finally {
       document.removeEventListener("visibilitychange", handleVisibility);
       releaseWakeLock();
@@ -714,7 +734,9 @@ export function startR2BackgroundUpload() {
 
 export async function startUpload() {
   const store = useUploadStore.getState();
-  if (!store.file || store.status !== "idle") return;
+  if (!store.file) return;
+  // idle 또는 error(백그라운드 업로드 실패 후 재시도) 상태에서만 진입
+  if (store.status !== "idle" && store.status !== "error") return;
 
   await acquireWakeLock();
   try {
@@ -795,7 +817,13 @@ export async function startUpload() {
       );
       if (!presignRes.ok) {
         const errBody = await presignRes.json().catch(() => ({}));
-        throw new Error(errBody.error ?? `Presign 요청 실패 (${presignRes.status})`);
+        if (presignRes.status === 401) {
+          throw new Error("로그인이 필요합니다. 다시 로그인해주세요.");
+        }
+        if (presignRes.status === 429) {
+          throw new Error("업로드 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.");
+        }
+        throw new Error(errBody.error ?? `업로드 준비 실패 (${presignRes.status})`);
       }
       const presignData = await presignRes.json();
       key = presignData.key;
