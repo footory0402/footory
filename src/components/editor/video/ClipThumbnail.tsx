@@ -11,10 +11,11 @@ interface ClipThumbnailProps {
   playerName: string;
   playerNumber?: string;
   onMarkerChange: (x: number | undefined, y: number | undefined) => void;
+  expanded?: boolean;
 }
 
 export default function ClipThumbnail({
-  videoFile, captureTime, markerX, markerY, playerName, playerNumber, onMarkerChange,
+  videoFile, captureTime, markerX, markerY, playerName, playerNumber, onMarkerChange, expanded,
 }: ClipThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [frameUrl, setFrameUrl] = useState<string>("");
@@ -60,12 +61,14 @@ export default function ClipThumbnail({
   }, [videoFile, captureTime]);
 
   const handleTap = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!expanded) return; // 축소 상태에서는 마커 배치 안 함 (탭 → 확대만)
+    e.stopPropagation(); // 확대 상태에서 마커 배치 시 부모의 collapse 방지
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
     onMarkerChange(Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
-  }, [onMarkerChange]);
+  }, [onMarkerChange, expanded]);
 
   const handleRemove = useCallback(() => {
     onMarkerChange(undefined, undefined);
@@ -73,8 +76,41 @@ export default function ClipThumbnail({
 
   if (!frameUrl) {
     return (
-      <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-lg bg-white/5">
+      <div className={`flex items-center justify-center bg-white/5 ${expanded ? "aspect-video w-full rounded-t-xl" : "h-20 w-28 shrink-0 rounded-lg"}`}>
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-accent" />
+      </div>
+    );
+  }
+
+  if (expanded) {
+    return (
+      <div
+        ref={containerRef}
+        className="relative aspect-video w-full cursor-crosshair overflow-hidden rounded-t-xl"
+        onClick={handleTap}
+      >
+        <img src={frameUrl} alt="클립 프레임" className="h-full w-full object-cover" />
+        {markerX !== undefined && markerY !== undefined && (
+          <PlayerMarker
+            x={markerX}
+            y={markerY}
+            playerName={playerName}
+            playerNumber={playerNumber}
+            onRemove={handleRemove}
+          />
+        )}
+        {markerX === undefined && (
+          <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-black/20 pb-3">
+            <span className="rounded-full bg-black/60 px-3 py-1 text-[12px] font-semibold text-white/80 backdrop-blur">
+              탭하여 선수 위치를 표시하세요
+            </span>
+          </div>
+        )}
+        {markerX !== undefined && (
+          <div className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white/50 backdrop-blur">
+            탭하여 이동 · 마커 탭으로 제거
+          </div>
+        )}
       </div>
     );
   }
@@ -82,8 +118,7 @@ export default function ClipThumbnail({
   return (
     <div
       ref={containerRef}
-      className="relative h-20 w-28 shrink-0 cursor-crosshair overflow-hidden rounded-lg"
-      onClick={handleTap}
+      className="relative h-20 w-28 shrink-0 cursor-pointer overflow-hidden rounded-lg"
     >
       <img src={frameUrl} alt="클립 프레임" className="h-full w-full object-cover" />
       {markerX !== undefined && markerY !== undefined && (
@@ -92,12 +127,11 @@ export default function ClipThumbnail({
           y={markerY}
           playerName={playerName}
           playerNumber={playerNumber}
-          onRemove={handleRemove}
         />
       )}
       {markerX === undefined && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-          <span className="text-[10px] text-white/60">탭하여 선수 표시</span>
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30">
+          <span className="text-[10px] text-white/60">탭하여 확대</span>
         </div>
       )}
     </div>

@@ -23,6 +23,7 @@ export default function VideoEditorPage() {
   // Player card
   const [playerData, setPlayerData] = useState<HudPlayerData | null>(null);
   const [cardLoading, setCardLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   // Video
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -51,9 +52,14 @@ export default function VideoEditorPage() {
   const [procStep, setProcStep] = useState<ProcessingStep>("loading");
   const [trimProgress, setTrimProgress] = useState(0);
   const [procError, setProcError] = useState<string | undefined>();
+  const [resultVideoUrl, setResultVideoUrl] = useState<string | undefined>();
+
+  // 인트로 카드 토글
+  const [includeIntro, setIncludeIntro] = useState(true);
 
   // Video file ref (to pass to concat)
   const videoFileRef = useRef<File | null>(null);
+  const [videoDimensions, setVideoDimensions] = useState<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
     const goalCount = clips.filter((c) => c.eventTag === "goal").length;
@@ -62,9 +68,9 @@ export default function VideoEditorPage() {
 
   useEffect(() => {
     fetch("/api/player-card")
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => { setIsLoggedIn(r.ok); return r.ok ? r.json() : null; })
       .then((res) => { if (res?.card) setPlayerData(buildHudData(res.card)); })
-      .catch(() => {})
+      .catch(() => setIsLoggedIn(false))
       .finally(() => setCardLoading(false));
   }, []);
 
@@ -79,11 +85,25 @@ export default function VideoEditorPage() {
   }, [phase]);
 
   const handleFileSelect = useCallback((file: File) => {
-    if (!file.type.startsWith("video/")) return;
+    // PC(Windows)에서 MIME 타입이 빈 문자열 또는 application/octet-stream으로 보고될 수 있음
+    const isVideo =
+      file.type.startsWith("video/") ||
+      file.type === "application/octet-stream" ||
+      file.type === "" ||
+      /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(file.name);
+    if (!isVideo) return;
     videoFileRef.current = file;
     const url = URL.createObjectURL(file);
     setVideoSrc((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
     setClips([]); setSelectedClipId(undefined); setCurrentTime(0); setDuration(0);
+    // 영상 해상도 읽기
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.src = url;
+    probe.onloadedmetadata = () => {
+      setVideoDimensions({ w: probe.videoWidth, h: probe.videoHeight });
+      probe.src = "";
+    };
   }, []);
 
   const handleTimeUpdate = useCallback((t: number, d: number) => {
@@ -137,17 +157,24 @@ export default function VideoEditorPage() {
     setTrimProgress(0);
 
     try {
-      await concatHighlight({
+      const result = await concatHighlight({
         videoFile: videoFileRef.current,
         clips: [...clips].sort((a, b) => a.startTime - b.startTime),
         onStep: setProcStep,
         onTrimProgress: setTrimProgress,
+        playerData,
+        hudConfig,
+        videoWidth: videoDimensions?.w,
+        videoHeight: videoDimensions?.h,
+        includeIntro,
       });
+      setResultVideoUrl(result.previewBlobUrl);
       setPhase("done");
     } catch (e: any) {
-      setProcError(e.message ?? "알 수 없는 오류");
+      console.error("[highlight-generate]", e);
+      setProcError(e.message ?? "알 수 없는 오류가 발생했습니다.");
     }
-  }, [clips]);
+  }, [clips, playerData, hudConfig, videoDimensions, includeIntro]);
 
   const selectedClip = clips.find((c) => c.id === selectedClipId);
   const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
@@ -160,6 +187,9 @@ export default function VideoEditorPage() {
         videoFile={videoFileRef.current!}
         playerName={playerData ? `${playerData.lastName}${playerData.firstName}` : "선수"}
         playerNumber={playerData?.number}
+        hasPlayerCard={!!playerData}
+        includeIntro={includeIntro}
+        onToggleIntro={setIncludeIntro}
         onBack={() => setPhase("marking")}
         onGenerate={handleGenerate}
         onUpdateClip={(id, updates) => setClips((prev) => prev.map((c) => c.id === id ? { ...c, ...updates } : c))}
@@ -187,11 +217,13 @@ export default function VideoEditorPage() {
       <DoneView
         clipCount={clips.length}
         totalDuration={totalDuration}
+        videoUrl={resultVideoUrl}
         onReset={() => {
           setVideoSrc(null);
           setClips([]);
           setSelectedClipId(undefined);
           setPhase("onboarding");
+          setResultVideoUrl(undefined);
           videoFileRef.current = null;
         }}
       />
@@ -223,13 +255,13 @@ export default function VideoEditorPage() {
           </div>
 
           {/* 메인 CTA */}
-          <div
+          <label
+            htmlFor="video-file-input"
             className="flex w-full max-w-sm cursor-pointer flex-col items-center gap-5 rounded-3xl p-8 transition-all active:scale-[0.98]"
             style={{
               background: "linear-gradient(180deg, rgba(212,168,83,0.08) 0%, rgba(212,168,83,0.02) 100%)",
               border: "1px solid rgba(212,168,83,0.15)",
             }}
-            onClick={() => fileInputRef.current?.click()}
           >
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/15">
               <svg className="h-8 w-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -243,7 +275,7 @@ export default function VideoEditorPage() {
             <div className="rounded-xl bg-accent px-8 py-2.5 text-[14px] font-bold text-black">
               파일 선택
             </div>
-          </div>
+          </label>
 
           {/* 사용 가이드 */}
           <div className="w-full max-w-sm space-y-3">
@@ -270,7 +302,7 @@ export default function VideoEditorPage() {
           </div>
         </div>
 
-        <input ref={fileInputRef} type="file" accept="video/*" className="hidden"
+        <input id="video-file-input" ref={fileInputRef} type="file" accept="video/*,video/mp4,video/quicktime,.mp4,.mov,.m4v,.webm,.avi,.mkv" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
       </div>
     );
@@ -302,7 +334,11 @@ export default function VideoEditorPage() {
           )}
           {/* 다음 버튼 */}
           <button
-            onClick={() => clips.length > 0 && setPhase("confirm")}
+            onClick={() => {
+              if (clips.length === 0) return;
+              if (!isLoggedIn) { router.push("/login"); return; }
+              setPhase("confirm");
+            }}
             disabled={clips.length === 0}
             className="rounded-xl px-4 py-1.5 text-[12px] font-bold transition-all active:scale-95 disabled:opacity-25"
             style={{

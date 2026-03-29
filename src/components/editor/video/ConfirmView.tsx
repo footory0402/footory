@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { ClipSegment } from "./types";
 import { EVENTS, EVENT_TAG_COLORS } from "./types";
 import ClipThumbnail from "./ClipThumbnail";
@@ -10,6 +10,9 @@ interface ConfirmViewProps {
   videoFile: File;
   playerName: string;
   playerNumber?: string;
+  hasPlayerCard?: boolean;
+  includeIntro?: boolean;
+  onToggleIntro?: (v: boolean) => void;
   onBack: () => void;
   onGenerate: () => void;
   onUpdateClip: (id: string, updates: Partial<ClipSegment>) => void;
@@ -25,9 +28,11 @@ function fmt(s: number) {
 
 export default function ConfirmView({
   clips, videoFile, playerName, playerNumber,
+  hasPlayerCard, includeIntro, onToggleIntro,
   onBack, onGenerate, onUpdateClip, onRemoveClip, onReorderClips,
 }: ConfirmViewProps) {
   const totalDuration = clips.reduce((sum, c) => sum + (c.endTime - c.startTime), 0);
+  const [expandedClipId, setExpandedClipId] = useState<string | null>(null);
 
   const handleMarkerChange = useCallback((clipId: string, x: number | undefined, y: number | undefined) => {
     onUpdateClip(clipId, { markerX: x, markerY: y });
@@ -69,66 +74,76 @@ export default function ConfirmView({
 
       {/* 클립 리스트 */}
       <div className="flex-1 overflow-y-auto px-4">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {clips.map((clip, i) => {
             const ev = EVENTS.find((e) => e.id === clip.eventTag);
             const color = EVENT_TAG_COLORS[clip.eventTag];
             const duration = Math.round(clip.endTime - clip.startTime);
+            const isExpanded = expandedClipId === clip.id;
 
             return (
               <div
                 key={clip.id}
-                className="flex items-center gap-3 rounded-xl p-3"
+                className="overflow-hidden rounded-xl"
                 style={{
-                  background: i === 0 ? `${color}08` : "rgba(255,255,255,0.03)",
-                  border: `1px solid ${i === 0 ? `${color}20` : "rgba(255,255,255,0.06)"}`,
+                  background: `${color}08`,
+                  border: `1px solid ${color}20`,
                 }}
               >
-                {/* 순서 변경 버튼 */}
-                <div className="flex shrink-0 flex-col gap-0.5">
-                  <button
-                    onClick={() => moveClip(i, -1)}
-                    disabled={i === 0}
-                    className="rounded p-0.5 text-[10px] text-white/20 active:text-white/60 disabled:opacity-20"
-                  >▲</button>
-                  <button
-                    onClick={() => moveClip(i, 1)}
-                    disabled={i === clips.length - 1}
-                    className="rounded p-0.5 text-[10px] text-white/20 active:text-white/60 disabled:opacity-20"
-                  >▼</button>
+                {/* 썸네일 — 확장 가능 영역 */}
+                <div
+                  className="relative cursor-pointer"
+                  onClick={() => setExpandedClipId(isExpanded ? null : clip.id)}
+                >
+                  <ClipThumbnail
+                    videoFile={videoFile}
+                    captureTime={clip.markedAt ?? clip.startTime}
+                    markerX={clip.markerX}
+                    markerY={clip.markerY}
+                    playerName={playerName}
+                    playerNumber={playerNumber}
+                    onMarkerChange={(x, y) => handleMarkerChange(clip.id, x, y)}
+                    expanded={isExpanded}
+                  />
                 </div>
 
-                {/* 썸네일 + 마커 */}
-                <ClipThumbnail
-                  videoFile={videoFile}
-                  captureTime={clip.markedAt ?? clip.startTime}
-                  markerX={clip.markerX}
-                  markerY={clip.markerY}
-                  playerName={playerName}
-                  playerNumber={playerNumber}
-                  onMarkerChange={(x, y) => handleMarkerChange(clip.id, x, y)}
-                />
+                {/* 정보 바 */}
+                <div className="flex items-center gap-2 px-3 py-2.5">
+                  {/* 순서 변경 */}
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      onClick={() => moveClip(i, -1)}
+                      disabled={i === 0}
+                      className="rounded p-1 text-[10px] text-white/25 active:text-white/60 disabled:opacity-20"
+                    >▲</button>
+                    <button
+                      onClick={() => moveClip(i, 1)}
+                      disabled={i === clips.length - 1}
+                      className="rounded p-1 text-[10px] text-white/25 active:text-white/60 disabled:opacity-20"
+                    >▼</button>
+                  </div>
 
-                {/* 정보 */}
-                <div className="flex-1 min-w-0">
+                  {/* 이벤트 태그 */}
                   <div className="flex items-center gap-1.5">
                     <span className="text-[14px]">{ev?.emoji}</span>
                     <span className="text-[13px] font-semibold text-white">{ev?.label}</span>
                   </div>
-                  <div className="mt-1 font-mono text-[11px] text-white/40">
+
+                  {/* 시간 정보 */}
+                  <div className="flex-1 text-right font-mono text-[11px] text-white/40">
                     {fmt(clip.startTime)} → {fmt(clip.endTime)} · {duration}초
                   </div>
-                </div>
 
-                {/* 삭제 */}
-                <button
-                  onClick={() => onRemoveClip(clip.id)}
-                  className="shrink-0 rounded-lg p-2 text-white/20 active:bg-red-500/15 active:text-red-400"
-                >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                  {/* 삭제 */}
+                  <button
+                    onClick={() => onRemoveClip(clip.id)}
+                    className="shrink-0 rounded-lg p-1.5 text-white/20 active:bg-red-500/15 active:text-red-400"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -148,13 +163,36 @@ export default function ConfirmView({
         </div>
 
         {/* 힌트 */}
-        <p className="mt-3 text-center text-[11px] text-white/25">
-          ▲▼ 순서 변경 · 썸네일 탭으로 선수 표시 · ✕ 삭제
+        <p className="mt-3 pb-2 text-center text-[11px] text-white/25">
+          썸네일을 탭하면 선수 표시 영역이 확대됩니다
         </p>
       </div>
 
-      {/* CTA */}
+      {/* 인트로 카드 토글 + CTA */}
       <div className="shrink-0 px-4 pb-[env(safe-area-inset-bottom,16px)] pt-3">
+        {/* 인트로 카드 토글 */}
+        {hasPlayerCard && onToggleIntro && (
+          <button
+            onClick={() => onToggleIntro(!includeIntro)}
+            className="mb-3 flex w-full items-center justify-between rounded-xl px-4 py-3"
+            style={{
+              background: includeIntro ? "rgba(212,168,83,0.08)" : "rgba(255,255,255,0.03)",
+              border: `1px solid ${includeIntro ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.06)"}`,
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-[14px]">🎴</span>
+              <div className="text-left">
+                <div className="text-[13px] font-semibold text-white">인트로 카드</div>
+                <div className="text-[11px] text-white/40">영상 앞에 선수 카드 2초 추가</div>
+              </div>
+            </div>
+            <div className={`h-6 w-10 rounded-full p-0.5 transition-colors ${includeIntro ? "bg-accent" : "bg-white/15"}`}>
+              <div className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${includeIntro ? "translate-x-4" : ""}`} />
+            </div>
+          </button>
+        )}
+
         <button
           onClick={onGenerate}
           disabled={clips.length === 0}
