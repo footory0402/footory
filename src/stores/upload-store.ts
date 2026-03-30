@@ -46,6 +46,7 @@ interface UploadState {
   duration: number | null; // 트리머에서 감지된 영상 길이 (초)
   spotlightX: number | null; // 스포트라이트 오버레이 좌표 (0~1 정규화)
   spotlightY: number | null; // 스포트라이트 오버레이 좌표 (0~1 정규화)
+  freezeAt: number | null; // 프리즈 프레임 시점 (초)
   skillLabels: string[];
   customLabels: string[];
   effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
@@ -87,6 +88,7 @@ interface UploadState {
   setTrimEnd: (t: number | null) => void;
   setDuration: (d: number | null) => void;
   setSpotlight: (x: number | null, y: number | null) => void;
+  setFreezeAt: (t: number | null) => void;
   setSkillLabels: (labels: string[]) => void;
   setCustomLabels: (labels: string[]) => void;
   setEffects: (effects: Partial<UploadState["effects"]>) => void;
@@ -132,6 +134,7 @@ const initial = {
   duration: null as number | null,
   spotlightX: null as number | null,
   spotlightY: null as number | null,
+  freezeAt: null as number | null,
   skillLabels: [] as string[],
   customLabels: [] as string[],
   effects: { color: false, cinematic: false, eafc: false, intro: true },
@@ -176,6 +179,7 @@ export const useUploadStore = create<UploadState>((set) => ({
   setTrimEnd: (trimEnd) => set({ trimEnd }),
   setDuration: (duration) => set({ duration }),
   setSpotlight: (x, y) => set({ spotlightX: x, spotlightY: y }),
+  setFreezeAt: (t) => set({ freezeAt: t }),
   setSkillLabels: (skillLabels) => set({ skillLabels }),
   setCustomLabels: (customLabels) => set({ customLabels }),
   setEffects: (partial) => set((state) => ({

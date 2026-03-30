@@ -120,24 +120,14 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
       </FormField>
 
       {/* Name */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <FormField label="성">
-          <input
-            className={inputClass}
-            value={data.lastName}
-            onChange={(e) => update("lastName", e.target.value)}
-            placeholder="최"
-          />
-        </FormField>
-        <FormField label="이름">
-          <input
-            className={inputClass}
-            value={data.firstName}
-            onChange={(e) => update("firstName", e.target.value)}
-            placeholder="강"
-          />
-        </FormField>
-      </div>
+      <FormField label="이름">
+        <input
+          className={inputClass}
+          value={data.firstName}
+          onChange={(e) => update("firstName", e.target.value)}
+          placeholder="이름 입력"
+        />
+      </FormField>
 
       {/* Number + Position */}
       <div className="grid grid-cols-2 gap-2.5">

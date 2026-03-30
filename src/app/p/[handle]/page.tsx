@@ -210,20 +210,32 @@ const getProfile = cache(async (handle: string) => {
   // Build tagClips map from SSR data (keyed by tag id, not dbName)
   const dbNameToId = Object.fromEntries(SKILL_TAGS.map((t) => [t.dbName, t.id]));
   const tagClipsMap: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
+  const untaggedClipsList: { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[] = [];
   (tagClipsData.data ?? []).forEach((clip: Record<string, unknown>) => {
     const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
-    clipTags.forEach((t) => {
-      const tagId = dbNameToId[t.tag_name] ?? t.tag_name;
-      if (!tagClipsMap[tagId]) tagClipsMap[tagId] = [];
-      tagClipsMap[tagId].push({
+    if (clipTags.length === 0) {
+      untaggedClipsList.push({
         id: clip.id as string,
         duration: (clip.duration_seconds as number) ?? 0,
-        tag: t.tag_name,
-        isTop: t.is_top,
+        tag: "",
+        isTop: false,
         videoUrl: (clip.video_url as string) ?? "",
         thumbnailUrl: (clip.thumbnail_url as string | null) ?? null,
       });
-    });
+    } else {
+      clipTags.forEach((t) => {
+        const tagId = dbNameToId[t.tag_name] ?? t.tag_name;
+        if (!tagClipsMap[tagId]) tagClipsMap[tagId] = [];
+        tagClipsMap[tagId].push({
+          id: clip.id as string,
+          duration: (clip.duration_seconds as number) ?? 0,
+          tag: t.tag_name,
+          isTop: t.is_top,
+          videoUrl: (clip.video_url as string) ?? "",
+          thumbnailUrl: (clip.thumbnail_url as string | null) ?? null,
+        });
+      });
+    }
   });
 
   // Increment view count atomically (fire and forget)
@@ -240,6 +252,7 @@ const getProfile = cache(async (handle: string) => {
     achievements: achievements.data ?? [],
     timelineEvents: timelineEvents.data ?? [],
     tagClips: tagClipsMap,
+    untaggedClips: untaggedClipsList,
     playStyle: playStyleData.data ?? null,
     isFollowing,
     isOwnProfile: currentUser?.id === profile.id,

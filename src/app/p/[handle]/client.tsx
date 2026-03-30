@@ -12,11 +12,16 @@ import dynamic from "next/dynamic";
 import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useProfile } from "@/hooks/useProfile";
 
 const AddToWatchlistButton = dynamic(
   () => import("@/components/scout/AddToWatchlistButton"),
   { ssr: false }
 );
+
+const ProfileEditSheet = dynamic(() => import("@/components/player/ProfileEditSheet"), { ssr: false });
+const StatInputSheet = dynamic(() => import("@/components/stats/StatInputSheet"), { ssr: false });
+const SeasonAddSheet = dynamic(() => import("@/components/player/SeasonAddSheet"), { ssr: false });
 
 const ClipPlayerSheet = dynamic(
   () => import("@/components/player/ClipPlayerSheet"),
@@ -80,6 +85,7 @@ interface PublicProfileData {
   achievements: Record<string, unknown>[];
   timelineEvents: Record<string, unknown>[];
   tagClips: Record<string, TagClip[]>;
+  untaggedClips?: TagClip[];
   playStyle?: Record<string, unknown> | null;
   isFollowing?: boolean;
   isOwnProfile?: boolean;
@@ -406,6 +412,17 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [dmSending, setDmSending] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
+  // 내 프로필 편집 상태
+  const [editOpen, setEditOpen] = useState(false);
+  const [statInputOpen, setStatInputOpen] = useState(false);
+  const [statInputType, setStatInputType] = useState<string | undefined>();
+  const [seasonAddOpen, setSeasonAddOpen] = useState(false);
+
+  // 내 프로필일 때만 사용 (훅은 항상 호출)
+  const { profile: ownProfile, updateProfile, uploadAvatar, checkHandle } = useProfile({
+    enabled: !!data.isOwnProfile,
+  });
+
   const profile = toProfile(data);
   const stats = useMemo(() => computeAggregatedStats(data.stats), [data.stats]);
   const seasons = mapSeasons(data.seasons);
@@ -456,16 +473,36 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     <div className="mx-auto max-w-[430px] pb-24">
       {/* 상단 고정 헤더 */}
       <div className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 glass-nav">
-        <button
-          onClick={handleBack}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
-          aria-label="뒤로가기"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
+        {data.isOwnProfile ? (
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/[0.15] text-accent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+        ) : (
+          <button
+            onClick={handleBack}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
+            aria-label="뒤로가기"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        )}
         <span className="flex-1 truncate text-[14px] font-semibold text-text-1">{profile.name}</span>
+        {data.isOwnProfile && (
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
+            aria-label="프로필 편집"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
+        )}
         <button
           onClick={() => setShareOpen(true)}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
@@ -478,11 +515,25 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         </button>
       </div>
 
-      {/* Profile hero (read-only, no callbacks = no action bar) */}
+      {/* Profile hero */}
       <HeroSection
         profile={profile}
         playStyle={mappedPlayStyle}
         teamState={profile.teamName ? "has-team" : "no-team"}
+        {...(data.isOwnProfile ? {
+          onEdit: () => setEditOpen(true),
+          onShare: async () => {
+            const url = `${window.location.origin}/p/${profile.handle}`;
+            try {
+              if (navigator.share) {
+                await navigator.share({ title: `${profile.name} — Footory`, url });
+                return;
+              }
+              await navigator.clipboard.writeText(url);
+              toast.success("프로필 링크가 복사되었습니다.");
+            } catch { /* cancelled */ }
+          },
+        } : {})}
       />
 
       {/* 액션 버튼 — 프로필 카드 바로 아래 */}
@@ -618,11 +669,15 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       <div className="px-4">
         {activeTab === "highlights" && (
           <HighlightsTabV5
-            readOnly
+            readOnly={!data.isOwnProfile}
             tagClips={tagClips}
+            untaggedClips={data.untaggedClips ?? []}
             initialFeatured={data.featured}
             position={profile.position}
-            onShare={async (clipId) => {
+            playerName={profile.name}
+            playerBirthYear={profile.birthYear ?? null}
+            playerTeamName={profile.teamName ?? null}
+            onShare={async () => {
               const url = `${window.location.origin}/p/${profile.handle}`;
               try {
                 if (navigator.share) {
@@ -633,15 +688,59 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                 toast.success("프로필 링크가 복사되었습니다.");
               } catch { /* cancelled */ }
             }}
+            {...(data.isOwnProfile ? {
+              onDeleteClip: async (clipId: string) => {
+                const res = await fetch(`/api/clips/${clipId}`, { method: "DELETE" });
+                if (res.ok) {
+                  toast.success("영상이 삭제되었습니다.");
+                  router.refresh();
+                }
+                return res.ok;
+              },
+              onEditTags: async (clipId: string, tags: string[]) => {
+                const res = await fetch(`/api/clips/${clipId}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ tags }),
+                });
+                if (res.ok) {
+                  toast.success("태그가 수정되었습니다.");
+                  router.refresh();
+                }
+                return res.ok;
+              },
+            } : {})}
           />
         )}
 
         {activeTab === "records" && (
-          <RecordsTabV5 stats={stats} playStyle={mappedPlayStyle} />
+          <RecordsTabV5
+            stats={stats}
+            playStyle={mappedPlayStyle}
+            {...(data.isOwnProfile ? {
+              onAddStat: () => { setStatInputType(undefined); setStatInputOpen(true); },
+              onUpdateStat: (type: string) => { setStatInputType(type); setStatInputOpen(true); },
+              onDeleteStat: async (statId: string) => {
+                const res = await fetch(`/api/stats/${statId}`, { method: "DELETE" });
+                if (res.ok) {
+                  toast.success("기록이 삭제되었습니다.");
+                  router.refresh();
+                }
+              },
+            } : {})}
+          />
         )}
 
         {activeTab === "career" && (
-          <CareerTabV5 readOnly profile={profile} seasons={seasons} achievements={achievements} />
+          <CareerTabV5
+            readOnly={!data.isOwnProfile}
+            profile={profile}
+            seasons={seasons}
+            achievements={achievements}
+            {...(data.isOwnProfile ? {
+              onAddSeason: () => setSeasonAddOpen(true),
+            } : {})}
+          />
         )}
       </div>
 
@@ -652,6 +751,58 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         title={`${profile.name} — Footory`}
         text={`${profile.name}${profile.position ? ` | ${POSITION_LABELS[profile.position] ?? profile.position}` : ""} | Footory 선수 프로필`}
       />
+
+      {/* 내 프로필 편집 시트 */}
+      {data.isOwnProfile && ownProfile && editOpen && (
+        <ProfileEditSheet
+          profile={ownProfile}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          onSave={async (updates) => {
+            await updateProfile(updates);
+            router.refresh();
+          }}
+          onAvatarUpload={async (file) => {
+            const url = await uploadAvatar(file);
+            router.refresh();
+            return url;
+          }}
+          onCheckHandle={checkHandle}
+        />
+      )}
+      {data.isOwnProfile && statInputOpen && (
+        <StatInputSheet
+          open={statInputOpen}
+          onClose={() => { setStatInputOpen(false); setStatInputType(undefined); }}
+          onSave={async (statType, value, evidenceClipId) => {
+            await fetch("/api/stats", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ stat_type: statType, value, evidence_clip_id: evidenceClipId }),
+            });
+            toast.success("기록이 저장되었습니다.");
+            setStatInputOpen(false);
+            router.refresh();
+          }}
+          initialStatType={statInputType}
+        />
+      )}
+      {data.isOwnProfile && seasonAddOpen && (
+        <SeasonAddSheet
+          open={seasonAddOpen}
+          onClose={() => setSeasonAddOpen(false)}
+          onSave={async (input) => {
+            await fetch("/api/seasons", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(input),
+            });
+            toast.success("시즌 기록이 추가되었습니다.");
+            setSeasonAddOpen(false);
+            router.refresh();
+          }}
+        />
+      )}
 
       {/* 비교 시트 */}
       {compareOpen && (

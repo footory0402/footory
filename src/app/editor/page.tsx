@@ -44,14 +44,8 @@ export default function EditorPage() {
         const profileDefaults: Partial<PlayerData> = {};
         if (profile) {
           if (profile.name) {
-            // Korean names: first char = last name, rest = first name
-            const name = profile.name.trim();
-            if (name.length >= 2) {
-              profileDefaults.lastName = name.charAt(0);
-              profileDefaults.firstName = name.substring(1);
-            } else {
-              profileDefaults.lastName = name;
-            }
+            profileDefaults.firstName = profile.name.trim();
+            profileDefaults.lastName = "";
           }
           profileDefaults.position = mapPosition(profile.position);
           if (profile.height_cm) profileDefaults.height = String(profile.height_cm);

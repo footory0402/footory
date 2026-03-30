@@ -1016,6 +1016,7 @@ export async function startRenderUpload(compressedFile?: File) {
       trim_end: clientTrimmed ? null : store.trimEnd,
       spotlight_x: store.spotlightX,
       spotlight_y: store.spotlightY,
+      freeze_at: store.freezeAt,
       effects: store.effects,
       raw_key: key,
       client_trimmed: clientTrimmed,

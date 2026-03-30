@@ -41,8 +41,7 @@ export default function UploadPage() {
   const spotlightX = useUploadStore((s) => s.spotlightX);
   const spotlightY = useUploadStore((s) => s.spotlightY);
 
-  // Options expand
-  const [showOptions, setShowOptions] = useState(false);
+  // (showOptions removed — 꾸미기 옵션 항상 노출)
 
   // Reset stale states on mount
   useEffect(() => {
@@ -50,16 +49,11 @@ export default function UploadPage() {
     if (["error", "done"].includes(s.status)) s.reset();
   }, []);
 
-  // 업로드 완료 시 프로필 페이지로 이동
+  // 업로드 완료 시 딜라이트 화면 표시 (자동 이동 제거 → 사용자가 버튼으로 이동)
+  const [showDone, setShowDone] = useState(false);
   useEffect(() => {
-    if (store.status === "done") {
-      const timer = setTimeout(() => {
-        useUploadStore.getState().reset();
-        router.push("/profile");
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [store.status, router]);
+    if (store.status === "done") setShowDone(true);
+  }, [store.status]);
 
   // Reset context on mount
   useEffect(() => {
@@ -203,7 +197,6 @@ export default function UploadPage() {
     setTrimEnd(0);
     setDraggingHandle(null);
     setFrameUrl("");
-    setShowOptions(false);
     if (inputRef.current) inputRef.current.value = "";
     const s = useUploadStore.getState();
     s.setCompressStatus("idle");
@@ -211,16 +204,25 @@ export default function UploadPage() {
     s.setCompressedFile(null);
     s.setCompressStats(null, null);
     s.setSpotlight(null, null);
+    s.setFreezeAt(null);
   };
 
   const handleSpotlightTap = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    useUploadStore.getState().setSpotlight(
+    const store = useUploadStore.getState();
+    store.setSpotlight(
       Math.max(0, Math.min(1, x)),
       Math.max(0, Math.min(1, y))
     );
+    // 스포트라이트 설정 시 프리즈 시점 자동 설정 (트림 시작 + 1초, 또는 영상 30% 시점)
+    if (store.freezeAt === null) {
+      const freezeTime = duration > 0
+        ? Math.min(trimStart + 1, trimEnd - 0.5)
+        : 1;
+      store.setFreezeAt(Math.max(0, freezeTime));
+    }
   };
 
   const handleTrimDrag = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, type: "start" | "end") => {
@@ -466,19 +468,19 @@ export default function UploadPage() {
                     width: `${((trimEnd - trimStart) / duration) * 100}%`,
                   }}
                 />
-                {/* 시작 핸들 */}
+                {/* 시작 핸들 — 터치 영역 44×44px, 시각적 핸들은 내부 */}
                 <div
-                  className="absolute top-0 bottom-0 flex items-center"
-                  style={{ left: `calc(${(trimStart / duration) * 100}% - 8px)` }}
+                  className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center"
+                  style={{ left: `calc(${(trimStart / duration) * 100}% - 22px)`, width: 44, height: 44 }}
                 >
                   <div className={`w-4 h-7 rounded-sm flex items-center justify-center ${draggingHandle === "start" ? "bg-accent" : "bg-accent/80"}`}>
                     <div className="w-0.5 h-3 bg-bg rounded-full" />
                   </div>
                 </div>
-                {/* 끝 핸들 */}
+                {/* 끝 핸들 — 터치 영역 44×44px, 시각적 핸들은 내부 */}
                 <div
-                  className="absolute top-0 bottom-0 flex items-center"
-                  style={{ left: `calc(${(trimEnd / duration) * 100}% - 8px)` }}
+                  className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center"
+                  style={{ left: `calc(${(trimEnd / duration) * 100}% - 22px)`, width: 44, height: 44 }}
                 >
                   <div className={`w-4 h-7 rounded-sm flex items-center justify-center ${draggingHandle === "end" ? "bg-accent" : "bg-accent/80"}`}>
                     <div className="w-0.5 h-3 bg-bg rounded-full" />
@@ -504,78 +506,65 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* 꾸미기 옵션 (접을 수 있음) */}
-          <div className="px-4 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowOptions(!showOptions)}
-              className="flex w-full items-center justify-between rounded-xl bg-card px-4 py-3 active:bg-card-alt"
-            >
-              <span className="text-[13px] font-semibold text-text-2">꾸미기 옵션</span>
-              <div className="flex items-center gap-2">
-                {effects.intro && <span className="text-[10px] text-accent">인트로 카드 ON</span>}
-                {spotlightX !== null && <span className="text-[10px] text-accent">스포트라이트</span>}
-                <svg
-                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  className={`text-text-3 transition-transform ${showOptions ? "rotate-180" : ""}`}
+          {/* 꾸미기 옵션 — 항상 노출 */}
+          <div className="px-4 pt-3 flex flex-col gap-3">
+            <h3 className="text-[13px] font-semibold text-text-2">꾸미기</h3>
+
+            {/* 인트로 카드 토글 */}
+            <EffectsToggle
+              effects={effects}
+              onChange={(partial) => useUploadStore.getState().setEffects(partial)}
+            />
+
+            {/* 스포트라이트 위치 */}
+            {frameUrl && (
+              <div>
+                <h3 className="mb-2 text-[13px] font-semibold text-text-2">주인공 위치</h3>
+                <div
+                  className="relative w-full overflow-hidden rounded-xl bg-black"
+                  onClick={handleSpotlightTap}
                 >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </div>
-            </button>
-
-            {showOptions && (
-              <div className="mt-3 flex flex-col gap-4 animate-fade-up">
-                {/* 인트로 카드 토글 */}
-                <EffectsToggle
-                  effects={effects}
-                  onChange={(partial) => useUploadStore.getState().setEffects(partial)}
-                />
-
-                {/* 스포트라이트 위치 */}
-                {frameUrl && (
-                  <div>
-                    <h3 className="mb-2 text-[13px] font-semibold text-text-2">주인공 위치</h3>
+                  <img src={frameUrl} alt="프레임" className="w-full h-auto block" style={{ maxHeight: "200px", objectFit: "contain" }} />
+                  {spotlightX !== null && spotlightY !== null && (
                     <div
-                      className="relative w-full overflow-hidden rounded-xl bg-black"
-                      onClick={handleSpotlightTap}
+                      className="absolute"
+                      style={{
+                        left: `${spotlightX * 100}%`,
+                        top: `${spotlightY * 100}%`,
+                        transform: "translate(-50%, -50%)",
+                      }}
                     >
-                      <img src={frameUrl} alt="프레임" className="w-full h-auto block" style={{ maxHeight: "200px", objectFit: "contain" }} />
-                      {spotlightX !== null && spotlightY !== null && (
-                        <div
-                          className="absolute"
-                          style={{
-                            left: `${spotlightX * 100}%`,
-                            top: `${spotlightY * 100}%`,
-                            transform: "translate(-50%, -50%)",
-                          }}
-                        >
-                          <div
-                            className="h-10 w-10 rounded-full"
-                            style={{
-                              border: "3px solid #D4A853",
-                              background: "radial-gradient(circle, rgba(212,168,83,0.15) 0%, transparent 70%)",
-                              boxShadow: "0 0 12px rgba(212,168,83,0.4)",
-                            }}
-                          />
-                        </div>
-                      )}
-                      {spotlightX === null && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="rounded-lg bg-black/60 px-3 py-1.5 text-[11px] text-white/60">
-                            탭하여 선수 위치 표시
-                          </span>
-                        </div>
-                      )}
+                      <div
+                        className="h-10 w-10 rounded-full"
+                        style={{
+                          border: "3px solid #D4A853",
+                          background: "radial-gradient(circle, rgba(212,168,83,0.15) 0%, transparent 70%)",
+                          boxShadow: "0 0 12px rgba(212,168,83,0.4)",
+                        }}
+                      />
                     </div>
-                  </div>
-                )}
+                  )}
+                  {spotlightX === null && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                      <div
+                        className="h-12 w-12 rounded-full animate-pulse"
+                        style={{
+                          border: "2px dashed rgba(212,168,83,0.5)",
+                          background: "radial-gradient(circle, rgba(212,168,83,0.1) 0%, transparent 70%)",
+                        }}
+                      />
+                      <span className="rounded-lg bg-black/70 px-3 py-1.5 text-[11px] text-white/80 font-medium">
+                        영상에서 선수 위치를 탭하세요
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
           {/* 올리기 버튼 */}
-          <div className="px-4 pt-4">
+          <div className="px-4 pt-4" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>
             <button
               type="button"
               onClick={() => startUpload()}
@@ -583,6 +572,49 @@ export default function UploadPage() {
               className="w-full rounded-xl bg-accent py-3.5 text-[15px] font-bold text-bg transition-opacity active:scale-[0.99] disabled:opacity-40"
             >
               {isUploading ? "업로드 중..." : "올리기"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 업로드 완료 딜라이트 화면 ── */}
+      {showDone && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg/95 backdrop-blur-sm animate-fade-up">
+          {/* 골드 체크마크 */}
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/15 mb-5">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D4A853" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </div>
+          <h2 className="text-[18px] font-bold text-text-1 mb-1">업로드 완료!</h2>
+          <p className="text-[13px] text-text-3 mb-8">영상이 프로필에 등록되었어요</p>
+
+          {/* 액션 버튼들 */}
+          <div className="flex flex-col gap-3 w-full max-w-[280px]">
+            <button
+              type="button"
+              onClick={() => {
+                useUploadStore.getState().reset();
+                router.push("/profile");
+              }}
+              className="w-full rounded-xl bg-accent py-3.5 text-[15px] font-bold text-bg active:scale-[0.99]"
+            >
+              프로필에서 확인
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: "Footory 하이라이트", url: window.location.origin + "/profile" }).catch(() => {});
+                } else if (navigator.clipboard) {
+                  navigator.clipboard.writeText(window.location.origin + "/profile").then(() => {
+                    alert("링크가 복사되었어요!");
+                  });
+                }
+              }}
+              className="w-full rounded-xl border border-white/[0.08] bg-card py-3.5 text-[15px] font-medium text-text-1 active:scale-[0.99]"
+            >
+              공유하기
             </button>
           </div>
         </div>

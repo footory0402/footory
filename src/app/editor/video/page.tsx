@@ -80,6 +80,12 @@ export default function VideoEditorPage() {
     if (videoSrc && phase === "onboarding") setPhase("marking");
   }, [videoSrc, phase]);
 
+  // 비로그인 경고 표시 여부
+  const [showLoginBanner, setShowLoginBanner] = useState(false);
+  useEffect(() => {
+    if (isLoggedIn === false && phase === "marking") setShowLoginBanner(true);
+  }, [isLoggedIn, phase]);
+
   // Preload FFmpeg when marking starts
   useEffect(() => {
     if (phase === "marking") preloadFFmpeg().catch(() => {});
@@ -364,6 +370,25 @@ export default function VideoEditorPage() {
           </button>
         </div>
       </div>
+
+      {/* ── 비로그인 안내 배너 ── */}
+      {showLoginBanner && (
+        <div className="mx-3 mb-2 flex items-center gap-2 rounded-xl bg-accent/10 px-3 py-2 border border-accent/20">
+          <span className="text-[11px] text-accent">로그인하면 하이라이트를 저장할 수 있어요</span>
+          <button
+            onClick={() => { router.push("/login"); }}
+            className="ml-auto rounded-lg bg-accent px-2.5 py-1 text-[11px] font-bold text-bg"
+          >
+            로그인
+          </button>
+          <button
+            onClick={() => setShowLoginBanner(false)}
+            className="text-text-3 text-[14px] leading-none"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ── 영상 플레이어 ── */}
       <div className="relative flex-1 min-h-0 bg-black">
