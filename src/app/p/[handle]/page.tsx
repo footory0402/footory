@@ -95,15 +95,25 @@ const getProfile = cache(async (handle: string) => {
   // Enrich featured clips with clip data (thumbnail, duration)
   const featuredRows = featured.data ?? [];
   const clipIds = featuredRows.map((f: { clip_id: string }) => f.clip_id).filter(Boolean);
-  const clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null }> = {};
+  const clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null; effects?: Record<string, boolean> | null; spotlight_x?: number | null; spotlight_y?: number | null; freeze_at?: number | null; trim_start?: number | null; trim_end?: number | null }> = {};
   if (clipIds.length > 0) {
     const { data: clipsData } = await supabase
       .from("clips")
-      .select("id, video_url, thumbnail_url, duration_seconds")
+      .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end")
       .in("id", clipIds);
     if (clipsData) {
       for (const c of clipsData) {
-        clipsMap[c.id] = { video_url: c.video_url, thumbnail_url: c.thumbnail_url, duration_seconds: c.duration_seconds };
+        clipsMap[c.id] = {
+          video_url: c.video_url,
+          thumbnail_url: c.thumbnail_url,
+          duration_seconds: c.duration_seconds,
+          effects: (c as unknown as { effects: Record<string, boolean> | null }).effects ?? null,
+          spotlight_x: (c as unknown as { spotlight_x: number | null }).spotlight_x ?? null,
+          spotlight_y: (c as unknown as { spotlight_y: number | null }).spotlight_y ?? null,
+          freeze_at: (c as unknown as { freeze_at: number | null }).freeze_at ?? null,
+          trim_start: (c as unknown as { trim_start: number | null }).trim_start ?? null,
+          trim_end: (c as unknown as { trim_end: number | null }).trim_end ?? null,
+        };
       }
     }
   }

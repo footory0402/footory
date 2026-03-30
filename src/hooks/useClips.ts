@@ -120,6 +120,11 @@ interface FeaturedClip {
     highlight_start: number | null;
     highlight_end: number | null;
     effects?: Record<string, boolean> | null;
+    spotlight_x?: number | null;
+    spotlight_y?: number | null;
+    freeze_at?: number | null;
+    trim_start?: number | null;
+    trim_end?: number | null;
   };
 }
 

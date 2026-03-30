@@ -45,6 +45,11 @@ interface HighlightsTabV5Props {
       video_url: string;
       thumbnail_url?: string | null;
       effects?: Record<string, boolean> | null;
+      spotlight_x?: number | null;
+      spotlight_y?: number | null;
+      freeze_at?: number | null;
+      trim_start?: number | null;
+      trim_end?: number | null;
     } | null;
   }>;
 }
@@ -154,6 +159,11 @@ export default function HighlightsTabV5({
       videoUrl: f.clips!.video_url,
       thumbnailUrl: f.clips?.thumbnail_url,
       effects: f.clips?.effects ? (f.clips.effects as PlayableClip["effects"]) : null,
+      spotlightX: f.clips?.spotlight_x ?? null,
+      spotlightY: f.clips?.spotlight_y ?? null,
+      freezeAt: f.clips?.freeze_at ?? null,
+      trimStart: f.clips?.trim_start ?? null,
+      trimEnd: f.clips?.trim_end ?? null,
       playerName: playerName ?? undefined,
       playerPosition: position ?? undefined,
       playerBirthYear: playerBirthYear ?? undefined,

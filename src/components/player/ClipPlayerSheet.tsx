@@ -86,6 +86,12 @@ export default function ClipPlayerSheet({
   const [swiping, setSwiping] = useState(false);
   const swipeStart = useRef<{ x: number; y: number; time: number; locked: "h" | "v" | null } | null>(null);
 
+  // 핀치 줌 (Instagram-style)
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pinchRef = useRef<{ startDist: number; startZoom: number; startPanX: number; startPanY: number; midX: number; midY: number } | null>(null);
+  const lastTapRef = useRef(0);
+
   const clip = clips[index];
   const hasNext = index < clips.length - 1;
   const hasPrev = index > 0;
@@ -341,13 +347,70 @@ export default function ClipPlayerSheet({
     if (i >= 0 && i < clips.length) setIndex(i);
   };
 
-  // 위아래 스와이프 핸들러
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: null };
+  // 줌 리셋 (클립 변경 시)
+  useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }); pinchRef.current = null; }, [index]);
+
+  const clampPan = useCallback((px: number, py: number, z: number) => {
+    const max = ((z - 1) / z) * 50;
+    return { x: Math.max(-max, Math.min(max, px)), y: Math.max(-max, Math.min(max, py)) };
+  }, []);
+
+  const getTouchDist = (e: React.TouchEvent) => {
+    const [a, b] = [e.touches[0], e.touches[1]];
+    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
   };
+
+  // 위아래 스와이프 + 핀치 줌 핸들러
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // 핀치 줌 시작
+      pinchRef.current = {
+        startDist: getTouchDist(e),
+        startZoom: zoom,
+        startPanX: pan.x,
+        startPanY: pan.y,
+        midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+      swipeStart.current = null;
+      return;
+    }
+    if (e.touches.length !== 1 || isFreezing) return;
+    const t = e.touches[0];
+    if (zoom > 1) {
+      // 줌 상태에서는 패닝
+      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: "h" };
+    } else {
+      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: null };
+    }
+  };
+
   const handleTouchMove = (e: React.TouchEvent) => {
+    // 핀치 줌 진행
+    if (pinchRef.current && e.touches.length === 2) {
+      const dist = getTouchDist(e);
+      const newZoom = Math.max(1, Math.min(4, pinchRef.current.startZoom * (dist / pinchRef.current.startDist)));
+      setZoom(newZoom);
+      if (newZoom <= 1) { setPan({ x: 0, y: 0 }); }
+      return;
+    }
     if (!swipeStart.current) return;
+
+    // 줌 상태에서 1손가락 패닝
+    if (zoom > 1 && e.touches.length === 1) {
+      const t = e.touches[0];
+      const dx = t.clientX - swipeStart.current.x;
+      const dy = t.clientY - swipeStart.current.y;
+      const newPan = clampPan(
+        (pinchRef.current?.startPanX ?? pan.x) + (dx / window.innerWidth) * 100,
+        (pinchRef.current?.startPanY ?? pan.y) + (dy / window.innerHeight) * 100,
+        zoom,
+      );
+      setPan(newPan);
+      return;
+    }
+
+    // 줌 없을 때 기존 스와이프
     const t = e.touches[0];
     const dx = t.clientX - swipeStart.current.x;
     const dy = t.clientY - swipeStart.current.y;
@@ -361,17 +424,39 @@ export default function ClipPlayerSheet({
       setSwipeY(dy);
     }
   };
-  const handleTouchEnd = () => {
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // 핀치 줌 끝
+    if (pinchRef.current && e.touches.length === 0) {
+      if (zoom <= 1.05) { setZoom(1); setPan({ x: 0, y: 0 }); }
+      pinchRef.current = null;
+      return;
+    }
     if (!swipeStart.current) return;
+
+    // 줌 상태에서 더블탭 → 리셋
+    if (zoom > 1 && !swiping) {
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        setZoom(1);
+        setPan({ x: 0, y: 0 });
+        lastTapRef.current = 0;
+        swipeStart.current = null;
+        return;
+      }
+      lastTapRef.current = now;
+      handleTap();
+      swipeStart.current = null;
+      return;
+    }
+
     if (swipeStart.current.locked === "v" && swiping) {
       const elapsed = Date.now() - swipeStart.current.time;
       const velocity = Math.abs(swipeY) / elapsed;
       if (swipeY < -60 || (swipeY < 0 && velocity > 0.3)) {
-        // 위로 스와이프 → 다음 클립
         if (hasNext) goToClip(index + 1);
       } else if (swipeY > 60 || (swipeY > 0 && velocity > 0.3)) {
         if (velocity > 0.5 && !hasPrev) {
-          // 첫 클립에서 빠르게 아래 → 닫기
           onClose();
         } else if (hasPrev) {
           goToClip(index - 1);
@@ -382,7 +467,15 @@ export default function ClipPlayerSheet({
       setSwipeY(0);
       setSwiping(false);
     } else if (!swipeStart.current.locked) {
-      handleTap();
+      // 더블탭 줌인
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        setZoom(2);
+        lastTapRef.current = 0;
+      } else {
+        lastTapRef.current = now;
+        handleTap();
+      }
       touchHandled.current = true;
       setTimeout(() => { touchHandled.current = false; }, 300);
     }
@@ -528,8 +621,11 @@ export default function ClipPlayerSheet({
           style={{
             objectFit: "contain",
             opacity: showIntro ? 0 : 1,
-            transition: showIntro ? "none" : "opacity 0.3s ease",
-            transform: swiping ? `translateY(${swipeY * 0.2}px)` : undefined,
+            transition: zoom === 1 ? "opacity 0.3s ease, transform 0.2s ease-out" : "opacity 0.3s ease",
+            transform: zoom > 1
+              ? `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`
+              : swiping ? `translateY(${swipeY * 0.2}px)` : undefined,
+            transformOrigin: "center center",
             filter: effects?.color ? "saturate(1.2) contrast(1.05) brightness(1.02)" : undefined,
           }}
           onClick={(e) => { e.preventDefault(); if (!touchHandled.current) handleTap(); }}
@@ -581,6 +677,13 @@ export default function ClipPlayerSheet({
               다시 시도
             </button>
           )}
+        </div>
+      )}
+
+      {/* ── 줌 인디케이터 ── */}
+      {zoom > 1 && (
+        <div className="absolute top-16 right-4 z-50 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white/70 backdrop-blur-sm">
+          {zoom.toFixed(1)}x
         </div>
       )}
 

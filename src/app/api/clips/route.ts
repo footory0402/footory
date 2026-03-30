@@ -184,6 +184,10 @@ export async function POST(req: NextRequest) {
           memo: clip.memo,
           spotlight_x: clip.spotlight_x ?? null,
           spotlight_y: clip.spotlight_y ?? null,
+          freeze_at: clip.freeze_at ?? null,
+          trim_start: clip.trim_start ?? null,
+          trim_end: clip.trim_end ?? null,
+          effects: clip.effects ?? null,
         },
       });
     };

@@ -46,6 +46,11 @@ interface FeaturedClip {
     thumbnail_url: string | null;
     duration_seconds: number | null;
     effects?: Record<string, boolean> | null;
+    spotlight_x?: number | null;
+    spotlight_y?: number | null;
+    freeze_at?: number | null;
+    trim_start?: number | null;
+    trim_end?: number | null;
   } | null;
 }
 
@@ -243,6 +248,11 @@ function FeaturedVideoSection({ featured, playerName, playerPosition, playerBirt
     thumbnailUrl: thumbnail_url ?? null,
     duration: duration_seconds ?? undefined,
     effects: clip.clips?.effects ?? null,
+    spotlightX: clip.clips?.spotlight_x ?? null,
+    spotlightY: clip.clips?.spotlight_y ?? null,
+    freezeAt: clip.clips?.freeze_at ?? null,
+    trimStart: clip.clips?.trim_start ?? null,
+    trimEnd: clip.clips?.trim_end ?? null,
     playerName,
     playerPosition,
     playerBirthYear,
