@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { Upload, User, ClipboardList, Eraser, Loader2 } from "lucide-react";
 import { POSITIONS, CLUBS, FOOT_OPTIONS } from "./constants";
 import type { PlayerData } from "./types";
@@ -31,8 +31,6 @@ const selectClass =
   "w-full rounded-lg border border-white/8 bg-[#1a1a1e] px-3 py-2 text-sm text-text-1 outline-none transition-colors focus:border-accent/40 cursor-pointer";
 
 export default function EditorForm({ data, onChange, onRemoveBackground, bgRemovalStatus = "idle" }: EditorFormProps) {
-  const fileRef = useRef<HTMLInputElement>(null);
-
   const update = useCallback(
     (key: keyof PlayerData, value: string) => {
       onChange({ ...data, [key]: value });
@@ -63,10 +61,9 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
 
       {/* Photo Upload */}
       <FormField label="사진">
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/10 bg-white/3 py-5 text-sm text-text-3 transition-colors hover:border-accent/30 hover:bg-accent/5"
+        <label
+          htmlFor="editor-photo-input"
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/10 bg-white/3 py-5 text-sm text-text-3 transition-colors active:bg-accent/5"
         >
           {data.photoUrl ? (
             <>
@@ -84,9 +81,9 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
               선수 사진 업로드
             </>
           )}
-        </button>
+        </label>
         <input
-          ref={fileRef}
+          id="editor-photo-input"
           type="file"
           accept="image/*"
           onChange={handlePhoto}
