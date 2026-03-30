@@ -73,6 +73,7 @@ next-env.d.ts
 # test artifacts
 dogfood-output/
 docs/archive/
+docs/footory-editor.jsx
 footory-*.jsx
 test*.mp4
 test_test_player.mp4
@@ -80,3 +81,6 @@ test*.png
 editor-*.png
 flow-*.png
 ux-test-*.png
+qa-results/
+qa-screenshots/
+visual-test/
