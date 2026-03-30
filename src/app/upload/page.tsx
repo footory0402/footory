@@ -351,8 +351,11 @@ export default function UploadPage() {
       {/* ── Step 2: 미리보기 + 꾸미기 ── */}
       {store.file && (preview || videoUrl) && (
         <div className="flex flex-col gap-0 animate-fade-up">
-          {/* 영상 미리보기 (비디오 플레이어) */}
-          <div className="relative bg-black">
+          {/* 영상 미리보기 + 스포트라이트 통합 */}
+          <div
+            className="relative bg-black cursor-crosshair"
+            onClick={handleSpotlightTap}
+          >
             {videoUrl ? (
               <video
                 ref={videoRef}
@@ -360,19 +363,70 @@ export default function UploadPage() {
                 muted
                 playsInline
                 preload="auto"
-                className="w-full h-auto block"
-                style={{ maxHeight: "40vh", objectFit: "contain" }}
+                className="w-full h-auto block pointer-events-none"
+                style={{ maxHeight: "45vh", objectFit: "contain" }}
               />
             ) : (
               <img
                 src={preview!}
                 alt="미리보기"
-                className="w-full h-auto block"
-                style={{ maxHeight: "40vh", objectFit: "contain" }}
+                className="w-full h-auto block pointer-events-none"
+                style={{ maxHeight: "45vh", objectFit: "contain" }}
               />
             )}
+
+            {/* 스포트라이트 링 */}
+            {spotlightX !== null && spotlightY !== null && (
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  left: `${spotlightX * 100}%`,
+                  top: `${spotlightY * 100}%`,
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                <div
+                  className="h-12 w-12 rounded-full"
+                  style={{
+                    border: "3px solid #D4A853",
+                    background: "radial-gradient(circle, rgba(212,168,83,0.15) 0%, transparent 70%)",
+                    boxShadow: "0 0 0 3px rgba(212,168,83,0.12), 0 0 14px rgba(212,168,83,0.35)",
+                  }}
+                />
+                {/* 초기화 버튼 */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    useUploadStore.getState().setSpotlight(null, null);
+                    useUploadStore.getState().setFreezeAt(null);
+                  }}
+                  className="pointer-events-auto absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/80 text-white/70 ring-1 ring-white/20 active:text-white"
+                  aria-label="선수 위치 초기화"
+                >
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* 스포트라이트 힌트 (미설정 시) */}
+            {spotlightX === null && frameUrl && (
+              <div className="absolute bottom-2 right-3 pointer-events-none">
+                <div className="flex items-center gap-1.5 rounded-lg bg-black/60 px-2.5 py-1.5 backdrop-blur-sm">
+                  <div
+                    className="h-3.5 w-3.5 rounded-full shrink-0"
+                    style={{ border: "1.5px solid #D4A853", opacity: 0.7 }}
+                  />
+                  <span className="text-[10px] text-white/60">탭하여 주인공 표시</span>
+                </div>
+              </div>
+            )}
+
             {/* 파일 정보 오버레이 */}
-            <div className="absolute bottom-2 left-3 flex items-center gap-2">
+            <div className="absolute bottom-2 left-3 flex items-center gap-2 pointer-events-none">
               <span className="rounded-md bg-black/70 px-2 py-0.5 text-[11px] font-stat text-text-1">
                 {fmt(duration)}
               </span>
@@ -383,7 +437,7 @@ export default function UploadPage() {
             {/* 다른 영상 선택 */}
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
+              onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
               className="absolute top-2 right-2 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] text-white/70 active:bg-black/80"
             >
               변경
@@ -516,49 +570,32 @@ export default function UploadPage() {
               onChange={(partial) => useUploadStore.getState().setEffects(partial)}
             />
 
-            {/* 스포트라이트 위치 */}
-            {frameUrl && (
-              <div>
-                <h3 className="mb-2 text-[13px] font-semibold text-text-2">주인공 위치</h3>
-                <div
-                  className="relative w-full overflow-hidden rounded-xl bg-black"
-                  onClick={handleSpotlightTap}
-                >
-                  <img src={frameUrl} alt="프레임" className="w-full h-auto block" style={{ maxHeight: "200px", objectFit: "contain" }} />
-                  {spotlightX !== null && spotlightY !== null && (
-                    <div
-                      className="absolute"
-                      style={{
-                        left: `${spotlightX * 100}%`,
-                        top: `${spotlightY * 100}%`,
-                        transform: "translate(-50%, -50%)",
-                      }}
-                    >
-                      <div
-                        className="h-10 w-10 rounded-full"
-                        style={{
-                          border: "3px solid #D4A853",
-                          background: "radial-gradient(circle, rgba(212,168,83,0.15) 0%, transparent 70%)",
-                          boxShadow: "0 0 12px rgba(212,168,83,0.4)",
-                        }}
-                      />
-                    </div>
-                  )}
-                  {spotlightX === null && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                      <div
-                        className="h-12 w-12 rounded-full animate-pulse"
-                        style={{
-                          border: "2px dashed rgba(212,168,83,0.5)",
-                          background: "radial-gradient(circle, rgba(212,168,83,0.1) 0%, transparent 70%)",
-                        }}
-                      />
-                      <span className="rounded-lg bg-black/70 px-3 py-1.5 text-[11px] text-white/80 font-medium">
-                        영상에서 선수 위치를 탭하세요
-                      </span>
-                    </div>
-                  )}
+            {/* 스포트라이트 상태 표시 (영상 위에서 직접 탭) */}
+            {spotlightX !== null && spotlightY !== null && (
+              <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="h-5 w-5 rounded-full shrink-0"
+                    style={{
+                      border: "2px solid #D4A853",
+                      background: "radial-gradient(circle, rgba(212,168,83,0.2) 0%, transparent 70%)",
+                    }}
+                  />
+                  <div>
+                    <span className="text-[13px] font-medium text-text-1">주인공 위치 설정됨</span>
+                    <p className="text-[10px] text-text-3">영상 시작 1초간 스포트라이트 표시</p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    useUploadStore.getState().setSpotlight(null, null);
+                    useUploadStore.getState().setFreezeAt(null);
+                  }}
+                  className="text-[12px] text-text-3 active:text-text-1"
+                >
+                  초기화
+                </button>
               </div>
             )}
           </div>
