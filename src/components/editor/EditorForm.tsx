@@ -87,7 +87,7 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
           type="file"
           accept="image/*"
           onChange={handlePhoto}
-          className="hidden"
+          className="sr-only"
         />
         {data.photoUrl && onRemoveBackground && (
           <button
