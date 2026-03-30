@@ -76,7 +76,7 @@ const getProfile = cache(async (handle: string) => {
       .limit(50),
     supabase
       .from("clips")
-      .select("id, video_url, thumbnail_url, duration_seconds, clip_tags(tag_name, is_top)")
+      .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)")
       .eq("owner_id", profile.id),
     supabase
       .from("play_styles")
@@ -209,31 +209,30 @@ const getProfile = cache(async (handle: string) => {
 
   // Build tagClips map from SSR data (keyed by tag id, not dbName)
   const dbNameToId = Object.fromEntries(SKILL_TAGS.map((t) => [t.dbName, t.id]));
-  const tagClipsMap: Record<string, { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[]> = {};
-  const untaggedClipsList: { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null }[] = [];
+  type TagClipRow = { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null; effects?: Record<string, boolean> | null; spotlightX?: number | null; spotlightY?: number | null; freezeAt?: number | null; trimStart?: number | null; trimEnd?: number | null };
+  const tagClipsMap: Record<string, TagClipRow[]> = {};
+  const untaggedClipsList: TagClipRow[] = [];
   (tagClipsData.data ?? []).forEach((clip: Record<string, unknown>) => {
     const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
+    const base: Omit<TagClipRow, "tag" | "isTop"> = {
+      id: clip.id as string,
+      duration: (clip.duration_seconds as number) ?? 0,
+      videoUrl: (clip.video_url as string) ?? "",
+      thumbnailUrl: (clip.thumbnail_url as string | null) ?? null,
+      effects: (clip.effects as Record<string, boolean> | null) ?? null,
+      spotlightX: (clip.spotlight_x as number | null) ?? null,
+      spotlightY: (clip.spotlight_y as number | null) ?? null,
+      freezeAt: (clip.freeze_at as number | null) ?? null,
+      trimStart: (clip.trim_start as number | null) ?? null,
+      trimEnd: (clip.trim_end as number | null) ?? null,
+    };
     if (clipTags.length === 0) {
-      untaggedClipsList.push({
-        id: clip.id as string,
-        duration: (clip.duration_seconds as number) ?? 0,
-        tag: "",
-        isTop: false,
-        videoUrl: (clip.video_url as string) ?? "",
-        thumbnailUrl: (clip.thumbnail_url as string | null) ?? null,
-      });
+      untaggedClipsList.push({ ...base, tag: "", isTop: false });
     } else {
       clipTags.forEach((t) => {
         const tagId = dbNameToId[t.tag_name] ?? t.tag_name;
         if (!tagClipsMap[tagId]) tagClipsMap[tagId] = [];
-        tagClipsMap[tagId].push({
-          id: clip.id as string,
-          duration: (clip.duration_seconds as number) ?? 0,
-          tag: t.tag_name,
-          isTop: t.is_top,
-          videoUrl: (clip.video_url as string) ?? "",
-          thumbnailUrl: (clip.thumbnail_url as string | null) ?? null,
-        });
+        tagClipsMap[tagId].push({ ...base, tag: t.tag_name, isTop: t.is_top });
       });
     }
   });

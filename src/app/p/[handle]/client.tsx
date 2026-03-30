@@ -57,6 +57,11 @@ interface TagClip {
   videoUrl: string;
   thumbnailUrl: string | null;
   effects?: Record<string, boolean> | null;
+  spotlightX?: number | null;
+  spotlightY?: number | null;
+  freezeAt?: number | null;
+  trimStart?: number | null;
+  trimEnd?: number | null;
 }
 
 interface PublicProfileData {

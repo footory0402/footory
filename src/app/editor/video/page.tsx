@@ -385,7 +385,8 @@ export default function VideoEditorPage() {
           <button
             onClick={() => {
               if (clips.length === 0) return;
-              if (!isLoggedIn) { router.push("/login"); return; }
+              if (cardLoading) return;
+              if (isLoggedIn === false) { router.push("/login"); return; }
               setPhase("spotlight");
             }}
             disabled={clips.length === 0}
