@@ -1,5 +1,5 @@
 import type { ClipSegment } from "@/components/editor/video/types";
-import type { ProcessingStep } from "@/components/editor/video/ProcessingView";
+type LegacyProcessingStep = "loading" | "trimming" | "concat" | "uploading" | "saving";
 import type { HudPlayerData, HudConfig } from "@/components/video/hud/types";
 import { getPublicVideoUrl } from "@/lib/r2-client";
 import { renderHudOverlay } from "@/lib/hud-canvas-renderer";
@@ -7,7 +7,7 @@ import { renderHudOverlay } from "@/lib/hud-canvas-renderer";
 interface ConcatOptions {
   videoFile: File;
   clips: ClipSegment[];
-  onStep: (step: ProcessingStep) => void;
+  onStep: (step: LegacyProcessingStep) => void;
   onTrimProgress: (done: number) => void;
   /** HUD 오버레이 합성용 선수 데이터 (없으면 오버레이 생략) */
   playerData?: HudPlayerData | null;

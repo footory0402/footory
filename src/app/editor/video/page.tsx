@@ -15,7 +15,6 @@ import SpotlightSetupView from "@/components/editor/video/SpotlightSetupView";
 import ProcessingView from "@/components/editor/video/ProcessingView";
 import type { ProcessingStep } from "@/components/editor/video/ProcessingView";
 import DoneView from "@/components/editor/video/DoneView";
-import { preloadFFmpeg, concatHighlight } from "@/lib/highlight-concat";
 
 export default function VideoEditorPage() {
   const router = useRouter();
@@ -50,10 +49,9 @@ export default function VideoEditorPage() {
   const [phase, setPhase] = useState<Phase>("onboarding");
 
   // Processing state
-  const [procStep, setProcStep] = useState<ProcessingStep>("loading");
-  const [trimProgress, setTrimProgress] = useState(0);
+  const [procStep, setProcStep] = useState<ProcessingStep>("uploading");
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [procError, setProcError] = useState<string | undefined>();
-  const [resultVideoUrl, setResultVideoUrl] = useState<string | undefined>();
 
   // 인트로 카드 토글
   const [includeIntro, setIncludeIntro] = useState(true);
@@ -85,11 +83,6 @@ export default function VideoEditorPage() {
   useEffect(() => {
     if (isLoggedIn === false && phase === "marking") setShowLoginBanner(true);
   }, [isLoggedIn, phase]);
-
-  // Preload FFmpeg when marking starts
-  useEffect(() => {
-    if (phase === "marking") preloadFFmpeg().catch(() => {});
-  }, [phase]);
 
   const handleFileSelect = useCallback((file: File) => {
     // PC(Windows)에서 MIME 타입이 빈 문자열 또는 application/octet-stream으로 보고될 수 있음
@@ -161,27 +154,67 @@ export default function VideoEditorPage() {
     if (!videoFileRef.current || clips.length === 0) return;
     setPhase("processing");
     setProcError(undefined);
-    setTrimProgress(0);
+    setUploadProgress(0);
 
     try {
-      const result = await concatHighlight({
-        videoFile: videoFileRef.current,
-        clips: [...clips].sort((a, b) => a.startTime - b.startTime),
-        onStep: setProcStep,
-        onTrimProgress: setTrimProgress,
-        playerData,
-        hudConfig,
-        videoWidth: videoDimensions?.w,
-        videoHeight: videoDimensions?.h,
-        includeIntro,
+      const file = videoFileRef.current;
+      const sorted = [...clips].sort((a, b) => a.startTime - b.startTime);
+
+      // Step 1: presigned URL 발급
+      setProcStep("uploading");
+      const presignRes = await fetch("/api/upload/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type || "video/mp4",
+          size: file.size,
+        }),
       });
-      setResultVideoUrl(result.previewBlobUrl);
+      if (!presignRes.ok) throw new Error("업로드 URL 생성에 실패했습니다.");
+      const { uploadUrl, publicUrl } = await presignRes.json();
+
+      // Step 2: R2 직접 업로드 (진행률 추적)
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 88));
+        };
+        xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`업로드 실패 (${xhr.status})`)));
+        xhr.onerror = () => reject(new Error("네트워크 오류가 발생했습니다."));
+        xhr.open("PUT", uploadUrl);
+        xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+        xhr.send(file);
+      });
+
+      // Step 3: 각 클립 메타데이터 DB 저장
+      setProcStep("saving");
+      setUploadProgress(92);
+
+      for (const clip of sorted) {
+        const res = await fetch("/api/clips", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            video_url: publicUrl,
+            trim_start: clip.startTime,
+            trim_end: clip.endTime,
+            duration_seconds: Math.round(clip.endTime - clip.startTime),
+            spotlight_x: clip.markerX,
+            spotlight_y: clip.markerY,
+            freeze_at: clip.freezeAt,
+            client_trimmed: true,
+          }),
+        });
+        if (!res.ok) throw new Error("클립 저장에 실패했습니다.");
+      }
+
       setPhase("done");
     } catch (e: any) {
       console.error("[highlight-generate]", e);
       setProcError(e.message ?? "알 수 없는 오류가 발생했습니다.");
     }
-  }, [clips, playerData, hudConfig, videoDimensions, includeIntro]);
+  }, [clips]);
 
   const selectedClip = clips.find((c) => c.id === selectedClipId);
   const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
@@ -222,8 +255,7 @@ export default function VideoEditorPage() {
     return (
       <ProcessingView
         step={procStep}
-        trimProgress={trimProgress}
-        totalClips={clips.length}
+        uploadProgress={uploadProgress}
         error={procError}
         onRetry={() => { setProcError(undefined); handleGenerate(); }}
       />
@@ -236,13 +268,11 @@ export default function VideoEditorPage() {
       <DoneView
         clipCount={clips.length}
         totalDuration={totalDuration}
-        videoUrl={resultVideoUrl}
         onReset={() => {
           setVideoSrc(null);
           setClips([]);
           setSelectedClipId(undefined);
           setPhase("onboarding");
-          setResultVideoUrl(undefined);
           videoFileRef.current = null;
         }}
       />

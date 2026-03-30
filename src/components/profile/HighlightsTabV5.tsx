@@ -23,6 +23,8 @@ interface TagClip {
   spotlightX?: number | null;
   spotlightY?: number | null;
   freezeAt?: number | null;
+  trimStart?: number | null;
+  trimEnd?: number | null;
 }
 
 interface HighlightsTabV5Props {
@@ -170,6 +172,8 @@ export default function HighlightsTabV5({
       spotlightX: c.spotlightX ?? null,
       spotlightY: c.spotlightY ?? null,
       freezeAt: c.freezeAt ?? null,
+      trimStart: c.trimStart ?? null,
+      trimEnd: c.trimEnd ?? null,
       playerName: playerName ?? undefined,
       playerPosition: position ?? undefined,
       playerBirthYear: playerBirthYear ?? undefined,
@@ -187,7 +191,7 @@ export default function HighlightsTabV5({
 
   return (
     <ErrorBoundary>
-      <div className="pt-3">
+      <div className="pt-3 pb-24">
         {/* ── Featured video (v5: 16:9, gold border) ── */}
         {primaryFeatured?.clips?.video_url ? (
           <FeaturedCard

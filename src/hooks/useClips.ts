@@ -178,6 +178,8 @@ type TagClipItem = {
   spotlightX?: number | null;
   spotlightY?: number | null;
   freezeAt?: number | null;
+  trimStart?: number | null;
+  trimEnd?: number | null;
 };
 
 export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
@@ -194,7 +196,7 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
 
       const { data: clips } = await supabase
         .from("clips")
-        .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, clip_tags(tag_name, is_top)")
+        .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)")
         .eq("owner_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -210,6 +212,8 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
         const clipSpotlightX = (clip as unknown as { spotlight_x: number | null }).spotlight_x ?? null;
         const clipSpotlightY = (clip as unknown as { spotlight_y: number | null }).spotlight_y ?? null;
         const clipFreezeAt = (clip as unknown as { freeze_at: number | null }).freeze_at ?? null;
+        const clipTrimStart = (clip as unknown as { trim_start: number | null }).trim_start ?? null;
+        const clipTrimEnd = (clip as unknown as { trim_end: number | null }).trim_end ?? null;
         if (clipTags.length === 0) {
           untagged.push({
             id: clip.id,
@@ -222,6 +226,8 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
             spotlightX: clipSpotlightX,
             spotlightY: clipSpotlightY,
             freezeAt: clipFreezeAt,
+            trimStart: clipTrimStart,
+            trimEnd: clipTrimEnd,
           });
           return;
         }
@@ -239,6 +245,8 @@ export function useTagClips({ enabled = true }: UseTagClipsOptions = {}) {
             spotlightX: clipSpotlightX,
             spotlightY: clipSpotlightY,
             freezeAt: clipFreezeAt,
+            trimStart: clipTrimStart,
+            trimEnd: clipTrimEnd,
           });
         });
       });

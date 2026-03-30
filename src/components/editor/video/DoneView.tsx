@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 interface DoneViewProps {
   clipCount: number;
   totalDuration: number;
-  videoUrl?: string;
   onReset: () => void;
 }
 
-export default function DoneView({ clipCount, totalDuration, videoUrl, onReset }: DoneViewProps) {
+export default function DoneView({ clipCount, totalDuration, onReset }: DoneViewProps) {
   const router = useRouter();
 
   return (
@@ -20,24 +19,9 @@ export default function DoneView({ clipCount, totalDuration, videoUrl, onReset }
         <div className="h-1 w-8 rounded-full bg-green-400" />
       </div>
 
-      {/* 결과 영상 미리보기 */}
-      {videoUrl && (
-        <div className="mb-5 w-full max-w-sm overflow-hidden rounded-2xl"
-          style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
-          <video
-            src={videoUrl}
-            controls
-            playsInline
-            className="aspect-video w-full bg-black"
-          />
-        </div>
-      )}
-
-      {!videoUrl && (
-        <div className="mb-4 flex h-[60px] w-[60px] items-center justify-center rounded-full border-2 border-green-400 bg-green-400/15 text-[28px] animate-scale-up">
-          ✓
-        </div>
-      )}
+      <div className="mb-4 flex h-[60px] w-[60px] items-center justify-center rounded-full border-2 border-green-400 bg-green-400/15 text-[28px] animate-scale-up">
+        ✓
+      </div>
 
       <h2 className="text-[18px] font-extrabold text-white">하이라이트 완성!</h2>
       <p className="mt-1 text-[13px] text-white/50">{clipCount}개 구간 · {Math.round(totalDuration)}초</p>

@@ -34,6 +34,9 @@ export interface PlayableClip {
   playerPosition?: string | null;
   playerBirthYear?: number | null;
   teamName?: string | null;
+  // trim (런타임 구간 재생)
+  trimStart?: number | null;
+  trimEnd?: number | null;
   // css effects
   effects?: {
     color?: boolean;
@@ -242,12 +245,24 @@ export default function ClipPlayerSheet({
     const v = videoRef.current;
     if (!v) return;
     const onTime = () => {
-      setCurrentTime(v.currentTime);
-      setDuration(v.duration || 0);
-      setProgress(v.duration ? v.currentTime / v.duration : 0);
+      const currentClip = clips[index];
+      const trimS = currentClip?.trimStart ?? 0;
+      const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
+      const clipDuration = trimE - trimS;
+
+      // trim 구간 초과 시 trimStart로 루프
+      if (trimE > 0 && v.currentTime >= trimE) {
+        v.currentTime = trimS;
+        v.play().catch(() => {});
+        return;
+      }
+
+      const elapsed = Math.max(0, v.currentTime - trimS);
+      setCurrentTime(elapsed);
+      setDuration(clipDuration || 0);
+      setProgress(clipDuration > 0 ? elapsed / clipDuration : 0);
 
       // Freeze frame detection
-      const currentClip = clips[index];
       if (
         currentClip?.freezeAt != null &&
         currentClip.spotlightX != null &&
@@ -267,7 +282,13 @@ export default function ClipPlayerSheet({
     };
     const onPlay = () => { setPaused(false); scheduleHide(); setPlayCount((c) => c + 1); };
     const onPause = () => { setPaused(true); setShowControls(true); };
-    const onLoaded = () => setDuration(v.duration || 0);
+    const onLoaded = () => {
+      const currentClip = clips[index];
+      const trimS = currentClip?.trimStart ?? 0;
+      const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
+      if (trimS > 0) v.currentTime = trimS;
+      setDuration((trimE - trimS) || 0);
+    };
     const onError = () => {
       const code = v.error?.code ?? 0;
       const { message } = getVideoErrorMessage(code);
@@ -310,7 +331,10 @@ export default function ClipPlayerSheet({
     const rect = e.currentTarget.getBoundingClientRect();
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    if (videoRef.current && duration) videoRef.current.currentTime = ratio * duration;
+    if (videoRef.current && duration) {
+      const trimS = clip?.trimStart ?? 0;
+      videoRef.current.currentTime = trimS + ratio * duration;
+    }
   };
 
   const goToClip = (i: number) => {
