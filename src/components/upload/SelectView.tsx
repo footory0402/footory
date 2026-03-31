@@ -381,6 +381,7 @@ function getVideoDuration(file: File): Promise<number> {
     };
     video.onerror = () => {
       clearTimeout(timeoutId);
+      URL.revokeObjectURL(video.src);
       resolve(0);
     };
     video.src = URL.createObjectURL(file);

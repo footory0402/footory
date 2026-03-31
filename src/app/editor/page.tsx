@@ -12,7 +12,7 @@ export default function EditorPage() {
   const [data, setData] = useState<PlayerData>(DEFAULT_PLAYER_DATA);
   const [template, setTemplate] = useState<TemplateId>("fifa");
   const [loaded, setLoaded] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const { removeBackground, status: bgRemovalStatus } = useBackgroundRemoval();
 
@@ -178,9 +178,10 @@ export default function EditorPage() {
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch {
-      setSaveStatus("idle");
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 3000);
     }
-  }, [data]);
+  }, [data, template]);
 
   if (!loaded) {
     return (

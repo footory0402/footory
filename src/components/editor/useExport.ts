@@ -6,7 +6,12 @@ import { toBlob as htmlToBlob, toPng } from "html-to-image";
 export type ExportStatus = "idle" | "capturing" | "encoding" | "done" | "error";
 
 function getCaptureTarget() {
-  return document.getElementById("card-capture-target");
+  const all = document.querySelectorAll<HTMLElement>("[data-capture='card']");
+  // 화면에 보이는 요소 우선 (display:none 제외)
+  for (const el of all) {
+    if (el.offsetParent !== null && el.getBoundingClientRect().width > 0) return el;
+  }
+  return all[0] ?? null;
 }
 
 export function useExportPng() {

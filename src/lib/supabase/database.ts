@@ -136,14 +136,14 @@ export interface Database {
           slowmo_speed: number | null;
           bgm_id: string | null;
           effects: Json;
-          visibility: "public" | "private";
+          visibility: "public" | "followers" | "team" | "private";
         };
         Insert: {
           id?: string;
           owner_id: string;
           uploaded_by?: string | null;
           video_url: string;
-          visibility?: "public" | "private";
+          visibility?: "public" | "followers" | "team" | "private";
           highlight_url?: string | null;
           thumbnail_url?: string | null;
           duration_seconds?: number | null;
@@ -172,7 +172,7 @@ export interface Database {
         };
         Update: {
           owner_id?: string;
-          visibility?: "public" | "private";
+          visibility?: "public" | "followers" | "team" | "private";
           uploaded_by?: string | null;
           video_url?: string;
           highlight_url?: string | null;

@@ -16,6 +16,7 @@ export default function UploadPage() {
   const phase = useUploadStore((s) => s.phase);
   const status = useUploadStore((s) => s.status);
   const file = useUploadStore((s) => s.file);
+  const progress = useUploadStore((s) => s.progress);
 
   const role = profile?.role ?? null;
   const canUpload = role === "player" || role === "parent";
@@ -195,7 +196,6 @@ export default function UploadPage() {
 
   // uploading: 진행 상태 (GlobalUploadIndicator가 처리하므로 간단한 대기 UI)
   if (phase === "uploading") {
-    const progress = useUploadStore.getState().progress;
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4">
         <div className="relative h-20 w-20">
@@ -216,6 +216,13 @@ export default function UploadPage() {
         </div>
         <p className="text-[14px] text-text-2">업로드 중...</p>
         <p className="text-[11px] text-text-3">페이지를 나가도 백그라운드에서 계속돼요</p>
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="mt-2 rounded-xl border border-white/[0.08] bg-card px-5 py-2.5 text-[13px] font-medium text-text-2 active:bg-card-alt"
+        >
+          홈으로
+        </button>
       </div>
     );
   }

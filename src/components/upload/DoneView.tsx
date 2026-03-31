@@ -2,6 +2,7 @@
 
 import { useUploadStore } from "@/stores/upload-store";
 import { useRouter } from "next/navigation";
+import { useProfileContext } from "@/providers/ProfileProvider";
 
 interface DoneViewProps {
   onMakeAnother: () => void;
@@ -9,6 +10,12 @@ interface DoneViewProps {
 
 export default function DoneView({ onMakeAnother }: DoneViewProps) {
   const router = useRouter();
+  const { profile } = useProfileContext();
+  const clipId = useUploadStore((s) => s.clipId);
+
+  const shareUrl = profile?.handle && clipId
+    ? `${window.location.origin}/p/${profile.handle}/h/${clipId}`
+    : `${window.location.origin}/profile`;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg/95 backdrop-blur-sm animate-fade-up">
@@ -45,9 +52,9 @@ export default function DoneView({ onMakeAnother }: DoneViewProps) {
           type="button"
           onClick={() => {
             if (navigator.share) {
-              navigator.share({ title: "Footory 하이라이트", url: window.location.origin + "/profile" }).catch(() => {});
+              navigator.share({ title: "Footory 하이라이트", url: shareUrl }).catch(() => {});
             } else if (navigator.clipboard) {
-              navigator.clipboard.writeText(window.location.origin + "/profile").then(() => {
+              navigator.clipboard.writeText(shareUrl).then(() => {
                 alert("링크가 복사되었어요!");
               });
             }

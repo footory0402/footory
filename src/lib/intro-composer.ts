@@ -65,32 +65,38 @@ export async function composeIntroCard(
 
     report(50);
 
-    // 6. Create intro video from card image (2 seconds, ultrafast)
+    // 6. Create intro video from card image (2 seconds, ultrafast) — silent audio 포함
     await ffmpeg.exec([
       "-loop", "1",
       "-i", "card.png",
+      "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
       "-c:v", "libx264",
       "-preset", "ultrafast",
       "-t", "2",
       "-pix_fmt", "yuv420p",
       "-vf", "scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black",
       "-r", "30",
+      "-c:a", "aac",
+      "-shortest",
       "intro.mp4",
     ]);
 
     report(70);
 
-    // 7. Concatenate — filter_complex로 해상도 자동 맞춤 (ultrafast)
+    // 7. Concatenate — 영상+오디오 스트림 모두 포함 (concat=n=2:v=1:a=1)
     await ffmpeg.exec([
       "-i", "intro.mp4",
       "-i", "input.mp4",
       "-filter_complex",
       "[0:v]scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black[v0];" +
       "[1:v]scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black[v1];" +
-      "[v0][v1]concat=n=2:v=1[outv]",
+      "[0:a][1:a]concat=n=2:v=0:a=1[outa];" +
+      "[v0][v1]concat=n=2:v=1:a=0[outv]",
       "-map", "[outv]",
+      "-map", "[outa]",
       "-c:v", "libx264",
       "-preset", "ultrafast",
+      "-c:a", "aac",
       "-pix_fmt", "yuv420p",
       "-movflags", "+faststart",
       "output.mp4",

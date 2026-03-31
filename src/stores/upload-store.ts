@@ -161,7 +161,7 @@ const initial = {
 
 export const useUploadStore = create<UploadState>((set) => ({
   ...initial,
-  setFile: (file) => set({ file, r2Status: "idle" as const, r2Progress: 0, r2Key: null, r2ClipId: null }),
+  setFile: (file) => set({ file, r2Status: "idle" as const, r2Progress: 0, r2Key: null, r2ClipId: null, compressedFile: null, compressStatus: "idle" as const, compressProgress: 0 }),
   setTags: (tags) => set({ tags }),
   setMemo: (memo) => set({ memo }),
   setClipId: (id) => set({ clipId: id }),

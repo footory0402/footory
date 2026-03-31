@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       bgm_id, effects,
       status: reqStatus,
       client_trimmed,
+      visibility,
     } = body as {
       video_url: string;
       duration_seconds?: number;
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
       status?: string;
       clip_id?: string;
       client_trimmed?: boolean;
+      visibility?: "public" | "followers" | "team" | "private";
     };
 
     const clip_id = requestedClipId ?? crypto.randomUUID();
@@ -100,7 +102,7 @@ export async function POST(req: NextRequest) {
         id: clip_id,
         owner_id: user.id,
         uploaded_by: user.id,
-        visibility: "public" as const,
+        visibility: (visibility ?? "public") as "public" | "followers" | "team" | "private",
         video_url,
         duration_seconds: duration_seconds != null ? Math.round(duration_seconds) : null,
         file_size_bytes: file_size_bytes ?? null,

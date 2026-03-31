@@ -72,7 +72,7 @@ export default function CardPreview({ data, template, onTemplateChange }: CardPr
           }}
         >
           <div
-            id="card-capture-target"
+            data-capture="card"
             className={`origin-top-left ${isAnimating ? "animate-card-intro" : ""}`}
             style={{ transform: `scale(${dim.mobileScale})` }}
           >
@@ -106,7 +106,7 @@ export default function CardPreview({ data, template, onTemplateChange }: CardPr
         </button>
         <div style={{ filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))" }}>
           <div
-            id="card-capture-target"
+            data-capture="card"
             className={isAnimating ? "animate-card-intro" : ""}
           >
             <CardContent data={data} template={template} />

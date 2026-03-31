@@ -2,11 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Check, Save } from "lucide-react";
+import { Loader2, Check, Save, AlertCircle } from "lucide-react";
 
 interface EditorHeaderProps {
   onSave: () => void;
-  saveStatus: "idle" | "saving" | "saved";
+  saveStatus: "idle" | "saving" | "saved" | "error";
 }
 
 export default function EditorHeader({ onSave, saveStatus }: EditorHeaderProps) {
@@ -49,16 +49,22 @@ export default function EditorHeader({ onSave, saveStatus }: EditorHeaderProps) 
         <button
           onClick={onSave}
           disabled={saveStatus === "saving"}
-          className="flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-[12px] font-bold text-black transition-opacity active:opacity-90 disabled:opacity-50 md:gap-1.5 md:px-5 md:py-2 md:text-[13px]"
+          className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-[12px] font-bold transition-opacity active:opacity-90 disabled:opacity-50 md:gap-1.5 md:px-5 md:py-2 md:text-[13px] ${
+            saveStatus === "error"
+              ? "bg-red-500/20 text-red-400 ring-1 ring-red-500/30"
+              : "bg-accent text-black"
+          }`}
         >
           {saveStatus === "saving" ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : saveStatus === "saved" ? (
             <Check className="h-3.5 w-3.5" />
+          ) : saveStatus === "error" ? (
+            <AlertCircle className="h-3.5 w-3.5" />
           ) : (
             <Save className="h-3.5 w-3.5" />
           )}
-          {saveStatus === "saving" ? "저장 중" : saveStatus === "saved" ? "완료!" : "저장"}
+          {saveStatus === "saving" ? "저장 중" : saveStatus === "saved" ? "완료!" : saveStatus === "error" ? "저장 실패" : "저장"}
         </button>
       </div>
     </header>
