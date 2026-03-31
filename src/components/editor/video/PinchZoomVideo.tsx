@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 
 interface PinchZoomVideoProps {
   videoSrc: string;
@@ -16,6 +16,9 @@ interface PinchZoomVideoProps {
   onMarkerClear?: () => void;
 }
 
+const MAX_ZOOM = 5;
+const MIN_ZOOM = 1;
+
 export default function PinchZoomVideo({
   videoSrc,
   currentTime,
@@ -30,6 +33,8 @@ export default function PinchZoomVideo({
 
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [videoDims, setVideoDims] = useState<{ w: number; h: number } | null>(null);
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number } | null>(null);
 
   // Touch tracking
   const touchState = useRef<{
@@ -40,6 +45,8 @@ export default function PinchZoomVideo({
     startPanY: number;
     startZoom: number;
     startDist: number;
+    pinchMidX: number;
+    pinchMidY: number;
     lastTapTime: number;
     moved: boolean;
   }>({
@@ -47,8 +54,17 @@ export default function PinchZoomVideo({
     startX: 0, startY: 0,
     startPanX: 0, startPanY: 0,
     startZoom: 1, startDist: 0,
+    pinchMidX: 0, pinchMidY: 0,
     lastTapTime: 0, moved: false,
   });
+
+  // Track video dimensions
+  const handleLoadedMetadata = useCallback(() => {
+    const v = videoRef.current;
+    if (v && v.videoWidth && v.videoHeight) {
+      setVideoDims({ w: v.videoWidth, h: v.videoHeight });
+    }
+  }, []);
 
   // Sync video time
   useEffect(() => {
@@ -58,8 +74,60 @@ export default function PinchZoomVideo({
     }
   }, [currentTime]);
 
+  // ResizeObserver for container size tracking
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
+
+  // Dynamic aspect ratio from video
+  const containerAspect = useMemo(() => {
+    if (!videoDims) return "16/9"; // fallback before metadata
+    return `${videoDims.w}/${videoDims.h}`;
+  }, [videoDims]);
+
+  /** 컨테이너 내 실제 영상 렌더링 영역 계산 (object-contain 보정) */
+  const getVideoRect = useCallback(() => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container) return null;
+
+    const cRect = container.getBoundingClientRect();
+    const cW = cRect.width;
+    const cH = cRect.height;
+    const vW = video?.videoWidth || cW;
+    const vH = video?.videoHeight || cH;
+
+    const containerAR = cW / cH;
+    const videoAR = vW / vH;
+
+    let renderW: number, renderH: number, offsetX: number, offsetY: number;
+
+    if (videoAR > containerAR) {
+      renderW = cW;
+      renderH = cW / videoAR;
+      offsetX = 0;
+      offsetY = (cH - renderH) / 2;
+    } else {
+      renderH = cH;
+      renderW = cH * videoAR;
+      offsetX = (cW - renderW) / 2;
+      offsetY = 0;
+    }
+
+    return { renderW, renderH, offsetX, offsetY, cRect };
+  }, []);
+
   const clampPan = useCallback((px: number, py: number, z: number) => {
-    const maxPan = ((z - 1) / z) * 50; // percent-based clamping
+    const maxPan = ((z - 1) / z) * 50;
     return {
       x: Math.max(-maxPan, Math.min(maxPan, px)),
       y: Math.max(-maxPan, Math.min(maxPan, py)),
@@ -71,34 +139,55 @@ export default function PinchZoomVideo({
     return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
   };
 
+  const getTouchMid = (e: React.TouchEvent) => {
+    const [a, b] = [e.touches[0], e.touches[1]];
+    return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+  };
+
   /** 화면 터치 좌표 → 원본 영상 좌표 (0-1) */
   const screenToVideo = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
-    const container = containerRef.current;
-    if (!container) return null;
-    const rect = container.getBoundingClientRect();
+    const vr = getVideoRect();
+    if (!vr) return null;
+    const { renderW, renderH, offsetX, offsetY, cRect } = vr;
 
-    // Container 내 상대 좌표 (0-1)
-    const relX = (clientX - rect.left) / rect.width;
-    const relY = (clientY - rect.top) / rect.height;
+    // 실제 영상 렌더 영역 기준 상대 좌표 (0-1)
+    const relX = (clientX - cRect.left - offsetX) / renderW;
+    const relY = (clientY - cRect.top - offsetY) / renderH;
 
     // 줌 + 패닝 보정: 화면 좌표 → 원본 좌표
-    // transform: scale(zoom) translate(pan.x%, pan.y%) 의 역변환
     const videoX = (relX - 0.5) / zoom - pan.x / 100 + 0.5;
     const videoY = (relY - 0.5) / zoom - pan.y / 100 + 0.5;
 
     if (videoX < 0 || videoX > 1 || videoY < 0 || videoY > 1) return null;
     return { x: videoX, y: videoY };
-  }, [zoom, pan]);
+  }, [zoom, pan, getVideoRect]);
+
+  /** 마커의 화면 좌표 계산 (컨테이너 기준 px) */
+  const getMarkerScreenPos = useCallback(() => {
+    if (markerX == null || markerY == null) return null;
+    const vr = getVideoRect();
+    if (!vr) return null;
+    const { renderW, renderH, offsetX, offsetY } = vr;
+
+    const sx = offsetX + ((markerX - 0.5 + pan.x / 100) * zoom + 0.5) * renderW;
+    const sy = offsetY + ((markerY - 0.5 + pan.y / 100) * zoom + 0.5) * renderH;
+
+    return { left: sx, top: sy };
+  }, [markerX, markerY, zoom, pan, getVideoRect]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     e.stopPropagation();
     const ts = touchState.current;
 
     if (e.touches.length === 2) {
-      // Pinch start
       ts.type = "pinch";
       ts.startDist = getTouchDist(e);
       ts.startZoom = zoom;
+      ts.startPanX = pan.x;
+      ts.startPanY = pan.y;
+      const mid = getTouchMid(e);
+      ts.pinchMidX = mid.x;
+      ts.pinchMidY = mid.y;
       ts.moved = true;
     } else if (e.touches.length === 1) {
       const t = e.touches[0];
@@ -110,23 +199,25 @@ export default function PinchZoomVideo({
 
       // Check if touching existing marker for drag
       if (markerX != null && markerY != null) {
-        const container = containerRef.current;
-        if (container) {
-          const rect = container.getBoundingClientRect();
-          // Marker screen position
-          const mx = ((markerX - 0.5 + pan.x / 100) * zoom + 0.5) * rect.width + rect.left;
-          const my = ((markerY - 0.5 + pan.y / 100) * zoom + 0.5) * rect.height + rect.top;
-          const dist = Math.hypot(t.clientX - mx, t.clientY - my);
-          if (dist < 40) {
-            ts.type = "marker-drag";
-            return;
+        const mPos = getMarkerScreenPos();
+        if (mPos) {
+          const container = containerRef.current;
+          if (container) {
+            const cRect = container.getBoundingClientRect();
+            const mx = cRect.left + mPos.left;
+            const my = cRect.top + mPos.top;
+            const dist = Math.hypot(t.clientX - mx, t.clientY - my);
+            if (dist < 40) {
+              ts.type = "marker-drag";
+              return;
+            }
           }
         }
       }
 
       ts.type = zoom > 1 ? "pan" : "none";
     }
-  }, [zoom, pan, markerX, markerY]);
+  }, [zoom, pan, markerX, markerY, getMarkerScreenPos]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     e.stopPropagation();
@@ -134,9 +225,35 @@ export default function PinchZoomVideo({
 
     if (ts.type === "pinch" && e.touches.length === 2) {
       const dist = getTouchDist(e);
-      const newZoom = Math.max(1, Math.min(3, ts.startZoom * (dist / ts.startDist)));
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, ts.startZoom * (dist / ts.startDist)));
+
+      // Focal point zoom: keep pinch midpoint fixed
+      const mid = getTouchMid(e);
+      const vr = getVideoRect();
+      if (vr) {
+        const { renderW, renderH, offsetX, offsetY, cRect } = vr;
+        // Pinch 시작 시 중심점의 영상 내 상대 좌표
+        const midRelX = (ts.pinchMidX - cRect.left - offsetX) / renderW;
+        const midRelY = (ts.pinchMidY - cRect.top - offsetY) / renderH;
+
+        // 줌 변화에 따른 팬 보정 (포컬 포인트 유지)
+        const zoomRatio = newZoom / ts.startZoom;
+        const newPanX = ts.startPanX + (midRelX - 0.5) * (1 - 1 / zoomRatio) * 100 / newZoom;
+        const newPanY = ts.startPanY + (midRelY - 0.5) * (1 - 1 / zoomRatio) * 100 / newZoom;
+
+        // 손가락 이동에 따른 팬 추가
+        const dragPanX = ((mid.x - ts.pinchMidX) / renderW) * 100 / newZoom;
+        const dragPanY = ((mid.y - ts.pinchMidY) / renderH) * 100 / newZoom;
+
+        const clamped = clampPan(newPanX + dragPanX, newPanY + dragPanY, newZoom);
+        setPan(clamped);
+      }
+
       setZoom(newZoom);
-      if (newZoom === 1) setPan({ x: 0, y: 0 });
+      if (newZoom <= 1.05) {
+        setZoom(1);
+        setPan({ x: 0, y: 0 });
+      }
     } else if (ts.type === "pan" && e.touches.length === 1) {
       const t = e.touches[0];
       const dx = t.clientX - ts.startX;
@@ -163,7 +280,7 @@ export default function PinchZoomVideo({
       const dy = t.clientY - ts.startY;
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) ts.moved = true;
     }
-  }, [zoom, clampPan, screenToVideo, onMarkerDrag]);
+  }, [zoom, clampPan, screenToVideo, onMarkerDrag, getVideoRect]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     e.stopPropagation();
@@ -188,13 +305,53 @@ export default function PinchZoomVideo({
     ts.moved = false;
   }, [screenToVideo, onTap]);
 
+  // Zoom button handlers
+  const handleZoomIn = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setZoom((z) => {
+      const next = Math.min(MAX_ZOOM, z + 0.5);
+      if (next <= 1) setPan({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
+  const handleZoomReset = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const handleZoomOut = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setZoom((z) => {
+      const next = Math.max(MIN_ZOOM, z - 0.5);
+      if (next <= 1) setPan({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
   const hasMarker = markerX != null && markerY != null;
+
+  // Marker screen position (recalculated on zoom/pan/containerSize changes)
+  const markerPos = useMemo(() => {
+    if (!hasMarker) return null;
+    // containerSize dependency triggers recalc on resize
+    void containerSize;
+    return getMarkerScreenPos();
+  }, [hasMarker, getMarkerScreenPos, containerSize]);
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden bg-black"
-      style={{ aspectRatio: "16/9", touchAction: "none" }}
+      className="relative w-full overflow-hidden bg-black rounded-xl"
+      style={{
+        aspectRatio: containerAspect,
+        maxHeight: "60vh",
+        touchAction: "none",
+      }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -206,6 +363,7 @@ export default function PinchZoomVideo({
         playsInline
         muted
         preload="auto"
+        onLoadedMetadata={handleLoadedMetadata}
         className="absolute inset-0 h-full w-full object-contain"
         style={{
           transform: `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`,
@@ -215,12 +373,12 @@ export default function PinchZoomVideo({
       />
 
       {/* Marker ring */}
-      {hasMarker && (
+      {hasMarker && markerPos && (
         <div
           className="absolute pointer-events-none"
           style={{
-            left: `${((markerX! - 0.5 + pan.x / 100) * zoom + 0.5) * 100}%`,
-            top: `${((markerY! - 0.5 + pan.y / 100) * zoom + 0.5) * 100}%`,
+            left: markerPos.left,
+            top: markerPos.top,
             transform: "translate(-50%, -50%)",
           }}
         >
@@ -258,22 +416,50 @@ export default function PinchZoomVideo({
         </div>
       )}
 
-      {/* Zoom indicator */}
-      <div
-        className="absolute bottom-2 right-2 rounded-md px-2 py-1 text-[11px] text-white/60"
-        style={{ background: "rgba(0,0,0,0.6)" }}
-      >
-        🔍 {zoom.toFixed(1)}x
+      {/* Zoom controls (Instagram style) */}
+      <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1">
+        <button
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] font-bold text-white/80 active:scale-90 pointer-events-auto"
+          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+          onTouchEnd={handleZoomOut}
+          onClick={handleZoomOut}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" d="M5 12h14" />
+          </svg>
+        </button>
+        <button
+          className="flex h-8 min-w-[40px] items-center justify-center rounded-full px-2 text-[12px] font-stat font-bold tabular-nums text-white/90 active:scale-90 pointer-events-auto"
+          style={{ background: zoom > 1 ? "rgba(212,168,83,0.3)" : "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", border: zoom > 1 ? "1px solid rgba(212,168,83,0.4)" : "none" }}
+          onTouchEnd={handleZoomReset}
+          onClick={handleZoomReset}
+        >
+          {zoom.toFixed(1)}x
+        </button>
+        <button
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] font-bold text-white/80 active:scale-90 pointer-events-auto"
+          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+          onTouchEnd={handleZoomIn}
+          onClick={handleZoomIn}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
       </div>
 
       {/* Tap hint (no marker set) */}
       {!hasMarker && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div
-            className="rounded-2xl px-4 py-2 text-[12px] text-white/50"
-            style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+            className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-[12px] text-white/60"
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
           >
-            영상 위를 탭하여 주인공 위치를 표시하세요
+            <svg className="h-4 w-4 text-accent/70" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            탭하여 선수 위치 표시
           </div>
         </div>
       )}

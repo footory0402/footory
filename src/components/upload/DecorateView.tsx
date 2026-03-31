@@ -15,7 +15,6 @@ interface DecorateViewProps {
 }
 
 export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewProps) {
-  const store = useUploadStore();
   const effects = useUploadStore((s) => s.effects);
   const spotlightX = useUploadStore((s) => s.spotlightX);
   const spotlightY = useUploadStore((s) => s.spotlightY);
@@ -29,7 +28,6 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
   const defaultFreeze = trimStart + Math.min(1, (effectiveTrimEnd - trimStart) * 0.3);
   const [freezeTime, setFreezeTime] = useState(freezeAt ?? defaultFreeze);
 
-  // Sync freezeTime from store on mount
   useEffect(() => {
     if (freezeAt != null) setFreezeTime(freezeAt);
   }, [freezeAt]);
@@ -60,6 +58,8 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
     useUploadStore.getState().setEventTag(current === tag ? null : tag);
   }, []);
 
+  const hasSpotlight = spotlightX !== null && spotlightY !== null;
+
   return (
     <div className="flex flex-col bg-[#070709] min-h-dvh">
       {/* Header */}
@@ -75,7 +75,6 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
           </button>
           <span className="text-[15px] font-bold text-white">꾸미기</span>
         </div>
-        {/* Step indicator */}
         <div className="flex items-center gap-1.5">
           <div className="h-1 w-6 rounded-full bg-accent/40" />
           <div className="h-1 w-6 rounded-full bg-accent" />
@@ -83,35 +82,55 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
         </div>
       </div>
 
-      {/* 스포트라이트 영역 */}
-      <div className="px-2">
-        <div className="w-full max-w-[430px] mx-auto">
-          <PinchZoomVideo
-            videoSrc={videoSrc}
-            currentTime={freezeTime}
-            markerX={spotlightX ?? undefined}
-            markerY={spotlightY ?? undefined}
-            onTap={handleTap}
-            onMarkerDrag={handleMarkerDrag}
-            onMarkerClear={handleMarkerClear}
-          />
-        </div>
+      {/* 영상 영역 — edge-to-edge (인스타 스타일) */}
+      <div className="w-full">
+        <PinchZoomVideo
+          videoSrc={videoSrc}
+          currentTime={freezeTime}
+          markerX={spotlightX ?? undefined}
+          markerY={spotlightY ?? undefined}
+          onTap={handleTap}
+          onMarkerDrag={handleMarkerDrag}
+          onMarkerClear={handleMarkerClear}
+        />
       </div>
 
-      {/* 프레임 네비게이터 */}
-      <FrameNavigator
-        currentTime={freezeTime}
-        minTime={trimStart}
-        maxTime={effectiveTrimEnd}
-        onTimeChange={handleTimeChange}
-      />
+      {/* 프레임 네비게이터 + 스포트라이트 뱃지 */}
+      <div className="relative">
+        <FrameNavigator
+          currentTime={freezeTime}
+          minTime={trimStart}
+          maxTime={effectiveTrimEnd}
+          onTimeChange={handleTimeChange}
+        />
+        {/* 스포트라이트 인라인 뱃지 */}
+        {hasSpotlight && (
+          <div className="absolute top-1.5 right-3 flex items-center gap-1.5">
+            <div
+              className="h-3 w-3 rounded-full shrink-0"
+              style={{
+                border: "1.5px solid #D4A853",
+                background: "radial-gradient(circle, rgba(212,168,83,0.25) 0%, transparent 70%)",
+              }}
+            />
+            <span className="text-[10px] text-accent font-medium">위치 설정됨</span>
+            <button
+              type="button"
+              onClick={handleMarkerClear}
+              className="text-[10px] text-text-3 underline underline-offset-2 active:text-text-1"
+            >
+              초기화
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* 스크롤 가능한 옵션 영역 */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-28 flex flex-col gap-4">
+      {/* 옵션 영역 (컴팩트) */}
+      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-24 flex flex-col gap-3">
         {/* 이벤트 태그 */}
         <div>
-          <h3 className="text-[12px] font-semibold text-text-2 mb-2">이 장면은?</h3>
-          <div className="flex flex-wrap gap-2">
+          <h3 className="text-[11px] font-semibold text-text-2 mb-1.5">이 장면은?</h3>
+          <div className="flex flex-wrap gap-1.5">
             {EVENTS.map((ev) => {
               const selected = eventTag === ev.id;
               const color = EVENT_TAG_COLORS[ev.id];
@@ -120,14 +139,14 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
                   key={ev.id}
                   type="button"
                   onClick={() => handleEventTag(ev.id)}
-                  className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-all active:scale-95"
+                  className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all active:scale-95"
                   style={{
                     background: selected ? color + "20" : "rgba(255,255,255,0.04)",
                     border: `1.5px solid ${selected ? color : "rgba(255,255,255,0.08)"}`,
                     color: selected ? color : "rgba(255,255,255,0.5)",
                   }}
                 >
-                  <span className="text-[14px]">{ev.emoji}</span>
+                  <span className="text-[13px]">{ev.emoji}</span>
                   {ev.label}
                 </button>
               );
@@ -135,35 +154,9 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
           </div>
         </div>
 
-        {/* 스포트라이트 상태 */}
-        {spotlightX !== null && spotlightY !== null && (
-          <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="h-5 w-5 rounded-full shrink-0"
-                style={{
-                  border: "2px solid #D4A853",
-                  background: "radial-gradient(circle, rgba(212,168,83,0.2) 0%, transparent 70%)",
-                }}
-              />
-              <div>
-                <span className="text-[13px] font-medium text-text-1">주인공 위치 설정됨</span>
-                <p className="text-[10px] text-text-3">영상 시작 시 스포트라이트 표시</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleMarkerClear}
-              className="text-[12px] text-text-3 active:text-text-1"
-            >
-              초기화
-            </button>
-          </div>
-        )}
-
         {/* 효과 토글 */}
         <div>
-          <h3 className="text-[12px] font-semibold text-text-2 mb-2">효과</h3>
+          <h3 className="text-[11px] font-semibold text-text-2 mb-1.5">효과</h3>
           <EffectsToggle
             effects={effects}
             onChange={(partial) => useUploadStore.getState().setEffects(partial)}

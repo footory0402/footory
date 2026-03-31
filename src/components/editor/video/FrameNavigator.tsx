@@ -50,44 +50,70 @@ export default function FrameNavigator({
 
   const cleanupRef = useRef<(() => void) | null>(null);
 
+  const handleScrub = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onTimeChange(parseFloat(e.target.value));
+  }, [onTimeChange]);
+
+  const rangeDuration = maxTime - minTime;
+  const progress = rangeDuration > 0 ? ((currentTime - minTime) / rangeDuration) * 100 : 0;
+
   return (
     <div
-      className="flex items-center justify-center gap-5 px-4 py-3"
-      style={{ background: "#0f0f11", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      className="flex flex-col gap-1.5 px-4 py-2"
+      style={{ background: "#0c0c0e", borderTop: "1px solid rgba(255,255,255,0.05)" }}
     >
-      {/* Prev frame */}
-      <button
-        className="flex h-10 w-10 items-center justify-center rounded-full text-[16px] text-white/60 active:bg-white/10 active:text-white"
-        style={{ background: "#24242a" }}
-        onTouchStart={() => { cleanupRef.current = handlePressStart(-1); }}
-        onTouchEnd={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
-        onMouseDown={() => { cleanupRef.current = handlePressStart(-1); }}
-        onMouseUp={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
-        onMouseLeave={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
-      >
-        ◀
-      </button>
-
-      {/* Time display */}
-      <div className="text-center">
-        <div className="font-stat text-[16px] font-semibold tabular-nums text-white">
-          {fmtDetailed(currentTime)}
-        </div>
-        <div className="text-[11px] text-white/30">프리즈 시점</div>
+      {/* Scrub bar */}
+      <div className="relative h-5 flex items-center">
+        <input
+          type="range"
+          min={minTime}
+          max={maxTime}
+          step={step}
+          value={currentTime}
+          onChange={handleScrub}
+          className="w-full h-1 appearance-none rounded-full cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #D4A853 0%, #D4A853 ${progress}%, rgba(255,255,255,0.1) ${progress}%, rgba(255,255,255,0.1) 100%)`,
+          }}
+        />
       </div>
 
-      {/* Next frame */}
-      <button
-        className="flex h-10 w-10 items-center justify-center rounded-full text-[16px] text-white/60 active:bg-white/10 active:text-white"
-        style={{ background: "#24242a" }}
-        onTouchStart={() => { cleanupRef.current = handlePressStart(1); }}
-        onTouchEnd={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
-        onMouseDown={() => { cleanupRef.current = handlePressStart(1); }}
-        onMouseUp={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
-        onMouseLeave={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
-      >
-        ▶
-      </button>
+      {/* Controls row */}
+      <div className="flex items-center justify-center gap-4">
+        {/* Prev frame */}
+        <button
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] text-white/60 active:bg-white/10 active:text-white"
+          style={{ background: "#1a1a1e" }}
+          onTouchStart={() => { cleanupRef.current = handlePressStart(-1); }}
+          onTouchEnd={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
+          onMouseDown={() => { cleanupRef.current = handlePressStart(-1); }}
+          onMouseUp={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
+          onMouseLeave={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
+        >
+          ◀
+        </button>
+
+        {/* Time display */}
+        <div className="text-center min-w-[100px]">
+          <div className="font-stat text-[14px] font-semibold tabular-nums text-white">
+            {fmtDetailed(currentTime)}
+          </div>
+          <div className="text-[9px] text-white/25">프리즈 시점</div>
+        </div>
+
+        {/* Next frame */}
+        <button
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[14px] text-white/60 active:bg-white/10 active:text-white"
+          style={{ background: "#1a1a1e" }}
+          onTouchStart={() => { cleanupRef.current = handlePressStart(1); }}
+          onTouchEnd={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
+          onMouseDown={() => { cleanupRef.current = handlePressStart(1); }}
+          onMouseUp={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
+          onMouseLeave={() => { cleanupRef.current?.(); cleanupRef.current = null; }}
+        >
+          ▶
+        </button>
+      </div>
     </div>
   );
 }

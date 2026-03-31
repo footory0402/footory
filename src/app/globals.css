@@ -463,6 +463,34 @@ body {
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* ── Range slider (upload frame navigator) ── */
+input[type="range"].appearance-none::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
+input[type="range"].appearance-none::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a853;
+  margin-top: -5px;
+  box-shadow: 0 0 6px rgba(212, 168, 83, 0.4);
+}
+input[type="range"].appearance-none::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+}
+input[type="range"].appearance-none::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a853;
+  border: none;
+  box-shadow: 0 0 6px rgba(212, 168, 83, 0.4);
+}
+
 @layer base {
   * {
     @apply border-border;
