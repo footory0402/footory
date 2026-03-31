@@ -96,7 +96,7 @@ export default function ShareView({ onBack }: ShareViewProps) {
 
       {/* 올리기 버튼 */}
       <div
-        className="fixed bottom-0 left-0 right-0 px-4 py-3 bg-[#070709]/95 backdrop-blur-sm border-t border-white/[0.06]"
+        className="fixed bottom-0 left-0 right-0 z-50 px-4 py-3 bg-[#070709]/95 backdrop-blur-sm border-t border-white/[0.06]"
         style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
       >
         <button

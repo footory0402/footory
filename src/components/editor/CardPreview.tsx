@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Eye, RotateCcw } from "lucide-react";
+import { Eye, RotateCcw, Download, Film } from "lucide-react";
 import type { PlayerData } from "./types";
 import type { TemplateId } from "./constants";
 import BroadcastCard from "./cards/BroadcastCard";
 import EaSportsCard from "./cards/EaSportsCard";
+import { useExportPng, useExportMp4 } from "./useExport";
 
 interface CardPreviewProps {
   data: PlayerData;
@@ -33,6 +34,8 @@ function getCardDimensions(template: TemplateId) {
 
 export default function CardPreview({ data, template, onTemplateChange }: CardPreviewProps) {
   const [isAnimating, setIsAnimating] = useState(false);
+  const { exportPng, status: pngStatus } = useExportPng();
+  const { exportMp4, status: mp4Status, progress: mp4Progress } = useExportMp4();
 
   const playPreview = useCallback(() => {
     setIsAnimating(true);
@@ -94,16 +97,58 @@ export default function CardPreview({ data, template, onTemplateChange }: CardPr
         </button>
       </div>
 
+      {/* Mobile: 내보내기 버튼 */}
+      <div className="flex items-center gap-2 px-3 pb-2 md:hidden">
+        <button
+          type="button"
+          onClick={exportPng}
+          disabled={pngStatus !== "idle"}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/8 bg-white/4 py-2 text-[11px] font-semibold text-text-2 active:bg-white/8 disabled:opacity-40"
+        >
+          <Download className="h-3 w-3" />
+          {pngStatus === "capturing" ? "캡처 중…" : pngStatus === "done" ? "저장됨!" : "PNG 저장"}
+        </button>
+        <button
+          type="button"
+          onClick={exportMp4}
+          disabled={mp4Status !== "idle"}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/8 bg-white/4 py-2 text-[11px] font-semibold text-text-2 active:bg-white/8 disabled:opacity-40"
+        >
+          <Film className="h-3 w-3" />
+          {mp4Status === "capturing" ? `프레임 ${mp4Progress}%` : mp4Status === "encoding" ? `인코딩 ${mp4Progress}%` : mp4Status === "done" ? "저장됨!" : "MP4 저장"}
+        </button>
+      </div>
+
       {/* Desktop: spacious layout */}
       <div className="hidden md:flex md:flex-col md:items-center md:gap-6">
-        <button
-          onClick={playPreview}
-          disabled={isAnimating}
-          className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          미리보기
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={playPreview}
+            disabled={isAnimating}
+            className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            미리보기
+          </button>
+          <button
+            type="button"
+            onClick={exportPng}
+            disabled={pngStatus !== "idle"}
+            className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {pngStatus === "capturing" ? "캡처 중…" : pngStatus === "done" ? "저장됨!" : "PNG 저장"}
+          </button>
+          <button
+            type="button"
+            onClick={exportMp4}
+            disabled={mp4Status !== "idle"}
+            className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-2 text-xs font-semibold text-text-2 transition-colors hover:border-accent/30 hover:text-accent disabled:opacity-50"
+          >
+            <Film className="h-3.5 w-3.5" />
+            {mp4Status === "capturing" ? `프레임 ${mp4Progress}%` : mp4Status === "encoding" ? `인코딩 ${mp4Progress}%` : mp4Status === "done" ? "저장됨!" : "MP4 저장"}
+          </button>
+        </div>
         <div style={{ filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))" }}>
           <div
             data-capture="card"
