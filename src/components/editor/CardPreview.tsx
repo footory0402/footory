@@ -3,13 +3,35 @@
 import { useState, useCallback } from "react";
 import { Eye, RotateCcw } from "lucide-react";
 import type { PlayerData } from "./types";
+import type { TemplateId } from "./constants";
 import BroadcastCard from "./cards/BroadcastCard";
+import EaSportsCard from "./cards/EaSportsCard";
 
 interface CardPreviewProps {
   data: PlayerData;
+  template: TemplateId;
+  onTemplateChange: (t: TemplateId) => void;
 }
 
-export default function CardPreview({ data }: CardPreviewProps) {
+const TEMPLATES: { id: TemplateId; label: string; icon: string }[] = [
+  { id: "fifa", label: "EA Sports", icon: "🃏" },
+  { id: "broadcast", label: "방송 스타일", icon: "📺" },
+];
+
+function CardContent({ data, template }: { data: PlayerData; template: TemplateId }) {
+  if (template === "fifa") return <EaSportsCard data={data} />;
+  return <BroadcastCard data={data} />;
+}
+
+// 템플릿별 원본 크기와 모바일 스케일
+function getCardDimensions(template: TemplateId) {
+  if (template === "fifa") {
+    return { width: 360, height: 520, mobileScale: 0.65 };
+  }
+  return { width: 640, height: 360, mobileScale: 0.57 };
+}
+
+export default function CardPreview({ data, template, onTemplateChange }: CardPreviewProps) {
   const [isAnimating, setIsAnimating] = useState(false);
 
   const playPreview = useCallback(() => {
@@ -17,28 +39,47 @@ export default function CardPreview({ data }: CardPreviewProps) {
     setTimeout(() => setIsAnimating(false), 2000);
   }, []);
 
+  const dim = getCardDimensions(template);
+
   return (
     <div className="flex flex-col items-center bg-[#0a0a0c] md:min-h-[500px] md:flex-1 md:justify-center md:overflow-auto md:p-8">
-      {/* Mobile: compact card with controlled height */}
-      <div className="relative w-full px-3 pt-3 pb-1 md:hidden">
-        {/* Card wrapper — clip to scaled height, prevent dead space */}
+      {/* 템플릿 선택 토글 */}
+      <div className="flex items-center gap-1.5 px-3 pt-3 pb-2 md:pb-4">
+        {TEMPLATES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onTemplateChange(t.id)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all ${
+              template === t.id
+                ? "bg-accent/15 text-accent ring-1 ring-accent/30"
+                : "bg-white/4 text-text-3 active:text-text-2"
+            }`}
+          >
+            <span className="text-[13px]">{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile: compact card */}
+      <div className="relative w-full px-3 pb-1 md:hidden">
         <div
           className="relative mx-auto overflow-hidden"
           style={{
-            /* 640 * 0.57 ≈ 365px (fits 390 - 24px padding), 360 * 0.57 ≈ 205px */
-            width: "calc(640px * 0.57)",
-            height: "calc(360px * 0.57)",
+            width: `calc(${dim.width}px * ${dim.mobileScale})`,
+            height: `calc(${dim.height}px * ${dim.mobileScale})`,
           }}
         >
           <div
             id="card-capture-target"
-            className={`origin-top-left scale-[0.57] ${isAnimating ? "animate-card-intro" : ""}`}
+            className={`origin-top-left ${isAnimating ? "animate-card-intro" : ""}`}
+            style={{ transform: `scale(${dim.mobileScale})` }}
           >
-            <BroadcastCard data={data} />
+            <CardContent data={data} template={template} />
           </div>
         </div>
 
-        {/* Overlay preview button */}
         <button
           onClick={playPreview}
           disabled={isAnimating}
@@ -63,14 +104,12 @@ export default function CardPreview({ data }: CardPreviewProps) {
           <Eye className="h-3.5 w-3.5" />
           미리보기
         </button>
-        <div
-          style={{ filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))" }}
-        >
+        <div style={{ filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.4))" }}>
           <div
             id="card-capture-target"
             className={isAnimating ? "animate-card-intro" : ""}
           >
-            <BroadcastCard data={data} />
+            <CardContent data={data} template={template} />
           </div>
         </div>
       </div>
