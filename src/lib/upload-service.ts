@@ -885,9 +885,17 @@ export async function startUpload() {
           memo: store.memo || null,
           tags: store.tags,
           thumbnail_url: null,
-          highlight_start: store.highlightStart,
+          highlight_start: store.trimStart,
           highlight_end: highlightEnd,
+          trim_start: store.trimStart,
+          trim_end: store.trimEnd,
+          spotlight_x: store.spotlightX,
+          spotlight_y: store.spotlightY,
+          freeze_at: store.freezeAt,
+          event_tag: store.eventTag,
           effects: store.effects,
+          visibility: store.visibility,
+          client_trimmed: true,
         };
 
     const clipRes = await apiFetch(

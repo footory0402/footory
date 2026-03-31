@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import type { EventTag } from "@/components/editor/video/types";
 
+export type UploadPhase = "select" | "decorate" | "share" | "uploading" | "done";
 export type UploadStatus =
   | "idle"
   | "composing"
@@ -37,10 +39,10 @@ interface UploadState {
   childId: string | null;
   childName: string | null;
   childHandle: string | null;
-  highlightStart: number;
 
-  // v1.3 렌더 파이프라인용 - 현재 미사용
-  step: number;
+  // v3.0 릴스 스타일 단일 플로우
+  phase: UploadPhase;
+  eventTag: EventTag | null;
   trimStart: number;
   trimEnd: number | null;
   duration: number | null; // 트리머에서 감지된 영상 길이 (초)
@@ -80,10 +82,9 @@ interface UploadState {
   setChallengeTag: (tag: string | null) => void;
   setChildId: (id: string | null) => void;
   setChildInfo: (info: { id: string; name: string; handle: string } | null) => void;
-  setHighlightStart: (t: number) => void;
-
-  // v1.3 setters
-  setStep: (s: number) => void;
+  // v3.0 setters
+  setPhase: (p: UploadPhase) => void;
+  setEventTag: (t: EventTag | null) => void;
   setTrimStart: (t: number) => void;
   setTrimEnd: (t: number | null) => void;
   setDuration: (d: number | null) => void;
@@ -125,10 +126,10 @@ const initial = {
   childId: null as string | null,
   childName: null as string | null,
   childHandle: null as string | null,
-  highlightStart: 0,
 
-  // v1.3
-  step: 1,
+  // v3.0
+  phase: "select" as UploadPhase,
+  eventTag: null as EventTag | null,
   trimStart: 0,
   trimEnd: null as number | null,
   duration: null as number | null,
@@ -171,10 +172,9 @@ export const useUploadStore = create<UploadState>((set) => ({
   setChallengeTag: (tag) => set({ challengeTag: tag }),
   setChildId: (id) => set({ childId: id }),
   setChildInfo: (info) => set(info ? { childId: info.id, childName: info.name, childHandle: info.handle } : { childId: null, childName: null, childHandle: null }),
-  setHighlightStart: (t) => set({ highlightStart: t }),
-
-  // v1.3 setters
-  setStep: (step) => set({ step }),
+  // v3.0 setters
+  setPhase: (phase) => set({ phase }),
+  setEventTag: (eventTag) => set({ eventTag }),
   setTrimStart: (trimStart) => set({ trimStart }),
   setTrimEnd: (trimEnd) => set({ trimEnd }),
   setDuration: (duration) => set({ duration }),

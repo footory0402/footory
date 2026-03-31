@@ -37,7 +37,7 @@ export default function EditorHeader({ onSave, saveStatus }: EditorHeaderProps) 
 
       <div className="flex items-center gap-1.5 md:gap-2">
         <Link
-          href="/editor/video"
+          href="/upload"
           className="flex items-center gap-1 rounded-lg bg-white/6 px-2.5 py-1.5 text-[11px] font-semibold text-white/60 transition-colors active:bg-white/10 md:gap-1.5 md:px-3 md:py-2 md:text-[12px]"
         >
           <svg className="h-3 w-3 md:h-3.5 md:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
