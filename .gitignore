@@ -84,3 +84,5 @@ ux-test-*.png
 qa-results/
 qa-screenshots/
 visual-test/
+# 테스트 스크린샷 (런타임 생성, 커밋 불필요)
+*.png
