@@ -29,7 +29,7 @@ async function PlayerFeedSection({
   profileHint: { city: string | null; birth_year: number | null; position: string | null };
 }) {
   const [feedData, hasClips] = await Promise.all([
-    fetchFeedPage(supabase, userId, null, profileHint, "recommended"),
+    fetchFeedPage(supabase, userId, null, profileHint),
     hasUserUploadedClips(supabase, userId),
   ]);
 
@@ -85,11 +85,6 @@ async function ScoutHomeServer({
 function PlayerFeedSkeleton() {
   return (
     <div className="animate-pulse">
-      {/* Pill tabs skeleton */}
-      <div className="flex gap-1.5 px-4 py-2">
-        <div className="flex-1 h-9 rounded-full bg-accent/30" />
-        <div className="flex-1 h-9 rounded-full bg-white/[0.06]" />
-      </div>
       <div className="px-4 pt-2">
         {/* MVP teaser skeleton */}
         <div className="mb-4 rounded-xl bg-card p-4">

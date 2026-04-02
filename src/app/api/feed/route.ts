@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
-import { fetchFeedPage, type FeedTab } from "@/lib/server/feed";
+import { fetchFeedPage } from "@/lib/server/feed";
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,8 +9,7 @@ export async function GET(req: NextRequest) {
     const { user, supabase } = auth;
 
     const cursor = req.nextUrl.searchParams.get("cursor");
-    const tab = (req.nextUrl.searchParams.get("tab") ?? "recommended") as FeedTab;
-    const { items, nextCursor } = await fetchFeedPage(supabase, user.id, cursor, undefined, tab);
+    const { items, nextCursor } = await fetchFeedPage(supabase, user.id, cursor);
 
     return NextResponse.json(
       { items, nextCursor },

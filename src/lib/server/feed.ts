@@ -12,8 +12,6 @@ import {
 export const FEED_PAGE_SIZE = 20;
 const HOT_WINDOW_HOURS = 48;
 
-export type FeedTab = "recommended" | "following";
-
 /** Lightweight row shape from the joined query */
 interface FeedRow {
   id: string;
@@ -36,29 +34,32 @@ interface FeedRow {
 }
 
 /**
- * Fetch a page of feed items with recommendation algorithm.
+ * Fetch a unified page of feed items — follow + recommended blended by ratio.
  * profileHint: 이미 가져온 프로필 데이터가 있으면 전달 → profiles 중복 쿼리 제거
- * tab: "recommended" (시간감쇠+인기도 정렬) | "following" (팔로잉 최신순)
  */
 export async function fetchFeedPage(
   supabase: SupabaseClient,
   userId: string,
   cursor?: string | null,
   profileHint?: { city: string | null; birth_year: number | null; position: string | null },
-  tab: FeedTab = "recommended"
 ): Promise<{ items: FeedItemEnriched[]; nextCursor: string | null }> {
   // 1. Build user context
   const ctx = await buildUserContext(supabase, userId, profileHint);
 
-  let rawItems: FeedItemEnriched[];
+  // 2. Compute follow vs recommended split based on follow count
+  const { followLimit, recommendLimit } = computeFeedSplit(FEED_PAGE_SIZE, ctx.followingIds.length);
 
-  if (tab === "following") {
-    // 팔로잉 탭: 팔로우 + 본인 콘텐츠만, 순수 최신순
-    rawItems = await fetchFollowFeed(supabase, userId, ctx.followingIds, cursor, FEED_PAGE_SIZE);
-  } else {
-    // 추천 탭: 전체 콘텐츠 대상, hot score 정렬
-    rawItems = await fetchHotFeed(supabase, userId, ctx, cursor, FEED_PAGE_SIZE);
-  }
+  // 3. Fetch both sources in parallel, then merge by created_at
+  const [followItems, hotItems] = await Promise.all([
+    followLimit > 0
+      ? fetchFollowFeed(supabase, userId, ctx.followingIds, cursor, followLimit)
+      : Promise.resolve([] as FeedItemEnriched[]),
+    recommendLimit > 0
+      ? fetchHotFeed(supabase, userId, ctx, cursor, recommendLimit)
+      : Promise.resolve([] as FeedItemEnriched[]),
+  ]);
+
+  const rawItems = mergeFeeds(followItems, hotItems);
 
   // 2. Deduplicate + G3 차단 사용자 제외
   const blockedSet = new Set(ctx.blockedIds ?? []);
