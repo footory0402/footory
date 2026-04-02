@@ -20,10 +20,10 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
     <div
       style={{
         margin: "6px 14px 0",
-        background: "#111111",
+        background: "var(--color-card)",
         borderRadius: 18,
         overflow: "hidden",
-        border: "1px solid rgba(255,255,255,0.06)",
+        border: "1px solid var(--color-border)",
         display: "flex",
       }}
     >
@@ -38,8 +38,8 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
               padding: "10px 0 8px",
               background: active ? "rgba(255,255,255,0.035)" : "transparent",
               border: "none",
-              borderBottom: active ? "2.5px solid #c9a84c" : "2.5px solid transparent",
-              color: active ? "#e8d48b" : "rgba(255,255,255,0.24)",
+              borderBottom: active ? "2.5px solid var(--color-accent)" : "2.5px solid transparent",
+              color: active ? "var(--color-accent)" : "rgba(255,255,255,0.45)",
               fontFamily: "'Noto Sans KR', sans-serif",
               fontSize: 13,
               fontWeight: active ? 700 : 400,

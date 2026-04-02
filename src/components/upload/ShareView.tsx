@@ -1,23 +1,14 @@
 "use client";
 
 import { useUploadStore } from "@/stores/upload-store";
-import type { ClipVisibility } from "@/stores/upload-store";
 import { startUpload } from "@/lib/upload-service";
 
 interface ShareViewProps {
   onBack: () => void;
 }
 
-const VISIBILITY_OPTIONS: { value: ClipVisibility; label: string; desc: string }[] = [
-  { value: "public", label: "전체 공개", desc: "모든 사용자가 볼 수 있어요" },
-  { value: "followers", label: "팔로워만", desc: "나를 팔로우한 사람만 볼 수 있어요" },
-  { value: "team", label: "팀원만", desc: "같은 팀원만 볼 수 있어요" },
-  { value: "private", label: "나만 보기", desc: "나만 볼 수 있어요" },
-];
-
 export default function ShareView({ onBack }: ShareViewProps) {
   const memo = useUploadStore((s) => s.memo);
-  const visibility = useUploadStore((s) => s.visibility);
   const status = useUploadStore((s) => s.status);
 
   const isUploading = status !== "idle" && status !== "error";
@@ -59,39 +50,6 @@ export default function ShareView({ onBack }: ShareViewProps) {
           <p className="mt-1 text-right text-[10px] text-text-3">{memo.length}/100</p>
         </div>
 
-        {/* 공개범위 */}
-        <div>
-          <h3 className="text-[12px] font-semibold text-text-2 mb-2">공개범위</h3>
-          <div className="flex flex-col gap-1.5">
-            {VISIBILITY_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => useUploadStore.getState().setVisibility(opt.value)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 transition-colors active:bg-white/[0.04]"
-                style={{
-                  background: visibility === opt.value ? "rgba(212,168,83,0.08)" : "rgba(255,255,255,0.02)",
-                  border: `1.5px solid ${visibility === opt.value ? "rgba(212,168,83,0.3)" : "rgba(255,255,255,0.06)"}`,
-                }}
-              >
-                <div
-                  className="h-4 w-4 rounded-full shrink-0 flex items-center justify-center"
-                  style={{
-                    border: `2px solid ${visibility === opt.value ? "#D4A853" : "rgba(255,255,255,0.2)"}`,
-                  }}
-                >
-                  {visibility === opt.value && (
-                    <div className="h-2 w-2 rounded-full bg-accent" />
-                  )}
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-[13px] font-medium text-text-1">{opt.label}</span>
-                  <span className="text-[10px] text-text-3">{opt.desc}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* 올리기 버튼 */}

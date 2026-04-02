@@ -139,7 +139,7 @@ const initial = {
   skillLabels: [] as string[],
   customLabels: [] as string[],
   effects: { color: false, cinematic: false, eafc: false, intro: true },
-  visibility: "followers" as ClipVisibility,
+  visibility: "public" as ClipVisibility,
   renderJobId: null as string | null,
   renderProgress: 0,
 

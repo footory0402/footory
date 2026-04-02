@@ -51,19 +51,19 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
       >
         <div className="flex flex-col items-start">
           <span className="text-[14px] font-medium text-text-1">
-            인트로 카드
+            선수 카드 인트로
             {hasCard && (
               <span className="ml-1.5 text-[10px] text-accent">카드 저장됨 ✓</span>
             )}
           </span>
           <span className="text-[11px] text-text-3">
-            영상 시작 전 선수 소개 카드가 나와요
+            영상 시작 전 2초간 선수 소개 카드가 표시돼요
           </span>
         </div>
         <div
           role="switch"
           aria-checked={isOn}
-          aria-label="인트로 카드"
+          aria-label="선수 카드 인트로"
           className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
             isOn ? "bg-accent" : "bg-[#2a2a2e]"
           }`}
