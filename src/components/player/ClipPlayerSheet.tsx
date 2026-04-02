@@ -111,6 +111,8 @@ export default function ClipPlayerSheet({
   const introShownRef = useRef<Set<string>>(new Set());
   // 인트로 카드 API 로딩 완료 전까지 영상 재생 차단
   const [introReady, setIntroReady] = useState(false);
+  // 영상 실제 해상도 (letterbox 보정에 사용)
+  const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
 
   // Freeze frame state
   const [isFreezing, setIsFreezing] = useState(false);
@@ -198,6 +200,7 @@ export default function ClipPlayerSheet({
             if (!cancelled) {
               setShowIntro(false);
               setIntroReady(true);
+              setShowControls(false); // HUD가 영상 재생 시작점부터 바로 표시
               videoRef.current?.play()?.catch(() => {});
             }
           }, 3000);
@@ -240,6 +243,7 @@ export default function ClipPlayerSheet({
     setRetryCount(0);
     setShowControls(true);
     setIsFreezing(false);
+    setVideoNativeSize(null);
     if (freezeTimerRef.current) { clearTimeout(freezeTimerRef.current); freezeTimerRef.current = null; }
     scheduleHide();
 
@@ -274,10 +278,10 @@ export default function ClipPlayerSheet({
       const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
       const clipDuration = trimE - trimS;
 
-      // trim 구간 초과 시 trimStart로 루프
+      // trim 구간 끝 → 정지
       if (trimE > 0 && v.currentTime >= trimE) {
-        v.currentTime = trimS;
-        v.play().catch(() => {});
+        v.pause();
+        v.currentTime = trimE;
         return;
       }
 
@@ -312,6 +316,9 @@ export default function ClipPlayerSheet({
       const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
       if (trimS > 0) v.currentTime = trimS;
       setDuration((trimE - trimS) || 0);
+      if (v.videoWidth && v.videoHeight) {
+        setVideoNativeSize({ w: v.videoWidth, h: v.videoHeight });
+      }
     };
     const onError = () => {
       const code = v.error?.code ?? 0;
@@ -414,8 +421,33 @@ export default function ClipPlayerSheet({
     isAutoZoomingRef.current = true;
     const startZoom = zoomRef.current;
     const startPan = { ...panRef.current };
-    const targetPanX = -(targetX - 0.5) * 100;
-    const targetPanY = -(targetY - 0.5) * 100;
+
+    // object-fit: contain 적용 시 실제 영상 위치(letterbox 오프셋) 계산
+    const v = videoRef.current;
+    const W = v?.offsetWidth || 390;
+    const H = v?.offsetHeight || 844;
+    const vw = v?.videoWidth || 1;
+    const vh = v?.videoHeight || 1;
+    const videoAspect = vw / vh;
+    const elemAspect = W / H;
+    let displayW: number, displayH: number;
+    if (videoAspect > elemAspect) {
+      displayW = W; displayH = W / videoAspect; // 가로 맞춤 (위아래 letterbox)
+    } else {
+      displayH = H; displayW = H * videoAspect; // 세로 맞춤 (좌우 pillarbox)
+    }
+    const offsetX = (W - displayW) / 2;
+    const offsetY = (H - displayH) / 2;
+
+    // 영상 내 좌표(0~1)를 element 절대 좌표로 변환 후 pan 계산
+    const spotElemX = offsetX + targetX * displayW;
+    const spotElemY = offsetY + targetY * displayH;
+    const rawPanX = (0.5 - spotElemX / W) * 100;
+    const rawPanY = (0.5 - spotElemY / H) * 100;
+
+    const maxPan = ((targetZoom - 1) / targetZoom) * 50;
+    const targetPanX = Math.max(-maxPan, Math.min(maxPan, rawPanX));
+    const targetPanY = Math.max(-maxPan, Math.min(maxPan, rawPanY));
     const startTime = performance.now();
 
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -605,6 +637,30 @@ export default function ClipPlayerSheet({
 
   if (!clip?.videoUrl) return null;
 
+  // letterbox 보정: spotlight 좌표를 영상 프레임 기준 → element 전체 기준으로 변환
+  const adjustedSpot = (() => {
+    if (clip.spotlightX == null || clip.spotlightY == null) return null;
+    if (!videoNativeSize) return { x: clip.spotlightX, y: clip.spotlightY };
+    const v = videoRef.current;
+    const W = v?.offsetWidth ?? window.innerWidth;
+    const H = v?.offsetHeight ?? window.innerHeight;
+    const aspect = videoNativeSize.w / videoNativeSize.h;
+    const elemAspect = W / H;
+    const displayW = aspect > elemAspect ? W : H * aspect;
+    const displayH = aspect > elemAspect ? W / aspect : H;
+    const ox = (W - displayW) / 2;
+    const oy = (H - displayH) / 2;
+    return {
+      x: (ox + clip.spotlightX * displayW) / W,
+      y: (oy + clip.spotlightY * displayH) / H,
+    };
+  })();
+
+  // 영상과 동일한 transform (zoom/pan/swipe) - overlay가 영상 위치를 따라가도록
+  const videoTransform = zoom > 1
+    ? `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`
+    : swiping ? `translateY(${swipeY * 0.2}px)` : undefined;
+
   return (
     <div
       className="fixed inset-0 z-[100] bg-black"
@@ -721,11 +777,10 @@ export default function ClipPlayerSheet({
           playsInline
           preload="auto"
           muted
-          loop
           className="absolute inset-0 z-10 h-full w-full"
           style={{
             objectFit: "contain",
-            opacity: showIntro ? 0 : 1,
+            opacity: (!introReady || showIntro) ? 0 : 1,
             transition: zoom === 1 ? "opacity 0.3s ease, transform 0.2s ease-out" : "opacity 0.3s ease",
             transform: zoom > 1
               ? `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`
@@ -738,11 +793,14 @@ export default function ClipPlayerSheet({
       )}
 
       {/* ── 축구 중계 스타일 마커 오버레이 ── */}
-      {clip.playerName && introReady && !showIntro && clip.spotlightX != null && clip.spotlightY != null && (
-        <div className="absolute inset-0 z-[45] pointer-events-none">
+      {clip.playerName && introReady && !showIntro && adjustedSpot && (
+        <div
+          className="absolute inset-0 z-[45] pointer-events-none"
+          style={{ transform: videoTransform, transformOrigin: "center center" }}
+        >
           <VideoOverlay
             key={clip.id}
-            spotlight={{ x: clip.spotlightX, y: clip.spotlightY }}
+            spotlight={adjustedSpot}
             player={{
               name: clip.playerName,
               position: clip.playerPosition,
@@ -757,9 +815,12 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── HUD 오버레이 — 방송 스타일 (항상 표시) ── */}
+      {/* ── HUD 오버레이 — 방송 스타일 (컨트롤 숨겨질 때만 표시) ── */}
       {introData && introReady && !showIntro && (
-        <div className="absolute inset-0 z-[44] pointer-events-none">
+        <div
+          className="absolute inset-0 z-[44] pointer-events-none"
+          style={{ opacity: showControls ? 0 : 1, transition: "opacity 0.3s" }}
+        >
           <HudOverlay
             data={introData}
             config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
