@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { SectionCard } from "@/components/ui/Card";
 import VoteCard, { VoteCardCompact } from "@/components/mvp/VoteCard";
+import type { PlayableClip } from "@/components/player/ClipPlayerSheet";
 import type { VoteCardCandidate, ArchiveWeek, HallOfFameEntry } from "@/lib/types";
 import MvpRanking from "@/components/mvp/MvpRanking";
 import MvpResultBanner from "@/components/mvp/MvpResultBanner";
@@ -27,6 +28,10 @@ const MvpArchive = dynamic(() => import("@/components/mvp/MvpArchive"), {
 const MvpHallOfFame = dynamic(() => import("@/components/mvp/MvpHallOfFame"), {
   ssr: false,
 });
+const ClipPlayerSheet = dynamic(
+  () => import("@/components/player/ClipPlayerSheet"),
+  { ssr: false }
+);
 
 type MvpTab = "ranking" | "archive" | "hallOfFame";
 
@@ -59,7 +64,21 @@ export default function MvpPageClient({
   const [hallOfFame, setHallOfFame] = useState<HallOfFameEntry[]>([]);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [hofLoading, setHofLoading] = useState(false);
+  const [playerClips, setPlayerClips] = useState<PlayableClip[] | null>(null);
   const [, startTransition] = useTransition();
+
+  const handlePlayFullScreen = useCallback((candidate: VoteCardCandidate) => {
+    if (!candidate.videoUrl) return;
+    setPlayerClips([{
+      id: candidate.clipId,
+      videoUrl: candidate.videoUrl,
+      thumbnailUrl: candidate.thumbnailUrl,
+      tag: candidate.tags[0],
+      playerName: candidate.playerName,
+      playerPosition: candidate.playerPosition,
+      teamName: candidate.teamName,
+    }]);
+  }, []);
 
   const fetchArchive = useCallback(async () => {
     setArchiveLoading(true);
@@ -411,6 +430,7 @@ export default function MvpPageClient({
               votesRemaining={canVoteMvp ? votesRemaining : 0}
               onVote={handleVote}
               onUnvote={handleUnvote}
+              onPlayFullScreen={handlePlayFullScreen}
             />
           )}
 
@@ -424,6 +444,7 @@ export default function MvpPageClient({
                   votesRemaining={canVoteMvp ? votesRemaining : 0}
                   onVote={handleVote}
                   onUnvote={handleUnvote}
+                  onPlayFullScreen={handlePlayFullScreen}
                 />
               )}
               {third && (
@@ -434,6 +455,7 @@ export default function MvpPageClient({
                   votesRemaining={canVoteMvp ? votesRemaining : 0}
                   onVote={handleVote}
                   onUnvote={handleUnvote}
+                  onPlayFullScreen={handlePlayFullScreen}
                 />
               )}
             </div>
@@ -465,6 +487,13 @@ export default function MvpPageClient({
         </>
       )}
         </>
+      )}
+
+      {playerClips && (
+        <ClipPlayerSheet
+          clips={playerClips}
+          onClose={() => setPlayerClips(null)}
+        />
       )}
     </div>
   );

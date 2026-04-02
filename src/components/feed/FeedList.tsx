@@ -96,11 +96,15 @@ export default function FeedList({
       freezeAt: typeof meta.freeze_at === "number" ? meta.freeze_at : null,
       trimStart: typeof meta.trim_start === "number" ? meta.trim_start : null,
       trimEnd: typeof meta.trim_end === "number" ? meta.trim_end : null,
+      slowmoStart: typeof meta.slowmo_start === "number" ? meta.slowmo_start : null,
+      slowmoEnd: typeof meta.slowmo_end === "number" ? meta.slowmo_end : null,
+      slowmoSpeed: typeof meta.slowmo_speed === "number" ? meta.slowmo_speed : null,
+      bgmId: typeof meta.bgm_id === "string" ? meta.bgm_id : null,
       playerName: item.playerName,
       playerPosition: item.playerPosition,
       playerBirthYear: item.playerBirthYear,
       teamName: item.teamName,
-      // effects 추가
+      // effects (captions, bgmVolume 포함)
       effects: meta.effects && typeof meta.effects === "object"
         ? (meta.effects as PlayableClip["effects"])
         : null,

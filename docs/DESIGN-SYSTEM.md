@@ -4,7 +4,7 @@
 > Theme: Pitch Black Gold
 > Status: ✅ 확정
 > Date: 2026-03-03
-> Last synced: 2026-03-22
+> Last synced: 2026-04-02
 >
 
 ---
@@ -497,7 +497,7 @@ Claude Code 개발 시 아래 기능들이 모두 포함되었는지 확인:
 │ 👁 312 · 👏 89 · 🗳 47    │    ← text-3, 12px
 │              [투표하기]    │    ← 골드 CTA (primary button)
 └───────────────────────────┘
-bg: card (#161618)
+bg: card (#1C1C22)
 border: 1px solid rgba(212,168,83,0.2) — 은은한 골드 보더
 radius: 12px
 1위: border 2px solid accent, 골드 그라데이션 상단 바
@@ -522,7 +522,7 @@ radius: 12px
 │                     │
 │  3.03 ~ 3.09 주차    │    ← text-3, 10px
 └─────────────────────┘
-bg: linear-gradient(135deg, #1a1510 0%, #161618 50%, #1a1510 100%)
+bg: linear-gradient(135deg, #1a1510 0%, #1C1C22 50%, #1a1510 100%)
 border: 1px solid rgba(212,168,83,0.3)
 radius: 14px
 box-shadow: 0 0 20px rgba(212,168,83,0.1)

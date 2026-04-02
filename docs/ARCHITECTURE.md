@@ -1,6 +1,6 @@
 # FOOTORY 기술 아키텍처
 
-> Last synced: 2026-03-21
+> Last synced: 2026-04-02
 > ⚠️ 이 문서는 설계 기준입니다. 실제 구현과 차이가 있는 부분은 `[미구현]`으로 표기합니다.
 
 ## 1. 시스템 구성도
@@ -32,7 +32,7 @@
 -- 프로필 (선수/부모/기타)
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id),
-  role TEXT NOT NULL DEFAULT 'player' CHECK (role IN ('player', 'parent', 'other')),
+  role TEXT NOT NULL DEFAULT 'player' CHECK (role IN ('player', 'parent', 'scout')),
   handle TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   avatar_url TEXT,

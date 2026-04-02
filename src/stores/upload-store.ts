@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import type { EventTag } from "@/components/editor/video/types";
 
+export interface Caption {
+  text: string;       // 최대 30자
+  startTime: number;  // trim 기준 상대 초
+  endTime: number;
+  style: "sports" | "minimal" | "gold";
+  position: "top" | "center" | "bottom";
+}
+
 export type UploadPhase = "select" | "decorate" | "share" | "uploading" | "done";
 export type UploadStatus =
   | "idle"
@@ -51,6 +59,16 @@ interface UploadState {
   skillLabels: string[];
   customLabels: string[];
   effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
+  // v4.0 슬로모션
+  slowmoStart: number | null;
+  slowmoEnd: number | null;
+  slowmoSpeed: number;
+  // v4.0 캡션
+  captions: Caption[];
+  // v4.0 BGM
+  bgmId: string | null;
+  bgmVolume: number;       // 0~100
+  originalVolume: number;  // 0~100
   renderJobId: string | null;
   renderProgress: number;
 
@@ -91,6 +109,17 @@ interface UploadState {
   setSkillLabels: (labels: string[]) => void;
   setCustomLabels: (labels: string[]) => void;
   setEffects: (effects: Partial<UploadState["effects"]>) => void;
+  // v4.0 슬로모션
+  setSlowmo: (start: number | null, end: number | null) => void;
+  setSlowmoSpeed: (speed: number) => void;
+  // v4.0 캡션
+  setCaptions: (captions: Caption[]) => void;
+  addCaption: (caption: Caption) => void;
+  removeCaption: (index: number) => void;
+  // v4.0 BGM
+  setBgm: (id: string | null) => void;
+  setBgmVolume: (v: number) => void;
+  setOriginalVolume: (v: number) => void;
   setRenderJobId: (id: string | null) => void;
   setRenderProgress: (p: number) => void;
 
@@ -136,6 +165,14 @@ const initial = {
   skillLabels: [] as string[],
   customLabels: [] as string[],
   effects: { color: false, cinematic: false, eafc: false, intro: true },
+  // v4.0
+  slowmoStart: null as number | null,
+  slowmoEnd: null as number | null,
+  slowmoSpeed: 0.5,
+  captions: [] as Caption[],
+  bgmId: null as string | null,
+  bgmVolume: 40,
+  originalVolume: 100,
   renderJobId: null as string | null,
   renderProgress: 0,
 
@@ -181,6 +218,17 @@ export const useUploadStore = create<UploadState>((set) => ({
   setEffects: (partial) => set((state) => ({
     effects: { ...state.effects, ...partial },
   })),
+  // v4.0 슬로모션
+  setSlowmo: (slowmoStart, slowmoEnd) => set({ slowmoStart, slowmoEnd }),
+  setSlowmoSpeed: (slowmoSpeed) => set({ slowmoSpeed }),
+  // v4.0 캡션
+  setCaptions: (captions) => set({ captions }),
+  addCaption: (caption) => set((state) => ({ captions: [...state.captions, caption] })),
+  removeCaption: (index) => set((state) => ({ captions: state.captions.filter((_, i) => i !== index) })),
+  // v4.0 BGM
+  setBgm: (bgmId) => set({ bgmId }),
+  setBgmVolume: (bgmVolume) => set({ bgmVolume }),
+  setOriginalVolume: (originalVolume) => set({ originalVolume }),
   setRenderJobId: (renderJobId) => set({ renderJobId }),
   setRenderProgress: (renderProgress) => set({ renderProgress }),
 

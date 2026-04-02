@@ -7,14 +7,18 @@ import type { EventTag } from "@/components/editor/video/types";
 import PinchZoomVideo from "@/components/editor/video/PinchZoomVideo";
 import FrameNavigator from "@/components/editor/video/FrameNavigator";
 import EffectsToggle from "@/components/video/EffectsToggle";
+import SlowmoTab from "@/components/upload/SlowmoTab";
+import CaptionTab from "@/components/upload/CaptionTab";
 import { useUploadGuide } from "@/hooks/useUploadGuide";
 import CoachMark from "@/components/upload/guide/CoachMark";
 
-type DecorateTab = "position" | "tag" | "effect";
+type DecorateTab = "position" | "tag" | "slowmo" | "caption" | "effect";
 
 const TABS: { id: DecorateTab; label: string; icon: string }[] = [
   { id: "position", label: "위치", icon: "📍" },
   { id: "tag", label: "태그", icon: "🏷" },
+  { id: "slowmo", label: "슬로모", icon: "🐢" },
+  { id: "caption", label: "텍스트", icon: "💬" },
   { id: "effect", label: "효과", icon: "✨" },
 ];
 
@@ -216,6 +220,16 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
               })}
             </div>
           </div>
+        </div>
+
+        {/* ── 슬로모 탭 ── */}
+        <div style={{ display: activeTab === "slowmo" ? "block" : "none" }}>
+          <SlowmoTab />
+        </div>
+
+        {/* ── 텍스트 탭 ── */}
+        <div style={{ display: activeTab === "caption" ? "block" : "none" }}>
+          <CaptionTab />
         </div>
 
         {/* ── 효과 탭 ── */}
