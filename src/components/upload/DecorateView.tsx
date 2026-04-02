@@ -7,6 +7,8 @@ import type { EventTag } from "@/components/editor/video/types";
 import PinchZoomVideo from "@/components/editor/video/PinchZoomVideo";
 import FrameNavigator from "@/components/editor/video/FrameNavigator";
 import EffectsToggle from "@/components/video/EffectsToggle";
+import { useUploadGuide } from "@/hooks/useUploadGuide";
+import CoachMark from "@/components/upload/guide/CoachMark";
 
 type DecorateTab = "position" | "tag" | "effect";
 
@@ -82,6 +84,7 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
     useUploadStore.getState().setEventTag(current === tag ? null : tag);
   }, []);
 
+  const { guideStep, dismissStep, skipAll } = useUploadGuide();
   const hasSpotlight = spotlightX !== null && spotlightY !== null;
 
   return (
@@ -226,6 +229,11 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
           </div>
         </div>
       </div>
+
+      {/* Coach Mark Guide */}
+      {activeTab === "position" && guideStep && (
+        <CoachMark step={guideStep} onDismiss={dismissStep} onSkipAll={skipAll} />
+      )}
 
       {/* 하단 버튼 */}
       <div
