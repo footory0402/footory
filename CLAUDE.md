@@ -13,9 +13,9 @@
 - **컴포넌트**: shadcn/ui (base-nova, CSS variables)
 - **DB/Auth**: Supabase (PostgreSQL, Auth, Realtime)
 - **미디어**: Cloudflare R2 + CDN (`@aws-sdk/client-s3`)
-- **배포**: Vercel (`vercel.json`)
+- **배포**: Vercel (`vercel.json`, region: icn1)
 - **상태**: Zustand 5 (업로드), React hooks (나머지)
-- **영상처리**: FFmpeg WASM (클라이언트사이드 압축 + 인트로 합성)
+- **영상처리**: FFmpeg WASM (클라이언트사이드 압축)
 
 ## 테스트 필수 규칙
 **기능 수정/추가 후 반드시 브라우저에서 실제 테스트할 것.**
@@ -28,29 +28,70 @@
 1. 모든 컴포넌트 `.tsx` — TypeScript 필수
 2. 스타일은 Tailwind + CSS 변수 (`globals.css`) — 인라인 style 금지
 3. 라우트 보호: `src/proxy.ts` (middleware.ts 아님 — Next.js 16 명칭 변경)
-4. 다크 모드만. 배경 기본값 `#070709`
+4. 다크 모드만. 배경색은 `globals.css` CSS 변수 참조 (`--color-bg`, `--color-card` 등)
 5. 모바일 퍼스트 (max-width 430px)
 6. Supabase: 브라우저 → `src/lib/supabase/client.ts`, 서버 → `src/lib/supabase/server.ts`
 7. `database.ts` 각 테이블에 `Relationships: []` 필수 (없으면 Insert 타입 `never`)
 8. 업로드 작업 전 `src/lib/upload-service.ts` 최상단 주석 읽을 것 (핵심 상수 변경 금지)
+9. **영상 꾸미기(freeze frame, spotlight, 이펙트)는 런타임 방식** — FFmpeg로 영상 파일에 굽지 않음. 클립 DB에 메타데이터만 저장, `ClipPlayerSheet`에서 React 오버레이로 렌더링
+10. 컴포넌트가 크거나 조건부 로딩이 필요한 경우 `next/dynamic`으로 lazy load — 프로젝트 전반에 걸쳐 사용 중 (static import 대신 dynamic import가 기본 패턴)
 
 ## 디자인 핵심
-- 배경: `#070709` → `#1C1C22` → `#24242A`
-- 골드 액센트: `#D4A853`
-- 텍스트: `#FAFAFA` / `#A1A1AA` / `#71717A`
+색상 source of truth는 `src/app/globals.css`의 CSS 변수:
+- `--color-bg`: 최하단 배경 (#070709)
+- `--color-card`: 카드 배경 (#1C1C22)
+- `--color-card-alt`: 카드 대비 (#24242A)
+- `--color-accent`: 골드 (#D4A853)
+- `--color-text-1/2/3`: 텍스트 계층
+
+컴포넌트 패턴:
 - `card-elevated` = bg-card + var(--card-shadow) + rounded-12
 - `glass-nav` = backdrop-blur + 반투명 (헤더/바텀탭)
 - Border: `rgba(255,255,255,0.08)`
 - 폰트: 스탯 → Oswald, 브랜드 → Rajdhani, 본문 → Noto Sans KR
 
-## 5탭 네비
-| 탭 | 라우트 |
-|----|--------|
-| 🏠 홈 | `/` |
-| 🏆 MVP | `/mvp` |
-| 🔍 탐색 | `/discover` |
-| 👤 프로필 | `/profile` |
-| 👥 팀 | `/team/[id]` |
+## 네비게이션 구조 (역할별)
+
+`src/components/layout/BottomTab.tsx` 참조.
+
+| 역할 | 탭 1 | 탭 2 | 탭 3 (가운데 액션) | 탭 4 | 탭 5 |
+|------|------|------|-----------------|------|------|
+| player | 🏠 홈 `/` | 🏆 MVP `/mvp` | ➕ 업로드 `/upload` | 🔍 탐색 `/discover` | 👤 프로필 `/profile` |
+| parent | 🏠 홈 `/` | 🏆 MVP `/mvp` | ➕ 업로드 `/upload` | 🔍 탐색 `/discover` | ⚙️ 설정 `/profile/settings` |
+| scout  | 🏠 홈 `/` | 🏆 MVP `/mvp` | 📋 관심목록 `/profile/watchlist` | 🔍 탐색 `/discover` | 👤 프로필 `/profile` |
+
+## 전체 라우트 맵
+
+```
+/                    홈 (역할별 피드)
+/login               로그인 (카카오 + 이메일)
+/signup              이메일 회원가입
+/onboarding          역할별 온보딩
+/auth/forgot-password
+/auth/reset-password
+/profile             내 프로필 → /p/[handle]로 redirect
+/profile/settings    계정 설정
+/profile/follows     팔로잉/팔로워
+/profile/watchlist   스카우트 관심목록
+/profile/children    부모: 자녀 관리
+/discover            탐색 (랭킹 + 태그 + 검색)
+/mvp                 MVP 투표 + 아카이브 + 명예의 전당
+/upload              영상 업로드
+/upload/child/[id]   부모: 자녀용 업로드
+/editor              프로필 카드 에디터 (public 경로)
+/editor/video        경기 영상 하이라이트 에디터
+/edit/[clipId]       클립 편집
+/p/[handle]          공개 프로필 (SSR)
+/p/[handle]/h/[id]   하이라이트 공유 페이지
+/t/[handle]          공개 팀 프로필 (SSR)
+/team                팀 허브 (내 팀 목록)
+/team/[id]           팀 상세
+/team/[id]/settings  팀 설정
+/dm                  DM 목록
+/dm/[conversationId] DM 대화
+/(main)/notifications 알림
+/admin/video-lab     영상 가공 랩 (관리자)
+```
 
 ## 환경 변수 (`.env.local`)
 ```
@@ -68,175 +109,99 @@ R2_PUBLIC_URL=
 
 ## 핵심 기능 1: 인증 & 온보딩
 
-### 로그인 방식
 - 카카오 SSO + 이메일/비밀번호
 - 역할 3종: `player | parent | scout`
-
-### 파일 위치
-- `src/lib/auth.ts` — signInWithKakao, signUpWithEmail, signInWithEmail, resetPassword
-- `src/components/auth/` — KakaoLoginButton, EmailLoginForm, EmailSignupForm
-- `src/app/login/page.tsx` — 로그인 페이지
-- `src/app/signup/page.tsx` — 이메일 가입
-- `src/app/auth/confirm/route.ts` — 이메일 인증 콜백
-- `src/app/(main)/profile/onboarding/page.tsx` — 역할별 온보딩
+- 진입점: `src/app/login/page.tsx`, `src/app/onboarding/page.tsx`
+- 인증 로직: `src/lib/auth.ts`
+- 콜백: `src/app/auth/confirm/route.ts`, `src/app/auth/callback/route.ts`
 
 ---
 
-## 핵심 기능 2: 프로필
+## 핵심 기능 2: 프로필 (V5)
 
-### 구현된 기능
-- 프로필 카드 (사진/이름/포지션/팀/나이/도시)
-- 프로필 레벨 (Lv.1~5)
-- 3탭 구조: 하이라이트 / 기록(스탯) / 커리어
-- 인라인 편집 (ProfileEditSheet)
-- 공개 프로필 `/p/[handle]` SSR
-- 팔로우/팔로잉
-- 플레이스타일 테스트
+3탭 구조: **하이라이트 / 기록(스탯) / 커리어**
 
-### 파일 위치
-- `src/app/(main)/profile/page.tsx` — 내 프로필
-- `src/app/(main)/profile/edit/page.tsx` — 프로필 편집
-- `src/app/p/[handle]/page.tsx` — 공개 프로필 SSR
-- `src/app/p/[handle]/h/[clipId]/page.tsx` — 하이라이트 공유 페이지
-- `src/app/api/profile/me/route.ts` — GET/PUT 프로필 API
-- `src/components/profile/` — PlayerCard, FeaturedHighlights, SeasonHistory 등
+- 공개 프로필 SSR: `src/app/p/[handle]/page.tsx` (server) + `client.tsx` (client interactions)
+- 내 프로필: `/profile` → `/p/[handle]`로 redirect
+- V5 컴포넌트: `src/components/profile/` (HeroSection, HighlightsTabV5, RecordsTabV5, CareerTabV5)
+- 인라인 편집: ProfileEditSheet, SeasonAddSheet, StatInputSheet (모두 dynamic import)
+- 공개 프로필에서 사용하는 시트류는 **모두 dynamic import** (`p/[handle]/client.tsx` 참조)
+- 프로필 API: `src/app/api/profile/`
 
 ---
 
 ## 핵심 기능 3: 영상 업로드
 
-### 업로드 플로우
-1. 파일 선택 → 유효성 검사 (200MB / 5분 이내)
-2. 백그라운드 FFmpeg WASM 압축 (5MB 이상 시)
-3. R2 presigned URL로 직접 업로드
-4. 스포트라이트 링 위치 선택 (선택)
-5. 인트로 카드 토글 (ON 시 ffmpeg.wasm으로 카드 2초 + 원본 concat)
-6. 클립 메타데이터 저장 → 프로필 자동 이동
+### 플로우 (2단계 위저드)
+1. **Select**: 파일 선택 → 트림 → 유효성 검사 (200MB / 5분)
+2. **Decorate**: 이펙트(slo-mo/freeze/captions) + 스포트라이트 좌표 + 스킬 태그
+3. R2 presigned URL로 직접 업로드 (FFmpeg WASM 압축 5MB 이상 시)
+4. 클립 메타데이터 DB 저장 → 업로드 완료
 
-### 업로드 방식 2가지
-- **짧은 영상 바로 올리기**: 스킬 영상 직접 업로드 (2분 이내)
-- **경기 영상 하이라이트**: `/editor/video`에서 풀영상 구간 선택 → 하이라이트 생성
-
-### 파일 위치
+### 핵심 파일
 - `src/app/upload/page.tsx` — 업로드 페이지
-- `src/lib/upload-service.ts` — 핵심 업로드 로직 (startUpload, startR2BackgroundUpload)
+- `src/lib/upload-service.ts` — **최상단 주석 반드시 읽을 것** (Vercel 10초 하드캡, 상수 변경 금지)
 - `src/stores/upload-store.ts` — Zustand 업로드 상태
-- `src/components/upload/VideoSelector.tsx` — 파일 선택 + 압축
-- `src/components/upload/SpotlightPicker.tsx` — 스포트라이트 위치 선택
-- `src/components/upload/GlobalUploadIndicator.tsx` — 진행 상태 표시
 - `src/app/api/upload/presign/route.ts` — R2 presigned URL
-- `src/app/api/clips/route.ts` — 클립 CRUD
 
 ### ffmpeg.wasm 주의사항
-- SharedArrayBuffer 필요 → /editor, /upload 경로에 COOP/COEP 헤더 추가됨
-- 모바일에서도 동작
+- SharedArrayBuffer 필요 → `/editor`, `/upload` 경로에 COOP/COEP 헤더 (next.config.ts)
+- 인트로 카드 합성: `src/lib/intro-composer.ts` → `src/lib/card-renderer.ts` (dynamic import chain)
 
 ---
 
 ## 핵심 기능 4: 영상 플레이어
 
-### ClipPlayerSheet (전체화면 플레이어)
-- 세로 스와이프 (위/아래)로 클립 전환
-- 인트로 카드: 재생 전 3초간 선수 정보 카드 표시 (player_cards 테이블 연동)
-- HUD 오버레이: 방송 스타일 (상단 브랜드바 + 하단 선수 정보 2단 바)
-- 스포트라이트 링: 선수 위치 강조 (2.5초 표시 후 페이드아웃)
-- seekbar + 일시정지 + 공유/편집/삭제 액션
-
-### HUD 오버레이 구조
-- 상단: "FOOTORY HIGHLIGHT" 브랜드 바
-- 하단 1행: 선수 사진(44px) + 이름/등번호 + 포지션 뱃지
-- 하단 2행: CLUB | BORN | SIZE | FOOT (4열 스탯 그리드)
-
-### 파일 위치
-- `src/components/player/ClipPlayerSheet.tsx` — 전체화면 플레이어 (인트로 카드 + HUD 통합)
-- `src/components/video/hud/HudOverlay.tsx` — 방송 스타일 HUD 오버레이 (자체 포함)
-- `src/components/video/hud/IntroCard.tsx` — 인트로 선수 카드
-- `src/components/video/hud/types.ts` — HudPlayerData, HudConfig 타입
-- `src/components/video/VideoOverlay.tsx` — 스포트라이트 링 + 네임태그 (HUD 없을 때 폴백)
+### ClipPlayerSheet (`src/components/player/ClipPlayerSheet.tsx`)
+- 전체화면 세로 스와이프로 클립 전환
+- **영상 꾸미기 모두 런타임**: freeze frame, spotlight ring, HUD 오버레이 — 영상 파일 무수정
+- 인트로 카드: 재생 전 3초 선수 정보 (`player_cards` 테이블)
+- HUD 오버레이: `src/components/video/hud/HudOverlay.tsx` (dynamic import)
+- 스포트라이트 링: `spotlight_x/y` DB 컬럼 → CSS 오버레이
 
 ---
 
 ## 핵심 기능 5: 프로필 카드 에디터
 
-### 개요
-선수 프로필 카드를 생성/저장하고, 영상 인트로에 자동 합성.
-로그인 없이도 에디터 접근 가능 (/editor는 public 경로).
-
-### 구현된 기능
-- 3가지 템플릿: FIFA 스타일(세로) / 방송 스타일(가로) / 미니멀(세로)
-- 프로필 자동 채움
-- 카드 저장/불러오기: player_cards 테이블 (프로필당 1장, upsert)
-- 사진 R2 업로드 + 배경 제거 (@imgly/background-removal)
-- 컬러 자유 선택: 프로구단 프리셋 + 커스텀 컬러피커
-- 내보내기: PNG 이미지 + MP4 영상(애니메이션)
-
-### 파일 위치
-- `src/app/editor/page.tsx` — 에디터 페이지
-- `src/components/editor/` — 에디터 컴포넌트
-- `src/app/api/player-card/route.ts` — 카드 CRUD API
-- `src/lib/card-renderer.ts` — Canvas 카드 렌더링
-- `src/lib/intro-composer.ts` — ffmpeg.wasm 인트로 합성
-
-### DB 테이블
-- player_cards: id, profile_id(UNIQUE), template, club_name, main_color, accent_color, card_data(JSONB)
+- 진입점: `src/app/editor/page.tsx` (public — 로그인 불필요)
+- 템플릿: FIFA 스타일 / 방송 스타일 (BroadcastCard)
+- 저장: `player_cards` 테이블 (프로필당 1장 upsert)
+- 카드 렌더링: `src/lib/card-renderer.ts` (Canvas)
+- 내보내기: PNG + MP4 (`src/components/editor/useExport.ts`)
+- 배경 제거: `@imgly/background-removal`
 
 ---
 
 ## 핵심 기능 6: 부모용 자녀 관리
 
-### 구현된 기능
-- 자녀 프로필 편집 (포지션/등번호/키/몸무게)
-- 시즌 기록 CRUD
-- 부모 대시보드 + 활동 리캡
-- 자녀 대신 영상 업로드
-
-### 파일 위치
-- `src/app/upload/child/[id]/page.tsx` — 자녀 편집 페이지
-- `src/app/api/parent/` — 부모 관련 API (child, dashboard, link, recap, upload)
-- `src/app/profile/children/page.tsx` — 자녀 목록
+- 홈에서 자녀 대시보드 (`src/components/parent/ChildDashboard.tsx`)
+- 자녀 목록: `src/app/profile/children/page.tsx`
+- API: `src/app/api/parent/` (child, dashboard, link, recap, upload)
 
 ---
 
 ## 핵심 기능 7: 홈 피드 & 소셜
 
-### 구현된 기능
-- 추천 기반 피드 (역할별 뷰)
-- 응원 (Kudos) 👏 + 댓글
-- 팔로우/팔로잉 (8개 진입점)
-- 알림 시스템
-
-### 파일 위치
-- `src/app/(main)/page.tsx` — 홈 피드
-- `src/app/api/feed/route.ts` — 피드 API
-- `src/app/api/follows/route.ts` — 팔로우 API
-- `src/app/(main)/notifications/page.tsx` — 알림
+- 역할별 홈: player → FeedListClient, parent → ChildDashboard, scout → ScoutHome
+- 응원(Kudos) + 댓글 + 공유 (FeedCard → CommentSheet, dynamic import)
+- 팔로우: `src/app/api/follows/route.ts`
+- 알림: `src/app/(main)/notifications/page.tsx`
+- DM: `src/app/dm/` (Supabase Realtime)
 
 ---
 
 ## 핵심 기능 8: MVP 투표 & 탐색
 
-### MVP
-- 주간 MVP 투표 + 자동 점수 (조회·응원·댓글 가중합)
-- 순위표 + 아카이브 + 명예의 전당
-
-### 탐색
-- 선수/팀 랭킹 + 검색 + 태그 그리드
-
-### 파일 위치
-- `src/app/mvp/page.tsx` — MVP 탭
-- `src/app/discover/page.tsx` — 탐색 탭
-- `src/app/api/mvp/` — MVP API
-- `src/app/api/discover/` — 탐색 API
+- MVP: `src/app/mvp/page.tsx` → MvpPageClient (투표 + 아카이브 + 명예의 전당, dynamic import)
+- 탐색: `src/app/discover/page.tsx` (PlayerRanking, TeamRanking, TagGrid, SearchOverlay — 모두 dynamic)
+- MVP API: `src/app/api/mvp/`
+- 탐색 API: `src/app/api/discover/`
 
 ---
 
 ## 핵심 기능 9: 팀 허브
 
-### 구현된 기능
-- 팀 생성/가입 (초대코드)
-- 공지/일정/미디어/멤버 관리
-- 현재/이전 소속 분리
-
-### 파일 위치
-- `src/app/team/[id]/page.tsx` — 팀 페이지
-- `src/app/api/teams/` — 팀 API
+- 팀 목록: `src/app/team/page.tsx`
+- 팀 상세: `src/app/team/[id]/page.tsx` (피드 + 멤버 + 앨범)
+- 공개 팀: `src/app/t/[handle]/page.tsx`
+- API: `src/app/api/teams/`
