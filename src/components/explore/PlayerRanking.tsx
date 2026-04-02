@@ -72,21 +72,23 @@ export default function PlayerRanking({ compact = false }: PlayerRankingProps) {
     <div>
       {/* Sort tabs + position filter */}
       {!compact && (
-        <div className="flex gap-2 mb-3">
-          {SORT_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setSort(opt.key)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                sort === opt.key
-                  ? "bg-accent text-bg"
-                  : "bg-card-alt text-text-2 active:bg-elevated"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-          <p className="text-[10px] text-text-3 mt-1">
+        <div className="mb-3">
+          <div className="flex gap-2">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSort(opt.key)}
+                className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  sort === opt.key
+                    ? "bg-accent text-bg"
+                    : "bg-card-alt text-text-2 active:bg-elevated"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-text-3 mt-1.5">
             {SORT_OPTIONS.find((o) => o.key === sort)?.desc}
           </p>
         </div>

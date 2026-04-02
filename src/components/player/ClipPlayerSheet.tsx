@@ -951,8 +951,12 @@ export default function ClipPlayerSheet({
       {/* ── 축구 중계 스타일 마커 오버레이 ── */}
       {clip.playerName && introReady && !showIntro && adjustedSpot && (
         <div
-          className="absolute inset-0 z-[45] pointer-events-none"
-          style={{ transform: videoTransform, transformOrigin: "center center" }}
+          className="absolute inset-x-0 top-0 z-[45] pointer-events-none"
+          style={{
+            height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT}px)` : "100%",
+            transform: videoTransform,
+            transformOrigin: "center center",
+          }}
         >
           <VideoOverlay
             key={clip.id}
@@ -973,7 +977,10 @@ export default function ClipPlayerSheet({
 
       {/* ── 캡션 오버레이 ── */}
       {effects?.captions && effects.captions.length > 0 && introReady && !showIntro && (
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 46 }}>
+        <div className="absolute inset-x-0 top-0 pointer-events-none" style={{
+          height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT}px)` : "100%",
+          zIndex: 46,
+        }}>
           <CaptionOverlay
             captions={effects.captions}
             currentTime={currentTime}
@@ -981,16 +988,43 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── HUD 오버레이 — 방송 스타일 (컨트롤 숨겨질 때 또는 영상 종료 시 표시) ── */}
-      {introData && introReady && !showIntro && (
+      {/* ── HUD 하단 고정 바 — 항상 표시 (영상 영역 아래) ── */}
+      {hasHud && (
         <div
-          className="absolute inset-0 z-[44] pointer-events-none"
-          style={{ opacity: (!showControls || ended) ? 1 : 0, transition: "opacity 0.3s" }}
+          className="absolute inset-x-0 bottom-0 z-[44] pointer-events-none"
+          style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
         >
           <HudOverlay
-            data={introData}
+            data={introData!}
             config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
+            mode="docked"
           />
+        </div>
+      )}
+
+      {/* ── HUD 상단 브랜드 바 — 컨트롤 숨겨질 때만 ── */}
+      {hasHud && (
+        <div
+          className="absolute inset-0 z-[44] pointer-events-none"
+          style={{ opacity: !showControls ? 1 : 0, transition: "opacity 0.3s" }}
+        >
+          <div
+            className="absolute inset-x-0 flex items-center justify-center py-2"
+            style={{
+              top: "calc(env(safe-area-inset-top, 16px) + 44px)",
+              background: "linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%)",
+            }}
+          >
+            <span
+              className="text-[12px] font-bold tracking-[5px] text-white/80"
+              style={{ fontFamily: "var(--font-brand, 'Rajdhani', sans-serif)" }}
+            >
+              FOOTORY
+            </span>
+            <span className="ml-2 text-[9px] tracking-[2px] text-white/30">
+              HIGHLIGHT
+            </span>
+          </div>
         </div>
       )}
 
@@ -1114,7 +1148,9 @@ export default function ClipPlayerSheet({
       </div>
 
       {/* ── 우측 액션 버튼 — 항상 표시 (TikTok/Reels 스타일) ── */}
-      <div className="absolute right-4 bottom-32 z-40 flex flex-col items-center gap-5">
+      <div className="absolute right-4 z-40 flex flex-col items-center gap-5" style={{
+        bottom: hasHud ? `calc(env(safe-area-inset-bottom, 16px) + ${HUD_BAR_HEIGHT + 40}px)` : "128px",
+      }}>
         {/* 소리 토글 */}
         <button
           onClick={() => {
@@ -1192,8 +1228,10 @@ export default function ClipPlayerSheet({
 
       {/* ── 하단 정보 + seekbar ── */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-40 px-4 pb-[env(safe-area-inset-bottom,16px)]"
+        className="absolute left-0 right-0 z-40 px-4"
         style={{
+          bottom: hasHud ? `calc(env(safe-area-inset-bottom, 16px) + ${HUD_BAR_HEIGHT}px)` : "0",
+          paddingBottom: hasHud ? "0" : "env(safe-area-inset-bottom, 16px)",
           background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)",
           opacity: showControls ? 1 : 0,
           transition: "opacity 0.3s",

@@ -71,19 +71,6 @@ const getProfile = cache(async (handle: string) => {
     isSameTeam = (targetTeams.data ?? []).some((item) => viewerTeamIds.has(item.team_id));
   }
 
-  // --- Step 2: Build visibility-filtered clips query ---
-  type VisibilityValue = "public" | "followers" | "team" | "private";
-  let allowedVisibilities: VisibilityValue[];
-  if (isOwner) {
-    allowedVisibilities = ["public", "followers", "team", "private"];
-  } else if (isSameTeam) {
-    allowedVisibilities = ["public", "followers", "team"];
-  } else if (isFollowing) {
-    allowedVisibilities = ["public", "followers"];
-  } else {
-    allowedVisibilities = ["public"];
-  }
-
   const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData, playStyleData, tournamentRecordsData, awardsData] = await Promise.all([
     supabase
       .from("featured_clips")
@@ -121,8 +108,7 @@ const getProfile = cache(async (handle: string) => {
     supabase
       .from("clips")
       .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)")
-      .eq("owner_id", profile.id)
-      .in("visibility", allowedVisibilities),
+      .eq("owner_id", profile.id),
     supabase
       .from("play_styles")
       .select("*")
@@ -155,8 +141,7 @@ const getProfile = cache(async (handle: string) => {
     const { data: clipsData } = await supabase
       .from("clips")
       .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end")
-      .in("id", clipIds)
-      .in("visibility", allowedVisibilities);
+      .in("id", clipIds);
     if (clipsData) {
       for (const c of clipsData) {
         clipsMap[c.id] = {
