@@ -99,6 +99,10 @@ export default function ClipPlayerSheet({
   const zoomRef = useRef(1);
   const panRef = useRef({ x: 0, y: 0 });
 
+  // View count tracking: 3초 재생 후 1회만 호출
+  const viewTrackedRef = useRef<Set<string>>(new Set());
+  const viewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const clip = clips[index];
   const hasNext = index < clips.length - 1;
   const hasPrev = index > 0;
@@ -119,8 +123,16 @@ export default function ClipPlayerSheet({
   const freezeFiredRef = useRef<Set<string>>(new Set());
   const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 닫기 애니메이션
+  const [closing, setClosing] = useState(false);
+  const handleClose = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(() => onClose(), 250);
+  }, [closing, onClose]);
+
   // 뒤로가기로 영상 플레이어 닫기
-  useBackClose(true, onClose);
+  useBackClose(!closing, handleClose);
 
   // Lock body scroll
   useEffect(() => {
@@ -255,7 +267,7 @@ export default function ClipPlayerSheet({
       setTimeout(() => {
         setShowIntro(false);
         setIntroReady(true);
-        videoRef.current?.play();
+        videoRef.current?.play()?.catch(() => {});
       }, 3000);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -308,8 +320,25 @@ export default function ClipPlayerSheet({
         }, 1000);
       }
     };
-    const onPlay = () => { setPaused(false); scheduleHide(); setPlayCount((c) => c + 1); };
-    const onPause = () => { setPaused(true); setShowControls(true); };
+    const onPlay = () => {
+      setPaused(false); scheduleHide(); setPlayCount((c) => c + 1);
+      // View count: 3초 후 API 호출 (클립당 1회)
+      const currentClip = clips[index];
+      if (currentClip && !viewTrackedRef.current.has(currentClip.id)) {
+        if (viewTimerRef.current) clearTimeout(viewTimerRef.current);
+        viewTimerRef.current = setTimeout(() => {
+          if (!viewTrackedRef.current.has(currentClip.id)) {
+            viewTrackedRef.current.add(currentClip.id);
+            fetch(`/api/clips/${currentClip.id}/view`, { method: "POST" }).catch(() => {});
+          }
+        }, 3000);
+      }
+    };
+    const onPause = () => {
+      setPaused(true); setShowControls(true);
+      // 일시정지 시 타이머 취소 (3초 미달)
+      if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
+    };
     const onLoaded = () => {
       const currentClip = clips[index];
       const trimS = currentClip?.trimStart ?? 0;
@@ -336,6 +365,7 @@ export default function ClipPlayerSheet({
       v.removeEventListener("pause", onPause);
       v.removeEventListener("loadedmetadata", onLoaded);
       v.removeEventListener("error", onError);
+      if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
     };
   }, [scheduleHide, index]);
 
@@ -344,7 +374,7 @@ export default function ClipPlayerSheet({
     if (!v) return;
     // 프리즈 중에는 탭 무시
     if (isFreezing) return;
-    if (v.paused) { v.play(); setPaused(false); setShowControls(true); scheduleHide(); }
+    if (v.paused) { v.play().catch(() => {}); setPaused(false); setShowControls(true); scheduleHide(); }
     else { v.pause(); setPaused(true); setShowControls(true); }
   }, [scheduleHide, isFreezing]);
 
@@ -582,11 +612,11 @@ export default function ClipPlayerSheet({
         if (hasNext) goToClip(index + 1);
       } else if (swipeY > 60 || (swipeY > 0 && velocity > 0.3)) {
         if (velocity > 0.5 && !hasPrev) {
-          onClose();
+          handleClose();
         } else if (hasPrev) {
           goToClip(index - 1);
         } else if (velocity > 0.5) {
-          onClose();
+          handleClose();
         }
       }
       setSwipeY(0);
@@ -625,7 +655,7 @@ export default function ClipPlayerSheet({
     if (ok) {
       setShowActions(false);
       const remaining = localClips.filter((c) => c.id !== clipId);
-      if (remaining.length === 0) { onClose(); return true; }
+      if (remaining.length === 0) { handleClose(); return true; }
       const nextIndex = index >= remaining.length ? remaining.length - 1 : index;
       setLocalClips(remaining);
       setIndex(nextIndex);
@@ -656,15 +686,35 @@ export default function ClipPlayerSheet({
     };
   })();
 
+  // 스와이프 다운 닫기 판정 (첫 클립에서 아래로 스와이프)
+  const isDismissSwipe = swiping && swipeY > 0 && !hasPrev;
+  const dismissProgress = isDismissSwipe ? Math.min(swipeY / 300, 1) : 0;
+
   // 영상과 동일한 transform (zoom/pan/swipe) - overlay가 영상 위치를 따라가도록
   const videoTransform = zoom > 1
     ? `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`
-    : swiping ? `translateY(${swipeY * 0.2}px)` : undefined;
+    : (swiping && !isDismissSwipe)
+      ? `translateY(${swipeY * 0.35}px) scale(${1 - Math.min(Math.abs(swipeY) / 800, 0.03)})`
+      : undefined;
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black"
-      style={{ animation: "fullscreen-player-in 0.25s ease-out" }}
+      className="fixed inset-0 z-[100] bg-black overflow-hidden"
+      style={{
+        animation: !swiping
+          ? closing
+            ? "fullscreen-player-out 0.25s ease-in forwards"
+            : "fullscreen-player-in 0.25s ease-out"
+          : "none",
+        transform: isDismissSwipe
+          ? `translateY(${swipeY}px) scale(${1 - dismissProgress * 0.08})`
+          : undefined,
+        opacity: isDismissSwipe ? 1 - dismissProgress * 0.3 : undefined,
+        borderRadius: isDismissSwipe ? `${dismissProgress * 16}px` : undefined,
+        transition: !swiping
+          ? "transform 0.3s ease-out, opacity 0.3s ease-out, border-radius 0.3s ease-out"
+          : "none",
+      }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -687,7 +737,7 @@ export default function ClipPlayerSheet({
       {showIntro && introData && (
         <div
           className="absolute inset-0 z-[60] flex items-center justify-center bg-black"
-          style={{ animation: "fullscreen-player-in 0.5s ease-out" }}
+          style={{ animation: "fullscreen-player-fade-in 0.5s ease-out" }}
         >
           <div className="flex h-full w-full flex-col items-center justify-center p-6">
             {/* 선수 정보 카드 — 모바일 세로 최적화 */}
@@ -874,11 +924,12 @@ export default function ClipPlayerSheet({
         }}
       >
         <button
-          onClick={onClose}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white active:bg-black/50"
+          onClick={handleClose}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm active:bg-black/70 active:scale-95 transition-transform"
+          style={{ minWidth: 44, minHeight: 44 }}
           aria-label="닫기"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
         </button>
