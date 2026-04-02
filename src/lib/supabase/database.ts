@@ -303,53 +303,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      medals: {
-        Row: {
-          id: string;
-          profile_id: string;
-          medal_code: string;
-          stat_id: string | null;
-          achieved_at: string;
-        };
-        Insert: {
-          id?: string;
-          profile_id: string;
-          medal_code: string;
-          stat_id?: string | null;
-          achieved_at?: string;
-        };
-        Update: {
-          medal_code?: string;
-          stat_id?: string | null;
-        };
-        Relationships: [];
-      };
-      medal_criteria: {
-        Row: {
-          code: string;
-          stat_type: string;
-          threshold: number;
-          comparison: "lte" | "gte";
-          icon: string;
-          label: string;
-        };
-        Insert: {
-          code: string;
-          stat_type: string;
-          threshold: number;
-          comparison: "lte" | "gte";
-          icon: string;
-          label: string;
-        };
-        Update: {
-          stat_type?: string;
-          threshold?: number;
-          comparison?: "lte" | "gte";
-          icon?: string;
-          label?: string;
-        };
-        Relationships: [];
-      };
       teams: {
         Row: {
           id: string;
@@ -610,30 +563,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      push_tokens: {
-        Row: {
-          id: string;
-          profile_id: string;
-          token: string;
-          platform: string;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          profile_id: string;
-          token: string;
-          platform?: string;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          token?: string;
-          platform?: string;
-          is_active?: boolean;
-        };
-        Relationships: [];
-      };
       seasons: {
         Row: {
           id: string;
@@ -689,42 +618,6 @@ export interface Database {
           child_id?: string;
           consent_given?: boolean;
           consent_at?: string | null;
-        };
-        Relationships: [];
-      };
-      coach_verifications: {
-        Row: {
-          id: string;
-          profile_id: string;
-          method: string;
-          document_url: string | null;
-          referrer_id: string | null;
-          team_code: string | null;
-          status: string;
-          reviewed_by: string | null;
-          reviewed_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          profile_id: string;
-          method: string;
-          document_url?: string | null;
-          referrer_id?: string | null;
-          team_code?: string | null;
-          status?: string;
-          reviewed_by?: string | null;
-          reviewed_at?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          method?: string;
-          document_url?: string | null;
-          referrer_id?: string | null;
-          team_code?: string | null;
-          status?: string;
-          reviewed_by?: string | null;
-          reviewed_at?: string | null;
         };
         Relationships: [];
       };
@@ -1020,78 +913,6 @@ export interface Database {
           created_at?: string;
         };
         Update: Record<string, never>;
-        Relationships: [];
-      };
-      dm_requests: {
-        Row: {
-          id: string;
-          sender_id: string;
-          receiver_id: string;
-          preview_message: string | null;
-          status: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          sender_id: string;
-          receiver_id: string;
-          preview_message?: string | null;
-          status?: string;
-          created_at?: string;
-        };
-        Update: {
-          status?: string;
-        };
-        Relationships: [];
-      };
-      challenges: {
-        Row: {
-          id: string;
-          title: string;
-          description: string | null;
-          skill_tag: string | null;
-          week_start: string;
-          is_active: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          description?: string | null;
-          skill_tag?: string | null;
-          week_start: string;
-          is_active?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          title?: string;
-          description?: string | null;
-          skill_tag?: string | null;
-          week_start?: string;
-          is_active?: boolean;
-        };
-        Relationships: [];
-      };
-      quest_progress: {
-        Row: {
-          id: string;
-          profile_id: string;
-          quest_type: string;
-          quest_key: string;
-          completed_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          profile_id: string;
-          quest_type: string;
-          quest_key: string;
-          completed_at?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          completed_at?: string | null;
-        };
         Relationships: [];
       };
       coach_reviews: {
