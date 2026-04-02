@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { statType, value, evidenceClipId } = body;
+  const { stat_type: statType, value, evidence_clip_id: evidenceClipId } = body;
 
   // Validate stat type
   const measurement = MEASUREMENTS.find((m) => m.id === statType);

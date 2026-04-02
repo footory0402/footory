@@ -3,33 +3,25 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getOrCreateConversation, getPendingDmRequests, getSentDmRequests } from "@/lib/dm";
+import { getOrCreateConversation } from "@/lib/dm";
 import { useConversations } from "@/hooks/useDm";
 import dynamic from "next/dynamic";
 import ConversationList from "@/components/dm/ConversationList";
-import DmRequestCard from "@/components/dm/DmRequestCard";
-import SentRequestCard from "@/components/dm/SentRequestCard";
 
 const NewConversationSheet = dynamic(
   () => import("@/components/dm/NewConversationSheet"),
   { ssr: false }
 );
-import type { DmRequest } from "@/lib/types";
 
 export default function DmPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const [dmRequests, setDmRequests] = useState<DmRequest[]>([]);
-  const [sentRequests, setSentRequests] = useState<DmRequest[]>([]);
 
   useEffect(() => {
     createClient()
       .auth.getUser()
       .then(({ data }) => setUserId(data.user?.id ?? null));
-
-    getPendingDmRequests().then(setDmRequests);
-    getSentDmRequests().then(setSentRequests);
   }, []);
 
   const { conversations, loading } = useConversations(userId);
@@ -68,34 +60,6 @@ export default function DmPage() {
           </svg>
         </button>
       </div>
-
-      {/* Received DM Requests */}
-      {dmRequests.length > 0 && (
-        <div className="border-b border-border">
-          <div className="px-4 py-2">
-            <p className="text-[13px] font-semibold text-accent">
-              받은 DM 요청 ({dmRequests.length})
-            </p>
-          </div>
-          {dmRequests.map((req) => (
-            <DmRequestCard key={req.id} request={req} />
-          ))}
-        </div>
-      )}
-
-      {/* Sent DM Requests (pending) */}
-      {sentRequests.length > 0 && (
-        <div className="border-b border-border">
-          <div className="px-4 py-2">
-            <p className="text-[13px] font-semibold text-text-2">
-              보낸 요청 ({sentRequests.length})
-            </p>
-          </div>
-          {sentRequests.map((req) => (
-            <SentRequestCard key={req.id} request={req} />
-          ))}
-        </div>
-      )}
 
       {/* Content */}
       {loading ? (

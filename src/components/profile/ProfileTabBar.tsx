@@ -7,7 +7,6 @@ export type ProfileTabKey = "highlights" | "records" | "career";
 interface ProfileTabBarProps {
   activeTab: ProfileTabKey;
   onTabChange: (tab: ProfileTabKey) => void;
-  stickyTop?: number;
 }
 
 const TABS: { key: ProfileTabKey; label: string }[] = [
@@ -16,7 +15,7 @@ const TABS: { key: ProfileTabKey; label: string }[] = [
   { key: "career", label: "커리어" },
 ];
 
-function ProfileTabBarInner({ activeTab, onTabChange, stickyTop }: ProfileTabBarProps) {
+function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabBarProps) {
   return (
     <div
       style={{
@@ -26,9 +25,6 @@ function ProfileTabBarInner({ activeTab, onTabChange, stickyTop }: ProfileTabBar
         overflow: "hidden",
         border: "1px solid rgba(255,255,255,0.06)",
         display: "flex",
-        position: "sticky",
-        top: stickyTop ?? 49,
-        zIndex: 40,
       }}
     >
       {TABS.map((tab) => {

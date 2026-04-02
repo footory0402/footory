@@ -4,11 +4,15 @@ import { getMonthStart } from "@/lib/mvp-scoring";
 import { normalizeMediaUrl } from "@/lib/media-url";
 import {
   computeFeedSplit,
+  computeHotScore,
   computeRecommendationScore,
   type UserContext,
 } from "@/lib/feed-algorithm";
 
 export const FEED_PAGE_SIZE = 20;
+const HOT_WINDOW_HOURS = 48;
+
+export type FeedTab = "recommended" | "following";
 
 /** Lightweight row shape from the joined query */
 interface FeedRow {
@@ -34,46 +38,39 @@ interface FeedRow {
 /**
  * Fetch a page of feed items with recommendation algorithm.
  * profileHint: 이미 가져온 프로필 데이터가 있으면 전달 → profiles 중복 쿼리 제거
+ * tab: "recommended" (시간감쇠+인기도 정렬) | "following" (팔로잉 최신순)
  */
 export async function fetchFeedPage(
   supabase: SupabaseClient,
   userId: string,
   cursor?: string | null,
-  profileHint?: { city: string | null; birth_year: number | null; position: string | null }
+  profileHint?: { city: string | null; birth_year: number | null; position: string | null },
+  tab: FeedTab = "recommended"
 ): Promise<{ items: FeedItemEnriched[]; nextCursor: string | null }> {
   // 1. Build user context
   const ctx = await buildUserContext(supabase, userId, profileHint);
-  const { followLimit, recommendLimit } = computeFeedSplit(
-    FEED_PAGE_SIZE,
-    ctx.followingIds.length
-  );
 
-  // 2. Fetch follow feed + recommended feed in parallel
-  const [followItems, recommendItems] = await Promise.all([
-    followLimit > 0
-      ? fetchFollowFeed(supabase, userId, ctx.followingIds, cursor, followLimit)
-      : Promise.resolve([]),
-    recommendLimit > 0
-      ? fetchRecommendedFeed(supabase, userId, ctx, cursor, recommendLimit)
-      : Promise.resolve([]),
-  ]);
+  let rawItems: FeedItemEnriched[];
 
-  // 3. Merge and sort by created_at desc (newest first)
-  const merged = [...followItems, ...recommendItems].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
+  if (tab === "following") {
+    // 팔로잉 탭: 팔로우 + 본인 콘텐츠만, 순수 최신순
+    rawItems = await fetchFollowFeed(supabase, userId, ctx.followingIds, cursor, FEED_PAGE_SIZE);
+  } else {
+    // 추천 탭: 전체 콘텐츠 대상, hot score 정렬
+    rawItems = await fetchHotFeed(supabase, userId, ctx, cursor, FEED_PAGE_SIZE);
+  }
 
-  // 4. Deduplicate by id + G3: 차단 사용자 콘텐츠 제외
+  // 2. Deduplicate + G3 차단 사용자 제외
   const blockedSet = new Set(ctx.blockedIds ?? []);
   const seen = new Set<string>();
-  let unique = merged.filter((item) => {
+  let unique = rawItems.filter((item) => {
     if (seen.has(item.id)) return false;
     if (blockedSet.has(item.profile_id)) return false;
     seen.add(item.id);
     return true;
   });
 
-  // 4.5. 삭제된 클립 참조하는 feed_items 필터링
+  // 2.5. 삭제된 클립 참조하는 feed_items 필터링
   const highlightRefs = unique
     .filter((i) => i.type === "highlight" && i.reference_id)
     .map((i) => i.reference_id!);
@@ -91,7 +88,7 @@ export async function fetchFeedPage(
     });
   }
 
-  // 5. Check kudos status for current user
+  // 3. Check kudos status for current user
   const items = await attachKudosStatus(supabase, userId, unique);
 
   const nextCursor =
@@ -303,6 +300,123 @@ async function fetchRecommendedFeed(
   });
 
   return scored.slice(0, limit).map(({ row }) => mapRowToEnriched(row, authorTeamNameMap.get(row.profile_id)));
+}
+
+/**
+ * Fetch hot feed for the "recommended" tab.
+ * Pulls recent content (48h window), scores with time-decay + engagement,
+ * and falls back to latest if the window has fewer than pageSize items.
+ */
+async function fetchHotFeed(
+  supabase: SupabaseClient,
+  userId: string,
+  ctx: UserContext,
+  cursor: string | null | undefined,
+  pageSize: number
+): Promise<FeedItemEnriched[]> {
+  const now = Date.now();
+  const windowStart = new Date(now - HOT_WINDOW_HOURS * 3_600_000).toISOString();
+
+  const EXCLUDED_FEED_TYPES = ["top_clip", "season", "featured_change", "stat"];
+  const fetchLimit = Math.max(pageSize * 4, 60);
+
+  let query = supabase
+    .from("feed_items")
+    .select(
+      `id, profile_id, type, reference_id, metadata, created_at,
+       profiles!feed_items_profile_id_fkey(name, handle, avatar_url, level, position, city, birth_year),
+       kudos(count),
+       comments(count)`
+    )
+    .not("type", "in", `(${EXCLUDED_FEED_TYPES.join(",")})`)
+    .gte("created_at", windowStart)
+    .order("created_at", { ascending: false })
+    .limit(fetchLimit);
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  const rows = data as unknown as FeedRow[];
+
+  // Get team memberships + view counts for scoring
+  const authorIds = [...new Set(rows.map((r) => r.profile_id))];
+  const clipIds = rows.filter((r) => r.reference_id).map((r) => r.reference_id!);
+
+  const [authorTeamsRes, viewCountsRes] = await Promise.all([
+    supabase
+      .from("team_members")
+      .select("profile_id, team_id, teams(name)")
+      .in("profile_id", authorIds)
+      .neq("role", "alumni") as unknown as Promise<{
+        data: Array<{ profile_id: string; team_id: string; teams: { name: string } | null }> | null;
+      }>,
+    clipIds.length > 0
+      ? supabase.from("clips").select("id, view_count").in("id", clipIds)
+      : Promise.resolve({ data: [] as { id: string; view_count: number }[] }),
+  ]);
+
+  const authorTeamMap = new Map<string, string[]>();
+  const authorTeamNameMap = new Map<string, string>();
+  for (const row of authorTeamsRes.data ?? []) {
+    const existing = authorTeamMap.get(row.profile_id) ?? [];
+    existing.push(row.team_id);
+    authorTeamMap.set(row.profile_id, existing);
+    if (row.teams?.name && !authorTeamNameMap.has(row.profile_id)) {
+      authorTeamNameMap.set(row.profile_id, row.teams.name);
+    }
+  }
+
+  const viewCountMap = new Map<string, number>();
+  for (const c of (viewCountsRes.data ?? []) as { id: string; view_count: number }[]) {
+    viewCountMap.set(c.id, c.view_count ?? 0);
+  }
+
+  // Score each item with hot score
+  const scored = rows.map((row) => {
+    const profile = row.profiles;
+    const kudosCount = row.kudos?.[0]?.count ?? 0;
+    const commentCount = row.comments?.[0]?.count ?? 0;
+    const viewCount = row.reference_id ? (viewCountMap.get(row.reference_id) ?? 0) : 0;
+
+    const recScore = computeRecommendationScore(
+      ctx,
+      row.profile_id,
+      authorTeamMap.get(row.profile_id) ?? [],
+      profile?.city ?? null,
+      profile?.birth_year ?? null,
+      profile?.position ?? null,
+      kudosCount
+    );
+
+    const hotScore = computeHotScore(kudosCount, commentCount, viewCount, recScore, row.created_at, now);
+    return { row, hotScore };
+  });
+
+  scored.sort((a, b) => b.hotScore - a.hotScore);
+
+  let result = scored.slice(0, pageSize).map(({ row }) =>
+    mapRowToEnriched(row, authorTeamNameMap.get(row.profile_id))
+  );
+
+  // Fallback: 48h 윈도우에 콘텐츠 부족 시 최신순으로 채움
+  if (result.length < pageSize) {
+    const existingIds = new Set(result.map((i) => i.id));
+    const fallbackItems = await fetchFollowFeed(
+      supabase,
+      userId,
+      ctx.followingIds,
+      cursor,
+      pageSize - result.length
+    );
+    const additional = fallbackItems.filter((i) => !existingIds.has(i.id));
+    result = [...result, ...additional];
+  }
+
+  return result;
 }
 
 /**

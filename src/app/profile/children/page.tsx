@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLinkedChildren } from "@/hooks/useParent";
 import Avatar from "@/components/ui/Avatar";
 import LinkChildSheet from "@/components/parent/LinkChildSheet";
 import Button from "@/components/ui/Button";
 
 export default function ChildrenPage() {
+  const router = useRouter();
   const { children, loading, linkChild, unlinkChild } = useLinkedChildren();
   const [showLink, setShowLink] = useState(false);
   const [unlinkTarget, setUnlinkTarget] = useState<{ id: string; name: string } | null>(null);
@@ -24,7 +26,7 @@ export default function ChildrenPage() {
       {/* Back + Title */}
       <div className="mb-6 flex items-center gap-3">
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.back()}
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

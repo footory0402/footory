@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { TournamentRecord } from "./CareerTabV5";
 import { useBackClose } from "@/hooks/useBackClose";
 
 interface TournamentAddSheetProps {
   open: boolean;
   onClose: () => void;
+  initialValues?: TournamentRecord;
+  editingId?: string;
   onSave: (input: {
     name: string;
     type: TournamentRecord["type"];
@@ -20,7 +22,7 @@ interface TournamentAddSheetProps {
 
 const TYPES: TournamentRecord["type"][] = ["공식대회", "리그", "친선"];
 
-export default function TournamentAddSheet({ open, onClose, onSave }: TournamentAddSheetProps) {
+export default function TournamentAddSheet({ open, onClose, initialValues, editingId, onSave }: TournamentAddSheetProps) {
   useBackClose(open, onClose);
   const [name, setName] = useState("");
   const [type, setType] = useState<TournamentRecord["type"]>("공식대회");
@@ -30,6 +32,26 @@ export default function TournamentAddSheet({ open, onClose, onSave }: Tournament
   const [assists, setAssists] = useState("");
   const [isMvp, setIsMvp] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // 시트가 열릴 때 initialValues로 폼 채우기
+  useEffect(() => {
+    if (open) {
+      if (initialValues) {
+        setName(initialValues.name);
+        setType(initialValues.type);
+        setDateText(initialValues.dateText ?? "");
+        setResult(initialValues.result ?? "");
+        setGoals(initialValues.goals ? String(initialValues.goals) : "");
+        setAssists(initialValues.assists ? String(initialValues.assists) : "");
+        setIsMvp(initialValues.isMvp);
+      } else {
+        setName(""); setType("공식대회"); setDateText(""); setResult("");
+        setGoals(""); setAssists(""); setIsMvp(false);
+      }
+      setSaving(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingId]);
 
   const reset = () => {
     setName(""); setType("공식대회"); setDateText(""); setResult("");
@@ -70,7 +92,7 @@ export default function TournamentAddSheet({ open, onClose, onSave }: Tournament
         </div>
 
         <div className="max-h-[80vh] overflow-y-auto px-5 pb-8">
-          <h2 className="mb-5 text-[16px] font-bold text-text-1">대회 기록 추가</h2>
+          <h2 className="mb-5 text-[16px] font-bold text-text-1">{editingId ? "대회 기록 수정" : "대회 기록 추가"}</h2>
 
           {/* 대회명 */}
           <div className="mb-4">
@@ -196,7 +218,7 @@ export default function TournamentAddSheet({ open, onClose, onSave }: Tournament
             className="w-full rounded-xl py-3.5 text-[14px] font-bold transition-opacity disabled:opacity-40"
             style={{ background: "var(--accent-gradient)", color: "#0C0C0E" }}
           >
-            {saving ? "저장 중..." : "저장"}
+            {saving ? "저장 중..." : editingId ? "수정 완료" : "저장"}
           </button>
         </div>
       </div>

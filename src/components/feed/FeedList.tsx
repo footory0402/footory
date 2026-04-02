@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useFeed, type FeedItemEnriched } from "@/hooks/useFeed";
+import { useFeed, type FeedItemEnriched, type FeedTab } from "@/hooks/useFeed";
 import { useRealtimeFeed } from "@/hooks/useRealtimeFeed";
 import Link from "next/link";
 import FeedCard from "./FeedCard";
@@ -39,12 +39,39 @@ function FeedSkeleton() {
   );
 }
 
+function FeedTabs({ tab, onTabChange }: { tab: FeedTab; onTabChange: (t: FeedTab) => void }) {
+  return (
+    <div className="flex gap-1.5 mb-3">
+      <button
+        onClick={() => onTabChange("recommended")}
+        className={`flex-1 py-2 rounded-full text-[13px] font-semibold transition-colors ${
+          tab === "recommended"
+            ? "bg-accent text-bg"
+            : "bg-white/[0.06] text-text-2"
+        }`}
+      >
+        추천
+      </button>
+      <button
+        onClick={() => onTabChange("following")}
+        className={`flex-1 py-2 rounded-full text-[13px] font-semibold transition-colors ${
+          tab === "following"
+            ? "bg-accent text-bg"
+            : "bg-white/[0.06] text-text-2"
+        }`}
+      >
+        팔로잉
+      </button>
+    </div>
+  );
+}
+
 export default function FeedList({
   initialItems = [],
   initialNextCursor = null,
   showNudge = false,
 }: FeedListProps) {
-  const { items, loading, error, hasMore, loadMore, refresh, toggleKudos, updateKudosCount, updateCommentCount } = useFeed(
+  const { items, loading, error, hasMore, tab, setTab, loadMore, refresh, toggleKudos, updateKudosCount, updateCommentCount } = useFeed(
     initialItems,
     initialNextCursor
   );
@@ -114,12 +141,19 @@ export default function FeedList({
 
   // Show skeleton only when no initial data and still loading
   if (loading && items.length === 0) {
-    return <FeedSkeleton />;
+    return (
+      <>
+        <FeedTabs tab={tab} onTabChange={setTab} />
+        <FeedSkeleton />
+      </>
+    );
   }
 
   // Network / server error with no items to show
   if (error && items.length === 0) {
     return (
+      <>
+      <FeedTabs tab={tab} onTabChange={setTab} />
       <div className="flex flex-col items-center justify-center px-4 pt-20 gap-3 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
@@ -136,11 +170,14 @@ export default function FeedList({
           다시 시도
         </button>
       </div>
+      </>
     );
   }
 
   if (!loading && items.length === 0) {
     return (
+      <>
+      <FeedTabs tab={tab} onTabChange={setTab} />
       <div className="flex flex-col items-center justify-center px-4 pt-20">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-3xl">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-3">
@@ -164,6 +201,7 @@ export default function FeedList({
           </div>
         )}
       </div>
+      </>
     );
   }
 
@@ -184,6 +222,7 @@ export default function FeedList({
 
   return (
     <ErrorBoundary>
+      <FeedTabs tab={tab} onTabChange={setTab} />
       <div className="flex flex-col gap-4 pb-4">
         {items.map((item, i) => (
           (() => {

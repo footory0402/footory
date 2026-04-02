@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import HeroSection from "@/components/profile/HeroSection";
 import ProfileTabBar, { type ProfileTabKey } from "@/components/profile/ProfileTabBar";
 import HighlightsTabV5 from "@/components/profile/HighlightsTabV5";
 import RecordsTabV5 from "@/components/profile/RecordsTabV5";
-import CareerTabV5 from "@/components/profile/CareerTabV5";
+import CareerTabV5, { type TournamentRecord, type AwardRecord } from "@/components/profile/CareerTabV5";
 import FollowButton from "@/components/social/FollowButton";
 import dynamic from "next/dynamic";
-import { getOrCreateConversation, canSendDm, sendDmRequest } from "@/lib/dm";
+import { getOrCreateConversation, canSendDm } from "@/lib/dm";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/useProfile";
@@ -22,6 +22,9 @@ const AddToWatchlistButton = dynamic(
 const ProfileEditSheet = dynamic(() => import("@/components/player/ProfileEditSheet"), { ssr: false });
 const StatInputSheet = dynamic(() => import("@/components/stats/StatInputSheet"), { ssr: false });
 const SeasonAddSheet = dynamic(() => import("@/components/player/SeasonAddSheet"), { ssr: false });
+const TournamentAddSheet = dynamic(() => import("@/components/profile/TournamentAddSheet"), { ssr: false });
+const AwardAddSheet = dynamic(() => import("@/components/profile/AwardAddSheet"), { ssr: false });
+const PlayStyleTest = dynamic(() => import("@/components/player/PlayStyleTest"), { ssr: false });
 
 const ClipPlayerSheet = dynamic(
   () => import("@/components/player/ClipPlayerSheet"),
@@ -98,6 +101,8 @@ interface PublicProfileData {
   tagClips: Record<string, TagClip[]>;
   untaggedClips?: TagClip[];
   playStyle?: Record<string, unknown> | null;
+  tournamentRecords?: Record<string, unknown>[];
+  awards?: Record<string, unknown>[];
   isFollowing?: boolean;
   isOwnProfile?: boolean;
   viewerAccess?: {
@@ -227,205 +232,13 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
   }));
 }
 
-// ── 대표 영상 섹션 ──────────────────────────────────────────────────────
-function FeaturedVideoSection({ featured, playerName, playerPosition, playerBirthYear, teamName }: {
-  featured: FeaturedClip[];
-  playerName?: string;
-  playerPosition?: string | null;
-  playerBirthYear?: number | null;
-  teamName?: string | null;
-}) {
-  const [playerOpen, setPlayerOpen] = useState(false);
-  const clip = featured[0];
-  if (!clip?.clips) return null;
-  const { video_url, thumbnail_url, duration_seconds } = clip.clips;
-  const secs = duration_seconds ?? 0;
-  const mm = Math.floor(secs / 60);
-  const ss = secs % 60;
-
-  const playable: PlayableClip = {
-    id: clip.clip_id,
-    videoUrl: video_url,
-    thumbnailUrl: thumbnail_url ?? null,
-    duration: duration_seconds ?? undefined,
-    effects: clip.clips?.effects ?? null,
-    spotlightX: clip.clips?.spotlight_x ?? null,
-    spotlightY: clip.clips?.spotlight_y ?? null,
-    freezeAt: clip.clips?.freeze_at ?? null,
-    trimStart: clip.clips?.trim_start ?? null,
-    trimEnd: clip.clips?.trim_end ?? null,
-    playerName,
-    playerPosition,
-    playerBirthYear,
-    teamName,
-  };
-
-  return (
-    <div style={{ padding: "10px 14px 0" }}>
-      <p style={{ fontSize: 11, fontFamily: "'Noto Sans KR', sans-serif", color: "rgba(255,255,255,0.36)", marginBottom: 8, letterSpacing: "-0.01em" }}>
-        대표 영상
-      </p>
-      <button
-        onClick={() => setPlayerOpen(true)}
-        style={{ width: "100%", borderRadius: 16, overflow: "hidden", background: "#000", position: "relative", aspectRatio: "16/9", display: "block", padding: 0, border: "none", cursor: "pointer" }}
-        aria-label="대표 영상 재생"
-      >
-        {thumbnail_url ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={thumbnail_url}
-            alt="대표 영상 썸네일"
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          />
-        ) : (
-          <div style={{ width: "100%", height: "100%", background: "#1a1a1e" }} />
-        )}
-        {/* Play button overlay */}
-        <div style={{
-          position: "absolute", inset: 0,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          background: "rgba(0,0,0,0.25)",
-        }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: "50%",
-            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)",
-            border: "1.5px solid rgba(255,255,255,0.18)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-          </div>
-        </div>
-        {/* Duration badge */}
-        {duration_seconds != null && (
-          <div style={{
-            position: "absolute", bottom: 8, right: 8,
-            background: "rgba(0,0,0,0.72)", borderRadius: 6,
-            padding: "2px 6px", fontSize: 11, color: "#fff",
-            fontFamily: "'Oswald', sans-serif", pointerEvents: "none",
-          }}>
-            {mm}:{String(ss).padStart(2, "0")}
-          </div>
-        )}
-      </button>
-
-      {playerOpen && (
-        <ClipPlayerSheet
-          clips={[playable]}
-          initialIndex={0}
-          onClose={() => setPlayerOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Scout-only 신체 요약 카드 ────────────────────────────────────────────
-function ScoutSummarySection({ profile, stats, achievements }: {
-  profile: Profile;
-  stats: Stat[];
-  achievements: Achievement[];
-}) {
-  const age = profile.birthYear ? new Date().getFullYear() - profile.birthYear : null;
-  const foot =
-    profile.preferredFoot === "right" ? "오른발" :
-    profile.preferredFoot === "left"  ? "왼발" :
-    profile.preferredFoot === "both"  ? "양발" : null;
-
-  const physicalItems = [
-    age ? `${age}세` : null,
-    profile.heightCm  ? `${profile.heightCm}cm`  : null,
-    profile.weightKg  ? `${profile.weightKg}kg`  : null,
-    foot,
-  ].filter(Boolean) as string[];
-
-  const top3 = stats.slice(0, 3);
-  const hasContent =
-    physicalItems.length > 0 || top3.length > 0 ||
-    achievements.length > 0  || profile.mvpCount > 0;
-  if (!hasContent) return null;
-
-  return (
-    <div style={{ padding: "10px 14px 0" }}>
-      <div style={{
-        background: "#111111",
-        borderRadius: 18,
-        border: "1px solid rgba(255,255,255,0.06)",
-        padding: 14,
-      }}>
-        <p style={{ fontSize: 11, fontFamily: "'Noto Sans KR', sans-serif", color: "rgba(255,255,255,0.36)", marginBottom: 12, letterSpacing: "-0.01em" }}>
-          스카우터 요약
-        </p>
-
-        {/* 신체 정보 */}
-        {physicalItems.length > 0 && (
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: top3.length > 0 ? 10 : 0 }}>
-            {physicalItems.map((item) => (
-              <span key={item} style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 13, color: "rgba(255,255,255,0.78)" }}>
-                {item}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* 체력 TOP 3 */}
-        {top3.length > 0 && (
-          <div style={{ borderTop: physicalItems.length > 0 ? "1px solid rgba(255,255,255,0.06)" : "none", paddingTop: physicalItems.length > 0 ? 10 : 0, marginBottom: (achievements.length > 0 || profile.mvpCount > 0) ? 10 : 0 }}>
-            {top3.map((stat) => {
-              const meta = getStatMeta(stat.type);
-              return (
-                <div key={stat.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
-                    {meta.label}
-                  </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, fontWeight: 700, color: "#e8d48b" }}>
-                      {stat.value}
-                    </span>
-                    <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.36)" }}>
-                      {meta.unit || stat.unit}
-                    </span>
-                    {stat.isPR && (
-                      <span style={{ fontSize: 10, color: "#60a5fa", fontFamily: "'Oswald', sans-serif", marginLeft: 2 }}>PR</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* 대회 + MVP 요약 */}
-        {(achievements.length > 0 || profile.mvpCount > 0) && (
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10, display: "flex", gap: 14 }}>
-            {achievements.length > 0 && (
-              <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.52)" }}>
-                🏆 대회 {achievements.length}회
-              </span>
-            )}
-            {profile.mvpCount > 0 && (
-              <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontSize: 12, color: "rgba(255,255,255,0.52)" }}>
-                ⭐ MVP {profile.mvpCount}회
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function PublicProfileClient({ profile: data }: { profile: PublicProfileData }) {
   const router = useRouter();
-  const isScoutViewer = data.role === "player"; // 모든 방문자에게 신체 요약 표시
   const [activeTab, setActiveTab] = useState<ProfileTabKey>(
     () => data.viewerAccess?.role === "scout" ? "records" : "highlights"
   );
   const [shareOpen, setShareOpen] = useState(false);
-  const [dmModalOpen, setDmModalOpen] = useState(false);
-  const [dmMsg, setDmMsg] = useState("");
-  const [dmSending, setDmSending] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
   // 내 프로필 편집 상태
@@ -433,6 +246,20 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [statInputType, setStatInputType] = useState<string | undefined>();
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
+  const [tournamentAddOpen, setTournamentAddOpen] = useState(false);
+  const [awardAddOpen, setAwardAddOpen] = useState(false);
+  const [playStyleTestOpen, setPlayStyleTestOpen] = useState(false);
+  const [editingTournament, setEditingTournament] = useState<TournamentRecord | null>(null);
+  const [editingAward, setEditingAward] = useState<AwardRecord | null>(null);
+
+  // 또래 비교 (percentile) 데이터
+  const [percentileData, setPercentileData] = useState<{
+    percentiles: Record<string, number>;
+    ageAvgs: Record<string, number>;
+    peerCounts: Record<string, number>;
+    ageGroup: string;
+  } | null>(null);
+  const [percentileLoading, setPercentileLoading] = useState(false);
 
   // 내 프로필일 때만 사용 (훅은 항상 호출)
   const { profile: ownProfile, updateProfile, uploadAvatar, checkHandle } = useProfile({
@@ -444,6 +271,42 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const seasons = mapSeasons(data.seasons);
   const achievements = mapAchievements(data.achievements ?? []);
   const tagClips = data.tagClips ?? {};
+
+  // 스탯 탭 활성화 시 또래 비교 데이터 로드
+  useEffect(() => {
+    if (activeTab !== "records" || percentileData || percentileLoading) return;
+    setPercentileLoading(true);
+    fetch(`/api/stats/percentile?profileId=${data.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setPercentileData(d); })
+      .finally(() => setPercentileLoading(false));
+  }, [activeTab, data.id, percentileData, percentileLoading]);
+
+  // Map tournament records and awards from SSR data
+  const tournaments = useMemo(() => {
+    return (data.tournamentRecords ?? []).map((r) => ({
+      id: r.id as string,
+      name: r.name as string,
+      type: r.type as "공식대회" | "리그" | "친선",
+      dateText: (r.date_text as string) ?? null,
+      result: (r.result as string) ?? null,
+      goals: (r.goals as number) ?? 0,
+      assists: (r.assists as number) ?? 0,
+      isMvp: !!(r.is_mvp),
+      source: (r.source as "team" | "self") ?? "self",
+      verifier: (r.verifier as string) ?? null,
+    }));
+  }, [data.tournamentRecords]);
+
+  const mappedAwards = useMemo(() => {
+    return (data.awards ?? []).map((r) => ({
+      id: r.id as string,
+      title: r.title as string,
+      detail: (r.detail as string) ?? null,
+      source: (r.source as "team" | "self") ?? "self",
+      verifier: (r.verifier as string) ?? null,
+    }));
+  }, [data.awards]);
 
   // Map play style from SSR data to PlayStyle type
   const mappedPlayStyle: PlayStyle | null = useMemo(() => {
@@ -487,15 +350,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   return (
     <ErrorBoundary>
     <div className="mx-auto max-w-[430px] pb-24">
-      {/* 상단 고정 헤더 */}
-      <div className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 glass-nav">
-        {data.isOwnProfile ? (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/[0.15] text-accent">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
-        ) : (
+      {/* 뒤로가기 헤더 — 타인 프로필만 */}
+      {!data.isOwnProfile && (
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 glass-nav">
           <button
             onClick={handleBack}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
@@ -505,31 +362,19 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
-        )}
-        <span className="flex-1 truncate text-[14px] font-semibold text-text-1">{profile.name}</span>
-        {data.isOwnProfile && (
+          <span className="flex-1 truncate text-[14px] font-semibold text-text-1">{profile.name}</span>
           <button
-            onClick={() => setEditOpen(true)}
+            onClick={() => setShareOpen(true)}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
-            aria-label="프로필 편집"
+            aria-label="공유"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
           </button>
-        )}
-        <button
-          onClick={() => setShareOpen(true)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-text-2 active:bg-white/[0.15]"
-          aria-label="공유"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-          </svg>
-        </button>
-      </div>
+        </div>
+      )}
 
       {/* Profile hero */}
       <HeroSection
@@ -597,32 +442,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                   return;
                 }
 
-                // Check if conversation already exists — skip request flow
-                const { data: existingConv } = await supabase
-                  .from("conversations")
-                  .select("id")
-                  .or(
-                    `and(participant_1.eq.${user.id},participant_2.eq.${profile.id}),and(participant_1.eq.${profile.id},participant_2.eq.${user.id})`
-                  )
-                  .maybeSingle();
-
-                if (existingConv) {
-                  router.push(`/dm/${existingConv.id}`);
-                  return;
-                }
-
-                if (viewerAccess?.dm.state === "request") {
-                  setDmModalOpen(true);
-                  return;
-                }
-
                 const perm = await canSendDm(user.id, profile.id);
                 if (perm === "blocked") {
-                  toast.error(viewerAccess?.dm.message || "이 사용자에게 메시지를 보낼 수 없습니다.");
-                  return;
-                }
-                if (perm === "request") {
-                  setDmModalOpen(true);
+                  toast.error("차단된 사용자와는 대화할 수 없어요.");
                   return;
                 }
 
@@ -635,7 +457,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
               </svg>
-              {viewerAccess?.dm.label ?? "대화 요청"}
+              {viewerAccess?.dm.label ?? "메시지"}
             </button>
           )}
         </div>
@@ -664,22 +486,8 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         </div>
       )}
 
-      {/* 스카우터 전용: 대표 영상 + 신체 요약 카드 */}
-      {isScoutViewer && data.featured.length > 0 && (
-        <FeaturedVideoSection
-          featured={data.featured}
-          playerName={data.name}
-          playerPosition={data.position}
-          playerBirthYear={data.birth_year}
-          teamName={data.teamName}
-        />
-      )}
-      {isScoutViewer && (
-        <ScoutSummarySection profile={profile} stats={stats} achievements={achievements} />
-      )}
-
       {/* Tabs */}
-      <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} stickyTop={48} />
+      <ProfileTabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Tab content */}
       <div className="px-4">
@@ -733,6 +541,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           <RecordsTabV5
             stats={stats}
             playStyle={mappedPlayStyle}
+            percentiles={percentileData?.percentiles}
+            ageAvgs={percentileData?.ageAvgs}
+            peerCounts={percentileData?.peerCounts}
+            ageGroup={percentileData?.ageGroup}
+            percentileLoading={percentileLoading}
             {...(data.isOwnProfile ? {
               onAddStat: () => { setStatInputType(undefined); setStatInputOpen(true); },
               onUpdateStat: (type: string) => { setStatInputType(type); setStatInputOpen(true); },
@@ -743,6 +556,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                   router.refresh();
                 }
               },
+              onPlayStyleTest: () => setPlayStyleTestOpen(true),
             } : {})}
           />
         )}
@@ -752,9 +566,42 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             readOnly={!data.isOwnProfile}
             profile={profile}
             seasons={seasons}
+            tournaments={tournaments}
+            awards={mappedAwards}
             achievements={achievements}
             {...(data.isOwnProfile ? {
               onAddSeason: () => setSeasonAddOpen(true),
+              onAddTournament: () => setTournamentAddOpen(true),
+              onAddAward: () => setAwardAddOpen(true),
+              onDeleteTournament: async (id: string) => {
+                const res = await fetch(`/api/tournament-records/${id}`, { method: "DELETE" });
+                if (res.ok) {
+                  toast.success("대회 기록이 삭제되었습니다.");
+                  router.refresh();
+                }
+              },
+              onDeleteAward: async (id: string) => {
+                const res = await fetch(`/api/awards/${id}`, { method: "DELETE" });
+                if (res.ok) {
+                  toast.success("수상 기록이 삭제되었습니다.");
+                  router.refresh();
+                }
+              },
+              onEditTournament: (t) => {
+                setEditingTournament(t);
+                setTournamentAddOpen(true);
+              },
+              onEditAward: (a) => {
+                setEditingAward(a);
+                setAwardAddOpen(true);
+              },
+              onDeleteSeason: async (id: string) => {
+                const res = await fetch(`/api/seasons/${id}`, { method: "DELETE" });
+                if (res.ok) {
+                  toast.success("소속 이력이 삭제되었습니다.");
+                  router.refresh();
+                }
+              },
             } : {})}
           />
         )}
@@ -791,11 +638,16 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           open={statInputOpen}
           onClose={() => { setStatInputOpen(false); setStatInputType(undefined); }}
           onSave={async (statType, value, evidenceClipId) => {
-            await fetch("/api/stats", {
+            const res = await fetch("/api/stats", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ stat_type: statType, value, evidence_clip_id: evidenceClipId }),
             });
+            if (!res.ok) {
+              const data = await res.json();
+              toast.error(data.error || "저장에 실패했습니다.");
+              return;
+            }
             toast.success("기록이 저장되었습니다.");
             setStatInputOpen(false);
             router.refresh();
@@ -819,6 +671,87 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           }}
         />
       )}
+      {data.isOwnProfile && tournamentAddOpen && (
+        <TournamentAddSheet
+          open={tournamentAddOpen}
+          initialValues={editingTournament ?? undefined}
+          editingId={editingTournament?.id}
+          onClose={() => { setTournamentAddOpen(false); setEditingTournament(null); }}
+          onSave={async (input) => {
+            if (editingTournament) {
+              await fetch(`/api/tournament-records/${editingTournament.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+              });
+              toast.success("대회 기록이 수정되었습니다.");
+            } else {
+              await fetch("/api/tournament-records", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+              });
+              toast.success("대회 기록이 추가되었습니다.");
+            }
+            setTournamentAddOpen(false);
+            setEditingTournament(null);
+            router.refresh();
+          }}
+        />
+      )}
+      {data.isOwnProfile && awardAddOpen && (
+        <AwardAddSheet
+          open={awardAddOpen}
+          initialValues={editingAward ?? undefined}
+          editingId={editingAward?.id}
+          onClose={() => { setAwardAddOpen(false); setEditingAward(null); }}
+          onSave={async (input) => {
+            if (editingAward) {
+              await fetch(`/api/awards/${editingAward.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+              });
+              toast.success("수상 기록이 수정되었습니다.");
+            } else {
+              await fetch("/api/awards", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(input),
+              });
+              toast.success("수상 기록이 추가되었습니다.");
+            }
+            setAwardAddOpen(false);
+            setEditingAward(null);
+            router.refresh();
+          }}
+        />
+      )}
+      {data.isOwnProfile && playStyleTestOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setPlayStyleTestOpen(false)} />
+          <div className="relative w-full max-w-[430px] animate-slide-up rounded-t-2xl bg-card">
+            <div className="flex justify-center py-3">
+              <div className="h-1 w-10 rounded-full bg-border" />
+            </div>
+            <div className="max-h-[80vh] overflow-y-auto px-5 pb-8">
+              <PlayStyleTest
+                onComplete={async (result) => {
+                  await fetch("/api/play-style", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(result),
+                  });
+                  toast.success("플레이 스타일이 저장되었습니다.");
+                  setPlayStyleTestOpen(false);
+                  router.refresh();
+                }}
+                onSkip={() => setPlayStyleTestOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 비교 시트 */}
       {compareOpen && (
@@ -833,54 +766,6 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         />
       )}
 
-      {/* DM 요청 모달 */}
-      {dmModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
-          onClick={() => { setDmModalOpen(false); setDmMsg(""); }}
-        >
-          <div
-            className="w-full max-w-[430px] rounded-t-2xl bg-card p-5 pb-[calc(20px+env(safe-area-inset-bottom))]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="mb-1 text-[15px] font-bold text-text-1">대화 요청</h3>
-            <p className="mb-3 text-[12px] text-text-3">{profile.name}님에게 대화 요청 메시지를 보내세요.</p>
-            <textarea
-              value={dmMsg}
-              onChange={(e) => setDmMsg(e.target.value)}
-              placeholder="안녕하세요! 메시지를 입력하세요..."
-              maxLength={200}
-              rows={3}
-              className="w-full resize-none rounded-xl bg-surface px-3 py-2.5 text-[14px] text-text-1 placeholder:text-text-3 focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-            <p className="mb-3 text-right text-[11px] text-text-3">{dmMsg.length}/200</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setDmModalOpen(false); setDmMsg(""); }}
-                className="flex-1 rounded-xl bg-surface py-3 text-[13px] font-semibold text-text-2"
-              >
-                취소
-              </button>
-              <button
-                disabled={dmSending || dmMsg.trim().length === 0}
-                onClick={async () => {
-                  if (dmMsg.trim().length === 0) return;
-                  setDmSending(true);
-                  await sendDmRequest(profile.id, dmMsg.trim());
-                  setDmSending(false);
-                  setDmModalOpen(false);
-                  setDmMsg("");
-                  toast.success("대화 요청을 보냈습니다.");
-                  router.push("/dm");
-                }}
-                className="flex-1 rounded-xl bg-accent py-3 text-[13px] font-bold text-bg disabled:opacity-50"
-              >
-                {dmSending ? "보내는 중..." : "요청 보내기"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
       {/* 비로그인 가입 유도 CTA */}
       {!data.isOwnProfile && !data.viewerAccess?.role && (

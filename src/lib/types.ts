@@ -359,14 +359,3 @@ export interface Comment {
   };
   replies?: Comment[];
 }
-
-export interface DmRequest {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  previewMessage: string | null;
-  status: "pending" | "accepted" | "rejected";
-  createdAt: string;
-  sender?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName">;
-  receiver?: Pick<Profile, "id" | "handle" | "name" | "avatarUrl" | "position" | "teamName">;
-}

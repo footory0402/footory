@@ -81,6 +81,27 @@ export function computeRecommendationScore(
 }
 
 /**
+ * Compute hot score for ranking in the "recommended" tab.
+ * HackerNews-style time decay: engagement rises, age drags it down.
+ *
+ * score = (kudos*3 + comments*5 + views*0.5 + recommendationScore)
+ *         / (age_hours + 2) ^ 1.5
+ */
+export function computeHotScore(
+  kudosCount: number,
+  commentCount: number,
+  viewCount: number,
+  recommendationScore: number,
+  createdAt: string,
+  now: number = Date.now()
+): number {
+  const ageMs = now - new Date(createdAt).getTime();
+  const ageHours = Math.max(0, ageMs / 3_600_000);
+  const engagement = kudosCount * 3 + commentCount * 5 + viewCount * 0.5 + recommendationScore;
+  return engagement / Math.pow(ageHours + 2, 1.5);
+}
+
+/**
  * Calculate how many items to fetch from follow feed vs recommended feed.
  */
 export function computeFeedSplit(

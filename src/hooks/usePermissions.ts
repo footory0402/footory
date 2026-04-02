@@ -34,8 +34,7 @@ export function usePermissions({ enabled = true }: UsePermissionsOptions = {}) {
       canFollow: canFollow(role),
       canScoutReview: canScoutReview(role, verified),
       canUseWatchlist: canUseWatchlist(role, verified),
-      canDm: (targetRole: UserRole, isFollowing: boolean, isSameTeam: boolean) =>
-        canDm(role, verified, targetRole, isFollowing, isSameTeam),
+      canDm: () => canDm(),
     };
   }, [error, loading, profile?.id, profile?.isVerified, profile?.role]);
 }

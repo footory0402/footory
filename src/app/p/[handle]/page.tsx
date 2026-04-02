@@ -84,7 +84,7 @@ const getProfile = cache(async (handle: string) => {
     allowedVisibilities = ["public"];
   }
 
-  const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData, playStyleData] = await Promise.all([
+  const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData, playStyleData, tournamentRecordsData, awardsData] = await Promise.all([
     supabase
       .from("featured_clips")
       .select("id, clip_id, sort_order")
@@ -128,6 +128,16 @@ const getProfile = cache(async (handle: string) => {
       .select("*")
       .eq("profile_id", profile.id)
       .maybeSingle(),
+    supabase
+      .from("tournament_records")
+      .select("*")
+      .eq("player_id", profile.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("awards")
+      .select("*")
+      .eq("player_id", profile.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   // Filter contact
@@ -282,6 +292,8 @@ const getProfile = cache(async (handle: string) => {
     tagClips: tagClipsMap,
     untaggedClips: untaggedClipsList,
     playStyle: playStyleData.data ?? null,
+    tournamentRecords: tournamentRecordsData.data ?? [],
+    awards: awardsData.data ?? [],
     isFollowing,
     isOwnProfile: currentUser?.id === profile.id,
     viewerAccess,

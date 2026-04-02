@@ -137,6 +137,7 @@ export interface Database {
           bgm_id: string | null;
           effects: Json;
           visibility: "public" | "followers" | "team" | "private";
+          view_count: number;
         };
         Insert: {
           id?: string;
@@ -144,6 +145,7 @@ export interface Database {
           uploaded_by?: string | null;
           video_url: string;
           visibility?: "public" | "followers" | "team" | "private";
+          view_count?: number;
           highlight_url?: string | null;
           thumbnail_url?: string | null;
           duration_seconds?: number | null;
@@ -173,6 +175,7 @@ export interface Database {
         Update: {
           owner_id?: string;
           visibility?: "public" | "followers" | "team" | "private";
+          view_count?: number;
           uploaded_by?: string | null;
           video_url?: string;
           highlight_url?: string | null;
@@ -221,6 +224,25 @@ export interface Database {
           clip_id?: string;
           tag_name?: string;
           is_top?: boolean;
+        };
+        Relationships: [];
+      };
+      clip_views: {
+        Row: {
+          id: string;
+          clip_id: string;
+          viewer_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          clip_id: string;
+          viewer_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          clip_id?: string;
+          viewer_id?: string | null;
         };
         Relationships: [];
       };
@@ -1370,6 +1392,10 @@ export interface Database {
       };
       increment_views: {
         Args: { profile_id: string };
+        Returns: void;
+      };
+      increment_view_count: {
+        Args: { clip_id_input: string };
         Returns: void;
       };
     };

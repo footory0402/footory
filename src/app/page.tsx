@@ -29,7 +29,7 @@ async function PlayerFeedSection({
   profileHint: { city: string | null; birth_year: number | null; position: string | null };
 }) {
   const [feedData, hasClips] = await Promise.all([
-    fetchFeedPage(supabase, userId, null, profileHint),
+    fetchFeedPage(supabase, userId, null, profileHint, "recommended"),
     hasUserUploadedClips(supabase, userId),
   ]);
 

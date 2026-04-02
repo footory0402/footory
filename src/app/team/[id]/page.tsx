@@ -115,7 +115,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
       {/* Back button */}
       <div className="flex items-center gap-3 px-4 pt-3 pb-1">
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.back()}
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

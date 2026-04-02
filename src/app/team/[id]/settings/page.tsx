@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, use, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTeamDetail, useTeamActions } from "@/hooks/useTeam";
 import Button from "@/components/ui/Button";
 
 export default function TeamSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { team, loading } = useTeamDetail(id);
   const { updateTeam } = useTeamActions();
 
@@ -68,7 +70,7 @@ export default function TeamSettingsPage({ params }: { params: Promise<{ id: str
       {/* Back + Title */}
       <div className="mb-6 flex items-center gap-3">
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.back()}
           className="flex h-8 w-8 items-center justify-center rounded-full text-text-2 active:bg-card"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

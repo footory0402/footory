@@ -1,23 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useBackClose } from "@/hooks/useBackClose";
+import type { AwardRecord } from "./CareerTabV5";
 
 interface AwardAddSheetProps {
   open: boolean;
   onClose: () => void;
+  initialValues?: AwardRecord;
+  editingId?: string;
   onSave: (input: { title: string; detail?: string; verifier?: string }) => Promise<void>;
 }
 
-export default function AwardAddSheet({ open, onClose, onSave }: AwardAddSheetProps) {
+export default function AwardAddSheet({ open, onClose, initialValues, editingId, onSave }: AwardAddSheetProps) {
   useBackClose(open, onClose);
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
   const [verifier, setVerifier] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const reset = () => { setTitle(""); setDetail(""); setVerifier(""); setSaving(false); };
-  const handleClose = () => { reset(); onClose(); };
+  // 시트가 열릴 때 initialValues로 폼 채우기
+  useEffect(() => {
+    if (open) {
+      if (initialValues) {
+        setTitle(initialValues.title);
+        setDetail(initialValues.detail ?? "");
+        setVerifier(initialValues.verifier ?? "");
+      } else {
+        setTitle(""); setDetail(""); setVerifier("");
+      }
+      setSaving(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingId]);
+
+  const handleClose = () => { onClose(); };
 
   const handleSave = async () => {
     if (!title.trim()) return;
@@ -47,7 +64,7 @@ export default function AwardAddSheet({ open, onClose, onSave }: AwardAddSheetPr
         </div>
 
         <div className="px-5 pb-8">
-          <h2 className="mb-5 text-[16px] font-bold text-text-1">수상 / 성과 추가</h2>
+          <h2 className="mb-5 text-[16px] font-bold text-text-1">{editingId ? "수상 / 성과 수정" : "수상 / 성과 추가"}</h2>
 
           {/* 수상명 */}
           <div className="mb-4">
@@ -96,7 +113,7 @@ export default function AwardAddSheet({ open, onClose, onSave }: AwardAddSheetPr
             className="w-full rounded-xl py-3.5 text-[14px] font-bold transition-opacity disabled:opacity-40"
             style={{ background: "var(--accent-gradient)", color: "#0C0C0E" }}
           >
-            {saving ? "저장 중..." : "저장"}
+            {saving ? "저장 중..." : editingId ? "수정 완료" : "저장"}
           </button>
         </div>
       </div>

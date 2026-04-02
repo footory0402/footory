@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import TournamentTypeBadge from "./TournamentTypeBadge";
 import type { Profile, Season, Achievement } from "@/lib/types";
@@ -38,6 +38,11 @@ interface CareerTabV5Props {
   onAddSeason?: () => void;
   onAddTournament?: () => void;
   onAddAward?: () => void;
+  onDeleteTournament?: (id: string) => void;
+  onDeleteAward?: (id: string) => void;
+  onEditTournament?: (t: TournamentRecord) => void;
+  onEditAward?: (a: AwardRecord) => void;
+  onDeleteSeason?: (id: string) => void;
 }
 
 export default function CareerTabV5({
@@ -50,7 +55,15 @@ export default function CareerTabV5({
   onAddSeason,
   onAddTournament,
   onAddAward,
+  onDeleteTournament,
+  onDeleteAward,
+  onEditTournament,
+  onEditAward,
+  onDeleteSeason,
 }: CareerTabV5Props) {
+  const [tournamentEditMode, setTournamentEditMode] = useState(false);
+  const [awardEditMode, setAwardEditMode] = useState(false);
+  const [seasonEditMode, setSeasonEditMode] = useState(false);
   const currentSeason = seasons.find((s) => s.isCurrent);
   const pastSeasons = seasons.filter((s) => !s.isCurrent);
 
@@ -77,15 +90,44 @@ export default function CareerTabV5({
           title="대회 기록"
           count={tournaments.length}
           right={
-            onAddTournament ? (
-              <AddButton label="대회 추가" gold onClick={onAddTournament} />
+            (onAddTournament || onDeleteTournament) ? (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {onAddTournament && !tournamentEditMode && (
+                  <AddButton label="대회 추가" gold onClick={onAddTournament} />
+                )}
+                {onDeleteTournament && tournaments.length > 0 && (
+                  <button
+                    onClick={() => setTournamentEditMode((v) => !v)}
+                    style={{
+                      padding: "4px 10px", borderRadius: 6,
+                      background: tournamentEditMode ? "rgba(212,168,83,0.12)" : "rgba(255,255,255,0.04)",
+                      border: tournamentEditMode ? "1px solid rgba(212,168,83,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                      color: tournamentEditMode ? "var(--color-accent)" : "var(--color-text-3)",
+                      fontSize: 10, fontFamily: "var(--font-body)", fontWeight: tournamentEditMode ? 600 : 400, cursor: "pointer",
+                    }}
+                  >
+                    {tournamentEditMode ? "완료" : "편집"}
+                  </button>
+                )}
+              </div>
             ) : undefined
           }
         />
+        {tournamentEditMode && tournaments.length > 0 && (
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--color-text-3)", marginBottom: 10, marginTop: 0 }}>
+            수정 ✏️ 또는 삭제 🗑️ 버튼을 탭하세요
+          </p>
+        )}
         {tournaments.length > 0 ? (
           <div className="flex flex-col gap-[10px]">
             {tournaments.map((t) => (
-              <TournamentCard key={t.id} tournament={t} />
+              <TournamentCard
+                key={t.id}
+                tournament={t}
+                isEditMode={tournamentEditMode}
+                onEdit={tournamentEditMode && onEditTournament ? () => onEditTournament(t) : undefined}
+                onDelete={tournamentEditMode && onDeleteTournament ? () => onDeleteTournament(t.id) : undefined}
+              />
             ))}
           </div>
         ) : (
@@ -104,15 +146,44 @@ export default function CareerTabV5({
         <SectionHeader
           title="수상 / 성과"
           right={
-            onAddAward ? (
-              <AddButton label="추가" onClick={onAddAward} />
+            (onAddAward || onDeleteAward) ? (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {onAddAward && !awardEditMode && (
+                  <AddButton label="추가" onClick={onAddAward} />
+                )}
+                {onDeleteAward && allAwards.length > 0 && (
+                  <button
+                    onClick={() => setAwardEditMode((v) => !v)}
+                    style={{
+                      padding: "4px 10px", borderRadius: 6,
+                      background: awardEditMode ? "rgba(212,168,83,0.12)" : "rgba(255,255,255,0.04)",
+                      border: awardEditMode ? "1px solid rgba(212,168,83,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                      color: awardEditMode ? "var(--color-accent)" : "var(--color-text-3)",
+                      fontSize: 10, fontFamily: "var(--font-body)", fontWeight: awardEditMode ? 600 : 400, cursor: "pointer",
+                    }}
+                  >
+                    {awardEditMode ? "완료" : "편집"}
+                  </button>
+                )}
+              </div>
             ) : undefined
           }
         />
+        {awardEditMode && allAwards.length > 0 && (
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--color-text-3)", marginBottom: 10, marginTop: 0 }}>
+            수정 ✏️ 또는 삭제 🗑️ 버튼을 탭하세요
+          </p>
+        )}
         {allAwards.length > 0 ? (
           <div className="flex flex-col gap-2">
             {allAwards.map((a) => (
-              <AwardCard key={a.id} award={a} />
+              <AwardCard
+                key={a.id}
+                award={a}
+                isEditMode={awardEditMode}
+                onEdit={awardEditMode && onEditAward ? () => onEditAward(a) : undefined}
+                onDelete={awardEditMode && onDeleteAward ? () => onDeleteAward(a.id) : undefined}
+              />
             ))}
           </div>
         ) : (
@@ -131,11 +202,34 @@ export default function CareerTabV5({
         <SectionHeader
           title="소속 이력"
           right={
-            onAddSeason ? (
-              <AddButton label="이력 추가" onClick={onAddSeason} />
+            (onAddSeason || onDeleteSeason) ? (
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                {onAddSeason && !seasonEditMode && (
+                  <AddButton label="이력 추가" onClick={onAddSeason} />
+                )}
+                {onDeleteSeason && (currentSeason || pastSeasons.length > 0) && (
+                  <button
+                    onClick={() => setSeasonEditMode((v) => !v)}
+                    style={{
+                      padding: "4px 10px", borderRadius: 6,
+                      background: seasonEditMode ? "rgba(212,168,83,0.12)" : "rgba(255,255,255,0.04)",
+                      border: seasonEditMode ? "1px solid rgba(212,168,83,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                      color: seasonEditMode ? "var(--color-accent)" : "var(--color-text-3)",
+                      fontSize: 10, fontFamily: "var(--font-body)", fontWeight: seasonEditMode ? 600 : 400, cursor: "pointer",
+                    }}
+                  >
+                    {seasonEditMode ? "완료" : "편집"}
+                  </button>
+                )}
+              </div>
             ) : undefined
           }
         />
+        {seasonEditMode && (currentSeason || pastSeasons.length > 0) && (
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--color-text-3)", marginBottom: 10, marginTop: 0 }}>
+            삭제할 이력의 🗑️ 버튼을 탭하세요 (현재 소속 제외)
+          </p>
+        )}
         {(currentSeason || pastSeasons.length > 0) ? (
           <div
             className="card-elevated overflow-hidden"
@@ -152,6 +246,8 @@ export default function CareerTabV5({
                 key={s.id}
                 team={s.teamName}
                 period={`${s.year}`}
+                isEditMode={seasonEditMode}
+                onDelete={seasonEditMode && onDeleteSeason ? () => onDeleteSeason(s.id) : undefined}
               />
             ))}
           </div>
@@ -366,22 +462,66 @@ function CurrentTeamCard({ profile, readOnly }: { profile: Profile; readOnly?: b
 }
 
 /* ── Tournament Card ── */
-function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
+function TournamentCard({ tournament: t, isEditMode, onEdit, onDelete }: { tournament: TournamentRecord; isEditMode?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   const isTeam = t.source === "team";
   const hasPersonal =
     t.goals > 0 || t.assists > 0 || t.isMvp;
 
   return (
     <div
-      className="card-elevated"
+      className="card-elevated relative"
       style={{
         padding: 14,
+        paddingRight: isEditMode ? 82 : 14,
         ...(isTeam && {
           borderColor: "rgba(74,222,128,0.18)",
           backgroundColor: "rgba(74,222,128,0.04)",
         }),
+        ...(isEditMode && {
+          borderColor: "rgba(255,255,255,0.12)",
+        }),
       }}
     >
+      {isEditMode && (
+        <div className="absolute right-2 top-2 flex gap-1.5">
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="flex h-7 w-7 items-center justify-center rounded-full active:scale-95"
+              style={{
+                background: "rgba(212,168,83,0.20)",
+                border: "1px solid rgba(212,168,83,0.35)",
+                color: "var(--color-accent)",
+              }}
+              aria-label="대회 기록 수정"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="flex h-7 w-7 items-center justify-center rounded-full active:scale-95"
+              style={{
+                background: "rgba(248,113,113,0.20)",
+                border: "1px solid rgba(248,113,113,0.30)",
+                color: "var(--color-red)",
+              }}
+              aria-label="대회 기록 삭제"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
       {/* Header */}
       <div className="mb-2 flex items-start justify-between">
         <div className="flex-1">
@@ -503,15 +643,16 @@ function TournamentCard({ tournament: t }: { tournament: TournamentRecord }) {
 }
 
 /* ── Award Card ── */
-function AwardCard({ award: a }: { award: AwardRecord }) {
+function AwardCard({ award: a, isEditMode, onEdit, onDelete }: { award: AwardRecord; isEditMode?: boolean; onEdit?: () => void; onDelete?: () => void }) {
   return (
     <div
-      className="flex items-center justify-between"
+      className="relative flex items-center justify-between"
       style={{
         padding: "12px 14px",
+        paddingRight: isEditMode ? 78 : 14,
         background: "rgba(212,168,83,0.08)",
         borderRadius: 12,
-        border: "1px solid rgba(212,168,83,0.2)",
+        border: isEditMode ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(212,168,83,0.2)",
         boxShadow: "0 2px 12px rgba(212,168,83,0.06)",
       }}
     >
@@ -536,6 +677,46 @@ function AwardCard({ award: a }: { award: AwardRecord }) {
           )}
         </span>
       </div>
+      {isEditMode && (
+        <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1.5">
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full active:scale-95"
+              style={{
+                background: "rgba(212,168,83,0.20)",
+                border: "1px solid rgba(212,168,83,0.35)",
+                color: "var(--color-accent)",
+              }}
+              aria-label="수상 기록 수정"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full active:scale-95"
+              style={{
+                background: "rgba(248,113,113,0.20)",
+                border: "1px solid rgba(248,113,113,0.30)",
+                color: "var(--color-red)",
+              }}
+              aria-label="수상 기록 삭제"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -545,10 +726,14 @@ function HistoryRow({
   team,
   period,
   current,
+  isEditMode,
+  onDelete,
 }: {
   team: string;
   period: string;
   current?: boolean;
+  isEditMode?: boolean;
+  onDelete?: () => void;
 }) {
   return (
     <div
@@ -587,6 +772,25 @@ function HistoryRow({
       >
         {period}
       </span>
+      {isEditMode && !current && onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full active:scale-95"
+          style={{
+            background: "rgba(248,113,113,0.20)",
+            border: "1px solid rgba(248,113,113,0.30)",
+            color: "var(--color-red)",
+          }}
+          aria-label="소속 이력 삭제"
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

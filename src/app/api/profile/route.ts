@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const allowed = ["name", "handle", "position", "birth_year", "city", "bio", "public_email", "public_phone", "show_email", "show_phone"] as const;
+    const allowed = ["name", "handle", "position", "birth_year", "city", "bio", "public_email", "public_phone", "show_email", "show_phone", "height_cm", "weight_kg", "preferred_foot"] as const;
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in body) {

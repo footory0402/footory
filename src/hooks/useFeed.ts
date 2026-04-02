@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef } from "react";
 
+export type FeedTab = "recommended" | "following";
+
 export interface FeedItemEnriched {
   id: string;
   profile_id: string;
@@ -26,15 +28,23 @@ const FEED_MEMORY_LIMIT = 25;
 
 export function useFeed(
   initialItems: FeedItemEnriched[] = [],
-  initialNextCursor: string | null = null
+  initialNextCursor: string | null = null,
+  initialTab: FeedTab = "recommended"
 ) {
   const [items, setItems] = useState<FeedItemEnriched[]>(initialItems);
-  // Start loading=false: server already provided initial data
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(initialNextCursor !== null || initialItems.length === 0);
+  const [tab, setTabState] = useState<FeedTab>(initialTab);
   const cursorRef = useRef<string | null>(initialNextCursor);
   const inFlightRef = useRef(false);
+  const tabRef = useRef<FeedTab>(initialTab);
+
+  // Cache per tab so switching back is instant
+  const cacheRef = useRef<Record<FeedTab, { items: FeedItemEnriched[]; cursor: string | null; hasMore: boolean }>>({
+    recommended: { items: initialTab === "recommended" ? initialItems : [], cursor: initialTab === "recommended" ? initialNextCursor : null, hasMore: true },
+    following: { items: initialTab === "following" ? initialItems : [], cursor: initialTab === "following" ? initialNextCursor : null, hasMore: true },
+  });
 
   const fetchFeed = useCallback(async (reset = false) => {
     if (inFlightRef.current) return;
@@ -42,10 +52,12 @@ export function useFeed(
     setLoading(true);
     if (reset) setError(null);
     try {
-      const cur = cursorRef.current;
-      const url = reset || !cur
-        ? "/api/feed"
-        : `/api/feed?cursor=${encodeURIComponent(cur)}`;
+      const cur = reset ? null : cursorRef.current;
+      const currentTab = tabRef.current;
+      const params = new URLSearchParams();
+      params.set("tab", currentTab);
+      if (cur) params.set("cursor", cur);
+      const url = `/api/feed?${params.toString()}`;
       const res = await fetch(url);
       if (!res.ok) {
         setError("피드를 불러오지 못했어요. 다시 시도해주세요.");
@@ -57,10 +69,12 @@ export function useFeed(
 
       setItems((prev) => {
         const merged = reset ? newItems : [...prev, ...newItems];
-        // Keep a bounded list so long scrolling sessions don't degrade UI responsiveness.
-        return merged.length > FEED_MEMORY_LIMIT
+        const bounded = merged.length > FEED_MEMORY_LIMIT
           ? merged.slice(-FEED_MEMORY_LIMIT)
           : merged;
+        // Update cache
+        cacheRef.current[currentTab] = { items: bounded, cursor: data.nextCursor, hasMore: !!data.nextCursor };
+        return bounded;
       });
       cursorRef.current = data.nextCursor;
       setHasMore(!!data.nextCursor);
@@ -71,6 +85,28 @@ export function useFeed(
       setLoading(false);
     }
   }, []);
+
+  const setTab = useCallback((newTab: FeedTab) => {
+    if (newTab === tabRef.current) return;
+    // Save current state to cache
+    tabRef.current = newTab;
+    setTabState(newTab);
+
+    const cached = cacheRef.current[newTab];
+    if (cached.items.length > 0) {
+      // Restore from cache
+      setItems(cached.items);
+      cursorRef.current = cached.cursor;
+      setHasMore(cached.hasMore);
+    } else {
+      // No cache — fetch
+      setItems([]);
+      cursorRef.current = null;
+      setHasMore(true);
+      // fetchFeed with reset after state update
+      setTimeout(() => fetchFeed(true), 0);
+    }
+  }, [fetchFeed]);
 
   const loadMore = useCallback(async () => {
     if (!hasMore) return;
@@ -172,5 +208,5 @@ export function useFeed(
     });
   }, []);
 
-  return { items, loading, error, hasMore, refresh, loadMore, toggleKudos, updateKudosCount, updateCommentCount };
+  return { items, loading, error, hasMore, tab, setTab, refresh, loadMore, toggleKudos, updateKudosCount, updateCommentCount };
 }
