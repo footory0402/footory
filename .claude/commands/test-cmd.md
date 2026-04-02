@@ -6,7 +6,7 @@
 
 ## 2. 화면별 렌더링
 각 페이지가 에러 없이 렌더링되는지:
-/ (홈), /discover, /profile, /team, /p/[handle], /t/[handle]
+/ (홈), /mvp, /discover, /upload, /profile, /team, /editor, /dm, /p/[handle], /t/[handle]
 
 ## 3. 기능 플로우 확인
 코드 분석해서 구현 여부 체크:
