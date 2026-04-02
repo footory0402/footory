@@ -16,6 +16,7 @@ interface VoteCardProps {
   votesRemaining?: number;
   onVote?: (clipId: string, message?: string) => void;
   onUnvote?: (clipId: string) => void;
+  onPlayFullScreen?: (candidate: VoteCardCandidate) => void;
 }
 
 export default function VoteCard({
@@ -26,6 +27,7 @@ export default function VoteCard({
   votesRemaining = 0,
   onVote,
   onUnvote,
+  onPlayFullScreen,
 }: VoteCardProps) {
   const [playing, setPlaying] = useState(false);
   const [voteAnim, setVoteAnim] = useState(false);
@@ -45,6 +47,10 @@ export default function VoteCard({
 
   const handlePlay = () => {
     if (!candidate.videoUrl) return;
+    if (onPlayFullScreen) {
+      onPlayFullScreen(candidate);
+      return;
+    }
     setPlaying(true);
     requestVideoPlay(videoRef);
   };
@@ -221,6 +227,7 @@ export function VoteCardCompact({
   votesRemaining = 0,
   onVote,
   onUnvote,
+  onPlayFullScreen,
 }: Omit<VoteCardProps, "isFirst">) {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -237,6 +244,10 @@ export function VoteCardCompact({
 
   const handlePlay = () => {
     if (!candidate.videoUrl) return;
+    if (onPlayFullScreen) {
+      onPlayFullScreen(candidate);
+      return;
+    }
     setPlaying(true);
     requestVideoPlay(videoRef);
   };
