@@ -459,6 +459,12 @@ body {
   to   { opacity: 0; visibility: hidden; }
 }
 
+/* ── 캡션 오버레이 애니메이션 ── */
+@keyframes caption-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── 축구 중계 스타일 마커 애니메이션 ── */
 @keyframes broadcast-drop-in {
   0%   { opacity: 0; transform: translate(-50%, calc(-100% - 8px)) translateY(-16px); }

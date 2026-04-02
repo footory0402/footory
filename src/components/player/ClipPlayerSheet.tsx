@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
+import CaptionOverlay from "@/components/video/CaptionOverlay";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
@@ -37,12 +38,21 @@ export interface PlayableClip {
   // trim (런타임 구간 재생)
   trimStart?: number | null;
   trimEnd?: number | null;
-  // css effects
+  // 슬로모션
+  slowmoStart?: number | null;
+  slowmoEnd?: number | null;
+  slowmoSpeed?: number | null;
+  // BGM
+  bgmId?: string | null;
+  // css effects (captions/bgmVolume/originalVolume도 포함)
   effects?: {
     color?: boolean;
     cinematic?: boolean;
     eafc?: boolean;
     intro?: boolean;
+    captions?: import("@/stores/upload-store").Caption[];
+    bgmVolume?: number;
+    originalVolume?: number;
   } | null;
 }
 
@@ -122,6 +132,9 @@ export default function ClipPlayerSheet({
   const [isFreezing, setIsFreezing] = useState(false);
   const freezeFiredRef = useRef<Set<string>>(new Set());
   const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // BGM audio
+  const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // 닫기 애니메이션
   const [closing, setClosing] = useState(false);
@@ -302,6 +315,16 @@ export default function ClipPlayerSheet({
       setDuration(clipDuration || 0);
       setProgress(clipDuration > 0 ? elapsed / clipDuration : 0);
 
+      // 슬로모션 구간 playbackRate 제어
+      const sStart = currentClip?.slowmoStart;
+      const sEnd = currentClip?.slowmoEnd;
+      const sSpeed = currentClip?.slowmoSpeed ?? 0.5;
+      if (sStart != null && sEnd != null) {
+        const inSlowmo = v.currentTime >= sStart && v.currentTime < sEnd;
+        if (inSlowmo && v.playbackRate !== sSpeed) v.playbackRate = sSpeed;
+        else if (!inSlowmo && v.playbackRate !== 1) v.playbackRate = 1;
+      }
+
       // Freeze frame detection
       if (
         currentClip?.freezeAt != null &&
@@ -322,6 +345,10 @@ export default function ClipPlayerSheet({
     };
     const onPlay = () => {
       setPaused(false); scheduleHide(); setPlayCount((c) => c + 1);
+      // BGM 재생 동기화
+      if (bgmAudioRef.current) {
+        bgmAudioRef.current.play().catch(() => {});
+      }
       // View count: 3초 후 API 호출 (클립당 1회)
       const currentClip = clips[index];
       if (currentClip && !viewTrackedRef.current.has(currentClip.id)) {
@@ -338,6 +365,8 @@ export default function ClipPlayerSheet({
       setPaused(true); setShowControls(true);
       // 일시정지 시 타이머 취소 (3초 미달)
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
+      // BGM 일시정지 동기화
+      bgmAudioRef.current?.pause();
     };
     const onLoaded = () => {
       const currentClip = clips[index];
@@ -368,6 +397,43 @@ export default function ClipPlayerSheet({
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
     };
   }, [scheduleHide, index]);
+
+  // BGM 로드 및 클립 전환 시 동기화
+  useEffect(() => {
+    const currentClip = clips[index];
+    // 이전 BGM 정리
+    if (bgmAudioRef.current) {
+      bgmAudioRef.current.pause();
+      bgmAudioRef.current.src = "";
+      bgmAudioRef.current = null;
+    }
+    const bgmId = currentClip?.bgmId;
+    if (!bgmId) return;
+    const bgmVolume = (currentClip?.effects?.bgmVolume ?? 40) / 100;
+    const originalVolume = (currentClip?.effects?.originalVolume ?? 100) / 100;
+    // 비디오 원본 볼륨 적용
+    if (videoRef.current) videoRef.current.volume = originalVolume;
+    // BGM URL 가져오기 및 오디오 준비
+    fetch(`/api/bgm?id=${bgmId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const url = data.tracks?.[0]?.url;
+        if (!url) return;
+        const audio = new Audio(url);
+        audio.volume = bgmVolume;
+        audio.loop = true;
+        bgmAudioRef.current = audio;
+        // 영상이 재생 중이면 BGM도 바로 시작
+        if (videoRef.current && !videoRef.current.paused) {
+          audio.play().catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => {
+      bgmAudioRef.current?.pause();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
 
   const handleTap = useCallback(() => {
     const v = videoRef.current;
@@ -861,6 +927,16 @@ export default function ClipPlayerSheet({
             hideNametag={!!introData}
             freezeMode={isFreezing}
             zoomLevel={zoom}
+          />
+        </div>
+      )}
+
+      {/* ── 캡션 오버레이 ── */}
+      {effects?.captions && effects.captions.length > 0 && introReady && !showIntro && (
+        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 46 }}>
+          <CaptionOverlay
+            captions={effects.captions}
+            currentTime={currentTime}
           />
         </div>
       )}

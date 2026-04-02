@@ -893,7 +893,15 @@ export async function startUpload() {
           spotlight_y: store.spotlightY,
           freeze_at: store.freezeAt,
           event_tag: store.eventTag,
-          effects: store.effects,
+          slowmo_start: store.slowmoStart,
+          slowmo_end: store.slowmoEnd,
+          slowmo_speed: store.slowmoStart !== null ? store.slowmoSpeed : undefined,
+          bgm_id: store.bgmId || undefined,
+          effects: {
+            ...store.effects,
+            ...(store.captions.length > 0 ? { captions: store.captions } : {}),
+            ...(store.bgmId ? { bgmVolume: store.bgmVolume, originalVolume: store.originalVolume } : {}),
+          },
           client_trimmed: true,
         };
 
@@ -1024,7 +1032,15 @@ export async function startRenderUpload(compressedFile?: File) {
       spotlight_x: store.spotlightX,
       spotlight_y: store.spotlightY,
       freeze_at: store.freezeAt,
-      effects: store.effects,
+      slowmo_start: store.slowmoStart,
+      slowmo_end: store.slowmoEnd,
+      slowmo_speed: store.slowmoStart !== null ? store.slowmoSpeed : undefined,
+      bgm_id: store.bgmId || undefined,
+      effects: {
+        ...store.effects,
+        ...(store.captions.length > 0 ? { captions: store.captions } : {}),
+        ...(store.bgmId ? { bgmVolume: store.bgmVolume, originalVolume: store.originalVolume } : {}),
+      },
       raw_key: key,
       client_trimmed: clientTrimmed,
     };

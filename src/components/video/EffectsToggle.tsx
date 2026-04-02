@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const BgmSelector = dynamic(() => import("@/components/upload/BgmSelector"), { ssr: false });
 
 interface EffectsToggleProps {
   effects: {
@@ -114,6 +117,12 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
           </svg>
         </Link>
       )}
+
+      {/* 구분선 */}
+      <div className="my-1" style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
+
+      {/* BGM 선택 */}
+      <BgmSelector />
     </div>
   );
 }

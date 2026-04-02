@@ -303,6 +303,23 @@ export default function HighlightsTabV5({
               >
                 + 영상 추가
               </Link>
+              {dedupedClips.length >= 2 && (
+                <Link
+                  href="/reel/create"
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    color: "var(--color-text-2)",
+                    fontSize: 10,
+                    fontFamily: "var(--font-body)",
+                    fontWeight: 500,
+                  }}
+                >
+                  🎬 릴 만들기
+                </Link>
+              )}
               {dedupedClips.length > 0 && (
                 <button
                   onClick={() => setEditMode((v) => !v)}

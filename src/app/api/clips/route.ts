@@ -186,6 +186,10 @@ export async function POST(req: NextRequest) {
           freeze_at: clip.freeze_at ?? null,
           trim_start: clip.trim_start ?? null,
           trim_end: clip.trim_end ?? null,
+          slowmo_start: clip.slowmo_start ?? null,
+          slowmo_end: clip.slowmo_end ?? null,
+          slowmo_speed: clip.slowmo_speed ?? null,
+          bgm_id: clip.bgm_id ?? null,
           effects: clip.effects ?? null,
         },
       });
