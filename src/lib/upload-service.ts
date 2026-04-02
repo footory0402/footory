@@ -894,7 +894,6 @@ export async function startUpload() {
           freeze_at: store.freezeAt,
           event_tag: store.eventTag,
           effects: store.effects,
-          visibility: store.visibility,
           client_trimmed: true,
         };
 

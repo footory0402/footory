@@ -13,7 +13,7 @@ export async function GET(
 
     const { data: members, error } = await supabase
       .from("team_members")
-      .select("id, team_id, profile_id, role, joined_at, profiles(id, handle, name, avatar_url, position, level)")
+      .select("id, team_id, profile_id, role, joined_at, profiles(id, handle, name, avatar_url, position, level, role)")
       .eq("team_id", id)
       .order("role", { ascending: true })
       .order("joined_at", { ascending: true });

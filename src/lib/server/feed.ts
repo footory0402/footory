@@ -645,7 +645,6 @@ export async function fetchMvpLeader(supabase: SupabaseClient): Promise<MvpLeade
       .from("clips")
       .select("id")
       .gte("created_at", monthStartDate.toISOString())
-      .eq("visibility", "public")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

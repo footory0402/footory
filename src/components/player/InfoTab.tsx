@@ -22,7 +22,7 @@ interface InfoTabProps {
   clipTagCounts?: ClipTagCount[];
   playStyle?: PlayStyle | null;
   onAddStat?: () => void;
-  onUpdateStat?: (statType: string) => void;
+  onUpdateStat?: (statType: string, statId: string) => void;
   onDeleteStat?: (statId: string) => void;
   onPlayStyleTest?: () => void;
   achievements?: Achievement[];
@@ -296,7 +296,7 @@ function GrowthSection({
   peerCounts?: Record<string, number>;
   ageGroup?: string;
   onAddStat?: () => void;
-  onUpdateStat?: (statType: string) => void;
+  onUpdateStat?: (statType: string, statId: string) => void;
   onDeleteStat?: (statId: string) => void;
   readOnly?: boolean;
 }) {
@@ -352,7 +352,7 @@ function GrowthSection({
                 ageGroup={ageGroup ? ageGroup.toUpperCase().replace(/^U(\d+)$/, "U-$1") : undefined}
                 peerCount={peerCounts?.[stat.type]}
                 teamRank={readOnly ? undefined : teamRanks[stat.type]}
-                onUpdate={onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
+                onUpdate={onUpdateStat ? () => onUpdateStat(stat.type, stat.id) : undefined}
                 onDelete={onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
               />
             );

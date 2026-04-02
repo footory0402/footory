@@ -16,7 +16,6 @@ export type UploadStatus =
   | "creating_job"
   | "rendering";
 export type UploadContext = "general" | "challenge" | "parent";
-export type ClipVisibility = "public" | "followers" | "team" | "private";
 export type CompressStatus =
   | "idle"
   | "loading"
@@ -52,7 +51,6 @@ interface UploadState {
   skillLabels: string[];
   customLabels: string[];
   effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
-  visibility: ClipVisibility;
   renderJobId: string | null;
   renderProgress: number;
 
@@ -93,7 +91,6 @@ interface UploadState {
   setSkillLabels: (labels: string[]) => void;
   setCustomLabels: (labels: string[]) => void;
   setEffects: (effects: Partial<UploadState["effects"]>) => void;
-  setVisibility: (v: ClipVisibility) => void;
   setRenderJobId: (id: string | null) => void;
   setRenderProgress: (p: number) => void;
 
@@ -139,7 +136,6 @@ const initial = {
   skillLabels: [] as string[],
   customLabels: [] as string[],
   effects: { color: false, cinematic: false, eafc: false, intro: true },
-  visibility: "public" as ClipVisibility,
   renderJobId: null as string | null,
   renderProgress: 0,
 
@@ -185,7 +181,6 @@ export const useUploadStore = create<UploadState>((set) => ({
   setEffects: (partial) => set((state) => ({
     effects: { ...state.effects, ...partial },
   })),
-  setVisibility: (visibility) => set({ visibility }),
   setRenderJobId: (renderJobId) => set({ renderJobId }),
   setRenderProgress: (renderProgress) => set({ renderProgress }),
 

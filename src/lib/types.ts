@@ -109,6 +109,7 @@ export interface TeamMember {
     name: string;
     avatar_url: string | null;
     position: string | null;
+    role?: "player" | "parent" | "scout";
   };
 }
 

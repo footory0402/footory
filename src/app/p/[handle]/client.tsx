@@ -245,6 +245,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [editOpen, setEditOpen] = useState(false);
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [statInputType, setStatInputType] = useState<string | undefined>();
+  const [statInputId, setStatInputId] = useState<string | undefined>();
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
   const [tournamentAddOpen, setTournamentAddOpen] = useState(false);
   const [awardAddOpen, setAwardAddOpen] = useState(false);
@@ -547,8 +548,8 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             ageGroup={percentileData?.ageGroup}
             percentileLoading={percentileLoading}
             {...(data.isOwnProfile ? {
-              onAddStat: () => { setStatInputType(undefined); setStatInputOpen(true); },
-              onUpdateStat: (type: string) => { setStatInputType(type); setStatInputOpen(true); },
+              onAddStat: () => { setStatInputType(undefined); setStatInputId(undefined); setStatInputOpen(true); },
+              onUpdateStat: (type: string, statId: string) => { setStatInputType(type); setStatInputId(statId); setStatInputOpen(true); },
               onDeleteStat: async (statId: string) => {
                 const res = await fetch(`/api/stats/${statId}`, { method: "DELETE" });
                 if (res.ok) {
@@ -636,20 +637,28 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       {data.isOwnProfile && statInputOpen && (
         <StatInputSheet
           open={statInputOpen}
-          onClose={() => { setStatInputOpen(false); setStatInputType(undefined); }}
+          onClose={() => { setStatInputOpen(false); setStatInputType(undefined); setStatInputId(undefined); }}
           onSave={async (statType, value, evidenceClipId) => {
-            const res = await fetch("/api/stats", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ stat_type: statType, value, evidence_clip_id: evidenceClipId }),
-            });
+            const isUpdate = !!statInputId;
+            const res = isUpdate
+              ? await fetch(`/api/stats/${statInputId}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ value, evidenceClipId }),
+                })
+              : await fetch("/api/stats", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ stat_type: statType, value, evidence_clip_id: evidenceClipId }),
+                });
             if (!res.ok) {
               const data = await res.json();
               toast.error(data.error || "저장에 실패했습니다.");
               return;
             }
-            toast.success("기록이 저장되었습니다.");
+            toast.success(isUpdate ? "기록이 수정되었습니다." : "기록이 저장되었습니다.");
             setStatInputOpen(false);
+            setStatInputId(undefined);
             router.refresh();
           }}
           initialStatType={statInputType}

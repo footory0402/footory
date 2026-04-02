@@ -39,8 +39,7 @@ async function runFinalize(request: NextRequest) {
     .from("clips")
     .select("id, owner_id, video_url, thumbnail_url, created_at")
     .gte("created_at", monthStartDate.toISOString())
-    .lt("created_at", monthEndDate.toISOString())
-    .eq("visibility", "public");
+    .lt("created_at", monthEndDate.toISOString());
 
   if (!clips?.length) {
     return NextResponse.json({ message: "No clips for month", monthStart });

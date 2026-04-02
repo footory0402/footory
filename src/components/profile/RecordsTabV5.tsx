@@ -15,7 +15,7 @@ interface RecordsTabV5Props {
   stats: Stat[];
   playStyle?: PlayStyle | null;
   onAddStat?: () => void;
-  onUpdateStat?: (statType: string) => void;
+  onUpdateStat?: (statType: string, statId: string) => void;
   onDeleteStat?: (statId: string) => void;
   onPlayStyleTest?: () => void;
   percentiles?: Record<string, number>;
@@ -65,7 +65,7 @@ export default function RecordsTabV5({
               return (
                 <button
                   key={statType}
-                  onClick={() => onUpdateStat?.(statType)}
+                  onClick={() => onAddStat?.()}
                   style={{
                     padding: "12px", borderRadius: 12, textAlign: "left", cursor: "pointer",
                     background: "var(--color-card)", border: "1px solid rgba(255,255,255,0.06)",
@@ -279,7 +279,7 @@ export default function RecordsTabV5({
                 key={stat.id}
                 stat={stat}
                 isEditMode={isEditMode}
-                onUpdate={!isEditMode && onUpdateStat ? () => onUpdateStat(stat.type) : undefined}
+                onUpdate={!isEditMode && onUpdateStat ? () => onUpdateStat(stat.type, stat.id) : undefined}
                 onDelete={isEditMode && onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
                 percentile={percentiles?.[stat.type]}
                 ageAvg={ageAvgs?.[stat.type]}
