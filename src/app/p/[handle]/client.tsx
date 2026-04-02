@@ -32,6 +32,7 @@ import type { PlayableClip } from "@/components/player/ClipPlayerSheet";
 const ShareSheet = dynamic(() => import("@/components/social/ShareSheet"), { ssr: false });
 const CompareSheet = dynamic(() => import("@/components/player/CompareSheet"), { ssr: false });
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import SignupCTA from "@/components/profile/SignupCTA";
 import { APP_URL, POSITION_LABELS, MEASUREMENTS, getStatMeta, type PlayStyleType } from "@/lib/constants";
 import { calcRadarStats } from "@/lib/radar-calc";
 import type { Profile, Stat, Season, Achievement, PlayStyle } from "@/lib/types";
@@ -881,6 +882,10 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         </div>
       )}
     </div>
+      {/* 비로그인 가입 유도 CTA */}
+      {!data.isOwnProfile && !data.viewerAccess?.role && (
+        <SignupCTA handle={data.handle} />
+      )}
     </ErrorBoundary>
   );
 }

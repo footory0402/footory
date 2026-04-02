@@ -26,7 +26,11 @@ function getSignupErrorMessage(error: unknown) {
   return "가입에 실패했어요. 다시 시도해주세요.";
 }
 
-export default function EmailSignupForm() {
+interface Props {
+  next?: string;
+}
+
+export default function EmailSignupForm({ next }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,7 +60,7 @@ export default function EmailSignupForm() {
     setResendCooldown(60);
     setError("");
     try {
-      await resendSignupConfirmation(email);
+      await resendSignupConfirmation(email, next);
     } catch (err) {
       setError(getSignupErrorMessage(err));
     }
@@ -80,7 +84,7 @@ export default function EmailSignupForm() {
     setError("");
 
     try {
-      await signUpWithEmail(email, password);
+      await signUpWithEmail(email, password, next);
       setSuccess(true);
     } catch (err) {
       setError(getSignupErrorMessage(err));

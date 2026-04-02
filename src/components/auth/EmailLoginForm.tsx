@@ -4,7 +4,11 @@ import { useState } from "react";
 import { signInWithEmail } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
-export default function EmailLoginForm() {
+interface Props {
+  next?: string;
+}
+
+export default function EmailLoginForm({ next }: Props) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +25,7 @@ export default function EmailLoginForm() {
     try {
       const { session } = await signInWithEmail(email, password);
       if (session) {
-        router.replace("/");
+        router.replace(next || "/");
         router.refresh();
       }
     } catch (err) {

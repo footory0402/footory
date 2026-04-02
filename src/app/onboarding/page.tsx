@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import PlayerOnboarding from "@/components/onboarding/PlayerOnboarding";
 import ParentOnboarding from "@/components/onboarding/ParentOnboarding";
 import ScoutOnboarding from "@/components/onboarding/ScoutOnboarding";
@@ -11,7 +12,10 @@ const ROLES = [
   { value: "scout", label: "코치/스카우터", emoji: "🔭", desc: "코치하거나 유망 선수를 발굴해요" },
 ] as const;
 
-export default function OnboardingPage() {
+function OnboardingContent() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("next") ?? "/";
+
   const [role, setRole] = useState<string>("");
   const [showRoleSelect, setShowRoleSelect] = useState(true);
 
@@ -65,14 +69,22 @@ export default function OnboardingPage() {
 
       {/* Role-specific onboarding */}
       {!showRoleSelect && role === "player" && (
-        <PlayerOnboarding onBack={handleBack} />
+        <PlayerOnboarding onBack={handleBack} redirectTo={redirectTo} />
       )}
       {!showRoleSelect && role === "parent" && (
-        <ParentOnboarding onBack={handleBack} />
+        <ParentOnboarding onBack={handleBack} redirectTo={redirectTo} />
       )}
       {!showRoleSelect && role === "scout" && (
-        <ScoutOnboarding onBack={handleBack} />
+        <ScoutOnboarding onBack={handleBack} redirectTo={redirectTo} />
       )}
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingContent />
+    </Suspense>
   );
 }

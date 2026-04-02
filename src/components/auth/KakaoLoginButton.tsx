@@ -3,13 +3,17 @@
 import { signInWithKakao } from "@/lib/auth";
 import { useState } from "react";
 
-export default function KakaoLoginButton() {
+interface Props {
+  next?: string;
+}
+
+export default function KakaoLoginButton({ next }: Props) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
     try {
-      await signInWithKakao();
+      await signInWithKakao(next);
     } catch {
       setLoading(false);
     }

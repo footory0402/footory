@@ -17,9 +17,10 @@ const FOOT_OPTIONS = [
 
 interface Props {
   onBack: () => void;
+  redirectTo?: string;
 }
 
-export default function PlayerOnboarding({ onBack }: Props) {
+export default function PlayerOnboarding({ onBack, redirectTo }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: 기본정보, 2: 추가정보, 3: 플레이스타일, 4: 프사
   const [submitting, setSubmitting] = useState(false);
@@ -198,7 +199,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
         }
         try { localStorage.removeItem(DRAFT_KEY); } catch {}
         localStorage.setItem("footory_show_welcome", "1");
-        router.replace("/");
+        router.replace(redirectTo || "/");
       } else {
         const data = await res.json();
         toast.error(data.error || "프로필 생성에 실패했어요");
@@ -208,7 +209,7 @@ export default function PlayerOnboarding({ onBack }: Props) {
       toast.error("네트워크 오류가 발생했어요");
       setSubmitting(false);
     }
-  }, [submitting, name, handle, position, birthYear, heightCm, weightKg, preferredFoot, avatarFile, playStyleResult, router]);
+  }, [submitting, name, handle, position, birthYear, heightCm, weightKg, preferredFoot, avatarFile, playStyleResult, redirectTo, router]);
 
   return (
     <div className="flex-1">

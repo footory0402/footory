@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 interface Props {
   onBack: () => void;
+  redirectTo?: string;
 }
 
 interface SearchResult {
@@ -17,7 +18,7 @@ interface SearchResult {
   position: string | null;
 }
 
-export default function ParentOnboarding({ onBack }: Props) {
+export default function ParentOnboarding({ onBack, redirectTo }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: 기본정보, 2: 자녀연결
   const [submitting, setSubmitting] = useState(false);
@@ -92,13 +93,13 @@ export default function ParentOnboarding({ onBack }: Props) {
           });
         }
 
-        router.replace("/");
+        router.replace(redirectTo || "/");
       } catch {
         toast.error("네트워크 오류가 발생했어요");
         setSubmitting(false);
       }
     },
-    [submitting, name, linkedChild, router]
+    [submitting, name, linkedChild, redirectTo, router]
   );
 
   return (

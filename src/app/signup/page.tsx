@@ -1,9 +1,16 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import EmailSignupForm from "@/components/auth/EmailSignupForm";
 
-export default function SignupPage() {
+function SignupContent() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/";
+
+  const loginHref = next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login";
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
       <div className="w-full max-w-[320px]">
@@ -19,15 +26,23 @@ export default function SignupPage() {
         </h1>
         <p className="mb-8 text-center text-sm text-text-2">이메일로 가입하기</p>
 
-        <EmailSignupForm />
+        <EmailSignupForm next={next} />
 
         <p className="mt-6 text-center text-xs text-text-3">
           이미 계정이 있으신가요?{" "}
-          <Link href="/login" className="text-accent hover:underline">
+          <Link href={loginHref} className="text-accent hover:underline">
             로그인
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupContent />
+    </Suspense>
   );
 }

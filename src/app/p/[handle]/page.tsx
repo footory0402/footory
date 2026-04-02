@@ -40,6 +40,50 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
+  // --- Step 1: Determine viewer relationship BEFORE clips queries ---
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const isOwner = currentUser?.id === profile.id;
+
+  let isFollowing = false;
+  let isSameTeam = false;
+
+  if (currentUser && !isOwner) {
+    const [followRow, viewerTeams, targetTeams] = await Promise.all([
+      supabase
+        .from("follows")
+        .select("id")
+        .eq("follower_id", currentUser.id)
+        .eq("following_id", profile.id)
+        .maybeSingle(),
+      supabase
+        .from("team_members")
+        .select("team_id")
+        .eq("profile_id", currentUser.id)
+        .neq("role", "alumni"),
+      supabase
+        .from("team_members")
+        .select("team_id")
+        .eq("profile_id", profile.id)
+        .neq("role", "alumni"),
+    ]);
+    isFollowing = !!followRow.data;
+    const viewerTeamIds = new Set((viewerTeams.data ?? []).map((item) => item.team_id));
+    isSameTeam = (targetTeams.data ?? []).some((item) => viewerTeamIds.has(item.team_id));
+  }
+
+  // --- Step 2: Build visibility-filtered clips query ---
+  type VisibilityValue = "public" | "followers" | "team" | "private";
+  let allowedVisibilities: VisibilityValue[];
+  if (isOwner) {
+    allowedVisibilities = ["public", "followers", "team", "private"];
+  } else if (isSameTeam) {
+    allowedVisibilities = ["public", "followers", "team"];
+  } else if (isFollowing) {
+    allowedVisibilities = ["public", "followers"];
+  } else {
+    allowedVisibilities = ["public"];
+  }
+
   const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData, playStyleData] = await Promise.all([
     supabase
       .from("featured_clips")
@@ -77,7 +121,8 @@ const getProfile = cache(async (handle: string) => {
     supabase
       .from("clips")
       .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)")
-      .eq("owner_id", profile.id),
+      .eq("owner_id", profile.id)
+      .in("visibility", allowedVisibilities),
     supabase
       .from("play_styles")
       .select("*")
@@ -100,7 +145,8 @@ const getProfile = cache(async (handle: string) => {
     const { data: clipsData } = await supabase
       .from("clips")
       .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end")
-      .in("id", clipIds);
+      .in("id", clipIds)
+      .in("visibility", allowedVisibilities);
     if (clipsData) {
       for (const c of clipsData) {
         clipsMap[c.id] = {
@@ -122,8 +168,7 @@ const getProfile = cache(async (handle: string) => {
     clips: clipsMap[f.clip_id] ?? null,
   }));
 
-  // Check if current user follows this profile
-  let isFollowing = false;
+  // --- Step 3: Build viewerAccess (requires viewerProfile + blockRow for permissions) ---
   let viewerAccess: ViewerAccess = {
     role: null as UserRole | null,
     verified: false,
@@ -140,36 +185,14 @@ const getProfile = cache(async (handle: string) => {
       message: "",
     },
   };
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
-  if (currentUser && currentUser.id !== profile.id) {
-    const [
-      followRow,
-      viewerProfile,
-      viewerTeams,
-      targetTeams,
-      blockRow,
-    ] = await Promise.all([
-      supabase
-        .from("follows")
-        .select("id")
-        .eq("follower_id", currentUser.id)
-        .eq("following_id", profile.id)
-        .maybeSingle(),
+
+  if (currentUser && !isOwner) {
+    const [viewerProfile, blockRow] = await Promise.all([
       supabase
         .from("profiles")
         .select("role, is_verified")
         .eq("id", currentUser.id)
         .maybeSingle(),
-      supabase
-        .from("team_members")
-        .select("team_id")
-        .eq("profile_id", currentUser.id)
-        .neq("role", "alumni"),
-      supabase
-        .from("team_members")
-        .select("team_id")
-        .eq("profile_id", profile.id)
-        .neq("role", "alumni"),
       supabase
         .from("blocks")
         .select("id")
@@ -179,13 +202,9 @@ const getProfile = cache(async (handle: string) => {
         .maybeSingle(),
     ]);
 
-    isFollowing = !!followRow.data;
-
     const viewerRole = (viewerProfile.data?.role ?? null) as UserRole | null;
     const viewerVerified = !!viewerProfile.data?.is_verified;
     const targetRole = (profile.role ?? "player") as UserRole;
-    const viewerTeamIds = new Set((viewerTeams.data ?? []).map((item) => item.team_id));
-    const isSameTeam = (targetTeams.data ?? []).some((item) => viewerTeamIds.has(item.team_id));
     const targetIsMinor = Boolean(
       profile.birth_year && new Date().getFullYear() - profile.birth_year < 18
     );

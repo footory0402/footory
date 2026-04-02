@@ -7,11 +7,12 @@ import { toast } from "sonner";
 
 interface Props {
   onBack: () => void;
+  redirectTo?: string;
 }
 
 const SUB_ROLES = ["감독", "코치", "스카우터", "트레이너"] as const;
 
-export default function ScoutOnboarding({ onBack }: Props) {
+export default function ScoutOnboarding({ onBack, redirectTo }: Props) {
   const router = useRouter();
   const [step] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -86,12 +87,12 @@ export default function ScoutOnboarding({ onBack }: Props) {
         return;
       }
 
-      router.replace("/");
+      router.replace(redirectTo || "/");
     } catch {
       toast.error("네트워크 오류가 발생했어요");
       setSubmitting(false);
     }
-  }, [submitting, name, handle, organization, subRole, router]);
+  }, [submitting, name, handle, organization, subRole, redirectTo, router]);
 
   if (step !== 1) return null;
 

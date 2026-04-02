@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import KakaoLoginButton from "@/components/auth/KakaoLoginButton";
 import EmailLoginForm from "@/components/auth/EmailLoginForm";
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/";
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
@@ -19,6 +22,8 @@ export default function LoginPage() {
     const timer = setTimeout(() => setShowContent(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  const signupHref = next !== "/" ? `/signup?next=${encodeURIComponent(next)}` : "/signup";
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
@@ -61,7 +66,7 @@ export default function LoginPage() {
       >
         {/* Social login */}
         <div className="flex flex-col gap-3">
-          <KakaoLoginButton />
+          <KakaoLoginButton next={next} />
         </div>
 
         {/* Divider */}
@@ -72,7 +77,7 @@ export default function LoginPage() {
         </div>
 
         {/* Email login */}
-        <EmailLoginForm />
+        <EmailLoginForm next={next} />
 
         {/* Links */}
         <div className="mt-4 flex items-center justify-center gap-3 text-xs text-text-3">
@@ -80,7 +85,7 @@ export default function LoginPage() {
             비밀번호 찾기
           </Link>
           <span className="text-border">|</span>
-          <Link href="/signup" className="hover:text-text-2 transition-colors">
+          <Link href={signupHref} className="hover:text-text-2 transition-colors">
             이메일로 가입하기
           </Link>
         </div>
@@ -103,5 +108,13 @@ export default function LoginPage() {
         에 동의합니다
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

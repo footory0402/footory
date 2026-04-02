@@ -4,38 +4,41 @@ function getAuthRedirectUrl(path = "/auth/callback") {
   return `${window.location.origin}${path}`;
 }
 
-export async function signInWithKakao() {
+export async function signInWithKakao(next?: string) {
   const supabase = createClient();
+  const redirectTo = next
+    ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+    : getAuthRedirectUrl();
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "kakao",
-    options: {
-      redirectTo: getAuthRedirectUrl(),
-    },
+    options: { redirectTo },
   });
   if (error) throw error;
 }
 
-export async function signUpWithEmail(email: string, password: string) {
+export async function signUpWithEmail(email: string, password: string, next?: string) {
   const supabase = createClient();
+  const emailRedirectTo = next
+    ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+    : getAuthRedirectUrl();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      emailRedirectTo: getAuthRedirectUrl(),
-    },
+    options: { emailRedirectTo },
   });
   if (error) throw error;
   return data;
 }
 
-export async function resendSignupConfirmation(email: string) {
+export async function resendSignupConfirmation(email: string, next?: string) {
   const supabase = createClient();
+  const emailRedirectTo = next
+    ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+    : getAuthRedirectUrl();
   const { data, error } = await supabase.auth.resend({
     type: "signup",
     email,
-    options: {
-      emailRedirectTo: getAuthRedirectUrl(),
-    },
+    options: { emailRedirectTo },
   });
   if (error) throw error;
   return data;
