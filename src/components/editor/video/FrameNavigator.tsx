@@ -8,6 +8,8 @@ interface FrameNavigatorProps {
   maxTime: number;
   step?: number;
   onTimeChange: (time: number) => void;
+  /** compact 모드: 스크러버만 표시 (버튼/시간 숨김, 높이 32px) */
+  compact?: boolean;
 }
 
 function fmtDetailed(s: number) {
@@ -23,6 +25,7 @@ export default function FrameNavigator({
   maxTime,
   step = 0.1,
   onTimeChange,
+  compact = false,
 }: FrameNavigatorProps) {
   const repeatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -56,6 +59,28 @@ export default function FrameNavigator({
 
   const rangeDuration = maxTime - minTime;
   const progress = rangeDuration > 0 ? ((currentTime - minTime) / rangeDuration) * 100 : 0;
+
+  if (compact) {
+    return (
+      <div
+        className="flex items-center px-4"
+        style={{ height: 32, background: "#0c0c0e", borderTop: "1px solid rgba(255,255,255,0.05)" }}
+      >
+        <input
+          type="range"
+          min={minTime}
+          max={maxTime}
+          step={step}
+          value={currentTime}
+          onChange={handleScrub}
+          className="w-full h-1 appearance-none rounded-full cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #D4A853 0%, #D4A853 ${progress}%, rgba(255,255,255,0.1) ${progress}%, rgba(255,255,255,0.1) 100%)`,
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div

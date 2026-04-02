@@ -458,6 +458,31 @@ body {
   from { opacity: 1; }
   to   { opacity: 0; visibility: hidden; }
 }
+
+/* ── 축구 중계 스타일 마커 애니메이션 ── */
+@keyframes broadcast-drop-in {
+  0%   { opacity: 0; transform: translate(-50%, calc(-100% - 8px)) translateY(-16px); }
+  60%  { opacity: 1; transform: translate(-50%, calc(-100% - 8px)) translateY(3px); }
+  80%  { transform: translate(-50%, calc(-100% - 8px)) translateY(-2px); }
+  100% { opacity: 1; transform: translate(-50%, calc(-100% - 8px)) translateY(0px); }
+}
+@keyframes broadcast-float {
+  0%, 100% { transform: translate(-50%, calc(-100% - 8px)) translateY(0px); }
+  50%       { transform: translate(-50%, calc(-100% - 8px)) translateY(-4px); }
+}
+@keyframes broadcast-highlight-glow {
+  0%   { box-shadow: 0 0 0 0 rgba(212,168,83,0.6), 0 0 20px rgba(212,168,83,0.4); }
+  50%  { box-shadow: 0 0 0 10px rgba(212,168,83,0), 0 0 30px rgba(212,168,83,0.6); }
+  100% { box-shadow: 0 0 0 0 rgba(212,168,83,0), 0 0 20px rgba(212,168,83,0.4); }
+}
+@keyframes broadcast-circle-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes broadcast-label-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
 @keyframes fullscreen-player-in {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }

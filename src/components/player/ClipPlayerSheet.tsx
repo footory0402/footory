@@ -92,6 +92,13 @@ export default function ClipPlayerSheet({
   const pinchRef = useRef<{ startDist: number; startZoom: number; startPanX: number; startPanY: number; midX: number; midY: number } | null>(null);
   const lastTapRef = useRef(0);
 
+  // 자동 포커스 모드
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const isAutoZoomingRef = useRef(false);
+  const rafIdRef = useRef(0);
+  const zoomRef = useRef(1);
+  const panRef = useRef({ x: 0, y: 0 });
+
   const clip = clips[index];
   const hasNext = index < clips.length - 1;
   const hasPrev = index > 0;
@@ -205,11 +212,22 @@ export default function ClipPlayerSheet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // introReady가 true가 되면 영상 재생 시작 (autoPlay는 마운트 시점만 작동)
+  // introReady가 true가 되면 영상 재생 시작 + spotlight 있으면 자동 포커스
   useEffect(() => {
     if (introReady && !showIntro && videoRef.current) {
       videoRef.current.play().catch(() => {});
+      // spotlight가 있는 클립이면 자동 2x 포커스 진입
+      const currentClip = clips[index];
+      if (
+        currentClip?.spotlightX != null &&
+        currentClip?.spotlightY != null &&
+        zoomRef.current <= 1
+      ) {
+        setIsFocusMode(true);
+        animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, 2, 450);
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [introReady, showIntro]);
 
   // Reset on clip change
@@ -347,12 +365,84 @@ export default function ClipPlayerSheet({
     if (i >= 0 && i < clips.length) setIndex(i);
   };
 
-  // 줌 리셋 (클립 변경 시)
-  useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }); pinchRef.current = null; }, [index]);
+  // zoom/pan ref 동기화 (animateZoomTo가 최신 값을 읽을 수 있도록)
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { panRef.current = pan; }, [pan]);
+
+  // 줌 리셋 + 자동 포커스 재진입 (클립 변경 시)
+  useEffect(() => {
+    // 이전 클립의 rAF 취소
+    cancelAnimationFrame(rafIdRef.current);
+    isAutoZoomingRef.current = false;
+
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    zoomRef.current = 1;
+    panRef.current = { x: 0, y: 0 };
+    setIsFocusMode(false);
+    pinchRef.current = null;
+
+    // 새 클립에 spotlight 있으면 자동 포커스 진입 (인트로 카드 없을 때만)
+    const newClip = clips[index];
+    if (newClip?.spotlightX != null && newClip?.spotlightY != null) {
+      // 인트로 카드가 표시되는 동안은 자동 포커스 지연
+      const delay = introData && !introShownRef.current.has(newClip.id) ? 3100 : 600;
+      const timer = setTimeout(() => {
+        if (newClip.spotlightX != null && newClip.spotlightY != null) {
+          setIsFocusMode(true);
+          animateZoomTo(newClip.spotlightX, newClip.spotlightY, 2, 450);
+        }
+      }, delay);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
 
   const clampPan = useCallback((px: number, py: number, z: number) => {
     const max = ((z - 1) / z) * 50;
     return { x: Math.max(-max, Math.min(max, px)), y: Math.max(-max, Math.min(max, py)) };
+  }, []);
+
+  // rAF 기반 줌 애니메이션 (targetX/Y: 0-1 정규화된 영상 내 좌표)
+  const animateZoomTo = useCallback((
+    targetX: number,
+    targetY: number,
+    targetZoom: number,
+    durationMs: number,
+    onDone?: () => void,
+  ) => {
+    isAutoZoomingRef.current = true;
+    const startZoom = zoomRef.current;
+    const startPan = { ...panRef.current };
+    const targetPanX = -(targetX - 0.5) * 100;
+    const targetPanY = -(targetY - 0.5) * 100;
+    const startTime = performance.now();
+
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const tick = (now: number) => {
+      if (!isAutoZoomingRef.current) return; // 외부에서 취소됨
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / durationMs, 1);
+      const e = easeOutCubic(t);
+
+      const newZoom = startZoom + (targetZoom - startZoom) * e;
+      const newPanX = startPan.x + (targetPanX - startPan.x) * e;
+      const newPanY = startPan.y + (targetPanY - startPan.y) * e;
+
+      zoomRef.current = newZoom;
+      panRef.current = { x: newPanX, y: newPanY };
+      setZoom(newZoom);
+      setPan({ x: newPanX, y: newPanY });
+
+      if (t < 1) {
+        rafIdRef.current = requestAnimationFrame(tick);
+      } else {
+        isAutoZoomingRef.current = false;
+        onDone?.();
+      }
+    };
+    rafIdRef.current = requestAnimationFrame(tick);
   }, []);
 
   const getTouchDist = (e: React.TouchEvent) => {
@@ -388,10 +478,12 @@ export default function ClipPlayerSheet({
   const handleTouchMove = (e: React.TouchEvent) => {
     // 핀치 줌 진행
     if (pinchRef.current && e.touches.length === 2) {
+      if (isAutoZoomingRef.current) return; // 자동 줌 중 핀치 차단
       const dist = getTouchDist(e);
       const newZoom = Math.max(1, Math.min(4, pinchRef.current.startZoom * (dist / pinchRef.current.startDist)));
       setZoom(newZoom);
-      if (newZoom <= 1) { setPan({ x: 0, y: 0 }); }
+      zoomRef.current = newZoom;
+      if (newZoom <= 1) { setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 }; setIsFocusMode(false); }
       return;
     }
     if (!swipeStart.current) return;
@@ -402,10 +494,11 @@ export default function ClipPlayerSheet({
       const dx = t.clientX - swipeStart.current.x;
       const dy = t.clientY - swipeStart.current.y;
       const newPan = clampPan(
-        (pinchRef.current?.startPanX ?? pan.x) + (dx / window.innerWidth) * 100,
-        (pinchRef.current?.startPanY ?? pan.y) + (dy / window.innerHeight) * 100,
+        (pinchRef.current?.startPanX ?? panRef.current.x) + (dx / window.innerWidth) * 100,
+        (pinchRef.current?.startPanY ?? panRef.current.y) + (dy / window.innerHeight) * 100,
         zoom,
       );
+      panRef.current = newPan; // ref도 동기화 (stale closure 방지)
       setPan(newPan);
       return;
     }
@@ -467,10 +560,22 @@ export default function ClipPlayerSheet({
       setSwipeY(0);
       setSwiping(false);
     } else if (!swipeStart.current.locked) {
-      // 더블탭 줌인
+      // 더블탭: spotlight 있으면 선수 위치 기준, 없으면 1x ↔ 2x 토글
       const now = Date.now();
       if (now - lastTapRef.current < 300) {
-        setZoom(2);
+        const currentClip = clips[index];
+        if (zoomRef.current > 1) {
+          // 현재 줌 상태 → 1x로 리셋
+          animateZoomTo(0.5, 0.5, 1, 350);
+          setIsFocusMode(false);
+        } else if (currentClip?.spotlightX != null && currentClip?.spotlightY != null) {
+          // spotlight 있음 → 선수 위치로 2x 줌
+          animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, 2, 350);
+          setIsFocusMode(true);
+        } else {
+          // spotlight 없음 → 그냥 2x
+          animateZoomTo(0.5, 0.5, 2, 350);
+        }
         lastTapRef.current = 0;
       } else {
         lastTapRef.current = now;
@@ -632,11 +737,11 @@ export default function ClipPlayerSheet({
         />
       )}
 
-      {/* ── 스포트라이트 링 — 프리즈 프레임 시 또는 인트로 카드 끝난 뒤 표시 ── */}
+      {/* ── 축구 중계 스타일 마커 오버레이 ── */}
       {clip.playerName && introReady && !showIntro && clip.spotlightX != null && clip.spotlightY != null && (
         <div className="absolute inset-0 z-[45] pointer-events-none">
           <VideoOverlay
-            key={isFreezing ? `${clip.id}-freeze` : `${clip.id}-${playCount}`}
+            key={clip.id}
             spotlight={{ x: clip.spotlightX, y: clip.spotlightY }}
             player={{
               name: clip.playerName,
@@ -647,6 +752,7 @@ export default function ClipPlayerSheet({
             effects={effects}
             hideNametag={!!introData}
             freezeMode={isFreezing}
+            zoomLevel={zoom}
           />
         </div>
       )}
@@ -717,6 +823,50 @@ export default function ClipPlayerSheet({
         </button>
         {clips.length > 1 && (
           <span className="ml-3 font-stat text-[12px] text-white/70">{index + 1} / {clips.length}</span>
+        )}
+
+        {/* 선수 보기 / 전체 보기 토글 (spotlight가 있는 클립만) */}
+        {clip.spotlightX != null && clip.spotlightY != null && introReady && (
+          <button
+            onClick={() => {
+              if (isFocusMode || zoom > 1) {
+                // 전체 보기로 전환
+                animateZoomTo(0.5, 0.5, 1, 400);
+                setIsFocusMode(false);
+              } else {
+                // 선수 포커스로 전환
+                animateZoomTo(clip.spotlightX!, clip.spotlightY!, 2, 400);
+                setIsFocusMode(true);
+              }
+            }}
+            className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold active:scale-95 transition-transform"
+            style={{
+              background: isFocusMode || zoom > 1
+                ? "rgba(212,168,83,0.25)"
+                : "rgba(0,0,0,0.45)",
+              border: isFocusMode || zoom > 1
+                ? "1px solid rgba(212,168,83,0.5)"
+                : "1px solid rgba(255,255,255,0.15)",
+              color: isFocusMode || zoom > 1 ? "#D4A853" : "rgba(255,255,255,0.8)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            {isFocusMode || zoom > 1 ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                </svg>
+                전체 보기
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                선수 보기
+              </>
+            )}
+          </button>
         )}
       </div>
 

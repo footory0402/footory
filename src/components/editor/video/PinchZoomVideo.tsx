@@ -14,6 +14,8 @@ interface PinchZoomVideoProps {
   onMarkerDrag?: (x: number, y: number) => void;
   /** 마커 삭제 */
   onMarkerClear?: () => void;
+  /** 최대 높이 (기본값: "60vh") */
+  maxHeight?: string;
 }
 
 const MAX_ZOOM = 5;
@@ -27,6 +29,7 @@ export default function PinchZoomVideo({
   onTap,
   onMarkerDrag,
   onMarkerClear,
+  maxHeight = "60vh",
 }: PinchZoomVideoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -349,7 +352,7 @@ export default function PinchZoomVideo({
       className="relative w-full overflow-hidden bg-black rounded-xl"
       style={{
         aspectRatio: containerAspect,
-        maxHeight: "60vh",
+        maxHeight,
         touchAction: "none",
       }}
       onTouchStart={handleTouchStart}
@@ -372,32 +375,76 @@ export default function PinchZoomVideo({
         }}
       />
 
-      {/* Marker ring */}
+      {/* Broadcast-style marker */}
       {hasMarker && markerPos && (
         <div
-          className="absolute pointer-events-none"
+          className="absolute"
           style={{
             left: markerPos.left,
             top: markerPos.top,
-            transform: "translate(-50%, -50%)",
+            pointerEvents: "none",
           }}
         >
+          {/* 원형 하이라이트 */}
           <div
             style={{
-              width: 56,
-              height: 56,
+              position: "absolute",
+              width: 72,
+              height: 72,
               borderRadius: "50%",
-              border: "3px solid #D4A853",
-              background: "radial-gradient(circle, rgba(212,168,83,0.15) 0%, transparent 70%)",
-              boxShadow: "0 0 20px rgba(212,168,83,0.3)",
-              animation: "overlay-ring-in 0.2s ease-out",
+              transform: "translate(-50%, -50%)",
+              background: "radial-gradient(circle, rgba(212,168,83,0.2) 0%, rgba(212,168,83,0.06) 55%, transparent 75%)",
+              animation: "broadcast-circle-in 0.25s ease-out forwards",
             }}
           />
-          {/* Clear button */}
+          {/* 삼각형 마커 */}
+          <div
+            style={{
+              position: "absolute",
+              transform: "translate(-50%, calc(-100% - 6px))",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              animation: "broadcast-drop-in 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards",
+            }}
+          >
+            {/* 컴팩트 라벨 */}
+            <div
+              style={{
+                background: "rgba(10,10,14,0.88)",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(212,168,83,0.35)",
+                borderRadius: 16,
+                padding: "3px 8px",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#FAFAFA",
+                marginBottom: 4,
+                whiteSpace: "nowrap",
+              }}
+            >
+              선수 위치
+            </div>
+            <svg width="20" height="12" viewBox="0 0 20 12"
+              style={{ filter: "drop-shadow(0 0 5px rgba(212,168,83,0.7))" }}
+            >
+              <polygon points="10,12 0,0 20,0" fill="#D4A853" />
+            </svg>
+          </div>
+          {/* X 삭제 버튼 (pointer-events 복원) */}
           <button
-            className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/80 text-white/70 active:text-red-400 pointer-events-auto"
-            style={{ border: "1px solid rgba(255,255,255,0.15)" }}
+            className="absolute flex h-6 w-6 items-center justify-center rounded-full bg-black/80 text-white/70 active:text-red-400"
+            style={{
+              top: -36,
+              left: 14,
+              border: "1px solid rgba(255,255,255,0.15)",
+              pointerEvents: "auto",
+            }}
             onTouchEnd={(e) => {
+              e.stopPropagation();
+              onMarkerClear?.();
+            }}
+            onClick={(e) => {
               e.stopPropagation();
               onMarkerClear?.();
             }}
@@ -406,13 +453,6 @@ export default function PinchZoomVideo({
               <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          {/* Arrow */}
-          <div
-            className="text-center text-[10px] text-accent"
-            style={{ marginTop: 2, filter: "drop-shadow(0 0 4px rgba(212,168,83,0.6))" }}
-          >
-            ▼
-          </div>
         </div>
       )}
 
