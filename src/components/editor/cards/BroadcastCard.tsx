@@ -68,17 +68,17 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
           <div>
             <div className="mb-2 flex items-center gap-2">
               <span
-                className="inline-block rounded px-3 py-0.5 text-[10px] font-bold uppercase tracking-[2px] text-white"
+                className="inline-block rounded px-3 py-1 text-[12px] font-bold uppercase tracking-[2px] text-white"
                 style={{ background: club.accent }}
               >
                 PLAYER REVIEW
               </span>
             </div>
-            <div className="mb-0.5 text-xs font-medium uppercase tracking-[4px] text-white/50">
+            <div className="mb-0.5 text-sm font-medium uppercase tracking-[4px] text-white/50">
               {data.firstName || "FIRST"}
             </div>
             <div className="flex items-baseline gap-3">
-              <span className="font-[var(--font-stat)] text-3xl font-black uppercase tracking-wider text-white">
+              <span className="font-[var(--font-stat)] text-4xl font-black uppercase tracking-wider text-white">
                 {data.lastName || "LAST"}
               </span>
               <span className="font-[var(--font-stat)] text-[44px] font-black leading-none text-white/10">
@@ -90,15 +90,15 @@ export default function BroadcastCard({ data }: { data: PlayerData }) {
           {/* Data rows */}
           <div className="flex flex-col gap-0.5">
             {infoRows.map(([label, value], i) => (
-              <div key={i} className="flex h-[22px] items-center text-[11px]">
-                <span className="w-16 text-[8px] font-semibold tracking-[2px] text-white/35">
+              <div key={i} className="flex h-[26px] items-center text-[13px]">
+                <span className="w-18 text-[10px] font-semibold tracking-[2px] text-white/40">
                   {label}
                 </span>
                 <span
                   className="flex-1 rounded px-3 py-0.5 font-bold tracking-wide"
                   style={{
                     background: i % 2 === 0 ? `${club.accent}22` : "rgba(255,255,255,0.04)",
-                    color: i % 2 === 0 ? club.accent : "rgba(255,255,255,0.7)",
+                    color: i % 2 === 0 ? club.accent : "rgba(255,255,255,0.8)",
                   }}
                 >
                   {value}

@@ -652,9 +652,8 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
                   body: JSON.stringify({ stat_type: statType, value, evidence_clip_id: evidenceClipId }),
                 });
             if (!res.ok) {
-              const data = await res.json();
-              toast.error(data.error || "저장에 실패했습니다.");
-              return;
+              const errData = await res.json();
+              throw new Error(errData.error || "저장에 실패했습니다.");
             }
             toast.success(isUpdate ? "기록이 수정되었습니다." : "기록이 저장되었습니다.");
             setStatInputOpen(false);

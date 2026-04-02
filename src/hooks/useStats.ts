@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { Stat } from "@/lib/types";
 import { MEASUREMENTS } from "@/lib/constants";
 
-interface StatsApiStat {
+export interface StatsApiStat {
   id: string;
   profile_id: string;
   stat_type: string;
@@ -38,15 +38,11 @@ function toStat(s: StatsApiStat, allStats: StatsApiStat[], lowerIsBetter: boolea
   const bestValue = lowerIsBetter ? Math.min(...allValues) : Math.max(...allValues);
   const isPR = s.value === bestValue;
 
-  // Representative value: median of recent 3 records (or latest if < 3)
-  const recent3 = sameType.slice(0, 3).map((x) => x.value);
-  const representativeValue = recent3.length >= 3 ? median(recent3) : s.value;
-
   return {
     id: s.id,
     playerId: s.profile_id,
     type: s.stat_type,
-    value: representativeValue,
+    value: s.value,
     previousValue: previous?.value,
     unit: s.unit,
     measuredAt: s.recorded_at,
@@ -66,6 +62,7 @@ interface UseStatsOptions {
 
 export function useStats({ enabled = true }: UseStatsOptions = {}) {
   const [stats, setStats] = useState<Stat[]>([]);
+  const [rawStats, setRawStats] = useState<StatsApiStat[]>([]);
   const [loading, setLoading] = useState(enabled);
   const hasFetchedRef = useRef(false);
 
@@ -77,6 +74,8 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
       if (!res.ok) return;
       const data = await res.json();
       const apiStats: StatsApiStat[] = data.stats;
+
+      setRawStats(apiStats);
 
       // Deduplicate stats: keep latest per stat_type
       const latestByType = new Map<string, StatsApiStat>();
@@ -144,5 +143,5 @@ export function useStats({ enabled = true }: UseStatsOptions = {}) {
     [fetchStats]
   );
 
-  return { stats, loading, addStat, deleteStat, refetch: fetchStats };
+  return { stats, rawStats, loading, addStat, deleteStat, refetch: fetchStats };
 }

@@ -86,30 +86,20 @@ export async function DELETE(
   }
 
   // Audit log: 삭제 전 기록
-  // 해당 stat_type의 모든 records를 조회해서 각각 로그
-  const { data: allStats } = await supabase
-    .from("stats")
-    .select("id, stat_type, value")
-    .eq("stat_type", stat.stat_type)
-    .eq("profile_id", user.id);
+  await supabase.from("stat_audit_log").insert({
+    stat_id: id,
+    profile_id: user.id,
+    action: "delete",
+    stat_type: stat.stat_type,
+    old_value: stat.value,
+    new_value: null,
+  });
 
-  if (allStats && allStats.length > 0) {
-    const auditRows = allStats.map((s) => ({
-      stat_id: s.id,
-      profile_id: user.id,
-      action: "delete" as const,
-      stat_type: s.stat_type,
-      old_value: s.value,
-      new_value: null,
-    }));
-    await supabase.from("stat_audit_log").insert(auditRows);
-  }
-
-  // Delete ALL records of the same stat_type for this user
+  // 해당 레코드 1개만 삭제
   const { error } = await supabase
     .from("stats")
     .delete()
-    .eq("stat_type", stat.stat_type)
+    .eq("id", id)
     .eq("profile_id", user.id);
 
   if (error) {

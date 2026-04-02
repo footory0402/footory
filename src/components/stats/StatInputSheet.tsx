@@ -10,6 +10,10 @@ interface StatInputSheetProps {
   onClose: () => void;
   onSave: (statType: string, value: number, evidenceClipId?: string) => Promise<void>;
   initialStatType?: string;
+  /** "new": 새 기록 추가 (기본값) | "edit": 기존 값 수정 */
+  mode?: "new" | "edit";
+  /** edit 모드 시 현재 값 (pre-fill) */
+  currentValue?: number;
 }
 
 type Step = "type" | "value";
@@ -20,13 +24,14 @@ function resolveInitialStep(initialStatType?: string): Step {
   return known ? "value" : "type";
 }
 
-export default function StatInputSheet({ open, onClose, onSave, initialStatType }: StatInputSheetProps) {
+export default function StatInputSheet({ open, onClose, onSave, initialStatType, mode = "new", currentValue }: StatInputSheetProps) {
   useBackClose(open, onClose);
-  const [step, setStep] = useState<Step>(() => resolveInitialStep(initialStatType));
+  const isEdit = mode === "edit";
+  const [step, setStep] = useState<Step>(() => isEdit ? "value" : resolveInitialStep(initialStatType));
   const [selectedType, setSelectedType] = useState<string>(
     MEASUREMENTS.find((m) => m.id === initialStatType) ? (initialStatType ?? "") : ""
   );
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(() => (isEdit && currentValue != null) ? String(currentValue) : "");
   const [minutes, setMinutes] = useState("");
   const [seconds, setSeconds] = useState("");
   const [saving, setSaving] = useState(false);
@@ -52,9 +57,9 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
   }, [selectedType, value, minutes, seconds, isTimeInput, profile?.birthYear]);
 
   const reset = () => {
-    setStep(resolveInitialStep(initialStatType));
+    setStep(isEdit ? "value" : resolveInitialStep(initialStatType));
     setSelectedType(MEASUREMENTS.find((m) => m.id === initialStatType) ? (initialStatType ?? "") : "");
-    setValue("");
+    setValue(isEdit && currentValue != null ? String(currentValue) : "");
     setMinutes("");
     setSeconds("");
     setSaving(false);
@@ -149,7 +154,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
               <h2 className="mb-1 text-lg font-bold text-text-1">
                 {measurement.label}
               </h2>
-              <p className="mb-5 text-xs text-text-3">기록 값을 입력하세요</p>
+              <p className="mb-5 text-xs text-text-3">{isEdit ? "값을 수정하세요" : "기록 값을 입력하세요"}</p>
 
               <div className="relative mb-3">
                 {isTimeInput ? (
@@ -242,7 +247,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType 
                   disabled={saving || isBlocked || (isTimeInput ? !isTimeValid : !value || parseFloat(value) <= 0)}
                   className="flex-1 rounded-lg bg-accent py-3 text-sm font-bold text-bg disabled:opacity-50"
                 >
-                  {saving ? "저장 중..." : "저장"}
+                  {saving ? "저장 중..." : isEdit ? "수정" : "저장"}
                 </button>
               </div>
             </>

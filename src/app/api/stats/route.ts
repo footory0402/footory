@@ -74,22 +74,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 같은 종목 하루 1회 제한
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const { count: todayCount } = await supabase
-    .from("stats")
-    .select("id", { count: "exact", head: true })
-    .eq("profile_id", user.id)
-    .eq("stat_type", statType)
-    .gte("recorded_at", todayStart.toISOString());
-
-  if (todayCount && todayCount >= 1) {
-    return NextResponse.json({
-      error: "같은 종목은 하루에 1회만 기록할 수 있습니다",
-    }, { status: 429 });
-  }
-
   // 경고 메시지 생성 (차단하지는 않음)
   const warning = getStatWarning(statType, value, birthYear);
 
