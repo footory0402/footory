@@ -81,6 +81,7 @@ export default function ClipPlayerSheet({
   const clips = localClips;
 
   const [paused, setPaused] = useState(false);
+  const [ended, setEnded] = useState(false);
   const [videoError, setVideoError] = useState<{ code: number; message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -180,8 +181,7 @@ export default function ClipPlayerSheet({
           if (currentClip?.playerName) {
             const nameParts = currentClip.playerName.split(/\s+/);
             setIntroData({
-              firstName: nameParts.length > 1 ? nameParts[0] : "",
-              lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : currentClip.playerName,
+              name: currentClip.playerName,
               number: "",
               position: currentClip.playerPosition || "FW",
               club: currentClip.teamName || "",
@@ -201,8 +201,7 @@ export default function ClipPlayerSheet({
         }
         const cd = res.card.card_data;
         const data: HudPlayerData = {
-          firstName: cd.firstName || "",
-          lastName: cd.lastName || "",
+          name: cd.name || `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "",
           number: cd.number || "9",
           position: cd.position || "ST",
           club: cd.club === "직접 입력" ? (cd.customClubName || res.card.club_name || "") : (cd.club || ""),
@@ -266,6 +265,7 @@ export default function ClipPlayerSheet({
     setCurrentTime(0);
     setDuration(0);
     setPaused(false);
+    setEnded(false);
     setVideoError(null);
     setRetryCount(0);
     setShowControls(true);
@@ -305,10 +305,13 @@ export default function ClipPlayerSheet({
       const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
       const clipDuration = trimE - trimS;
 
-      // trim 구간 끝 → 처음부터 반복재생 (loop)
+      // trim 구간 끝 → 정지 (탭하면 처음부터 다시 재생)
       if (trimE > 0 && v.currentTime >= trimE) {
-        v.currentTime = trimS;
-        v.play().catch(() => {});
+        v.currentTime = trimE;
+        v.pause();
+        setProgress(1);
+        setCurrentTime(trimE - trimS);
+        setEnded(true);
         return;
       }
 
@@ -346,7 +349,7 @@ export default function ClipPlayerSheet({
       }
     };
     const onPlay = () => {
-      setPaused(false); scheduleHide(); setPlayCount((c) => c + 1);
+      setPaused(false); setEnded(false); scheduleHide(); setPlayCount((c) => c + 1);
       // BGM 재생 동기화
       if (bgmAudioRef.current) {
         bgmAudioRef.current.play().catch(() => {});
@@ -385,11 +388,19 @@ export default function ClipPlayerSheet({
       const { message } = getVideoErrorMessage(code);
       setVideoError({ code, message });
     };
+    const onEnded = () => {
+      setEnded(true);
+      setPaused(true);
+      setShowControls(true);
+      setProgress(1);
+      bgmAudioRef.current?.pause();
+    };
     const onWaiting = () => setIsBuffering(true);
     const onCanPlay = () => setIsBuffering(false);
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
+    v.addEventListener("ended", onEnded);
     v.addEventListener("loadedmetadata", onLoaded);
     v.addEventListener("error", onError);
     v.addEventListener("waiting", onWaiting);
@@ -398,6 +409,7 @@ export default function ClipPlayerSheet({
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
+      v.removeEventListener("ended", onEnded);
       v.removeEventListener("loadedmetadata", onLoaded);
       v.removeEventListener("error", onError);
       v.removeEventListener("waiting", onWaiting);
@@ -448,9 +460,23 @@ export default function ClipPlayerSheet({
     if (!v) return;
     // 프리즈 중에는 탭 무시
     if (isFreezing) return;
+    // 영상 끝난 상태 → 처음부터 다시 재생
+    if (ended) {
+      const currentClip = clips[index];
+      const trimS = currentClip?.trimStart ?? 0;
+      v.currentTime = trimS;
+      setEnded(false);
+      setProgress(0);
+      setCurrentTime(0);
+      v.play().catch(() => {});
+      setPaused(false);
+      setShowControls(true);
+      scheduleHide();
+      return;
+    }
     if (v.paused) { v.play().catch(() => {}); setPaused(false); setShowControls(true); scheduleHide(); }
     else { v.pause(); setPaused(true); setShowControls(true); }
-  }, [scheduleHide, isFreezing]);
+  }, [scheduleHide, isFreezing, ended, clips, index]);
 
   const handleRetry = useCallback(() => {
     const v = videoRef.current;
@@ -764,6 +790,10 @@ export default function ClipPlayerSheet({
   const isDismissSwipe = swiping && swipeY > 0 && !hasPrev;
   const dismissProgress = isDismissSwipe ? Math.min(swipeY / 300, 1) : 0;
 
+  // HUD 하단 고정 바 높이 (골드라인 2px + 1행 ~52px + 2행 ~38px = ~92px)
+  const HUD_BAR_HEIGHT = 92;
+  const hasHud = !!introData && introReady && !showIntro;
+
   // 영상과 동일한 transform (zoom/pan/swipe) - overlay가 영상 위치를 따라가도록
   const videoTransform = zoom > 1
     ? `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`
@@ -860,7 +890,7 @@ export default function ClipPlayerSheet({
               {/* Name */}
               <div className="mt-4 text-center">
                 <div className="text-[32px] font-black text-white">
-                  {introData.lastName}{introData.firstName}
+                  {introData.name}
                 </div>
                 <div
                   className="mt-1.5 inline-block rounded px-3 py-1 text-[12px] font-bold text-white"
@@ -901,8 +931,10 @@ export default function ClipPlayerSheet({
           playsInline
           preload="auto"
           muted={isMuted}
-          className="absolute inset-0 z-10 h-full w-full"
+          poster={clip.thumbnailUrl || undefined}
+          className="absolute inset-x-0 top-0 z-10 w-full"
           style={{
+            height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT}px)` : "100%",
             objectFit: "contain",
             opacity: (!introReady || showIntro) ? 0 : 1,
             transition: zoom === 1 ? "opacity 0.3s ease, transform 0.2s ease-out" : "opacity 0.3s ease",
@@ -949,11 +981,11 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── HUD 오버레이 — 방송 스타일 (컨트롤 숨겨질 때만 표시) ── */}
+      {/* ── HUD 오버레이 — 방송 스타일 (컨트롤 숨겨질 때 또는 영상 종료 시 표시) ── */}
       {introData && introReady && !showIntro && (
         <div
           className="absolute inset-0 z-[44] pointer-events-none"
-          style={{ opacity: showControls ? 0 : 1, transition: "opacity 0.3s" }}
+          style={{ opacity: (!showControls || ended) ? 1 : 0, transition: "opacity 0.3s" }}
         >
           <HudOverlay
             data={introData}
@@ -988,11 +1020,18 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── 일시정지 오버레이 (프리즈 중에는 숨김) ── */}
+      {/* ── 일시정지/재시작 오버레이 (프리즈 중에는 숨김) ── */}
       {paused && !isFreezing && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm ring-2 ring-white/10">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            {ended ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+              </svg>
+            ) : (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            )}
           </div>
         </div>
       )}

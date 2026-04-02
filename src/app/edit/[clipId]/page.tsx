@@ -31,8 +31,7 @@ export default function VideoEditPage() {
       if (cardRes?.card) {
         const cd = cardRes.card.card_data;
         setPlayerData({
-          firstName: cd.firstName || "",
-          lastName: cd.lastName || "",
+          name: cd.name || `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "",
           number: cd.number || "9",
           position: cd.position || "ST",
           club: cd.club === "직접 입력" ? (cd.customClubName || cardRes.card.club_name || "") : (cd.club || ""),

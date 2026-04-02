@@ -9,7 +9,7 @@ interface PlayerReviewCardProps {
 }
 
 const REVIEW_ROWS = [
-  { label: "NAME", getValue: (d: HudPlayerData) => `${d.lastName} ${d.firstName}`.trim() },
+  { label: "NAME", getValue: (d: HudPlayerData) => d.name || "-" },
   { label: "NUMBER", getValue: (d: HudPlayerData) => d.number },
   { label: "AGE", getValue: (d: HudPlayerData) => d.age || "-" },
   { label: "DATE OF BIRTH", getValue: (d: HudPlayerData) => d.birthDate || "-" },
@@ -83,7 +83,7 @@ export default function PlayerReviewCard({ data, progress = 1 }: PlayerReviewCar
         {/* Title */}
         <div className="mb-4">
           <div className="text-[10px] italic tracking-wider text-white/40">
-            {data.lastName}{data.firstName}
+            {data.name}
           </div>
           <div className="flex items-baseline gap-1">
             <span className="font-[var(--font-brand)] text-[28px] font-black italic text-white">

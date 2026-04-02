@@ -82,18 +82,13 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
 
       {/* Right: Name + Number + Info (60%) */}
       <div className="relative z-10 ml-[40%] flex flex-1 flex-col justify-center py-[8%] pr-[5%] pl-[2%]">
-        {/* First name */}
-        <div
-          className="text-[clamp(14px,3vw,36px)] font-semibold uppercase tracking-[4px] text-white"
-          style={{ textShadow: `2px 2px 20px ${data.accentColor}66` }}
-        >
-          {data.firstName || "FIRST"}
-        </div>
-
-        {/* Last name + Number */}
+        {/* Name + Number */}
         <div className="flex items-baseline gap-[3%]">
-          <span className="font-[var(--font-stat)] text-[clamp(28px,7vw,80px)] font-black uppercase leading-none tracking-wide text-white">
-            {data.lastName || "LAST"}
+          <span
+            className="font-[var(--font-stat)] text-[clamp(28px,7vw,80px)] font-black uppercase leading-none tracking-wide text-white"
+            style={{ textShadow: `2px 2px 20px ${data.accentColor}66` }}
+          >
+            {data.name || "PLAYER"}
           </span>
           <span
             className="font-[var(--font-stat)] text-[clamp(40px,10vw,120px)] font-black leading-[0.85] text-white/90"
@@ -138,7 +133,7 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
             color: "rgba(255,255,255,0.7)",
           }}
         >
-          {data.lastName}{data.firstName}
+          {data.name}
         </div>
       </div>
 

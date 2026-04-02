@@ -91,23 +91,16 @@ async function renderIntroFrame(
   const nameX = W * 0.5;
   ctx.textAlign = "left";
 
-  // First name (small)
-  ctx.font = "500 28px sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.4)";
-  ctx.letterSpacing = "10px";
-  ctx.fillText((data.firstName || "").toUpperCase(), nameX, H * 0.4);
-  ctx.letterSpacing = "0px";
-
-  // Last name (large)
+  // Name (large)
   ctx.font = "900 120px sans-serif";
   ctx.fillStyle = "#ffffff";
-  ctx.fillText((data.lastName || "").toUpperCase(), nameX, H * 0.55);
+  ctx.fillText((data.name || "PLAYER").toUpperCase(), nameX, H * 0.5);
 
   // Number (outline)
   ctx.font = "900 160px sans-serif";
   ctx.strokeStyle = data.accentColor;
   ctx.lineWidth = 3;
-  ctx.strokeText(data.number || "9", nameX + ctx.measureText((data.lastName || "").toUpperCase()).width + 20, H * 0.55);
+  ctx.strokeText(data.number || "9", nameX + ctx.measureText((data.name || "PLAYER").toUpperCase()).width + 20, H * 0.5);
 
   // Info line
   ctx.font = "600 16px sans-serif";
@@ -134,7 +127,7 @@ async function renderIntroFrame(
   // Signature
   ctx.font = "italic 40px serif";
   ctx.fillStyle = data.accentColor + "66";
-  ctx.fillText(`${data.lastName}${data.firstName}`, nameX, H * 0.78);
+  ctx.fillText(data.name || "", nameX, H * 0.78);
 
   // Club emblem (circle)
   ctx.beginPath();
@@ -206,7 +199,7 @@ function renderReviewFrame(
   const titleX = W * 0.45;
   ctx.font = "italic 18px sans-serif";
   ctx.fillStyle = "rgba(255,255,255,0.4)";
-  ctx.fillText(`${data.lastName}${data.firstName}`, titleX, 100);
+  ctx.fillText(data.name || "", titleX, 100);
 
   ctx.font = "900 italic 48px sans-serif";
   ctx.fillStyle = "#ffffff";
@@ -216,7 +209,7 @@ function renderReviewFrame(
 
   // Review rows
   const rows = [
-    ["NAME", `${data.lastName} ${data.firstName}`.trim()],
+    ["NAME", data.name || "-"],
     ["NUMBER", data.number],
     ["AGE", data.age || "-"],
     ["DATE OF BIRTH", data.birthDate || "-"],

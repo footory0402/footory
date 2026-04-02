@@ -4,7 +4,7 @@ import { getClubColors } from "../utils";
 
 export default function EaSportsCard({ data }: { data: PlayerData }) {
   const club = getClubColors(data);
-  const displayName = data.lastName || data.firstName || "PLAYER";
+  const displayName = data.name || "PLAYER";
   const clubName = data.club === "직접 입력"
     ? (data.customClubName || "MY TEAM")
     : (data.club || "FC Seoul U12");
@@ -107,9 +107,6 @@ export default function EaSportsCard({ data }: { data: PlayerData }) {
           borderTop: `2px solid ${club.accent}60`,
         }}
       >
-        <div className="text-[10px] font-semibold tracking-[4px] text-white/40 uppercase">
-          {data.firstName || "FIRST"}
-        </div>
         <div
           className="font-[var(--font-stat)] text-[24px] font-black tracking-wider uppercase"
           style={{ color: "white", textShadow: "0 2px 8px rgba(0,0,0,0.3)" }}

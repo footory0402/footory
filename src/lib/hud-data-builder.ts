@@ -17,8 +17,7 @@ export function buildHudData(card: Record<string, unknown>): HudPlayerData {
   const positionShort = POSITION_SHORT[position.toUpperCase()] ?? position.slice(0, 2).toUpperCase();
 
   return {
-    firstName:      cardData.firstName    ?? "",
-    lastName:       cardData.lastName     ?? "",
+    name:           cardData.name || `${cardData.lastName ?? ""}${cardData.firstName ?? ""}`.trim() || "",
     number:         cardData.number       ?? "0",
     position,
     positionShort,

@@ -1,7 +1,6 @@
 /** HUD에 표시할 선수 데이터 — Phase 1 PlayerData와 호환 */
 export interface HudPlayerData {
-  firstName: string;
-  lastName: string;
+  name: string;
   number: string;
   position: string;
   /** 포지션 약자 (FW, MF, DF, GK) */

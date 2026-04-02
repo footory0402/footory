@@ -1,6 +1,5 @@
 export interface PlayerData {
-  firstName: string;
-  lastName: string;
+  name: string;
   number: string;
   position: string;
   club: string;
@@ -17,8 +16,7 @@ export interface PlayerData {
 }
 
 export const DEFAULT_PLAYER_DATA: PlayerData = {
-  firstName: "",
-  lastName: "",
+  name: "",
   number: "9",
   position: "ST",
   club: "FC Seoul U12",

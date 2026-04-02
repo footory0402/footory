@@ -120,8 +120,8 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
       <FormField label="이름">
         <input
           className={inputClass}
-          value={data.firstName}
-          onChange={(e) => update("firstName", e.target.value)}
+          value={data.name}
+          onChange={(e) => update("name", e.target.value)}
           placeholder="이름 입력"
         />
       </FormField>

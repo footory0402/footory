@@ -31,8 +31,8 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
           setHasCard(true);
           const cd = res.card.card_data as Record<string, string>;
           setCardInfo({
-            name: `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "이름 없음",
-            template: "방송 스타일",
+            name: cd.name || `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "이름 없음",
+            template: "EA Sports",
             color: res.card.accent_color || "#D4A853",
           });
         } else {

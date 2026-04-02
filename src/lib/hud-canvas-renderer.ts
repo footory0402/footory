@@ -102,16 +102,11 @@ export function renderHudOverlay({
       ctx.fillText(data.club, pad, textY);
       textY += Math.round(14 * s);
 
-      // 이름 (lastName + firstName)
+      // 이름
       const nameSize = Math.round(18 * s);
       ctx.fillStyle = "#FFFFFF";
       ctx.font = `800 ${nameSize}px "Oswald", sans-serif`;
-      ctx.fillText(data.lastName, pad, textY);
-      const lastW = ctx.measureText(data.lastName).width;
-
-      ctx.fillStyle = "rgba(255,255,255,0.6)";
-      ctx.font = `600 ${Math.round(13 * s)}px "Oswald", sans-serif`;
-      ctx.fillText(data.firstName, pad + lastW + Math.round(4 * s), textY + Math.round(3 * s));
+      ctx.fillText(data.name || "PLAYER", pad, textY);
 
       // 등번호 (우측)
       ctx.fillStyle = data.accentColor;
@@ -251,7 +246,7 @@ export function renderHudOverlay({
     ctx.restore();
 
     // 이름표
-    const tagName = `${data.lastName}${data.firstName}`;
+    const tagName = data.name || "PLAYER";
     const tagNum = data.number ? `#${data.number}` : "";
     const tagFontSize = Math.round(10 * s);
     ctx.font = `800 ${tagFontSize}px sans-serif`;
