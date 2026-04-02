@@ -217,35 +217,23 @@ export default function HighlightsTabV5({
         ) : !readOnly && hasClips ? (
           <FeaturedEmptyCTA onAdd={handleAdd} />
         ) : !readOnly ? (
-          <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            gap: 12, padding: "32px 16px", textAlign: "center",
-          }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: "50%",
-              background: "rgba(212,168,83,0.08)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
+          <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/[0.08]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
               </svg>
             </div>
             <div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-1)", marginBottom: 4, fontFamily: "var(--font-body)" }}>
+              <p className="mb-1 text-[14px] font-bold text-text-1">
                 첫 하이라이트를 올려보세요
               </p>
-              <p style={{ fontSize: 12, color: "var(--color-text-3)", fontFamily: "var(--font-body)" }}>
+              <p className="text-[12px] text-text-3">
                 스킬을 태그하면 포지션별로 정리돼요
               </p>
             </div>
             <Link
               href="/upload"
-              style={{
-                marginTop: 4, padding: "10px 20px", borderRadius: 12,
-                background: "var(--color-accent)", color: "var(--color-bg)",
-                fontSize: 13, fontWeight: 700, fontFamily: "var(--font-body)",
-                textDecoration: "none",
-              }}
+              className="mt-1 rounded-xl bg-accent px-5 py-2.5 text-[13px] font-bold text-bg no-underline"
             >
               영상 업로드 →
             </Link>
@@ -253,6 +241,7 @@ export default function HighlightsTabV5({
         ) : null}
 
         {/* ── Section header ── */}
+        {hasClips && (
         <div className="mt-5 mb-[10px] flex items-center justify-between">
           <div className="flex items-center gap-[6px]">
             <div
@@ -324,6 +313,7 @@ export default function HighlightsTabV5({
             </div>
           )}
         </div>
+        )}
 
         {/* ── Tag filter pills ── */}
         {!tagClipsLoading && tagCounts.length > 0 && (
@@ -363,10 +353,10 @@ export default function HighlightsTabV5({
               />
             ))}
           </div>
-        ) : (
+        ) : hasClips ? (
           <div className="-mx-4 grid grid-cols-3 gap-[2px]">
-            {/* Upload card */}
-            {!readOnly && (
+            {/* Upload card — only show when clips exist (empty state CTA handles 0 clips) */}
+            {!readOnly && hasClips && (
               <Link
                 href="/upload"
                 className="flex flex-col items-center justify-center gap-1"
@@ -426,7 +416,7 @@ export default function HighlightsTabV5({
               />
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Empty state */}
         {!tagClipsLoading && filteredClips.length === 0 && activeTag !== "전체" && (

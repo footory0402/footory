@@ -101,6 +101,8 @@ export default function BottomTab() {
             const active =
               tab.href === "/"
                 ? pathname === "/"
+                : tab.href === "/profile"
+                ? pathname.startsWith("/profile") || pathname.startsWith("/p/")
                 : pathname.startsWith(tab.href);
 
             /* ── Center action button (upload / watchlist) ── */

@@ -80,6 +80,8 @@ export default function ClipPlayerSheet({
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const [playCount, setPlayCount] = useState(0);
   const [showActions, setShowActions] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   // 위아래 스와이프
   const [swipeY, setSwipeY] = useState(0);
@@ -290,10 +292,10 @@ export default function ClipPlayerSheet({
       const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
       const clipDuration = trimE - trimS;
 
-      // trim 구간 끝 → 정지
+      // trim 구간 끝 → 처음부터 반복재생 (loop)
       if (trimE > 0 && v.currentTime >= trimE) {
-        v.pause();
-        v.currentTime = trimE;
+        v.currentTime = trimS;
+        v.play().catch(() => {});
         return;
       }
 
@@ -354,17 +356,23 @@ export default function ClipPlayerSheet({
       const { message } = getVideoErrorMessage(code);
       setVideoError({ code, message });
     };
+    const onWaiting = () => setIsBuffering(true);
+    const onCanPlay = () => setIsBuffering(false);
     v.addEventListener("timeupdate", onTime);
     v.addEventListener("play", onPlay);
     v.addEventListener("pause", onPause);
     v.addEventListener("loadedmetadata", onLoaded);
     v.addEventListener("error", onError);
+    v.addEventListener("waiting", onWaiting);
+    v.addEventListener("canplay", onCanPlay);
     return () => {
       v.removeEventListener("timeupdate", onTime);
       v.removeEventListener("play", onPlay);
       v.removeEventListener("pause", onPause);
       v.removeEventListener("loadedmetadata", onLoaded);
       v.removeEventListener("error", onError);
+      v.removeEventListener("waiting", onWaiting);
+      v.removeEventListener("canplay", onCanPlay);
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
     };
   }, [scheduleHide, index]);
@@ -826,7 +834,7 @@ export default function ClipPlayerSheet({
           src={clip.videoUrl}
           playsInline
           preload="auto"
-          muted
+          muted={isMuted}
           className="absolute inset-0 z-10 h-full w-full"
           style={{
             objectFit: "contain",
@@ -913,14 +921,19 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── 상단 헤더 ── */}
+      {/* ── 버퍼링 스피너 ── */}
+      {isBuffering && !paused && !isFreezing && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-full border-[3px] border-white/20 border-t-white/80 animate-spin" />
+        </div>
+      )}
+
+      {/* ── 상단 헤더 — 뒤로가기는 항상 표시 ── */}
       <div
         className="absolute top-0 left-0 right-0 z-40 flex items-center px-4 pt-[env(safe-area-inset-top,16px)] pb-2"
         style={{
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)",
-          opacity: showControls ? 1 : 0,
-          transition: "opacity 0.3s",
-          pointerEvents: showControls ? "auto" : "none",
+          background: showControls ? "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%)" : "none",
+          transition: "background 0.3s",
         }}
       >
         <button
@@ -934,7 +947,7 @@ export default function ClipPlayerSheet({
           </svg>
         </button>
         {clips.length > 1 && (
-          <span className="ml-3 font-stat text-[12px] text-white/70">{index + 1} / {clips.length}</span>
+          <span className="ml-3 font-stat text-[12px] text-white/70" style={{ opacity: showControls ? 1 : 0, transition: "opacity 0.3s" }}>{index + 1} / {clips.length}</span>
         )}
 
         {/* 선수 보기 / 전체 보기 토글 (spotlight가 있는 클립만) */}
@@ -961,6 +974,9 @@ export default function ClipPlayerSheet({
                 : "1px solid rgba(255,255,255,0.15)",
               color: isFocusMode || zoom > 1 ? "#D4A853" : "rgba(255,255,255,0.8)",
               backdropFilter: "blur(8px)",
+              opacity: showControls ? 1 : 0,
+              transition: "opacity 0.3s",
+              pointerEvents: showControls ? "auto" : "none",
             }}
           >
             {isFocusMode || zoom > 1 ? (
@@ -982,15 +998,33 @@ export default function ClipPlayerSheet({
         )}
       </div>
 
-      {/* ── 우측 액션 버튼 ── */}
-      <div
-        className="absolute right-4 bottom-32 z-40 flex flex-col items-center gap-5"
-        style={{
-          opacity: showControls ? 1 : 0,
-          transition: "opacity 0.3s",
-          pointerEvents: showControls ? "auto" : "none",
-        }}
-      >
+      {/* ── 우측 액션 버튼 — 항상 표시 (TikTok/Reels 스타일) ── */}
+      <div className="absolute right-4 bottom-32 z-40 flex flex-col items-center gap-5">
+        {/* 소리 토글 */}
+        <button
+          onClick={() => {
+            const next = !isMuted;
+            setIsMuted(next);
+            if (videoRef.current) videoRef.current.muted = next;
+          }}
+          className="flex flex-col items-center gap-1"
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white active:bg-white/20">
+            {isMuted ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+              </svg>
+            )}
+          </div>
+          <span className="text-[10px] text-white/60">{isMuted ? "음소거" : "소리"}</span>
+        </button>
         {onShare && (
           <button onClick={() => onShare(clip.id)} className="flex flex-col items-center gap-1">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white active:bg-accent/50">
@@ -1058,9 +1092,9 @@ export default function ClipPlayerSheet({
           </div>
         )}
 
-        {/* Seekbar */}
+        {/* Seekbar — 터치 영역 44px, thumb 16px */}
         <div
-          className="relative h-6 flex items-center cursor-pointer mb-1"
+          className="relative h-11 flex items-center cursor-pointer mb-0.5"
           onClick={handleSeek}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => { e.stopPropagation(); handleSeek(e); }}
@@ -1069,11 +1103,11 @@ export default function ClipPlayerSheet({
             <div className="h-full rounded-full bg-accent transition-[width] duration-100" style={{ width: `${progress * 100}%` }} />
           </div>
           <div
-            className="absolute h-3 w-3 rounded-full bg-accent"
-            style={{ left: `calc(${progress * 100}% - 6px)` }}
+            className="absolute h-4 w-4 rounded-full bg-accent shadow-[0_0_6px_rgba(212,168,83,0.4)]"
+            style={{ left: `calc(${progress * 100}% - 8px)` }}
           />
         </div>
-        <div className="flex justify-between font-stat text-[10px] text-white/40">
+        <div className="flex justify-between font-stat text-[13px] text-white/60 pb-1">
           <span>{fmt(currentTime)}</span>
           <span>{fmt(duration)}</span>
         </div>
@@ -1095,7 +1129,6 @@ export default function ClipPlayerSheet({
       {clips.length > 1 && clips.length <= 12 && (
         <div
           className="absolute right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-1.5"
-          style={{ opacity: showControls ? 1 : 0, transition: "opacity 0.3s" }}
         >
           {clips.map((_, i) => (
             <button
