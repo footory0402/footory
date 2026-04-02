@@ -111,7 +111,7 @@ export default function StatInputSheet({ open, onClose, onSave, initialStatType,
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
 
       <div className="relative w-full max-w-[430px] animate-slide-up rounded-t-2xl bg-card">

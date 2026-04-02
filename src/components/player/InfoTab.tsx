@@ -22,7 +22,7 @@ interface InfoTabProps {
   clipTagCounts?: ClipTagCount[];
   playStyle?: PlayStyle | null;
   onAddStat?: () => void;
-  onUpdateStat?: (statType: string, statId: string) => void;
+  onViewHistory?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
   onPlayStyleTest?: () => void;
   achievements?: Achievement[];
@@ -42,7 +42,7 @@ export default function InfoTab({
   clipTagCounts,
   playStyle,
   onAddStat,
-  onUpdateStat,
+  onViewHistory,
   onDeleteStat,
   onPlayStyleTest,
   achievements,
@@ -67,7 +67,7 @@ export default function InfoTab({
     <div className="flex flex-col gap-5">
       <RadarSection radarStats={radar} hasData={hasRadarData} pastRadar={pastRadar} />
       <PlayStyleSection playStyle={playStyle} onTest={readOnly ? undefined : onPlayStyleTest} />
-      <GrowthSection stats={stats} percentiles={percentiles} ageAvgs={ageAvgs} peerCounts={peerCounts} ageGroup={ageGroup} onAddStat={readOnly ? undefined : onAddStat} onUpdateStat={readOnly ? undefined : onUpdateStat} onDeleteStat={readOnly ? undefined : onDeleteStat} readOnly={readOnly} />
+      <GrowthSection stats={stats} percentiles={percentiles} ageAvgs={ageAvgs} peerCounts={peerCounts} ageGroup={ageGroup} onAddStat={readOnly ? undefined : onAddStat} onViewHistory={readOnly ? undefined : onViewHistory} onDeleteStat={readOnly ? undefined : onDeleteStat} readOnly={readOnly} />
       {growthStats.length > 0 && <GrowthTrendSection stats={growthStats} />}
       {achievements && achievements.length > 0 && (
         <AchievementList
@@ -286,7 +286,7 @@ function GrowthSection({
   peerCounts,
   ageGroup,
   onAddStat,
-  onUpdateStat,
+  onViewHistory,
   onDeleteStat,
   readOnly,
 }: {
@@ -296,7 +296,7 @@ function GrowthSection({
   peerCounts?: Record<string, number>;
   ageGroup?: string;
   onAddStat?: () => void;
-  onUpdateStat?: (statType: string, statId: string) => void;
+  onViewHistory?: (statType: string) => void;
   onDeleteStat?: (statId: string) => void;
   readOnly?: boolean;
 }) {
@@ -352,7 +352,7 @@ function GrowthSection({
                 ageGroup={ageGroup ? ageGroup.toUpperCase().replace(/^U(\d+)$/, "U-$1") : undefined}
                 peerCount={peerCounts?.[stat.type]}
                 teamRank={readOnly ? undefined : teamRanks[stat.type]}
-                onUpdate={onUpdateStat ? () => onUpdateStat(stat.type, stat.id) : undefined}
+                onUpdate={onViewHistory ? () => onViewHistory(stat.type) : undefined}
                 onDelete={onDeleteStat ? () => onDeleteStat(stat.id) : undefined}
               />
             );

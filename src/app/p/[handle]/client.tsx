@@ -21,6 +21,7 @@ const AddToWatchlistButton = dynamic(
 
 const ProfileEditSheet = dynamic(() => import("@/components/player/ProfileEditSheet"), { ssr: false });
 const StatInputSheet = dynamic(() => import("@/components/stats/StatInputSheet"), { ssr: false });
+const StatHistorySheet = dynamic(() => import("@/components/stats/StatHistorySheet"), { ssr: false });
 const SeasonAddSheet = dynamic(() => import("@/components/player/SeasonAddSheet"), { ssr: false });
 const TournamentAddSheet = dynamic(() => import("@/components/profile/TournamentAddSheet"), { ssr: false });
 const AwardAddSheet = dynamic(() => import("@/components/profile/AwardAddSheet"), { ssr: false });
@@ -194,8 +195,6 @@ function computeAggregatedStats(rows: Record<string, unknown>[]): Stat[] {
 
     const allValues = records.map((r) => r.value as number);
     const bestValue = lowerIsBetter ? Math.min(...allValues) : Math.max(...allValues);
-    const recent3 = records.slice(0, 3).map((r) => r.value as number);
-    const representativeValue = recent3.length >= 3 ? statMedian(recent3) : (latest.value as number);
     const previous = records.length > 1 ? records[1] : null;
     const oldest = records[records.length - 1];
 
@@ -203,7 +202,7 @@ function computeAggregatedStats(rows: Record<string, unknown>[]): Stat[] {
       id: latest.id as string,
       playerId: latest.profile_id as string,
       type,
-      value: representativeValue,
+      value: latest.value as number,
       previousValue: previous ? (previous.value as number) : undefined,
       unit: latest.unit as string,
       measuredAt: latest.recorded_at as string,
@@ -246,6 +245,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [statInputOpen, setStatInputOpen] = useState(false);
   const [statInputType, setStatInputType] = useState<string | undefined>();
   const [statInputId, setStatInputId] = useState<string | undefined>();
+  const [statInputMode, setStatInputMode] = useState<"new" | "edit">("new");
+  const [statInputCurrentValue, setStatInputCurrentValue] = useState<number | undefined>();
+  const [historySheetType, setHistorySheetType] = useState<string | undefined>();
   const [seasonAddOpen, setSeasonAddOpen] = useState(false);
   const [tournamentAddOpen, setTournamentAddOpen] = useState(false);
   const [awardAddOpen, setAwardAddOpen] = useState(false);
@@ -548,15 +550,8 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             ageGroup={percentileData?.ageGroup}
             percentileLoading={percentileLoading}
             {...(data.isOwnProfile ? {
-              onAddStat: () => { setStatInputType(undefined); setStatInputId(undefined); setStatInputOpen(true); },
-              onUpdateStat: (type: string, statId: string) => { setStatInputType(type); setStatInputId(statId); setStatInputOpen(true); },
-              onDeleteStat: async (statId: string) => {
-                const res = await fetch(`/api/stats/${statId}`, { method: "DELETE" });
-                if (res.ok) {
-                  toast.success("기록이 삭제되었습니다.");
-                  router.refresh();
-                }
-              },
+              onAddStat: () => { setStatInputType(undefined); setStatInputId(undefined); setStatInputMode("new"); setStatInputCurrentValue(undefined); setStatInputOpen(true); },
+              onViewHistory: (type: string) => setHistorySheetType(type),
               onPlayStyleTest: () => setPlayStyleTestOpen(true),
             } : {})}
           />
@@ -637,9 +632,11 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       {data.isOwnProfile && statInputOpen && (
         <StatInputSheet
           open={statInputOpen}
-          onClose={() => { setStatInputOpen(false); setStatInputType(undefined); setStatInputId(undefined); }}
+          onClose={() => { setStatInputOpen(false); setStatInputType(undefined); setStatInputId(undefined); setStatInputCurrentValue(undefined); }}
+          mode={statInputMode}
+          currentValue={statInputCurrentValue}
           onSave={async (statType, value, evidenceClipId) => {
-            const isUpdate = !!statInputId;
+            const isUpdate = statInputMode === "edit" && !!statInputId;
             const res = isUpdate
               ? await fetch(`/api/stats/${statInputId}`, {
                   method: "PUT",
@@ -658,9 +655,43 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             toast.success(isUpdate ? "기록이 수정되었습니다." : "기록이 저장되었습니다.");
             setStatInputOpen(false);
             setStatInputId(undefined);
+            setStatInputCurrentValue(undefined);
             router.refresh();
           }}
           initialStatType={statInputType}
+        />
+      )}
+      {data.isOwnProfile && historySheetType && (
+        <StatHistorySheet
+          open={!!historySheetType}
+          onClose={() => setHistorySheetType(undefined)}
+          statType={historySheetType}
+          records={(data.stats as unknown as import("@/hooks/useStats").StatsApiStat[]).filter(
+            (r) => r.stat_type === historySheetType
+          )}
+          onAddNew={() => {
+            setStatInputType(historySheetType);
+            setStatInputId(undefined);
+            setStatInputMode("new");
+            setStatInputCurrentValue(undefined);
+            setStatInputOpen(true);
+          }}
+          onEdit={(record) => {
+            setStatInputType(record.stat_type);
+            setStatInputId(record.id);
+            setStatInputMode("edit");
+            setStatInputCurrentValue(record.value);
+            setStatInputOpen(true);
+          }}
+          onDelete={async (id) => {
+            const res = await fetch(`/api/stats/${id}`, { method: "DELETE" });
+            if (!res.ok) {
+              toast.error("삭제에 실패했습니다.");
+              return;
+            }
+            toast.success("기록이 삭제되었습니다.");
+            router.refresh();
+          }}
         />
       )}
       {data.isOwnProfile && seasonAddOpen && (
