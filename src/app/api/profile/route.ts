@@ -29,7 +29,7 @@ export async function GET() {
       teamName: teamData?.teams?.name ?? null,
       teamId: teamData?.team_id ?? null,
     }, {
-      headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" },
+      headers: { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" },
     });
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

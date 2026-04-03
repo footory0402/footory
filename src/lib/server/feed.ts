@@ -319,7 +319,7 @@ async function fetchHotFeed(
   const windowStart = new Date(now - HOT_WINDOW_HOURS * 3_600_000).toISOString();
 
   const EXCLUDED_FEED_TYPES = ["top_clip", "season", "featured_change", "stat"];
-  const fetchLimit = Math.max(pageSize * 4, 60);
+  const fetchLimit = Math.max(pageSize * 2, 30);
 
   let query = supabase
     .from("feed_items")

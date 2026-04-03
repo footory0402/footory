@@ -182,7 +182,7 @@ export default function FeedList({
           typeof (item.metadata as Record<string, unknown>)?.thumbnail_url === "string",
       }))
       .filter(({ hasThumbnail }) => hasThumbnail)
-      .slice(0, 2)
+      .slice(0, 5)
       .map(({ i }) => i)
   );
 

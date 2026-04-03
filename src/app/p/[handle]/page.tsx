@@ -40,91 +40,59 @@ const getProfile = cache(async (handle: string) => {
 
   if (error || !profile) return null;
 
-  // --- Step 1: Determine viewer relationship BEFORE clips queries ---
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   const isOwner = currentUser?.id === profile.id;
+  const needsViewerData = !!(currentUser && !isOwner);
 
-  let isFollowing = false;
-  let isSameTeam = false;
-
-  if (currentUser && !isOwner) {
-    const [followRow, viewerTeams, targetTeams] = await Promise.all([
-      supabase
-        .from("follows")
-        .select("id")
-        .eq("follower_id", currentUser.id)
-        .eq("following_id", profile.id)
-        .maybeSingle(),
-      supabase
-        .from("team_members")
-        .select("team_id")
-        .eq("profile_id", currentUser.id)
-        .neq("role", "alumni"),
-      supabase
-        .from("team_members")
-        .select("team_id")
-        .eq("profile_id", profile.id)
-        .neq("role", "alumni"),
-    ]);
-    isFollowing = !!followRow.data;
-    const viewerTeamIds = new Set((viewerTeams.data ?? []).map((item) => item.team_id));
-    isSameTeam = (targetTeams.data ?? []).some((item) => viewerTeamIds.has(item.team_id));
-  }
-
-  const [featured, stats, seasons, team, achievements, timelineEvents, tagClipsData, playStyleData, tournamentRecordsData, awardsData] = await Promise.all([
-    supabase
-      .from("featured_clips")
-      .select("id, clip_id, sort_order")
-      .eq("profile_id", profile.id)
-      .order("sort_order"),
-    supabase
-      .from("stats")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("recorded_at", { ascending: false }),
-    supabase
-      .from("seasons")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("year", { ascending: false }),
-    supabase
-      .from("team_members")
-      .select("team_id, teams(name)")
-      .eq("profile_id", profile.id)
-      .neq("role", "alumni")
-      .limit(1)
-      .single(),
-    supabase
-      .from("achievements")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("year", { ascending: false }),
-    supabase
-      .from("timeline_events")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("clips")
-      .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)")
-      .eq("owner_id", profile.id),
-    supabase
-      .from("play_styles")
-      .select("*")
-      .eq("profile_id", profile.id)
-      .maybeSingle(),
-    supabase
-      .from("tournament_records")
-      .select("*")
-      .eq("player_id", profile.id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("awards")
-      .select("*")
-      .eq("player_id", profile.id)
-      .order("created_at", { ascending: false }),
+  // 모든 쿼리를 단일 Promise.all로 병렬 실행 (기존 3단계 직렬 → 1단계 병렬)
+  const [
+    followRow,
+    viewerTeams,
+    targetTeams,
+    viewerProfile,
+    blockRow,
+    featured,
+    stats,
+    seasons,
+    team,
+    achievements,
+    timelineEvents,
+    tagClipsData,
+    playStyleData,
+    tournamentRecordsData,
+    awardsData,
+  ] = await Promise.all([
+    needsViewerData
+      ? supabase.from("follows").select("id").eq("follower_id", currentUser!.id).eq("following_id", profile.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    needsViewerData
+      ? supabase.from("team_members").select("team_id").eq("profile_id", currentUser!.id).neq("role", "alumni")
+      : Promise.resolve({ data: [] as { team_id: string }[] }),
+    needsViewerData
+      ? supabase.from("team_members").select("team_id").eq("profile_id", profile.id).neq("role", "alumni")
+      : Promise.resolve({ data: [] as { team_id: string }[] }),
+    needsViewerData
+      ? supabase.from("profiles").select("role, is_verified").eq("id", currentUser!.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    needsViewerData
+      ? supabase.from("blocks").select("id").or(`and(blocker_id.eq.${currentUser!.id},blocked_id.eq.${profile.id}),and(blocker_id.eq.${profile.id},blocked_id.eq.${currentUser!.id})`).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from("featured_clips").select("id, clip_id, sort_order").eq("profile_id", profile.id).order("sort_order"),
+    supabase.from("stats").select("*").eq("profile_id", profile.id).order("recorded_at", { ascending: false }),
+    supabase.from("seasons").select("*").eq("profile_id", profile.id).order("year", { ascending: false }),
+    supabase.from("team_members").select("team_id, teams(name)").eq("profile_id", profile.id).neq("role", "alumni").limit(1).single(),
+    supabase.from("achievements").select("*").eq("profile_id", profile.id).order("year", { ascending: false }),
+    supabase.from("timeline_events").select("*").eq("profile_id", profile.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("clips").select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)").eq("owner_id", profile.id),
+    supabase.from("play_styles").select("*").eq("profile_id", profile.id).maybeSingle(),
+    supabase.from("tournament_records").select("*").eq("player_id", profile.id).order("created_at", { ascending: false }),
+    supabase.from("awards").select("*").eq("player_id", profile.id).order("created_at", { ascending: false }),
   ]);
+
+  // 관계 플래그 계산
+  const isFollowing = !!followRow.data;
+  const viewerTeamIds = new Set((viewerTeams.data ?? []).map((item) => (item as { team_id: string }).team_id));
+  const isSameTeam = (targetTeams.data ?? []).some((item) => viewerTeamIds.has((item as { team_id: string }).team_id));
 
   // Filter contact
   const contact: Record<string, string> = {};
@@ -133,29 +101,23 @@ const getProfile = cache(async (handle: string) => {
 
   const teamData = team.data as { team_id: string; teams: { name: string } } | null;
 
-  // Enrich featured clips with clip data (thumbnail, duration)
+  // Enrich featured clips — tagClipsData에서 직접 조회 (중복 쿼리 제거)
   const featuredRows = featured.data ?? [];
-  const clipIds = featuredRows.map((f: { clip_id: string }) => f.clip_id).filter(Boolean);
+  const clipIds = new Set(featuredRows.map((f: { clip_id: string }) => f.clip_id).filter(Boolean));
   const clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null; effects?: Record<string, boolean> | null; spotlight_x?: number | null; spotlight_y?: number | null; freeze_at?: number | null; trim_start?: number | null; trim_end?: number | null }> = {};
-  if (clipIds.length > 0) {
-    const { data: clipsData } = await supabase
-      .from("clips")
-      .select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end")
-      .in("id", clipIds);
-    if (clipsData) {
-      for (const c of clipsData) {
-        clipsMap[c.id] = {
-          video_url: c.video_url,
-          thumbnail_url: c.thumbnail_url,
-          duration_seconds: c.duration_seconds,
-          effects: (c as unknown as { effects: Record<string, boolean> | null }).effects ?? null,
-          spotlight_x: (c as unknown as { spotlight_x: number | null }).spotlight_x ?? null,
-          spotlight_y: (c as unknown as { spotlight_y: number | null }).spotlight_y ?? null,
-          freeze_at: (c as unknown as { freeze_at: number | null }).freeze_at ?? null,
-          trim_start: (c as unknown as { trim_start: number | null }).trim_start ?? null,
-          trim_end: (c as unknown as { trim_end: number | null }).trim_end ?? null,
-        };
-      }
+  for (const c of (tagClipsData.data ?? []) as { id: string; video_url: string; thumbnail_url: string | null; duration_seconds: number | null; effects: Record<string, boolean> | null; spotlight_x: number | null; spotlight_y: number | null; freeze_at: number | null; trim_start: number | null; trim_end: number | null }[]) {
+    if (clipIds.has(c.id)) {
+      clipsMap[c.id] = {
+        video_url: c.video_url,
+        thumbnail_url: c.thumbnail_url,
+        duration_seconds: c.duration_seconds,
+        effects: c.effects ?? null,
+        spotlight_x: c.spotlight_x ?? null,
+        spotlight_y: c.spotlight_y ?? null,
+        freeze_at: c.freeze_at ?? null,
+        trim_start: c.trim_start ?? null,
+        trim_end: c.trim_end ?? null,
+      };
     }
   }
   const enrichedFeatured = featuredRows.map((f: { id: string; clip_id: string; sort_order: number }) => ({
@@ -163,7 +125,7 @@ const getProfile = cache(async (handle: string) => {
     clips: clipsMap[f.clip_id] ?? null,
   }));
 
-  // --- Step 3: Build viewerAccess (requires viewerProfile + blockRow for permissions) ---
+  // viewerAccess 계산
   let viewerAccess: ViewerAccess = {
     role: null as UserRole | null,
     verified: false,
@@ -181,24 +143,10 @@ const getProfile = cache(async (handle: string) => {
     },
   };
 
-  if (currentUser && !isOwner) {
-    const [viewerProfile, blockRow] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("role, is_verified")
-        .eq("id", currentUser.id)
-        .maybeSingle(),
-      supabase
-        .from("blocks")
-        .select("id")
-        .or(
-          `and(blocker_id.eq.${currentUser.id},blocked_id.eq.${profile.id}),and(blocker_id.eq.${profile.id},blocked_id.eq.${currentUser.id})`
-        )
-        .maybeSingle(),
-    ]);
-
-    const viewerRole = (viewerProfile.data?.role ?? null) as UserRole | null;
-    const viewerVerified = !!viewerProfile.data?.is_verified;
+  if (needsViewerData) {
+    const vp = viewerProfile.data as { role: string | null; is_verified: boolean | null } | null;
+    const viewerRole = (vp?.role ?? null) as UserRole | null;
+    const viewerVerified = !!vp?.is_verified;
     const targetRole = (profile.role ?? "player") as UserRole;
     const targetIsMinor = Boolean(
       profile.birth_year && new Date().getFullYear() - profile.birth_year < 18

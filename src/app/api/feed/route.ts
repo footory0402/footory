@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { items, nextCursor },
-      { headers: { "Cache-Control": "private, max-age=10, stale-while-revalidate=30" } }
+      { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=120" } }
     );
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

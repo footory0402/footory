@@ -85,6 +85,25 @@ export async function GET(request: NextRequest) {
 
     const peerIds = (peerProfiles ?? []).map((p) => p.id);
 
+    // 모든 statType을 단일 쿼리로 한꺼번에 조회 (N+1 → 1 쿼리)
+    const statTypes = Array.from(latestByType.keys());
+    const allPeerStatsRes = peerIds.length > 1
+      ? await supabase
+          .from("stats")
+          .select("profile_id, stat_type, value, recorded_at")
+          .in("stat_type", statTypes)
+          .in("profile_id", peerIds)
+          .order("recorded_at", { ascending: false })
+      : { data: null };
+
+    // 메모리에서 statType별로 분류
+    const statsByType = new Map<string, { profile_id: string; value: string | number; recorded_at: string }[]>();
+    for (const row of (allPeerStatsRes.data ?? []) as { profile_id: string; stat_type: string; value: string | number; recorded_at: string }[]) {
+      const arr = statsByType.get(row.stat_type) ?? [];
+      arr.push(row);
+      statsByType.set(row.stat_type, arr);
+    }
+
     for (const [statType, myValue] of latestByType.entries()) {
       const measurement = MEASUREMENTS.find((m) => m.id === statType);
       if (!measurement) continue;
@@ -95,14 +114,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // 같은 연령대 선수들의 해당 종목 기록
-      const { data: peerStats } = await supabase
-        .from("stats")
-        .select("profile_id, value, recorded_at")
-        .eq("stat_type", statType)
-        .in("profile_id", peerIds)
-        .order("recorded_at", { ascending: false });
-
+      const peerStats = statsByType.get(statType);
       if (!peerStats || peerStats.length === 0) {
         percentiles[statType] = 50;
         peerCounts[statType] = 0;
