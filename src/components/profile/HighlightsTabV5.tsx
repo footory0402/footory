@@ -313,7 +313,7 @@ export default function HighlightsTabV5({
             {reelsLoading ? (
               <div className="-mx-4 flex gap-3 overflow-x-auto px-4" style={{ paddingBottom: 4 }}>
                 {[1, 2].map((i) => (
-                  <div key={i} className="shrink-0 animate-pulse" style={{ width: 200, height: 130, borderRadius: 12, background: "var(--color-card)" }} />
+                  <div key={i} className="shrink-0 animate-pulse" style={{ width: 240, height: 158, borderRadius: 12, background: "var(--color-card)" }} />
                 ))}
               </div>
             ) : reels.length > 0 ? (
@@ -1084,11 +1084,11 @@ function ReelCard({
   return (
     <div
       className="relative shrink-0 cursor-pointer overflow-hidden"
-      style={{ width: 200, borderRadius: 12, background: "var(--color-card)", border: "1px solid rgba(255,255,255,0.06)" }}
+      style={{ width: 240, borderRadius: 12, background: "var(--color-card)", border: "1px solid rgba(255,255,255,0.06)" }}
       onClick={onPlay}
     >
       {/* 썸네일 영역 */}
-      <div className="relative" style={{ height: 112, background: "linear-gradient(135deg, #111115, #0a0a0e)" }}>
+      <div className="relative" style={{ height: 130, background: "linear-gradient(135deg, #111115, #0a0a0e)" }}>
         {reel.thumbnail_url && (
           <Image
             src={reel.thumbnail_url}

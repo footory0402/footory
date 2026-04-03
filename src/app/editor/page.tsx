@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { DEFAULT_PLAYER_DATA, type PlayerData } from "@/components/editor/types";
+import { CARD_THEMES } from "@/components/editor/constants";
 import { useBackgroundRemoval } from "@/components/editor/useBackgroundRemoval";
 import EditorForm from "@/components/editor/EditorForm";
 import CardPreview from "@/components/editor/CardPreview";
@@ -61,24 +62,33 @@ export default function EditorPage() {
           const normalizedFoot = mapFoot(cardData.foot || profileDefaults.foot || null);
           // Skip blob URLs (not persistent) — fall back to profile avatar
           const savedPhoto = cardData.photoUrl && !cardData.photoUrl.startsWith("blob:") ? cardData.photoUrl : undefined;
+          // Restore theme from saved colors (find matching theme or keep saved colors)
+          const savedColor = card.main_color || DEFAULT_PLAYER_DATA.customClubColor;
+          const savedAccent = card.accent_color || DEFAULT_PLAYER_DATA.customClubAccent;
+          const matchedTheme = CARD_THEMES.find((t) => t.color === savedColor) ?? null;
           setData({
             ...DEFAULT_PLAYER_DATA,
             ...profileDefaults,
-            ...cardData,
+            name: cardData.name || profileDefaults.name || "",
+            number: cardData.number || DEFAULT_PLAYER_DATA.number,
+            position: cardData.position || profileDefaults.position || DEFAULT_PLAYER_DATA.position,
+            age: cardData.age || DEFAULT_PLAYER_DATA.age,
+            birthDate: cardData.birthDate || DEFAULT_PLAYER_DATA.birthDate,
+            height: cardData.height || profileDefaults.height || DEFAULT_PLAYER_DATA.height,
+            weight: cardData.weight || profileDefaults.weight || DEFAULT_PLAYER_DATA.weight,
+            nationality: cardData.nationality || DEFAULT_PLAYER_DATA.nationality,
             photoUrl: savedPhoto || profileDefaults.photoUrl || "",
             foot: normalizedFoot,
-            // Always use saved colors
-            customClubColor: card.main_color || "#37474F",
-            customClubAccent: card.accent_color || "#78909C",
-            club: cardData.club || "직접 입력",
-            customClubName: card.club_name || cardData.customClubName || "",
+            teamName: card.club_name || cardData.teamName || "",
+            themeId: matchedTheme?.id || cardData.themeId || DEFAULT_PLAYER_DATA.themeId,
+            customClubColor: savedColor,
+            customClubAccent: savedAccent,
           });
         } else {
           // No saved card — use profile defaults
           setData({
             ...DEFAULT_PLAYER_DATA,
             ...profileDefaults,
-            club: "직접 입력",
           });
         }
         setLoaded(true);
@@ -105,7 +115,7 @@ export default function EditorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           template: "fifa",
-          clubName: data.customClubName || data.club,
+          clubName: data.teamName,
           mainColor: data.customClubColor,
           accentColor: data.customClubAccent,
           needPhotoUploadUrl: hasNewPhoto,
@@ -113,8 +123,8 @@ export default function EditorPage() {
             name: data.name,
             number: data.number,
             position: data.position,
-            club: data.club,
-            customClubName: data.customClubName,
+            teamName: data.teamName,
+            themeId: data.themeId,
             age: data.age,
             birthDate: data.birthDate,
             height: data.height,
@@ -153,7 +163,7 @@ export default function EditorPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             template: "fifa",
-            clubName: data.customClubName || data.club,
+            clubName: data.teamName,
             mainColor: data.customClubColor,
             accentColor: data.customClubAccent,
             cardData: {

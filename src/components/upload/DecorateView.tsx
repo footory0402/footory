@@ -15,11 +15,11 @@ import CoachMark from "@/components/upload/guide/CoachMark";
 type DecorateTab = "position" | "tag" | "slowmo" | "caption" | "effect";
 
 const TABS: { id: DecorateTab; label: string; icon: string }[] = [
-  { id: "position", label: "위치", icon: "📍" },
   { id: "tag", label: "태그", icon: "🏷" },
+  { id: "position", label: "위치", icon: "📍" },
+  { id: "effect", label: "효과", icon: "✨" },
   { id: "slowmo", label: "슬로모", icon: "🐢" },
   { id: "caption", label: "텍스트", icon: "💬" },
-  { id: "effect", label: "효과", icon: "✨" },
 ];
 
 interface DecorateViewProps {
@@ -29,7 +29,7 @@ interface DecorateViewProps {
 }
 
 export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewProps) {
-  const [activeTab, setActiveTab] = useState<DecorateTab>("position");
+  const [activeTab, setActiveTab] = useState<DecorateTab>("tag");
   const tabIndicatorRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
 
@@ -156,41 +156,68 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
       <div className="flex-1 overflow-y-auto">
         {/* ── 위치 탭 ── */}
         <div style={{ display: activeTab === "position" ? "block" : "none" }}>
-          {/* compact 타임라인 */}
-          <FrameNavigator
-            currentTime={freezeTime}
-            minTime={trimStart}
-            maxTime={effectiveTrimEnd}
-            onTimeChange={handleTimeChange}
-            compact
-          />
-
-          <div className="px-4 pt-3 pb-2">
-            {hasSpotlight ? (
-              <div className="flex items-center gap-2">
-                {/* 미니 마커 프리뷰 */}
-                <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
-                  style={{ background: "rgba(212,168,83,0.1)", border: "1px solid rgba(212,168,83,0.3)" }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 20 12">
-                    <polygon points="10,12 0,0 20,0" fill="#D4A853" />
-                  </svg>
-                  <span className="text-[11px] font-semibold text-accent">선수 위치 설정됨</span>
+          {hasSpotlight ? (
+            <>
+              {/* 마커 설정 완료 — 프리즈 타임 조정 */}
+              <FrameNavigator
+                currentTime={freezeTime}
+                minTime={trimStart}
+                maxTime={effectiveTrimEnd}
+                onTimeChange={handleTimeChange}
+                compact
+              />
+              <div className="px-4 pt-2 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
+                    style={{ background: "rgba(212,168,83,0.1)", border: "1px solid rgba(212,168,83,0.3)" }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 20 12">
+                      <polygon points="10,12 0,0 20,0" fill="#D4A853" />
+                    </svg>
+                    <span className="text-[11px] font-semibold text-accent">선수 위치 설정됨</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleMarkerClear}
+                    className="text-[11px] text-text-3 underline underline-offset-2 active:text-text-1"
+                  >
+                    초기화
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleMarkerClear}
-                  className="text-[11px] text-text-3 underline underline-offset-2 active:text-text-1"
-                >
-                  초기화
-                </button>
+                <p className="mt-1.5 text-[11px] text-white/30">
+                  타임라인을 드래그해 프리즈 구간을 조절하세요
+                </p>
               </div>
-            ) : (
-              <p className="text-[12px] text-white/30 text-center py-1">
-                영상을 탭하여 선수 위치를 표시하세요
-              </p>
-            )}
-          </div>
+            </>
+          ) : (
+            <div className="px-4 pt-4 pb-3">
+              {/* 단계 가이드 */}
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{ background: "rgba(212,168,83,0.2)", color: "#D4A853", border: "1px solid rgba(212,168,83,0.4)" }}
+                  >
+                    1
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-white/70">두 손가락으로 확대</p>
+                    <p className="text-[11px] text-white/30">선수가 잘 보이도록 핀치해서 확대하세요</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{ background: "rgba(212,168,83,0.12)", color: "#D4A853", border: "1px solid rgba(212,168,83,0.25)" }}
+                  >
+                    2
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-white/70">선수 위치 탭</p>
+                    <p className="text-[11px] text-white/30">영상에서 선수를 한 번 탭하면 마커가 생겨요</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── 태그 탭 ── */}
@@ -244,7 +271,7 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
         </div>
       </div>
 
-      {/* Coach Mark Guide */}
+      {/* Coach Mark Guide — 위치 탭에서만 표시 */}
       {activeTab === "position" && guideStep && (
         <CoachMark step={guideStep} onDismiss={dismissStep} onSkipAll={skipAll} />
       )}

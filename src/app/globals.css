@@ -164,6 +164,16 @@ body {
   /* iOS safe area — 헤더/바텀탭에서 개별 처리 (body 전체 패딩 제거) */
 }
 
+/* iOS Safari 기본 비디오 컨트롤 버튼 제거 */
+video::-webkit-media-controls-fullscreen-button,
+video::-webkit-media-controls-picture-in-picture-button,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-timeline,
+video::-webkit-media-controls-volume-slider {
+  display: none !important;
+}
+
 /* Animations */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }

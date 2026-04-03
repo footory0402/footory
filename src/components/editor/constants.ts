@@ -2,19 +2,18 @@ export const POSITIONS = [
   "GK", "CB", "LB", "RB", "CDM", "CM", "CAM", "LW", "RW", "ST", "CF",
 ] as const;
 
-export const CLUBS = [
-  { name: "FC Seoul U12", color: "#C0392B", accent: "#E74C3C" },
-  { name: "Jeonbuk U12", color: "#2E7D32", accent: "#4CAF50" },
-  { name: "Ulsan U12", color: "#1565C0", accent: "#42A5F5" },
-  { name: "Suwon U12", color: "#1565C0", accent: "#E53935" },
-  { name: "Incheon U12", color: "#0D47A1", accent: "#1976D2" },
-  { name: "Gangwon U12", color: "#E65100", accent: "#FF9800" },
-  { name: "Daejeon U12", color: "#6A1B9A", accent: "#AB47BC" },
-  { name: "Pohang U12", color: "#B71C1C", accent: "#EF5350" },
-  { name: "Jeju U12", color: "#E65100", accent: "#FF6D00" },
-  { name: "Gimcheon U12", color: "#1B5E20", accent: "#66BB6A" },
-  { name: "직접 입력", color: "#37474F", accent: "#78909C" },
+export const CARD_THEMES = [
+  { id: "flame",     name: "Inferno",  color: "#7B1315", accent: "#F97316" },
+  { id: "ocean",     name: "Abyss",    color: "#0B2A5A", accent: "#38BDF8" },
+  { id: "forest",    name: "Venom",    color: "#14532D", accent: "#4ADE80" },
+  { id: "gold",      name: "Gilded",   color: "#5C2D00", accent: "#FBBF24" },
+  { id: "amethyst",  name: "Spectre",  color: "#3B0764", accent: "#E879F9" },
+  { id: "midnight",  name: "Phantom",  color: "#0F172A", accent: "#6366F1" },
+  { id: "silver",    name: "Stealth",  color: "#1E293B", accent: "#CBD5E1" },
+  { id: "coral",     name: "Blaze",    color: "#7C2D12", accent: "#FB923C" },
 ] as const;
+
+export type ThemeId = (typeof CARD_THEMES)[number]["id"];
 
 export type TemplateId = "fifa";
 

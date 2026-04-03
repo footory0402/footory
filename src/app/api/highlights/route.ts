@@ -4,7 +4,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_HIGHLIGHTS_PER_PROFILE = 3;
 const MAX_CLIPS_PER_REEL = 10;
-const MAX_REEL_DURATION = 60;
+const MAX_REEL_DURATION = 300; // 프론트엔드 MAX_DURATION과 동일 (5분)
 
 /**
  * GET /api/highlights — 내 릴 목록

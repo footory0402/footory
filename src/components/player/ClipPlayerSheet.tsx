@@ -97,7 +97,7 @@ export default function ClipPlayerSheet({
   // 위아래 스와이프
   const [swipeY, setSwipeY] = useState(0);
   const [swiping, setSwiping] = useState(false);
-  const swipeStart = useRef<{ x: number; y: number; time: number; locked: "h" | "v" | null } | null>(null);
+  const swipeStart = useRef<{ x: number; y: number; time: number; locked: "h" | "v" | null; startPanX: number; startPanY: number } | null>(null);
 
   // 핀치 줌 (Instagram-style)
   const [zoom, setZoom] = useState(1);
@@ -615,7 +615,7 @@ export default function ClipPlayerSheet({
   // 위아래 스와이프 + 핀치 줌 핸들러
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      // 핀치 줌 시작
+      // 핀치 줌 시작 — 진행 중인 스와이프 상태 초기화 (레이스 컨디션 방지)
       pinchRef.current = {
         startDist: getTouchDist(e),
         startZoom: zoom,
@@ -625,15 +625,17 @@ export default function ClipPlayerSheet({
         midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
       };
       swipeStart.current = null;
+      setSwiping(false);
+      setSwipeY(0);
       return;
     }
     if (e.touches.length !== 1 || isFreezing) return;
     const t = e.touches[0];
     if (zoom > 1) {
-      // 줌 상태에서는 패닝
-      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: "h" };
+      // 줌 상태에서는 패닝 — 시작 시점 pan 좌표를 저장해 드리프트 방지
+      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: "h", startPanX: pan.x, startPanY: pan.y };
     } else {
-      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: null };
+      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: null, startPanX: 0, startPanY: 0 };
     }
   };
 
@@ -650,17 +652,21 @@ export default function ClipPlayerSheet({
     }
     if (!swipeStart.current) return;
 
-    // 줌 상태에서 1손가락 패닝
+    // 줌 상태에서 1손가락 패닝 — 터치 시작 시점의 pan 기준으로 계산해 드리프트 방지
     if (zoom > 1 && e.touches.length === 1) {
       const t = e.touches[0];
       const dx = t.clientX - swipeStart.current.x;
       const dy = t.clientY - swipeStart.current.y;
+      // 데드존: 8px 이상 움직여야 패닝 시작 (탭 시 미세 흔들림 방지)
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      const basePanX = pinchRef.current?.startPanX ?? swipeStart.current.startPanX;
+      const basePanY = pinchRef.current?.startPanY ?? swipeStart.current.startPanY;
       const newPan = clampPan(
-        (pinchRef.current?.startPanX ?? panRef.current.x) + (dx / window.innerWidth) * 100,
-        (pinchRef.current?.startPanY ?? panRef.current.y) + (dy / window.innerHeight) * 100,
+        basePanX + (dx / window.innerWidth) * 100,
+        basePanY + (dy / window.innerHeight) * 100,
         zoom,
       );
-      panRef.current = newPan; // ref도 동기화 (stale closure 방지)
+      panRef.current = newPan;
       setPan(newPan);
       return;
     }
@@ -689,18 +695,23 @@ export default function ClipPlayerSheet({
     }
     if (!swipeStart.current) return;
 
-    // 줌 상태에서 더블탭 → 리셋
-    if (zoom > 1 && !swiping) {
-      const now = Date.now();
-      if (now - lastTapRef.current < 300) {
-        setZoom(1);
-        setPan({ x: 0, y: 0 });
-        lastTapRef.current = 0;
-        swipeStart.current = null;
-        return;
+    // 줌 상태: 탭/더블탭 처리 — swiping 여부와 관계없이 네비게이션 차단 (레이스 컨디션 방지)
+    if (zoom > 1) {
+      if (swiping) {
+        // animateZoomTo가 스와이프 도중 완료되어 zoom>1이 된 경우 — 스와이프 상태만 초기화
+        setSwipeY(0);
+        setSwiping(false);
+      } else {
+        const now = Date.now();
+        if (now - lastTapRef.current < 300) {
+          setZoom(1);
+          setPan({ x: 0, y: 0 });
+          lastTapRef.current = 0;
+        } else {
+          lastTapRef.current = now;
+          handleTap();
+        }
       }
-      lastTapRef.current = now;
-      handleTap();
       swipeStart.current = null;
       return;
     }
@@ -790,8 +801,8 @@ export default function ClipPlayerSheet({
   const isDismissSwipe = swiping && swipeY > 0 && !hasPrev;
   const dismissProgress = isDismissSwipe ? Math.min(swipeY / 300, 1) : 0;
 
-  // HUD 하단 고정 바 높이 (골드라인 2px + 1행 ~52px + 2행 ~38px = ~92px)
-  const HUD_BAR_HEIGHT = 92;
+  // HUD 하단 고정 바 높이 (골드라인 2px + 1행 ~62px + 2행 ~39px = ~103px, 여유분 포함)
+  const HUD_BAR_HEIGHT = 112;
   const hasHud = !!introData && introReady && !showIntro;
 
   // 영상과 동일한 transform (zoom/pan/swipe) - overlay가 영상 위치를 따라가도록
@@ -805,6 +816,7 @@ export default function ClipPlayerSheet({
     <div
       className="fixed inset-0 z-[100] bg-black overflow-hidden"
       style={{
+        touchAction: "none",
         animation: !swiping
           ? closing
             ? "fullscreen-player-out 0.25s ease-in forwards"
@@ -931,6 +943,8 @@ export default function ClipPlayerSheet({
           playsInline
           preload="auto"
           muted={isMuted}
+          controlsList="nofullscreen nodownload nopictureinpicture"
+          disablePictureInPicture
           poster={clip.thumbnailUrl || undefined}
           className="absolute inset-x-0 top-0 z-10 w-full"
           style={{

@@ -2,8 +2,8 @@ export interface PlayerData {
   name: string;
   number: string;
   position: string;
-  club: string;
-  customClubName: string;
+  teamName: string;
+  themeId: string;
   customClubColor: string;
   customClubAccent: string;
   age: string;
@@ -19,10 +19,10 @@ export const DEFAULT_PLAYER_DATA: PlayerData = {
   name: "",
   number: "9",
   position: "ST",
-  club: "FC Seoul U12",
-  customClubName: "",
-  customClubColor: "#37474F",
-  customClubAccent: "#78909C",
+  teamName: "",
+  themeId: "flame",
+  customClubColor: "#7B1315",
+  customClubAccent: "#F97316",
   age: "",
   birthDate: "",
   height: "",

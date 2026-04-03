@@ -5,9 +5,7 @@ import { getClubColors } from "../utils";
 export default function EaSportsCard({ data }: { data: PlayerData }) {
   const club = getClubColors(data);
   const displayName = data.name || "PLAYER";
-  const clubName = data.club === "직접 입력"
-    ? (data.customClubName || "MY TEAM")
-    : (data.club || "FC Seoul U12");
+  const clubName = data.teamName || "MY TEAM";
 
   return (
     <div

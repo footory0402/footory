@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Upload, User, ClipboardList, Eraser, Loader2 } from "lucide-react";
-import { POSITIONS, CLUBS, FOOT_OPTIONS } from "./constants";
+import { POSITIONS, CARD_THEMES } from "./constants";
 import type { PlayerData } from "./types";
 import type { RemovalStatus } from "./useBackgroundRemoval";
 
@@ -49,6 +49,20 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
       reader.readAsDataURL(file);
     },
     [update],
+  );
+
+  const handleTheme = useCallback(
+    (themeId: string) => {
+      const theme = CARD_THEMES.find((t) => t.id === themeId);
+      if (!theme) return;
+      onChange({
+        ...data,
+        themeId: theme.id,
+        customClubColor: theme.color,
+        customClubAccent: theme.accent,
+      });
+    },
+    [data, onChange],
   );
 
   return (
@@ -152,87 +166,51 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
         </FormField>
       </div>
 
-      {/* Club */}
+      {/* Team Name */}
       <FormField label="소속 팀">
-        <div className="flex flex-col gap-2">
-          {/* Quick presets */}
-          <div className="flex flex-wrap gap-1.5">
-            {CLUBS.map((c) => (
-              <button
-                key={c.name}
-                type="button"
-                onClick={() => {
-                  if (c.name === "직접 입력") {
-                    update("club", "직접 입력");
-                  } else {
-                    onChange({ ...data, club: c.name, customClubName: "", customClubColor: c.color, customClubAccent: c.accent });
-                  }
-                }}
-                className={`rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-all ${
-                  data.club === c.name
-                    ? "bg-accent/15 text-accent ring-1 ring-accent/30"
-                    : "bg-white/4 text-text-3 hover:text-text-2"
-                }`}
-              >
-                {c.name === "직접 입력" ? "기타" : c.name.replace(" U12", "")}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom club name */}
-          {data.club === "직접 입력" && (
-            <input
-              className={inputClass}
-              value={data.customClubName}
-              onChange={(e) => update("customClubName", e.target.value)}
-              placeholder="팀 이름 입력"
-            />
-          )}
-        </div>
+        <input
+          className={inputClass}
+          value={data.teamName}
+          onChange={(e) => update("teamName", e.target.value)}
+          placeholder="예: 분당 유나이티드, 서울 드래곤즈 FC"
+          maxLength={30}
+        />
       </FormField>
 
-      {/* Card Colors — always visible */}
-      <div className="mb-3 rounded-lg border border-white/6 bg-white/3 p-3">
+      {/* Card Theme */}
+      <div className="mb-3">
         <div className="mb-2 text-[11px] font-semibold uppercase tracking-[1.5px] text-text-3">
-          카드 배경 컬러
+          카드 테마
         </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <div>
-            <div className="mb-1 text-[10px] text-text-3">메인</div>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={data.customClubColor}
-                onChange={(e) => update("customClubColor", e.target.value)}
-                className="h-8 w-8 cursor-pointer rounded border border-white/10 bg-transparent"
-              />
-              <input
-                className={inputClass}
-                value={data.customClubColor}
-                onChange={(e) => update("customClubColor", e.target.value)}
-                placeholder="#37474F"
-                maxLength={7}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 text-[10px] text-text-3">액센트</div>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={data.customClubAccent}
-                onChange={(e) => update("customClubAccent", e.target.value)}
-                className="h-8 w-8 cursor-pointer rounded border border-white/10 bg-transparent"
-              />
-              <input
-                className={inputClass}
-                value={data.customClubAccent}
-                onChange={(e) => update("customClubAccent", e.target.value)}
-                placeholder="#78909C"
-                maxLength={7}
-              />
-            </div>
-          </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {CARD_THEMES.map((theme) => {
+            const isSelected = data.themeId === theme.id;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => handleTheme(theme.id)}
+                className={`flex flex-col items-center gap-1.5 rounded-xl py-2.5 px-1 transition-all ${
+                  isSelected
+                    ? "bg-white/10 ring-2 ring-accent/50"
+                    : "bg-white/4 hover:bg-white/7 active:bg-white/10"
+                }`}
+              >
+                {/* Two-tone swatch */}
+                <div className="flex h-5 w-full max-w-[40px] overflow-hidden rounded-md">
+                  <div className="flex-1" style={{ background: theme.color }} />
+                  <div className="flex-1" style={{ background: theme.accent }} />
+                </div>
+                <span
+                  className={`text-[10px] font-semibold leading-none ${
+                    isSelected ? "text-white" : "text-text-3"
+                  }`}
+                >
+                  {theme.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -292,7 +270,7 @@ export default function EditorForm({ data, onChange, onRemoveBackground, bgRemov
             value={data.foot}
             onChange={(e) => update("foot", e.target.value)}
           >
-            {FOOT_OPTIONS.map((f) => (
+            {["오른발", "왼발", "양발"].map((f) => (
               <option key={f} value={f}>
                 {f}
               </option>

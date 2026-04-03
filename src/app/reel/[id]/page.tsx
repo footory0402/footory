@@ -32,7 +32,7 @@ async function getReelData(id: string) {
   // 클립 데이터 (순서 보장)
   const { data: clips } = await supabase
     .from("clips")
-    .select("id, video_url, thumbnail_url, duration_seconds, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, slowmo_start, slowmo_end, slowmo_speed, bgm_id, effects")
+    .select("id, video_url, thumbnail_url, duration_seconds, memo, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, slowmo_start, slowmo_end, slowmo_speed, bgm_id, effects")
     .in("id", reel.clip_ids);
 
   const clipsMap = new Map((clips ?? []).map((c) => [c.id, c]));
@@ -89,6 +89,8 @@ export default async function ReelSharePage({ params }: Props) {
     id: c.id,
     videoUrl: c.video_url,
     thumbnailUrl: c.thumbnail_url ?? null,
+    memo: c.memo ?? null,
+    durationSeconds: c.duration_seconds ?? null,
     spotlightX: c.spotlight_x ?? null,
     spotlightY: c.spotlight_y ?? null,
     freezeAt: c.freeze_at ?? null,
