@@ -462,7 +462,7 @@ export default function HighlightsTabV5({
                   loading={loadingReelId === reel.id}
                   onPlay={() => handlePlayReel(reel.id)}
                   onDelete={!readOnly ? () => setDeletingReelId(reel.id) : undefined}
-                  shareUrl={`/reel/${reel.id}`}
+                  isEditMode={editMode}
                 />
               </div>
             ))}
@@ -1015,98 +1015,85 @@ function ReelCard({
   loading,
   onPlay,
   onDelete,
-  shareUrl,
+  isEditMode,
 }: {
   reel: Reel;
   loading: boolean;
   onPlay: () => void;
   onDelete?: () => void;
-  shareUrl?: string;
+  isEditMode?: boolean;
 }) {
   return (
     <div
       className="relative w-full cursor-pointer overflow-hidden"
-      style={{ background: "var(--color-card)" }}
-      onClick={onPlay}
+      style={{ aspectRatio: "2/1", background: "#111" }}
+      onClick={isEditMode ? onDelete : onPlay}
     >
-      {/* 썸네일 영역 — 2:1 비율로 옆 클립셀 높이와 맞춤 */}
-      <div className="relative" style={{ aspectRatio: "2/1", background: "linear-gradient(135deg, #111115, #0a0a0e)" }}>
-        {reel.thumbnail_url && (
-          <Image
-            src={reel.thumbnail_url}
-            alt={reel.title ?? "하이라이트 릴"}
-            fill
-            sizes="(max-width: 430px) 66vw, 280px"
-            className="object-cover"
-            style={{ opacity: 0.85 }}
-          />
-        )}
-        {/* 그라디언트 오버레이 */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)" }} />
+      {/* 썸네일 */}
+      {reel.thumbnail_url && (
+        <Image
+          src={reel.thumbnail_url}
+          alt={reel.title ?? "하이라이트 릴"}
+          fill
+          sizes="(max-width: 430px) 66vw, 280px"
+          className="object-cover"
+        />
+      )}
 
-        {/* 플레이 버튼 */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          {loading ? (
-            <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.8)" strokeWidth="2">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      {/* 하단 그라디언트 — 텍스트 가독성 */}
+      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)" }} />
+
+      {/* 편집 모드: dim + 빨간 X 배지 (ClipCard와 동일 패턴) */}
+      {isEditMode && (
+        <>
+          <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.25)" }} />
+          <div
+            className="absolute left-[4px] top-[4px] z-10 flex items-center justify-center"
+            style={{ width: 20, height: 20, borderRadius: "50%", background: "rgb(239,68,68)", border: "1.5px solid rgba(0,0,0,0.4)", boxShadow: "0 1px 4px rgba(0,0,0,0.4)" }}
+          >
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12" />
             </svg>
-          ) : (
-            <div className="flex items-center justify-center" style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(212,168,83,0.15)", backdropFilter: "blur(8px)", border: "1.5px solid rgba(212,168,83,0.4)" }}>
-              <span style={{ fontSize: 14, marginLeft: 2, color: "var(--color-accent)" }}>▶</span>
+          </div>
+        </>
+      )}
+
+      {/* 일반 모드 오버레이 */}
+      {!isEditMode && (
+        <>
+          {/* REEL 배지 (top-left) */}
+          <div className="absolute left-[5px] top-[5px]" style={{ background: "var(--color-accent)", borderRadius: 3, padding: "1px 5px", fontSize: 8, fontWeight: 800, fontFamily: "var(--font-stat)", color: "#000", letterSpacing: "0.06em" }}>
+            REEL
+          </div>
+
+          {/* 클립 수 (top-right) */}
+          <div className="absolute right-[5px] top-[5px]" style={{ background: "rgba(0,0,0,0.75)", borderRadius: 3, padding: "1px 4px", fontSize: 10, color: "#fff", fontFamily: "var(--font-stat)", lineHeight: 1.4 }}>
+            {reel.clip_ids.length}
+          </div>
+
+          {/* 로딩 스피너 (중앙) */}
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg className="animate-spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.8)" strokeWidth="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
             </div>
           )}
-        </div>
 
-        {/* REEL 뱃지 */}
-        <div className="absolute left-[8px] top-[8px]" style={{ background: "var(--color-accent)", borderRadius: 4, padding: "2px 6px", fontSize: 8, fontWeight: 800, fontFamily: "var(--font-stat)", color: "#000", letterSpacing: "0.08em" }}>
-          REEL
-        </div>
-
-        {/* 클립 수 */}
-        <div className="absolute right-[8px] top-[8px]" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)", borderRadius: 4, padding: "2px 6px", fontSize: 9, color: "var(--color-text-2)", fontFamily: "var(--font-stat)" }}>
-          {reel.clip_ids.length}클립
-        </div>
-      </div>
-
-      {/* 하단 정보 */}
-      <div className="flex items-center gap-2 px-3 py-2">
-        <div className="min-w-0 flex-1">
-          <p className="truncate" style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "var(--color-text-1)", margin: 0 }}>
+          {/* 제목 (bottom-left) */}
+          <div
+            className="absolute bottom-[5px] left-[6px]"
+            style={{ fontSize: 10, fontWeight: 600, color: "#fff", fontFamily: "var(--font-body)", maxWidth: "calc(100% - 52px)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", lineHeight: 1.4, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}
+          >
             {reel.title ?? "하이라이트 릴"}
-          </p>
-          <p style={{ fontFamily: "var(--font-stat)", fontSize: 10, color: "var(--color-text-3)", marginTop: 1 }}>
+          </div>
+
+          {/* 총 재생시간 (bottom-right) — ClipCard duration과 동일 스타일 */}
+          <div className="absolute bottom-[5px] right-[5px]" style={{ background: "rgba(0,0,0,0.75)", borderRadius: 3, padding: "1px 4px", fontSize: 10, color: "#fff", fontFamily: "var(--font-stat)", lineHeight: 1.4 }}>
             {formatDuration(Math.round(reel.total_duration))}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {shareUrl && (
-            <Link
-              href={shareUrl}
-              onClick={(e) => e.stopPropagation()}
-              className="flex h-6 w-6 items-center justify-center rounded-full"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-              aria-label="릴 공유"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
-              </svg>
-            </Link>
-          )}
-          {onDelete && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-              aria-label="릴 삭제"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
