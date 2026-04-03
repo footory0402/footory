@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 
 const ReelPreviewPlayer = dynamic(() => import("@/components/reel/ReelPreviewPlayer"), { ssr: false });
 
-const MAX_DURATION = 60;
+const MAX_DURATION = 300;
 const MAX_CLIPS = 10;
 
 interface ClipItem {
@@ -23,6 +23,9 @@ interface ClipItem {
   slowmo_end: number | null;
   slowmo_speed: number | null;
   effects: Record<string, unknown> | null;
+  spotlight_x: number | null;
+  spotlight_y: number | null;
+  freeze_at: number | null;
 }
 
 type Step = "select" | "order" | "preview";
@@ -106,6 +109,9 @@ export default function ReelCreatePage() {
       slowmoEnd: c?.slowmo_end,
       slowmoSpeed: c?.slowmo_speed,
       effects: c?.effects as Record<string, unknown> | null,
+      spotlightX: c?.spotlight_x,
+      spotlightY: c?.spotlight_y,
+      freezeAt: c?.freeze_at,
       transition: i < orderItems.length - 1 ? orderItems[i].transition : undefined,
     };
   });
