@@ -803,6 +803,8 @@ export default function ClipPlayerSheet({
 
   // HUD 하단 고정 바 높이 (골드라인 2px + 1행 ~62px + 2행 ~39px = ~103px, 여유분 포함)
   const HUD_BAR_HEIGHT = 112;
+  // seekbar + 시간 표시 높이 (h-11=44px + 시간22px + 패딩약9px)
+  const SEEKBAR_HEIGHT = 75;
   const hasHud = !!introData && introReady && !showIntro;
 
   // 영상과 동일한 transform (zoom/pan/swipe) - overlay가 영상 위치를 따라가도록
@@ -948,7 +950,7 @@ export default function ClipPlayerSheet({
           poster={clip.thumbnailUrl || undefined}
           className="absolute inset-x-0 top-0 z-10 w-full"
           style={{
-            height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT}px)` : "100%",
+            height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT + SEEKBAR_HEIGHT}px)` : "100%",
             objectFit: "contain",
             opacity: (!introReady || showIntro) ? 0 : 1,
             transition: zoom === 1 ? "opacity 0.3s ease, transform 0.2s ease-out" : "opacity 0.3s ease",
@@ -967,7 +969,7 @@ export default function ClipPlayerSheet({
         <div
           className="absolute inset-x-0 top-0 z-[45] pointer-events-none"
           style={{
-            height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT}px)` : "100%",
+            height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT + SEEKBAR_HEIGHT}px)` : "100%",
             transform: videoTransform,
             transformOrigin: "center center",
           }}
@@ -992,7 +994,7 @@ export default function ClipPlayerSheet({
       {/* ── 캡션 오버레이 ── */}
       {effects?.captions && effects.captions.length > 0 && introReady && !showIntro && (
         <div className="absolute inset-x-0 top-0 pointer-events-none" style={{
-          height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT}px)` : "100%",
+          height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT + SEEKBAR_HEIGHT}px)` : "100%",
           zIndex: 46,
         }}>
           <CaptionOverlay
@@ -1002,11 +1004,11 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── HUD 하단 고정 바 — 항상 표시 (영상 영역 아래) ── */}
+      {/* ── HUD 하단 고정 바 — seekbar 위에 위치 (영상→선수정보→시간 순서) ── */}
       {hasHud && (
         <div
-          className="absolute inset-x-0 bottom-0 z-[44] pointer-events-none"
-          style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}
+          className="absolute inset-x-0 z-[44] pointer-events-none"
+          style={{ bottom: `calc(env(safe-area-inset-bottom, 16px) + ${SEEKBAR_HEIGHT}px)` }}
         >
           <HudOverlay
             data={introData!}
@@ -1061,9 +1063,12 @@ export default function ClipPlayerSheet({
         </div>
       )}
 
-      {/* ── 줌 인디케이터 ── */}
+      {/* ── 줌 인디케이터 — 좌측 상단 (닫기 버튼 아래) ── */}
       {zoom > 1 && (
-        <div className="absolute top-16 right-4 z-50 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white/70 backdrop-blur-sm">
+        <div
+          className="absolute z-50 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white/70 backdrop-blur-sm"
+          style={{ top: "calc(env(safe-area-inset-top, 16px) + 60px)", left: "16px" }}
+        >
           {zoom.toFixed(1)}x
         </div>
       )}
@@ -1113,58 +1118,51 @@ export default function ClipPlayerSheet({
           <span className="ml-3 font-stat text-[12px] text-white/70" style={{ opacity: showControls ? 1 : 0, transition: "opacity 0.3s" }}>{index + 1} / {clips.length}</span>
         )}
 
-        {/* 선수 보기 / 전체 보기 토글 (spotlight가 있는 클립만) */}
-        {clip.spotlightX != null && clip.spotlightY != null && introReady && (
-          <button
-            onClick={() => {
-              if (isFocusMode || zoom > 1) {
-                // 전체 보기로 전환
-                animateZoomTo(0.5, 0.5, 1, 400);
-                setIsFocusMode(false);
-              } else {
-                // 선수 포커스로 전환
-                animateZoomTo(clip.spotlightX!, clip.spotlightY!, 2, 400);
-                setIsFocusMode(true);
-              }
-            }}
-            className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold active:scale-95 transition-transform"
-            style={{
-              background: isFocusMode || zoom > 1
-                ? "rgba(212,168,83,0.25)"
-                : "rgba(0,0,0,0.45)",
-              border: isFocusMode || zoom > 1
-                ? "1px solid rgba(212,168,83,0.5)"
-                : "1px solid rgba(255,255,255,0.15)",
-              color: isFocusMode || zoom > 1 ? "#D4A853" : "rgba(255,255,255,0.8)",
-              backdropFilter: "blur(8px)",
-              opacity: showControls ? 1 : 0,
-              transition: "opacity 0.3s",
-              pointerEvents: showControls ? "auto" : "none",
-            }}
-          >
-            {isFocusMode || zoom > 1 ? (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-                </svg>
-                전체 보기
-              </>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                </svg>
-                선수 보기
-              </>
-            )}
-          </button>
-        )}
       </div>
 
       {/* ── 우측 액션 버튼 — 항상 표시 (TikTok/Reels 스타일) ── */}
       <div className="absolute right-4 z-40 flex flex-col items-center gap-5" style={{
-        bottom: hasHud ? `calc(env(safe-area-inset-bottom, 16px) + ${HUD_BAR_HEIGHT + 40}px)` : "128px",
+        bottom: hasHud ? `calc(env(safe-area-inset-bottom, 16px) + ${HUD_BAR_HEIGHT + SEEKBAR_HEIGHT + 24}px)` : "128px",
+        opacity: showControls ? 1 : 0,
+        transition: "opacity 0.3s",
+        pointerEvents: showControls ? "auto" : "none",
       }}>
+        {/* 선수 포커스 토글 (spotlight 있는 클립만) */}
+        {clip.spotlightX != null && clip.spotlightY != null && introReady && (
+          <button
+            onClick={() => {
+              if (isFocusMode || zoom > 1) {
+                animateZoomTo(0.5, 0.5, 1, 400);
+                setIsFocusMode(false);
+              } else {
+                animateZoomTo(clip.spotlightX!, clip.spotlightY!, 2, 400);
+                setIsFocusMode(true);
+              }
+            }}
+            className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+          >
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-sm text-white"
+              style={{
+                background: isFocusMode || zoom > 1 ? "rgba(212,168,83,0.3)" : "rgba(0,0,0,0.40)",
+                border: isFocusMode || zoom > 1 ? "1px solid rgba(212,168,83,0.5)" : "1px solid transparent",
+              }}
+            >
+              {isFocusMode || zoom > 1 ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+              )}
+            </div>
+            <span className="text-[10px]" style={{ color: isFocusMode || zoom > 1 ? "#D4A853" : "rgba(255,255,255,0.6)" }}>
+              {isFocusMode || zoom > 1 ? "전체" : "선수"}
+            </span>
+          </button>
+        )}
         {/* 소리 토글 */}
         <button
           onClick={() => {
@@ -1240,13 +1238,15 @@ export default function ClipPlayerSheet({
         )}
       </div>
 
-      {/* ── 하단 정보 + seekbar ── */}
+      {/* ── 하단 정보 + seekbar — 항상 맨 아래 (HUD 없을 때는 화면 최하단) ── */}
       <div
-        className="absolute left-0 right-0 z-40 px-4"
+        className="absolute left-0 right-0 z-[45] px-4"
         style={{
-          bottom: hasHud ? `calc(env(safe-area-inset-bottom, 16px) + ${HUD_BAR_HEIGHT}px)` : "0",
-          paddingBottom: hasHud ? "0" : "env(safe-area-inset-bottom, 16px)",
-          background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)",
+          bottom: 0,
+          paddingBottom: "env(safe-area-inset-bottom, 16px)",
+          background: hasHud
+            ? "linear-gradient(to top, rgba(10,10,12,0.9) 0%, rgba(10,10,12,0.6) 60%, transparent 100%)"
+            : "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)",
           opacity: showControls ? 1 : 0,
           transition: "opacity 0.3s",
           pointerEvents: showControls ? "auto" : "none",
