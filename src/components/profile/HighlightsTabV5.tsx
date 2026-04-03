@@ -284,77 +284,6 @@ export default function HighlightsTabV5({
     <ErrorBoundary>
       <div className="pt-3 pb-24">
 
-        {/* ── 하이라이트 릴 섹션 ── */}
-        {(reelsLoading || reels.length > 0 || (!readOnly && dedupedClips.length >= 2)) && (
-          <div style={{ marginBottom: 20 }}>
-            {/* 섹션 헤더 */}
-            <div className="mb-3 flex items-center gap-[6px]">
-              <div style={{ width: 3, height: 14, borderRadius: 2, background: "var(--color-accent)" }} />
-              <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 700, color: "var(--color-text-1)" }}>
-                하이라이트 릴
-              </span>
-              {reels.length > 0 && (
-                <span style={{ fontFamily: "var(--font-stat)", fontSize: 11, color: "var(--color-text-3)", background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "1px 7px" }}>
-                  {reels.length}
-                </span>
-              )}
-              {!readOnly && reels.length < 3 && dedupedClips.length >= 2 && (
-                <Link
-                  href="/reel/create"
-                  className="ml-auto"
-                  style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(212,168,83,0.08)", border: "1px solid rgba(212,168,83,0.2)", color: "var(--color-accent)", fontSize: 10, fontFamily: "var(--font-body)", fontWeight: 500 }}
-                >
-                  + 릴 만들기
-                </Link>
-              )}
-            </div>
-
-            {/* 릴 카드 목록 */}
-            {reelsLoading ? (
-              <div className="-mx-4 flex gap-3 overflow-x-auto px-4" style={{ paddingBottom: 4 }}>
-                {[1, 2].map((i) => (
-                  <div key={i} className="shrink-0 animate-pulse" style={{ width: 240, height: 158, borderRadius: 12, background: "var(--color-card)" }} />
-                ))}
-              </div>
-            ) : reels.length > 0 ? (
-              <div className="-mx-4 flex gap-3 overflow-x-auto px-4" style={{ paddingBottom: 4 }}>
-                {reels.map((reel) => (
-                  <ReelCard
-                    key={reel.id}
-                    reel={reel}
-                    loading={loadingReelId === reel.id}
-                    onPlay={() => handlePlayReel(reel.id)}
-                    onDelete={!readOnly ? () => setDeletingReelId(reel.id) : undefined}
-                    shareUrl={`/reel/${reel.id}`}
-                  />
-                ))}
-              </div>
-            ) : !readOnly ? (
-              /* 클립은 있지만 릴이 없을 때 CTA */
-              <Link
-                href="/reel/create"
-                className="flex items-center gap-3"
-                style={{ background: "rgba(212,168,83,0.03)", border: "1px dashed rgba(212,168,83,0.2)", borderRadius: 12, padding: "14px 16px" }}
-              >
-                <div className="flex shrink-0 items-center justify-center" style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(212,168,83,0.08)", fontSize: 20 }}>
-                  🎬
-                </div>
-                <div>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 700, color: "var(--color-accent)", margin: 0 }}>
-                    나만의 릴을 만들어보세요
-                  </p>
-                  <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--color-text-3)", marginTop: 2 }}>
-                    클립을 엮어 스카우트에게 어필하세요
-                  </p>
-                </div>
-                <svg className="ml-auto shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-accent)", opacity: 0.5 }}>
-                  <path d="M9 18l6-6-6-6"/>
-                </svg>
-              </Link>
-            ) : null}
-          </div>
-        )}
-
         {/* ── Featured video (v5: 16:9, gold border) ── */}
         {primaryFeatured?.clips?.video_url ? (
           <FeaturedCard
@@ -525,6 +454,19 @@ export default function HighlightsTabV5({
           </div>
         ) : hasClips ? (
           <div className="-mx-4 grid grid-cols-3 gap-[2px]">
+            {/* 릴 카드 — col-span-2, 그리드 최상단 */}
+            {!reelsLoading && reels.map((reel) => (
+              <div key={reel.id} className="col-span-2">
+                <ReelCard
+                  reel={reel}
+                  loading={loadingReelId === reel.id}
+                  onPlay={() => handlePlayReel(reel.id)}
+                  onDelete={!readOnly ? () => setDeletingReelId(reel.id) : undefined}
+                  shareUrl={`/reel/${reel.id}`}
+                />
+              </div>
+            ))}
+
             {/* Upload card — only show when clips exist (empty state CTA handles 0 clips) */}
             {!readOnly && hasClips && (
               <Link
@@ -1083,18 +1025,18 @@ function ReelCard({
 }) {
   return (
     <div
-      className="relative shrink-0 cursor-pointer overflow-hidden"
-      style={{ width: 240, borderRadius: 12, background: "var(--color-card)", border: "1px solid rgba(255,255,255,0.06)" }}
+      className="relative w-full cursor-pointer overflow-hidden"
+      style={{ background: "var(--color-card)" }}
       onClick={onPlay}
     >
-      {/* 썸네일 영역 */}
-      <div className="relative" style={{ height: 130, background: "linear-gradient(135deg, #111115, #0a0a0e)" }}>
+      {/* 썸네일 영역 — 2:1 비율로 옆 클립셀 높이와 맞춤 */}
+      <div className="relative" style={{ aspectRatio: "2/1", background: "linear-gradient(135deg, #111115, #0a0a0e)" }}>
         {reel.thumbnail_url && (
           <Image
             src={reel.thumbnail_url}
             alt={reel.title ?? "하이라이트 릴"}
             fill
-            sizes="200px"
+            sizes="(max-width: 430px) 66vw, 280px"
             className="object-cover"
             style={{ opacity: 0.85 }}
           />
