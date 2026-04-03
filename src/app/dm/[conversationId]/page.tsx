@@ -282,7 +282,7 @@ export default function ConversationPage({
       )}
 
       {/* Input */}
-      <div className="pb-[env(safe-area-inset-bottom)]">
+      <div className="pb-[calc(60px+env(safe-area-inset-bottom))]">
         <MessageInput onSend={handleSend} />
       </div>
     </div>
