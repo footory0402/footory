@@ -46,6 +46,7 @@ yarn-error.log*
 # local tooling
 .mcp.json
 .claude/settings.local.json
+.claude/worktrees/
 supabase/.temp/
 
 # render-worker build artifacts
