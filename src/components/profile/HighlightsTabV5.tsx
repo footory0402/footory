@@ -27,6 +27,16 @@ interface TagClip {
   trimEnd?: number | null;
 }
 
+interface Reel {
+  id: string;
+  title: string | null;
+  clip_ids: string[];
+  status: string;
+  created_at: string;
+  thumbnail_url: string | null;
+  total_duration: number;
+}
+
 interface HighlightsTabV5Props {
   tagClips: Record<string, TagClip[]>;
   untaggedClips?: TagClip[];
@@ -39,6 +49,7 @@ interface HighlightsTabV5Props {
   onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
   onShare?: (clipId: string) => void;
   readOnly?: boolean;
+  initialReels?: Reel[];
   initialFeatured?: Array<{
     clip_id: string;
     clips?: {
@@ -72,6 +83,7 @@ export default function HighlightsTabV5({
   onEditTags,
   onShare,
   readOnly,
+  initialReels,
   initialFeatured,
 }: HighlightsTabV5Props) {
   const {
@@ -91,10 +103,79 @@ export default function HighlightsTabV5({
   const [deletingClipId, setDeletingClipId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // 릴 상태
+  const [reels, setReels] = useState<Reel[]>(initialReels ?? []);
+  const [reelsLoading, setReelsLoading] = useState(!readOnly && !initialReels);
+  const [playingReelClips, setPlayingReelClips] = useState<PlayableClip[] | null>(null);
+  const [loadingReelId, setLoadingReelId] = useState<string | null>(null);
+  const [deletingReelId, setDeletingReelId] = useState<string | null>(null);
+  const [isDeletingReel, setIsDeletingReel] = useState(false);
+
   useEffect(() => {
     if (readOnly) return;
     fetchFeatured();
   }, [fetchFeatured, readOnly]);
+
+  useEffect(() => {
+    if (readOnly || initialReels) return;
+    fetch("/api/highlights")
+      .then((r) => r.json())
+      .then((data) => setReels(data.highlights ?? []))
+      .catch(() => {})
+      .finally(() => setReelsLoading(false));
+  }, [readOnly, initialReels]);
+
+  const handlePlayReel = async (reelId: string) => {
+    setLoadingReelId(reelId);
+    try {
+      const res = await fetch(`/api/highlights/${reelId}`);
+      const data = await res.json();
+      const clips: PlayableClip[] = (data.clips ?? []).map((c: {
+        id: string; video_url: string; thumbnail_url?: string | null;
+        spotlight_x?: number | null; spotlight_y?: number | null;
+        freeze_at?: number | null; trim_start?: number | null; trim_end?: number | null;
+        slowmo_start?: number | null; slowmo_end?: number | null; slowmo_speed?: number | null;
+        bgm_id?: string | null; effects?: PlayableClip["effects"];
+      }) => ({
+        id: c.id,
+        videoUrl: c.video_url,
+        thumbnailUrl: c.thumbnail_url,
+        spotlightX: c.spotlight_x,
+        spotlightY: c.spotlight_y,
+        freezeAt: c.freeze_at,
+        trimStart: c.trim_start,
+        trimEnd: c.trim_end,
+        slowmoStart: c.slowmo_start,
+        slowmoEnd: c.slowmo_end,
+        slowmoSpeed: c.slowmo_speed,
+        bgmId: c.bgm_id,
+        effects: c.effects,
+        playerName: playerName ?? undefined,
+        playerPosition: position ?? undefined,
+        playerBirthYear: playerBirthYear ?? undefined,
+        teamName: playerTeamName ?? undefined,
+      }));
+      setPlayingReelClips(clips);
+    } catch {
+      // silent
+    } finally {
+      setLoadingReelId(null);
+    }
+  };
+
+  const handleDeleteReel = async () => {
+    if (!deletingReelId) return;
+    setIsDeletingReel(true);
+    try {
+      await fetch(`/api/highlights/${deletingReelId}`, { method: "DELETE" });
+      setReels((prev) => prev.filter((r) => r.id !== deletingReelId));
+    } catch {
+      // silent
+    } finally {
+      setIsDeletingReel(false);
+      setDeletingReelId(null);
+    }
+  };
 
   const featured = readOnly ? (initialFeatured ?? []) : hookFeatured;
   const primaryFeatured = featured[0] ?? null;
@@ -202,6 +283,77 @@ export default function HighlightsTabV5({
   return (
     <ErrorBoundary>
       <div className="pt-3 pb-24">
+
+        {/* ── 하이라이트 릴 섹션 ── */}
+        {(reelsLoading || reels.length > 0 || (!readOnly && dedupedClips.length >= 2)) && (
+          <div style={{ marginBottom: 20 }}>
+            {/* 섹션 헤더 */}
+            <div className="mb-3 flex items-center gap-[6px]">
+              <div style={{ width: 3, height: 14, borderRadius: 2, background: "var(--color-accent)" }} />
+              <span style={{ fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 700, color: "var(--color-text-1)" }}>
+                하이라이트 릴
+              </span>
+              {reels.length > 0 && (
+                <span style={{ fontFamily: "var(--font-stat)", fontSize: 11, color: "var(--color-text-3)", background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "1px 7px" }}>
+                  {reels.length}
+                </span>
+              )}
+              {!readOnly && reels.length < 3 && dedupedClips.length >= 2 && (
+                <Link
+                  href="/reel/create"
+                  className="ml-auto"
+                  style={{ padding: "4px 10px", borderRadius: 6, background: "rgba(212,168,83,0.08)", border: "1px solid rgba(212,168,83,0.2)", color: "var(--color-accent)", fontSize: 10, fontFamily: "var(--font-body)", fontWeight: 500 }}
+                >
+                  + 릴 만들기
+                </Link>
+              )}
+            </div>
+
+            {/* 릴 카드 목록 */}
+            {reelsLoading ? (
+              <div className="-mx-4 flex gap-3 overflow-x-auto px-4" style={{ paddingBottom: 4 }}>
+                {[1, 2].map((i) => (
+                  <div key={i} className="shrink-0 animate-pulse" style={{ width: 200, height: 130, borderRadius: 12, background: "var(--color-card)" }} />
+                ))}
+              </div>
+            ) : reels.length > 0 ? (
+              <div className="-mx-4 flex gap-3 overflow-x-auto px-4" style={{ paddingBottom: 4 }}>
+                {reels.map((reel) => (
+                  <ReelCard
+                    key={reel.id}
+                    reel={reel}
+                    loading={loadingReelId === reel.id}
+                    onPlay={() => handlePlayReel(reel.id)}
+                    onDelete={!readOnly ? () => setDeletingReelId(reel.id) : undefined}
+                  />
+                ))}
+              </div>
+            ) : !readOnly ? (
+              /* 클립은 있지만 릴이 없을 때 CTA */
+              <Link
+                href="/reel/create"
+                className="flex items-center gap-3"
+                style={{ background: "rgba(212,168,83,0.03)", border: "1px dashed rgba(212,168,83,0.2)", borderRadius: 12, padding: "14px 16px" }}
+              >
+                <div className="flex shrink-0 items-center justify-center" style={{ width: 42, height: 42, borderRadius: 12, background: "rgba(212,168,83,0.08)", fontSize: 20 }}>
+                  🎬
+                </div>
+                <div>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 700, color: "var(--color-accent)", margin: 0 }}>
+                    나만의 릴을 만들어보세요
+                  </p>
+                  <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--color-text-3)", marginTop: 2 }}>
+                    클립을 엮어 스카우트에게 어필하세요
+                  </p>
+                </div>
+                <svg className="ml-auto shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-accent)", opacity: 0.5 }}>
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </Link>
+            ) : null}
+          </div>
+        )}
+
         {/* ── Featured video (v5: 16:9, gold border) ── */}
         {primaryFeatured?.clips?.video_url ? (
           <FeaturedCard
@@ -464,6 +616,60 @@ export default function HighlightsTabV5({
               </p>
             )}
           </div>
+        )}
+
+        {/* 릴 플레이어 */}
+        {playingReelClips && playingReelClips.length > 0 && (
+          <ClipPlayerSheet
+            clips={playingReelClips}
+            initialIndex={0}
+            onClose={() => setPlayingReelClips(null)}
+            onShare={onShare}
+          />
+        )}
+
+        {/* 릴 삭제 확인 바텀시트 */}
+        {deletingReelId && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={() => { if (!isDeletingReel) setDeletingReelId(null); }}
+            />
+            <div
+              className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px]"
+              style={{ transform: "translateX(-50%)", background: "var(--color-card)", borderTop: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px 20px 0 0", padding: "24px 20px calc(24px + env(safe-area-inset-bottom))" }}
+            >
+              <div className="flex flex-col items-center">
+                <div className="mb-4 flex items-center justify-center" style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(239,68,68,0.1)" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgb(239,68,68)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-1)", fontFamily: "var(--font-body)", marginBottom: 6 }}>릴을 삭제할까요?</p>
+                <p style={{ fontSize: 12, color: "var(--color-text-3)", fontFamily: "var(--font-body)", marginBottom: 24 }}>클립은 삭제되지 않아요.</p>
+                <button
+                  disabled={isDeletingReel}
+                  onClick={handleDeleteReel}
+                  className="mb-3 flex w-full items-center justify-center"
+                  style={{ height: 48, borderRadius: 12, background: "rgb(239,68,68)", color: "#fff", fontSize: 15, fontWeight: 700, fontFamily: "var(--font-body)", opacity: isDeletingReel ? 0.6 : 1, cursor: isDeletingReel ? "not-allowed" : "pointer" }}
+                >
+                  {isDeletingReel ? (
+                    <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                  ) : "삭제"}
+                </button>
+                <button
+                  disabled={isDeletingReel}
+                  onClick={() => setDeletingReelId(null)}
+                  style={{ width: "100%", height: 44, borderRadius: 12, background: "rgba(255,255,255,0.06)", color: "var(--color-text-2)", fontSize: 15, fontFamily: "var(--font-body)", cursor: "pointer" }}
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Players */}
@@ -857,6 +1063,90 @@ function FeaturedEmptyCTA({ onAdd }: { onAdd: () => void }) {
         <span style={{ color: "rgba(212,168,83,0.5)", fontSize: 18 }}>›</span>
       </div>
     </button>
+  );
+}
+
+/* ── Reel Card ── */
+function ReelCard({
+  reel,
+  loading,
+  onPlay,
+  onDelete,
+}: {
+  reel: Reel;
+  loading: boolean;
+  onPlay: () => void;
+  onDelete?: () => void;
+}) {
+  return (
+    <div
+      className="relative shrink-0 cursor-pointer overflow-hidden"
+      style={{ width: 200, borderRadius: 12, background: "var(--color-card)", border: "1px solid rgba(255,255,255,0.06)" }}
+      onClick={onPlay}
+    >
+      {/* 썸네일 영역 */}
+      <div className="relative" style={{ height: 112, background: "linear-gradient(135deg, #111115, #0a0a0e)" }}>
+        {reel.thumbnail_url && (
+          <Image
+            src={reel.thumbnail_url}
+            alt={reel.title ?? "하이라이트 릴"}
+            fill
+            sizes="200px"
+            className="object-cover"
+            style={{ opacity: 0.85 }}
+          />
+        )}
+        {/* 그라디언트 오버레이 */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)" }} />
+
+        {/* 플레이 버튼 */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          {loading ? (
+            <svg className="animate-spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.8)" strokeWidth="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          ) : (
+            <div className="flex items-center justify-center" style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(212,168,83,0.15)", backdropFilter: "blur(8px)", border: "1.5px solid rgba(212,168,83,0.4)" }}>
+              <span style={{ fontSize: 14, marginLeft: 2, color: "var(--color-accent)" }}>▶</span>
+            </div>
+          )}
+        </div>
+
+        {/* REEL 뱃지 */}
+        <div className="absolute left-[8px] top-[8px]" style={{ background: "var(--color-accent)", borderRadius: 4, padding: "2px 6px", fontSize: 8, fontWeight: 800, fontFamily: "var(--font-stat)", color: "#000", letterSpacing: "0.08em" }}>
+          REEL
+        </div>
+
+        {/* 클립 수 */}
+        <div className="absolute right-[8px] top-[8px]" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)", borderRadius: 4, padding: "2px 6px", fontSize: 9, color: "var(--color-text-2)", fontFamily: "var(--font-stat)" }}>
+          {reel.clip_ids.length}클립
+        </div>
+      </div>
+
+      {/* 하단 정보 */}
+      <div className="flex items-center gap-2 px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <p className="truncate" style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "var(--color-text-1)", margin: 0 }}>
+            {reel.title ?? "하이라이트 릴"}
+          </p>
+          <p style={{ fontFamily: "var(--font-stat)", fontSize: 10, color: "var(--color-text-3)", marginTop: 1 }}>
+            {formatDuration(Math.round(reel.total_duration))}
+          </p>
+        </div>
+        {onDelete && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+            aria-label="릴 삭제"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

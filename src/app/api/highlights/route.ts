@@ -21,7 +21,29 @@ export async function GET() {
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
 
-    return NextResponse.json({ highlights: highlights ?? [] });
+    if (!highlights || highlights.length === 0) {
+      return NextResponse.json({ highlights: [] });
+    }
+
+    // 첫 클립 썸네일 + 총 재생시간 조회 (최대 3개라 쿼리 부담 없음)
+    const firstClipIds = highlights.map((h) => h.clip_ids[0]).filter(Boolean);
+    const allClipIds = [...new Set(highlights.flatMap((h) => h.clip_ids))];
+
+    const [{ data: firstClips }, { data: allClips }] = await Promise.all([
+      supabase.from("clips").select("id, thumbnail_url").in("id", firstClipIds),
+      supabase.from("clips").select("id, duration_seconds").in("id", allClipIds),
+    ]);
+
+    const thumbMap = new Map((firstClips ?? []).map((c) => [c.id, c.thumbnail_url]));
+    const durMap = new Map((allClips ?? []).map((c) => [c.id, c.duration_seconds ?? 0]));
+
+    const enriched = highlights.map((h) => ({
+      ...h,
+      thumbnail_url: thumbMap.get(h.clip_ids[0]) ?? null,
+      total_duration: (h.clip_ids as string[]).reduce((s, id) => s + (durMap.get(id) ?? 0), 0),
+    }));
+
+    return NextResponse.json({ highlights: enriched });
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
