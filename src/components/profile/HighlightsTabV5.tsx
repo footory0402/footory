@@ -325,6 +325,7 @@ export default function HighlightsTabV5({
                     loading={loadingReelId === reel.id}
                     onPlay={() => handlePlayReel(reel.id)}
                     onDelete={!readOnly ? () => setDeletingReelId(reel.id) : undefined}
+                    shareUrl={`/reel/${reel.id}`}
                   />
                 ))}
               </div>
@@ -1072,11 +1073,13 @@ function ReelCard({
   loading,
   onPlay,
   onDelete,
+  shareUrl,
 }: {
   reel: Reel;
   loading: boolean;
   onPlay: () => void;
   onDelete?: () => void;
+  shareUrl?: string;
 }) {
   return (
     <div
@@ -1133,18 +1136,34 @@ function ReelCard({
             {formatDuration(Math.round(reel.total_duration))}
           </p>
         </div>
-        {onDelete && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-            aria-label="릴 삭제"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-1">
+          {shareUrl && (
+            <Link
+              href={shareUrl}
+              onClick={(e) => e.stopPropagation()}
+              className="flex h-6 w-6 items-center justify-center rounded-full"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+              aria-label="릴 공유"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+              </svg>
+            </Link>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+              aria-label="릴 삭제"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
