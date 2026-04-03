@@ -11,6 +11,7 @@ import SlowmoTab from "@/components/upload/SlowmoTab";
 import CaptionTab from "@/components/upload/CaptionTab";
 import { useUploadGuide } from "@/hooks/useUploadGuide";
 import CoachMark from "@/components/upload/guide/CoachMark";
+import { panToSpotlight, computeVideoRect } from "@/lib/spotlight-math";
 
 type DecorateTab = "position" | "tag" | "slowmo" | "caption" | "effect";
 
@@ -32,6 +33,7 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
   const [activeTab, setActiveTab] = useState<DecorateTab>("tag");
   const tabIndicatorRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   const effects = useUploadStore((s) => s.effects);
   const spotlightX = useUploadStore((s) => s.spotlightX);
@@ -45,6 +47,12 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
   const effectiveTrimEnd = trimEnd ?? duration;
   const defaultFreeze = trimStart + Math.min(1, (effectiveTrimEnd - trimStart) * 0.3);
   const [freezeTime, setFreezeTime] = useState(freezeAt ?? defaultFreeze);
+
+  // 현재 PinchZoomVideo의 zoom/pan 상태 (설정 저장에 사용)
+  const [currentZoom, setCurrentZoom] = useState(1);
+  const [currentPan, setCurrentPan] = useState({ x: 0, y: 0 });
+  // 영상 네이티브 해상도 (비율 계산용)
+  const [videoDims, setVideoDims] = useState<{ w: number; h: number } | null>(null);
 
   useEffect(() => {
     if (freezeAt != null) setFreezeTime(freezeAt);
@@ -62,14 +70,38 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
     }
   }, [activeTab]);
 
-  const handleTap = useCallback((x: number, y: number) => {
-    useUploadStore.getState().setSpotlight(x, y);
-    useUploadStore.getState().setFreezeAt(freezeTime);
-  }, [freezeTime]);
-
-  const handleMarkerDrag = useCallback((x: number, y: number) => {
-    useUploadStore.getState().setSpotlight(x, y);
+  // 영상 메타데이터 로드 후 네이티브 해상도 파악
+  useEffect(() => {
+    const videoEl = videoContainerRef.current?.querySelector("video");
+    if (!videoEl) return;
+    const onMeta = () => {
+      if (videoEl.videoWidth && videoEl.videoHeight) {
+        setVideoDims({ w: videoEl.videoWidth, h: videoEl.videoHeight });
+      }
+    };
+    videoEl.addEventListener("loadedmetadata", onMeta);
+    if (videoEl.readyState >= 1 && videoEl.videoWidth) onMeta();
+    return () => videoEl.removeEventListener("loadedmetadata", onMeta);
   }, []);
+
+  // "이대로 설정" 버튼: 현재 zoom/pan 중심점을 spotlight 좌표로 변환 후 저장
+  const handleConfirmZoom = useCallback(() => {
+    const container = videoContainerRef.current;
+    if (!container || !videoDims) return;
+
+    const containerW = container.offsetWidth;
+    const containerH = container.offsetHeight;
+
+    const spot = panToSpotlight(currentPan, {
+      containerW,
+      containerH,
+      videoW: videoDims.w,
+      videoH: videoDims.h,
+    }, currentZoom);
+
+    useUploadStore.getState().setSpotlight(spot.x, spot.y);
+    useUploadStore.getState().setFreezeAt(freezeTime);
+  }, [currentZoom, currentPan, videoDims, freezeTime]);
 
   const handleMarkerClear = useCallback(() => {
     useUploadStore.getState().setSpotlight(null, null);
@@ -88,8 +120,14 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
     useUploadStore.getState().setEventTag(current === tag ? null : tag);
   }, []);
 
+  const handleZoomChange = useCallback((zoom: number, pan: { x: number; y: number }) => {
+    setCurrentZoom(zoom);
+    setCurrentPan(pan);
+  }, []);
+
   const { guideStep, dismissStep, skipAll } = useUploadGuide();
   const hasSpotlight = spotlightX !== null && spotlightY !== null;
+  const canConfirm = currentZoom > 1;
 
   return (
     <div className="flex flex-col bg-[#070709] min-h-dvh">
@@ -111,16 +149,12 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
         </div>
       </div>
 
-      {/* 영상 영역 — 72vh (인스타 릴스 스타일) */}
-      <div className="w-full">
+      {/* 영상 영역 */}
+      <div className="w-full" ref={videoContainerRef}>
         <PinchZoomVideo
           videoSrc={videoSrc}
           currentTime={freezeTime}
-          markerX={spotlightX ?? undefined}
-          markerY={spotlightY ?? undefined}
-          onTap={handleTap}
-          onMarkerDrag={handleMarkerDrag}
-          onMarkerClear={handleMarkerClear}
+          onZoomChange={handleZoomChange}
           maxHeight="72dvh"
         />
       </div>
@@ -168,13 +202,14 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
               />
               <div className="px-4 pt-2 pb-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
+                  <div
+                    className="flex items-center gap-1.5 rounded-full px-3 py-1.5"
                     style={{ background: "rgba(212,168,83,0.1)", border: "1px solid rgba(212,168,83,0.3)" }}
                   >
                     <svg width="10" height="10" viewBox="0 0 20 12">
                       <polygon points="10,12 0,0 20,0" fill="#D4A853" />
                     </svg>
-                    <span className="text-[11px] font-semibold text-accent">선수 위치 설정됨</span>
+                    <span className="text-[11px] font-semibold text-accent">확대 재생 설정됨</span>
                   </div>
                   <button
                     type="button"
@@ -191,31 +226,42 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
             </>
           ) : (
             <div className="px-4 pt-4 pb-3">
-              {/* 단계 가이드 */}
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                    style={{ background: "rgba(212,168,83,0.2)", color: "#D4A853", border: "1px solid rgba(212,168,83,0.4)" }}
-                  >
-                    1
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-semibold text-white/70">두 손가락으로 확대</p>
-                    <p className="text-[11px] text-white/30">선수가 잘 보이도록 핀치해서 확대하세요</p>
-                  </div>
+              {/* 안내 */}
+              <div className="mb-4 flex items-start gap-3">
+                <div
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                  style={{ background: "rgba(212,168,83,0.2)", color: "#D4A853", border: "1px solid rgba(212,168,83,0.4)" }}
+                >
+                  1
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                    style={{ background: "rgba(212,168,83,0.12)", color: "#D4A853", border: "1px solid rgba(212,168,83,0.25)" }}
-                  >
-                    2
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-semibold text-white/70">선수 위치 탭</p>
-                    <p className="text-[11px] text-white/30">영상에서 선수를 한 번 탭하면 마커가 생겨요</p>
-                  </div>
+                <div>
+                  <p className="text-[12px] font-semibold text-white/70">두 손가락으로 확대</p>
+                  <p className="text-[11px] text-white/30">선수가 화면에 딱 맞게 잡히도록 핀치해서 맞춰주세요</p>
                 </div>
               </div>
+
+              {/* 이대로 설정 버튼 */}
+              <button
+                type="button"
+                onClick={handleConfirmZoom}
+                disabled={!canConfirm}
+                className="w-full rounded-xl py-3 text-[14px] font-bold transition-all active:scale-[0.99]"
+                style={{
+                  background: canConfirm
+                    ? "rgba(212,168,83,0.15)"
+                    : "rgba(255,255,255,0.04)",
+                  border: `1.5px solid ${canConfirm ? "rgba(212,168,83,0.5)" : "rgba(255,255,255,0.08)"}`,
+                  color: canConfirm ? "#D4A853" : "rgba(255,255,255,0.2)",
+                  cursor: canConfirm ? "pointer" : "default",
+                }}
+              >
+                {canConfirm ? "이대로 설정" : "영상을 먼저 확대하세요"}
+              </button>
+              {canConfirm && (
+                <p className="mt-2 text-center text-[11px] text-white/30">
+                  재생 시 현재 구도로 자동 확대됩니다
+                </p>
+              )}
             </div>
           )}
         </div>

@@ -8,6 +8,7 @@ import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
 import { useBackClose } from "@/hooks/useBackClose";
 import ClipActionsSheet from "@/components/player/ClipActionsSheet";
+import { spotlightToPan, clampPan, computeVideoRect } from "@/lib/spotlight-math";
 
 const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
 const HudOverlay = dynamic(() => import("@/components/video/hud/HudOverlay"), { ssr: false });
@@ -552,45 +553,37 @@ export default function ClipPlayerSheet({
     const startZoom = zoomRef.current;
     const startPan = { ...panRef.current };
 
-    // object-fit: contain 적용 시 실제 영상 위치(letterbox 오프셋) 계산
+    // spotlight-math.ts를 통해 좌표 변환 (설정과 동일한 로직)
     const v = videoRef.current;
-    const W = v?.offsetWidth || 390;
-    const H = v?.offsetHeight || 844;
-    const vw = v?.videoWidth || 1;
-    const vh = v?.videoHeight || 1;
-    const videoAspect = vw / vh;
-    const elemAspect = W / H;
-    let displayW: number, displayH: number;
-    if (videoAspect > elemAspect) {
-      displayW = W; displayH = W / videoAspect; // 가로 맞춤 (위아래 letterbox)
-    } else {
-      displayH = H; displayW = H * videoAspect; // 세로 맞춤 (좌우 pillarbox)
-    }
-    const offsetX = (W - displayW) / 2;
-    const offsetY = (H - displayH) / 2;
+    const containerW = v?.offsetWidth || 390;
+    const containerH = v?.offsetHeight || 844;
+    const videoW = v?.videoWidth || 1;
+    const videoH = v?.videoHeight || 1;
 
-    // 영상 내 좌표(0~1)를 element 절대 좌표로 변환 후 pan 계산
-    const spotElemX = offsetX + targetX * displayW;
-    const spotElemY = offsetY + targetY * displayH;
-    const rawPanX = (0.5 - spotElemX / W) * 100;
-    const rawPanY = (0.5 - spotElemY / H) * 100;
+    const targetPan = targetZoom <= 1
+      ? { x: 0, y: 0 }
+      : spotlightToPan(
+          { x: targetX, y: targetY },
+          { containerW, containerH, videoW, videoH },
+          targetZoom,
+        );
 
-    const maxPan = ((targetZoom - 1) / targetZoom) * 50;
-    const targetPanX = Math.max(-maxPan, Math.min(maxPan, rawPanX));
-    const targetPanY = Math.max(-maxPan, Math.min(maxPan, rawPanY));
     const startTime = performance.now();
 
+    // 줌인: easeOutCubic (빠르게 들어옴), 줌아웃: easeInOutCubic (스윙 방지)
     const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+    const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const ease = targetZoom < startZoom ? easeInOutCubic : easeOutCubic;
 
     const tick = (now: number) => {
       if (!isAutoZoomingRef.current) return; // 외부에서 취소됨
       const elapsed = now - startTime;
       const t = Math.min(elapsed / durationMs, 1);
-      const e = easeOutCubic(t);
+      const e = ease(t);
 
       const newZoom = startZoom + (targetZoom - startZoom) * e;
-      const newPanX = startPan.x + (targetPanX - startPan.x) * e;
-      const newPanY = startPan.y + (targetPanY - startPan.y) * e;
+      const newPanX = startPan.x + (targetPan.x - startPan.x) * e;
+      const newPanY = startPan.y + (targetPan.y - startPan.y) * e;
 
       zoomRef.current = newZoom;
       panRef.current = { x: newPanX, y: newPanY };
@@ -614,6 +607,11 @@ export default function ClipPlayerSheet({
 
   // 위아래 스와이프 + 핀치 줌 핸들러
   const handleTouchStart = (e: React.TouchEvent) => {
+    // 자동 줌 진행 중 사용자가 터치하면 즉시 취소 (현재 interpolated 값 유지)
+    if (isAutoZoomingRef.current) {
+      isAutoZoomingRef.current = false;
+      cancelAnimationFrame(rafIdRef.current);
+    }
     if (e.touches.length === 2) {
       // 핀치 줌 시작 — 진행 중인 스와이프 상태 초기화 (레이스 컨디션 방지)
       pinchRef.current = {
@@ -738,8 +736,8 @@ export default function ClipPlayerSheet({
       if (now - lastTapRef.current < 300) {
         const currentClip = clips[index];
         if (zoomRef.current > 1) {
-          // 현재 줌 상태 → 1x로 리셋
-          animateZoomTo(0.5, 0.5, 1, 350);
+          // 현재 줌 상태 → 1x로 리셋 (easeInOutCubic으로 스윙 방지, 450ms)
+          animateZoomTo(0.5, 0.5, 1, 450);
           setIsFocusMode(false);
         } else if (currentClip?.spotlightX != null && currentClip?.spotlightY != null) {
           // spotlight 있음 → 선수 위치로 2x 줌
@@ -779,21 +777,22 @@ export default function ClipPlayerSheet({
   if (!clip?.videoUrl) return null;
 
   // letterbox 보정: spotlight 좌표를 영상 프레임 기준 → element 전체 기준으로 변환
+  // spotlight-math.ts의 computeVideoRect로 통일 (설정과 동일한 로직)
   const adjustedSpot = (() => {
     if (clip.spotlightX == null || clip.spotlightY == null) return null;
     if (!videoNativeSize) return { x: clip.spotlightX, y: clip.spotlightY };
     const v = videoRef.current;
-    const W = v?.offsetWidth ?? window.innerWidth;
-    const H = v?.offsetHeight ?? window.innerHeight;
-    const aspect = videoNativeSize.w / videoNativeSize.h;
-    const elemAspect = W / H;
-    const displayW = aspect > elemAspect ? W : H * aspect;
-    const displayH = aspect > elemAspect ? W / aspect : H;
-    const ox = (W - displayW) / 2;
-    const oy = (H - displayH) / 2;
+    const containerW = v?.offsetWidth ?? window.innerWidth;
+    const containerH = v?.offsetHeight ?? window.innerHeight;
+    const { displayW, displayH, offsetX, offsetY } = computeVideoRect({
+      containerW,
+      containerH,
+      videoW: videoNativeSize.w,
+      videoH: videoNativeSize.h,
+    });
     return {
-      x: (ox + clip.spotlightX * displayW) / W,
-      y: (oy + clip.spotlightY * displayH) / H,
+      x: (offsetX + clip.spotlightX * displayW) / containerW,
+      y: (offsetY + clip.spotlightY * displayH) / containerH,
     };
   })();
 
