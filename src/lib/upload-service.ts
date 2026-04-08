@@ -597,14 +597,26 @@ function releaseWakeLock() {
 let bgUploadGeneration = 0;
 let activeXhr: XMLHttpRequest | null = null;
 
-function waitForR2Upload(): Promise<void> {
+function waitForR2Upload(timeoutMs = 35_000): Promise<void> {
   return new Promise((resolve, reject) => {
     const current = useUploadStore.getState();
     if (current.r2Status === "done") { resolve(); return; }
     if (current.r2Status !== "uploading") { reject(new Error("R2 업로드 실패")); return; }
+    const timeoutId = window.setTimeout(() => {
+      unsub();
+      reject(new Error("R2 업로드 대기 시간 초과"));
+    }, timeoutMs);
+
     const unsub = useUploadStore.subscribe((state) => {
-      if (state.r2Status === "done") { unsub(); resolve(); }
-      else if (state.r2Status !== "uploading") { unsub(); reject(new Error("R2 업로드 실패")); }
+      if (state.r2Status === "done") {
+        window.clearTimeout(timeoutId);
+        unsub();
+        resolve();
+      } else if (state.r2Status !== "uploading") {
+        window.clearTimeout(timeoutId);
+        unsub();
+        reject(new Error("R2 업로드 실패"));
+      }
     });
   });
 }
@@ -902,7 +914,6 @@ export async function startUpload() {
             eafc: store.effects.eafc,
             intro: store.effects.intro,
             ...(store.spotlightX !== null ? { focusZoom: store.effects.focusZoom } : {}),
-            ...(store.eventTag ? { eventTag: store.eventTag } : {}),
             ...(store.captions.length > 0 ? { captions: store.captions } : {}),
           },
           client_trimmed: true,
@@ -1044,7 +1055,6 @@ export async function startRenderUpload(compressedFile?: File) {
         eafc: store.effects.eafc,
         intro: store.effects.intro,
         ...(store.spotlightX !== null ? { focusZoom: store.effects.focusZoom } : {}),
-        ...(store.eventTag ? { eventTag: store.eventTag } : {}),
         ...(store.captions.length > 0 ? { captions: store.captions } : {}),
       },
       raw_key: key,
