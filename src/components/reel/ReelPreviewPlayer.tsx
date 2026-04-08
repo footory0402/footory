@@ -5,6 +5,13 @@ import dynamic from "next/dynamic";
 import type { Caption } from "@/stores/upload-store";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import CaptionOverlay from "@/components/video/CaptionOverlay";
+import { resolveFocusZoom } from "@/lib/focus-zoom";
+import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
+import {
+  buildHudPlayerData,
+  getCachedPlayerCard,
+  preloadPlayerCard,
+} from "@/lib/player-card-client";
 
 const VideoOverlay = dynamic(() => import("@/components/video/VideoOverlay"), { ssr: false });
 const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
@@ -26,6 +33,8 @@ interface ReelClip {
     captions?: Caption[];
     color?: boolean;
     cinematic?: boolean;
+    intro?: boolean;
+    focusZoom?: number;
   } | null;
   transition?: "cut" | "fade";
 }
@@ -36,12 +45,16 @@ interface ReelPreviewPlayerProps {
 }
 
 export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerProps) {
+  const INTRO_BLOCK_TIMEOUT_MS = 250;
+  const INTRO_DURATION_MS = 2000;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [index, setIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [totalProgress, setTotalProgress] = useState(0);
   const [paused, setPaused] = useState(false);
   const [fading, setFading] = useState(false);
+  const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Freeze frame
   const [isFreezing, setIsFreezing] = useState(false);
@@ -51,54 +64,84 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
   // Intro card
   const [introData, setIntroData] = useState<HudPlayerData | null>(null);
   const [showIntro, setShowIntro] = useState(false);
-  const [introReady, setIntroReady] = useState(false);
+  const [introReady, setIntroReady] = useState(true);
 
   const clip = clips[index];
+  const focusZoom = resolveFocusZoom(clip?.effects?.focusZoom);
   const totalDuration = clips.reduce((s, c) => s + (c.duration_seconds ?? 0), 0);
   const passedDuration = clips.slice(0, index).reduce((s, c) => s + (c.duration_seconds ?? 0), 0);
+  const spotlight =
+    clip?.spotlightX != null && clip?.spotlightY != null
+      ? { x: clip.spotlightX, y: clip.spotlightY }
+      : null;
+
+  const {
+    adjustedSpotlight,
+    animateZoomTo,
+    cancelZoomAnimation,
+    pan,
+    resetTransform,
+    zoom,
+  } = useSpotlightZoom({
+    videoRef,
+    videoNativeSize,
+    spotlight,
+  });
+
+  const cancelAutoFocus = useCallback(() => {
+    if (focusTimerRef.current) {
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
+    }
+    cancelZoomAnimation();
+  }, [cancelZoomAnimation]);
+
+  const playIntro = useCallback(() => {
+    setShowIntro(true);
+    setIntroReady(false);
+    window.setTimeout(() => {
+      setShowIntro(false);
+      setIntroReady(true);
+      videoRef.current?.play().catch(() => {});
+    }, INTRO_DURATION_MS);
+  }, []);
 
   // 인트로 카드 로딩 — 마운트 시 1회
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/player-card")
-      .then((r) => r.ok ? r.json() : null)
+    const shouldShowIntro = clips[0]?.effects?.intro === true;
+    const cached = getCachedPlayerCard();
+
+    if (shouldShowIntro && cached?.card) {
+      const hudData = buildHudPlayerData(cached);
+      if (hudData) {
+        setIntroData(hudData);
+        playIntro();
+      }
+    }
+
+    const needsIntroFetchFallback = !(shouldShowIntro && cached?.card);
+    const unblockTimer = needsIntroFetchFallback
+      ? window.setTimeout(() => {
+          if (!cancelled) setIntroReady(true);
+        }, INTRO_BLOCK_TIMEOUT_MS)
+      : null;
+
+    preloadPlayerCard()
       .then((res) => {
-        if (cancelled) return;
-        if (res?.card) {
-          const cd = res.card.card_data;
-          setIntroData({
-            name: cd.name || `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "",
-            number: cd.number || "9",
-            position: cd.position || "ST",
-            club: cd.club === "직접 입력" ? (cd.customClubName || res.card.club_name || "") : (cd.club || ""),
-            age: cd.age || "",
-            birthDate: cd.birthDate || "",
-            height: cd.height || "",
-            weight: cd.weight || "",
-            foot: cd.foot || "",
-            nationality: cd.nationality || "KOREA",
-            photoUrl: (cd.photoUrl && !cd.photoUrl.startsWith("blob:")) ? cd.photoUrl : (res.profile?.avatar_url || ""),
-            mainColor: res.card.main_color || "#37474F",
-            accentColor: res.card.accent_color || "#D4A853",
-          });
-          // 인트로 카드 3초 표시 후 재생
-          setShowIntro(true);
-          setTimeout(() => {
-            if (!cancelled) {
-              setShowIntro(false);
-              setIntroReady(true);
-              videoRef.current?.play().catch(() => {});
-            }
-          }, 3000);
-        } else {
-          setIntroReady(true);
-        }
+        if (cancelled || !res) return;
+        const hudData = buildHudPlayerData(res);
+        if (hudData) setIntroData(hudData);
       })
-      .catch(() => {
-        if (!cancelled) setIntroReady(true);
+      .finally(() => {
+        if (unblockTimer) window.clearTimeout(unblockTimer);
       });
-    return () => { cancelled = true; };
-  }, []);
+
+    return () => {
+      cancelled = true;
+      if (unblockTimer) window.clearTimeout(unblockTimer);
+    };
+  }, [clips, playIntro]);
 
   // introReady가 되면 영상 재생
   useEffect(() => {
@@ -106,6 +149,13 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
       videoRef.current?.play().catch(() => {});
     }
   }, [introReady, showIntro]);
+
+  useEffect(() => {
+    if (!clip) return;
+    cancelAutoFocus();
+    resetTransform();
+    setVideoNativeSize(null);
+  }, [clip, cancelAutoFocus, resetTransform]);
 
   const goNext = useCallback(() => {
     if (index >= clips.length - 1) {
@@ -138,6 +188,7 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     v.load();
     const trimS = clip.trimStart ?? 0;
     const onLoaded = () => {
+      setVideoNativeSize({ w: v.videoWidth || 1, h: v.videoHeight || 1 });
       if (trimS > 0) v.currentTime = trimS;
       if (introReady) v.play().catch(() => {});
     };
@@ -145,6 +196,23 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     return () => v.removeEventListener("loadedmetadata", onLoaded);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, clip]);
+
+  useEffect(() => {
+    if (!introReady || showIntro || clip?.spotlightX == null || clip.spotlightY == null) return;
+
+    focusTimerRef.current = setTimeout(() => {
+      if (clip.spotlightX != null && clip.spotlightY != null) {
+        animateZoomTo(clip.spotlightX, clip.spotlightY, focusZoom, 450);
+      }
+    }, 500);
+
+    return () => {
+      if (focusTimerRef.current) {
+        clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = null;
+      }
+    };
+  }, [animateZoomTo, clip, focusZoom, introReady, showIntro]);
 
   // timeupdate 핸들러
   useEffect(() => {
@@ -206,10 +274,9 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
   const effects = clip?.effects;
   const captions = effects?.captions ?? [];
 
-  const spotlight =
-    clip?.spotlightX != null && clip?.spotlightY != null
-      ? { x: clip.spotlightX, y: clip.spotlightY }
-      : null;
+  const videoTransform = zoom > 1
+    ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
+    : undefined;
 
   return (
     <div className="fixed inset-0 z-[200] bg-black flex flex-col">
@@ -251,19 +318,28 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
           style={{
             opacity: fading ? 0 : 1,
             transition: fading ? "opacity 0.5s" : "none",
+            transform: videoTransform,
+            transformOrigin: "center center",
             filter: effects?.color ? "saturate(1.2) contrast(1.05)" : undefined,
           }}
         />
 
         {/* 스포트라이트 오버레이 */}
-        {spotlight && (
-          <div className="absolute inset-0 pointer-events-none">
+        {adjustedSpotlight && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              transform: videoTransform,
+              transformOrigin: "center center",
+            }}
+          >
             <VideoOverlay
-              spotlight={spotlight}
+              spotlight={adjustedSpotlight}
               player={{ name: "" }}
               effects={effects ?? undefined}
               hideNametag
               freezeMode={isFreezing}
+              zoomLevel={zoom}
             />
           </div>
         )}

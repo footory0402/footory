@@ -61,6 +61,7 @@ interface FeaturedClip {
 
 interface TagClip {
   id: string;
+  createdAt: string;
   duration: number;
   tag: string;
   isTop: boolean;

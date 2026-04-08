@@ -12,12 +12,13 @@ import CaptionTab from "@/components/upload/CaptionTab";
 import { useUploadGuide } from "@/hooks/useUploadGuide";
 import CoachMark from "@/components/upload/guide/CoachMark";
 import { panToSpotlight, computeVideoRect } from "@/lib/spotlight-math";
+import { FOCUS_ZOOM_PRESETS, resolveFocusZoom } from "@/lib/focus-zoom";
 
 type DecorateTab = "position" | "tag" | "slowmo" | "caption" | "effect";
 
 const TABS: { id: DecorateTab; label: string; icon: string }[] = [
+  { id: "position", label: "선수", icon: "🎯" },
   { id: "tag", label: "태그", icon: "🏷" },
-  { id: "position", label: "위치", icon: "📍" },
   { id: "effect", label: "효과", icon: "✨" },
   { id: "slowmo", label: "슬로모", icon: "🐢" },
   { id: "caption", label: "텍스트", icon: "💬" },
@@ -30,7 +31,7 @@ interface DecorateViewProps {
 }
 
 export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewProps) {
-  const [activeTab, setActiveTab] = useState<DecorateTab>("tag");
+  const [activeTab, setActiveTab] = useState<DecorateTab>("position");
   const tabIndicatorRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -57,6 +58,13 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
   useEffect(() => {
     if (freezeAt != null) setFreezeTime(freezeAt);
   }, [freezeAt]);
+
+  useEffect(() => {
+    const store = useUploadStore.getState();
+    store.setBgm(null);
+    store.setBgmVolume(40);
+    store.setOriginalVolume(100);
+  }, []);
 
   // 탭 인디케이터 슬라이딩 애니메이션
   useEffect(() => {
@@ -128,6 +136,7 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
   const { guideStep, dismissStep, skipAll } = useUploadGuide();
   const hasSpotlight = spotlightX !== null && spotlightY !== null;
   const canConfirm = currentZoom > 1;
+  const selectedFocusZoom = resolveFocusZoom(effects.focusZoom);
 
   return (
     <div className="flex flex-col bg-[#070709] min-h-dvh">
@@ -190,6 +199,65 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
       <div className="flex-1 overflow-y-auto">
         {/* ── 위치 탭 ── */}
         <div style={{ display: activeTab === "position" ? "block" : "none" }}>
+          <div className="px-4 pt-4 pb-3">
+            <div
+              className="rounded-2xl px-4 py-3"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <p className="text-[12px] font-semibold text-white/80">자동 확대 재생</p>
+              <p className="mt-1 text-[11px] leading-5 text-white/35">
+                여기서 주인공 선수를 지정합니다. 선수 쪽으로 화면을 확대해 저장하면
+                재생할 때마다 같은 장면에서 자동으로 그 선수 중심으로 확대됩니다.
+              </p>
+            </div>
+            <div className="mt-3 grid gap-2">
+              <div
+                className="rounded-2xl px-4 py-3"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <p className="text-[12px] font-semibold text-white/72">1. 두 손가락으로 선수 쪽 확대</p>
+                <p className="mt-1 text-[11px] leading-5 text-white/32">
+                  멀리 찍힌 경기 영상에서 주인공 선수가 가장 잘 보이는 구도까지 맞춰주세요.
+                </p>
+              </div>
+              <div
+                className="rounded-2xl px-4 py-3"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <p className="text-[12px] font-semibold text-white/72">2. 아래 버튼으로 선수 지정 저장</p>
+                <p className="mt-1 text-[11px] leading-5 text-white/32">
+                  저장 후에는 시청자가 따로 확대하지 않아도 이 선수 중심으로 자동 재생됩니다.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-[11px] font-semibold text-white/55">확대 강도</p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {FOCUS_ZOOM_PRESETS.map((preset) => {
+                  const active = Math.abs(selectedFocusZoom - preset.value) < 0.01;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => useUploadStore.getState().setEffects({ focusZoom: preset.value })}
+                      className="rounded-2xl px-3 py-3 text-left transition-all active:scale-[0.99]"
+                      style={{
+                        background: active ? "rgba(212,168,83,0.14)" : "rgba(255,255,255,0.03)",
+                        border: `1px solid ${active ? "rgba(212,168,83,0.45)" : "rgba(255,255,255,0.08)"}`,
+                      }}
+                    >
+                      <p className="text-[12px] font-semibold" style={{ color: active ? "#D4A853" : "rgba(255,255,255,0.78)" }}>
+                        {preset.label}
+                      </p>
+                      <p className="mt-1 text-[10px]" style={{ color: active ? "rgba(212,168,83,0.85)" : "rgba(255,255,255,0.32)" }}>
+                        {preset.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
           {hasSpotlight ? (
             <>
               {/* 마커 설정 완료 — 프리즈 타임 조정 */}
@@ -209,7 +277,7 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
                     <svg width="10" height="10" viewBox="0 0 20 12">
                       <polygon points="10,12 0,0 20,0" fill="#D4A853" />
                     </svg>
-                    <span className="text-[11px] font-semibold text-accent">확대 재생 설정됨</span>
+                    <span className="text-[11px] font-semibold text-accent">선수 지정 완료</span>
                   </div>
                   <button
                     type="button"
@@ -220,12 +288,12 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
                   </button>
                 </div>
                 <p className="mt-1.5 text-[11px] text-white/30">
-                  타임라인을 드래그해 프리즈 구간을 조절하세요
+                  타임라인을 드래그해 이 선수가 확대되기 시작할 시점을 조절하세요
                 </p>
               </div>
             </>
           ) : (
-            <div className="px-4 pt-4 pb-3">
+            <div className="px-4 pt-1 pb-3">
               {/* 안내 */}
               <div className="mb-4 flex items-start gap-3">
                 <div
@@ -235,8 +303,8 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
                   1
                 </div>
                 <div>
-                  <p className="text-[12px] font-semibold text-white/70">두 손가락으로 확대</p>
-                  <p className="text-[11px] text-white/30">선수가 화면에 딱 맞게 잡히도록 핀치해서 맞춰주세요</p>
+                  <p className="text-[12px] font-semibold text-white/70">두 손가락으로 선수 구도 잡기</p>
+                  <p className="text-[11px] text-white/30">주인공 선수가 잘 보일 때까지 확대하고 위치를 맞춰주세요</p>
                 </div>
               </div>
 
@@ -255,11 +323,11 @@ export default function DecorateView({ videoSrc, onNext, onBack }: DecorateViewP
                   cursor: canConfirm ? "pointer" : "default",
                 }}
               >
-                {canConfirm ? "이대로 설정" : "영상을 먼저 확대하세요"}
+                {canConfirm ? "이 선수를 중심으로 재생" : "선수가 보이도록 먼저 확대하세요"}
               </button>
               {canConfirm && (
                 <p className="mt-2 text-center text-[11px] text-white/30">
-                  재생 시 현재 구도로 자동 확대됩니다
+                  저장 후 재생 시 방금 잡은 선수 구도로 자동 확대됩니다
                 </p>
               )}
             </div>

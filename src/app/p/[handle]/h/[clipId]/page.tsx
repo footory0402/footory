@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/database";
+import HighlightSharePlayerClient from "./HighlightSharePlayerClient";
 
 interface Props {
   params: Promise<{ handle: string; clipId: string }>;
@@ -20,7 +22,7 @@ async function getHighlightData(handle: string, clipId: string) {
 
   const { data: clipRaw } = await supabase
     .from("clips")
-    .select("id, video_url, thumbnail_url, duration_seconds, highlight_status")
+    .select("id, video_url, thumbnail_url, duration_seconds, highlight_status, trim_start, trim_end, spotlight_x, spotlight_y, freeze_at, slowmo_start, slowmo_end, slowmo_speed, effects")
     .eq("id", clipId)
     .eq("owner_id", profile.id)
     .single();
@@ -75,6 +77,24 @@ export default async function HighlightSharePage({ params }: Props) {
 
   const { profile, clip } = data;
   const tags = clip.clip_tags.map((t) => t.tag_name);
+  const playableClip = {
+    id: clip.id,
+    videoUrl: clip.video_url,
+    thumbnailUrl: clip.thumbnail_url ?? null,
+    durationSeconds: clip.duration_seconds ?? null,
+    trimStart: clip.trim_start ?? null,
+    trimEnd: clip.trim_end ?? null,
+    spotlightX: clip.spotlight_x ?? null,
+    spotlightY: clip.spotlight_y ?? null,
+    freezeAt: clip.freeze_at ?? null,
+    slowmoStart: clip.slowmo_start ?? null,
+    slowmoEnd: clip.slowmo_end ?? null,
+    slowmoSpeed: clip.slowmo_speed ?? null,
+    effects: (clip.effects as { [key: string]: Json | undefined } | null) ?? null,
+    playerName: profile.name,
+    playerPosition: profile.position ?? null,
+    playerBirthYear: profile.birth_year ?? null,
+  };
 
   return (
     <div
@@ -86,20 +106,7 @@ export default async function HighlightSharePage({ params }: Props) {
         className="w-full overflow-hidden"
         style={{ maxWidth: "min(100%, 800px)", borderRadius: 16, background: "#0D0D10" }}
       >
-        <video
-          src={clip.video_url}
-          poster={clip.thumbnail_url ?? undefined}
-          controls
-          playsInline
-          autoPlay
-          style={{
-            width: "100%",
-            display: "block",
-            maxHeight: "75vh",
-            objectFit: "contain",
-            background: "#000",
-          }}
-        />
+        <HighlightSharePlayerClient clip={playableClip} />
       </div>
 
       {/* Player info + tags */}

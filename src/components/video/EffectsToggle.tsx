@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-
-const BgmSelector = dynamic(() => import("@/components/upload/BgmSelector"), { ssr: false });
+import { getCachedPlayerCard, preloadPlayerCard } from "@/lib/player-card-client";
 
 interface EffectsToggleProps {
   effects: {
@@ -12,6 +10,7 @@ interface EffectsToggleProps {
     cinematic: boolean;
     eafc: boolean;
     intro: boolean;
+    focusZoom: number;
   };
   onChange: (effects: Partial<EffectsToggleProps["effects"]>) => void;
 }
@@ -21,11 +20,18 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
   const [cardInfo, setCardInfo] = useState<{ name: string; template: string; color: string } | null>(null);
 
   useEffect(() => {
-    fetch("/api/player-card")
-      .then((r) => {
-        if (!r.ok) { setHasCard(false); return; }
-        return r.json();
-      })
+    const cached = getCachedPlayerCard();
+    if (cached?.card) {
+      const cd = cached.card.card_data as Record<string, string>;
+      setHasCard(true);
+      setCardInfo({
+        name: cd.name || `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "이름 없음",
+        template: "EA Sports",
+        color: cached.card.accent_color || "#D4A853",
+      });
+    }
+
+    preloadPlayerCard()
       .then((res) => {
         if (res?.card) {
           setHasCard(true);
@@ -120,9 +126,15 @@ export default function EffectsToggle({ effects, onChange }: EffectsToggleProps)
 
       {/* 구분선 */}
       <div className="my-1" style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
-
-      {/* BGM 선택 */}
-      <BgmSelector />
+      <div
+        className="rounded-xl border border-white/[0.06] bg-card px-4 py-3"
+        style={{ opacity: 0.8 }}
+      >
+        <p className="text-[13px] font-semibold text-text-1">배경 음악</p>
+        <p className="mt-1 text-[11px] leading-5 text-text-3">
+          현재는 선수 확인과 장면 집중도를 우선하기 위해 배경 음악 기능을 사용하지 않습니다.
+        </p>
+      </div>
     </div>
   );
 }

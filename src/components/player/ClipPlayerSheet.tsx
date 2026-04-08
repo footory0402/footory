@@ -7,8 +7,16 @@ import type { HudPlayerData } from "@/components/video/hud/types";
 import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
 import { useBackClose } from "@/hooks/useBackClose";
+import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import ClipActionsSheet from "@/components/player/ClipActionsSheet";
-import { spotlightToPan, clampPan, computeVideoRect } from "@/lib/spotlight-math";
+import { clampPan } from "@/lib/spotlight-math";
+import { resolveFocusZoom } from "@/lib/focus-zoom";
+import {
+  buildFallbackHudPlayerData,
+  buildHudPlayerData,
+  getCachedPlayerCard,
+  preloadPlayerCard,
+} from "@/lib/player-card-client";
 
 const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
 const HudOverlay = dynamic(() => import("@/components/video/hud/HudOverlay"), { ssr: false });
@@ -51,9 +59,8 @@ export interface PlayableClip {
     cinematic?: boolean;
     eafc?: boolean;
     intro?: boolean;
+    focusZoom?: number;
     captions?: import("@/stores/upload-store").Caption[];
-    bgmVolume?: number;
-    originalVolume?: number;
   } | null;
 }
 
@@ -76,6 +83,8 @@ export default function ClipPlayerSheet({
   onShare,
   onHighlightEdit,
 }: ClipPlayerSheetProps) {
+  const INTRO_BLOCK_TIMEOUT_MS = 250;
+  const INTRO_DURATION_MS = 2000;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localClips, setLocalClips] = useState(clipsProp);
   const [index, setIndex] = useState(initialIndex);
@@ -101,17 +110,12 @@ export default function ClipPlayerSheet({
   const swipeStart = useRef<{ x: number; y: number; time: number; locked: "h" | "v" | null; startPanX: number; startPanY: number } | null>(null);
 
   // 핀치 줌 (Instagram-style)
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
   const pinchRef = useRef<{ startDist: number; startZoom: number; startPanX: number; startPanY: number; midX: number; midY: number } | null>(null);
   const lastTapRef = useRef(0);
 
   // 자동 포커스 모드
   const [isFocusMode, setIsFocusMode] = useState(false);
   const isAutoZoomingRef = useRef(false);
-  const rafIdRef = useRef(0);
-  const zoomRef = useRef(1);
-  const panRef = useRef({ x: 0, y: 0 });
 
   // View count tracking: 3초 재생 후 1회만 호출
   const viewTrackedRef = useRef<Set<string>>(new Set());
@@ -121,24 +125,41 @@ export default function ClipPlayerSheet({
   const hasNext = index < clips.length - 1;
   const hasPrev = index > 0;
   const effects = clip?.effects;
+  const focusZoom = resolveFocusZoom(effects?.focusZoom);
   const touchHandled = useRef(false);
+  const spotlight =
+    clip?.spotlightX != null && clip?.spotlightY != null
+      ? { x: clip.spotlightX, y: clip.spotlightY }
+      : null;
 
   // Intro card overlay
   const [showIntro, setShowIntro] = useState(false);
   const [introData, setIntroData] = useState<HudPlayerData | null>(null);
   const introShownRef = useRef<Set<string>>(new Set());
-  // 인트로 카드 API 로딩 완료 전까지 영상 재생 차단
-  const [introReady, setIntroReady] = useState(false);
+  const introEnabledRef = useRef(false);
+  const [introReady, setIntroReady] = useState(true);
   // 영상 실제 해상도 (letterbox 보정에 사용)
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
+  const {
+    adjustedSpotlight,
+    animateZoomTo: animateSpotlightZoom,
+    cancelZoomAnimation,
+    pan,
+    panRef,
+    resetTransform,
+    setTransform,
+    zoom,
+    zoomRef,
+  } = useSpotlightZoom({
+    videoRef,
+    videoNativeSize,
+    spotlight,
+  });
 
   // Freeze frame state
   const [isFreezing, setIsFreezing] = useState(false);
   const freezeFiredRef = useRef<Set<string>>(new Set());
   const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // BGM audio
-  const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // 닫기 애니메이션
   const [closing, setClosing] = useState(false);
@@ -169,78 +190,61 @@ export default function ClipPlayerSheet({
     };
   }, []);
 
-  // Load intro card data — 영상 재생 전에 완료시켜 race condition 제거
+  const playIntro = useCallback((clipId: string) => {
+    introShownRef.current.add(clipId);
+    setShowIntro(true);
+    setIntroReady(false);
+    window.setTimeout(() => {
+      setShowIntro(false);
+      setIntroReady(true);
+      setShowControls(false);
+      videoRef.current?.play()?.catch(() => {});
+    }, INTRO_DURATION_MS);
+  }, []);
+
+  // Load intro card data — 느리면 이번 세션에서는 재생을 막지 않음
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/player-card")
-      .then((r) => r.ok ? r.json() : null)
-      .then((res) => {
-        if (cancelled) return;
-        if (!res?.card) {
-          // 카드 없음 → 클립 프로필 정보로 기본 HUD 데이터 생성 (인트로 카드는 스킵)
-          const currentClip = clipsProp[initialIndex];
-          if (currentClip?.playerName) {
-            const nameParts = currentClip.playerName.split(/\s+/);
-            setIntroData({
-              name: currentClip.playerName,
-              number: "",
-              position: currentClip.playerPosition || "FW",
-              club: currentClip.teamName || "",
-              age: "",
-              birthDate: currentClip.playerBirthYear ? `${currentClip.playerBirthYear}` : "",
-              height: "",
-              weight: "",
-              foot: "",
-              nationality: "KOREA",
-              photoUrl: res?.profile?.avatar_url || "",
-              mainColor: "#37474F",
-              accentColor: "#D4A853",
-            });
-          }
-          setIntroReady(true);
-          return;
-        }
-        const cd = res.card.card_data;
-        const data: HudPlayerData = {
-          name: cd.name || `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "",
-          number: cd.number || "9",
-          position: cd.position || "ST",
-          club: cd.club === "직접 입력" ? (cd.customClubName || res.card.club_name || "") : (cd.club || ""),
-          age: cd.age || "",
-          birthDate: cd.birthDate || "",
-          height: cd.height || "",
-          weight: cd.weight || "",
-          foot: cd.foot || "",
-          nationality: cd.nationality || "KOREA",
-          photoUrl: (cd.photoUrl && !cd.photoUrl.startsWith("blob:")) ? cd.photoUrl : (res.profile?.avatar_url || ""),
-          mainColor: res.card.main_color || "#37474F",
-          accentColor: res.card.accent_color || "#78909C",
-        };
-        setIntroData(data);
+    const currentClip = clipsProp[initialIndex];
+    const canShowIntro = currentClip?.effects?.intro === true;
+    const cached = getCachedPlayerCard();
+    const fallbackIntro = buildFallbackHudPlayerData(currentClip ?? {});
 
-        // 인트로 카드 표시 → 3초 후 영상 재생
-        const currentClip = clipsProp[initialIndex];
-        if (currentClip && !introShownRef.current.has(currentClip.id)) {
-          introShownRef.current.add(currentClip.id);
-          setShowIntro(true);
-          setTimeout(() => {
-            if (!cancelled) {
-              setShowIntro(false);
-              setIntroReady(true);
-              setShowControls(false); // HUD가 영상 재생 시작점부터 바로 표시
-              videoRef.current?.play()?.catch(() => {});
-            }
-          }, 3000);
-        } else {
-          setIntroReady(true);
-        }
+    if (fallbackIntro) setIntroData(fallbackIntro);
+
+    if (canShowIntro && cached?.card) {
+      const cachedData = buildHudPlayerData(cached);
+      if (cachedData && currentClip) {
+        setIntroData(cachedData);
+        introEnabledRef.current = true;
+        playIntro(currentClip.id);
+      }
+    }
+
+    const needsIntroFetchFallback = !(canShowIntro && cached?.card);
+    const unblockTimer = needsIntroFetchFallback
+      ? window.setTimeout(() => {
+          if (!cancelled) setIntroReady(true);
+        }, INTRO_BLOCK_TIMEOUT_MS)
+      : null;
+
+    preloadPlayerCard()
+      .then((res) => {
+        if (cancelled || !res) return;
+
+        const hudData = buildHudPlayerData(res);
+        if (hudData) setIntroData(hudData);
       })
-      .catch(() => {
-        if (!cancelled) setIntroReady(true);
+      .finally(() => {
+        if (unblockTimer) window.clearTimeout(unblockTimer);
       });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+      if (unblockTimer) window.clearTimeout(unblockTimer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialIndex, playIntro, clipsProp]);
 
   // introReady가 true가 되면 영상 재생 시작 + spotlight 있으면 자동 포커스
   useEffect(() => {
@@ -254,11 +258,11 @@ export default function ClipPlayerSheet({
         zoomRef.current <= 1
       ) {
         setIsFocusMode(true);
-        animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, 2, 450);
+        animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, focusZoom, 450);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [introReady, showIntro]);
+  }, [introReady, showIntro, focusZoom]);
 
   // Reset on clip change
   useEffect(() => {
@@ -276,18 +280,11 @@ export default function ClipPlayerSheet({
     scheduleHide();
 
     // Show intro for subsequent clips (introData already loaded)
-    if (introData && clip && !introShownRef.current.has(clip.id)) {
-      introShownRef.current.add(clip.id);
-      setIntroReady(false);
-      setShowIntro(true);
-      setTimeout(() => {
-        setShowIntro(false);
-        setIntroReady(true);
-        videoRef.current?.play()?.catch(() => {});
-      }, 3000);
+    if (introEnabledRef.current && clip?.effects?.intro === true && introData && clip && !introShownRef.current.has(clip.id)) {
+      playIntro(clip.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+  }, [index, introData, playIntro, clip]);
 
   const scheduleHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -351,10 +348,6 @@ export default function ClipPlayerSheet({
     };
     const onPlay = () => {
       setPaused(false); setEnded(false); scheduleHide(); setPlayCount((c) => c + 1);
-      // BGM 재생 동기화
-      if (bgmAudioRef.current) {
-        bgmAudioRef.current.play().catch(() => {});
-      }
       // View count: 3초 후 API 호출 (클립당 1회)
       const currentClip = clips[index];
       if (currentClip && !viewTrackedRef.current.has(currentClip.id)) {
@@ -371,8 +364,6 @@ export default function ClipPlayerSheet({
       setPaused(true); setShowControls(true);
       // 일시정지 시 타이머 취소 (3초 미달)
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
-      // BGM 일시정지 동기화
-      bgmAudioRef.current?.pause();
     };
     const onLoaded = () => {
       const currentClip = clips[index];
@@ -394,7 +385,6 @@ export default function ClipPlayerSheet({
       setPaused(true);
       setShowControls(true);
       setProgress(1);
-      bgmAudioRef.current?.pause();
     };
     const onWaiting = () => setIsBuffering(true);
     const onCanPlay = () => setIsBuffering(false);
@@ -418,43 +408,6 @@ export default function ClipPlayerSheet({
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
     };
   }, [scheduleHide, index]);
-
-  // BGM 로드 및 클립 전환 시 동기화
-  useEffect(() => {
-    const currentClip = clips[index];
-    // 이전 BGM 정리
-    if (bgmAudioRef.current) {
-      bgmAudioRef.current.pause();
-      bgmAudioRef.current.src = "";
-      bgmAudioRef.current = null;
-    }
-    const bgmId = currentClip?.bgmId;
-    if (!bgmId) return;
-    const bgmVolume = (currentClip?.effects?.bgmVolume ?? 40) / 100;
-    const originalVolume = (currentClip?.effects?.originalVolume ?? 100) / 100;
-    // 비디오 원본 볼륨 적용
-    if (videoRef.current) videoRef.current.volume = originalVolume;
-    // BGM URL 가져오기 및 오디오 준비
-    fetch(`/api/bgm?id=${bgmId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const url = data.tracks?.[0]?.url;
-        if (!url) return;
-        const audio = new Audio(url);
-        audio.volume = bgmVolume;
-        audio.loop = true;
-        bgmAudioRef.current = audio;
-        // 영상이 재생 중이면 BGM도 바로 시작
-        if (videoRef.current && !videoRef.current.paused) {
-          audio.play().catch(() => {});
-        }
-      })
-      .catch(() => {});
-    return () => {
-      bgmAudioRef.current?.pause();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
 
   const handleTap = useCallback(() => {
     const v = videoRef.current;
@@ -503,20 +456,11 @@ export default function ClipPlayerSheet({
     if (i >= 0 && i < clips.length) setIndex(i);
   };
 
-  // zoom/pan ref 동기화 (animateZoomTo가 최신 값을 읽을 수 있도록)
-  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
-  useEffect(() => { panRef.current = pan; }, [pan]);
-
   // 줌 리셋 + 자동 포커스 재진입 (클립 변경 시)
   useEffect(() => {
-    // 이전 클립의 rAF 취소
-    cancelAnimationFrame(rafIdRef.current);
     isAutoZoomingRef.current = false;
-
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-    zoomRef.current = 1;
-    panRef.current = { x: 0, y: 0 };
+    cancelZoomAnimation();
+    resetTransform();
     setIsFocusMode(false);
     pinchRef.current = null;
 
@@ -524,22 +468,19 @@ export default function ClipPlayerSheet({
     const newClip = clips[index];
     if (newClip?.spotlightX != null && newClip?.spotlightY != null) {
       // 인트로 카드가 표시되는 동안은 자동 포커스 지연
-      const delay = introData && !introShownRef.current.has(newClip.id) ? 3100 : 600;
+      const delay = introEnabledRef.current && newClip.effects?.intro === true && introData && !introShownRef.current.has(newClip.id)
+        ? INTRO_DURATION_MS + 100
+        : 600;
       const timer = setTimeout(() => {
         if (newClip.spotlightX != null && newClip.spotlightY != null) {
           setIsFocusMode(true);
-          animateZoomTo(newClip.spotlightX, newClip.spotlightY, 2, 450);
+          animateZoomTo(newClip.spotlightX, newClip.spotlightY, resolveFocusZoom(newClip.effects?.focusZoom), 450);
         }
       }, delay);
       return () => clearTimeout(timer);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
-
-  const clampPan = useCallback((px: number, py: number, z: number) => {
-    const max = ((z - 1) / z) * 50;
-    return { x: Math.max(-max, Math.min(max, px)), y: Math.max(-max, Math.min(max, py)) };
-  }, []);
+  }, [index, cancelZoomAnimation, resetTransform]);
 
   // rAF 기반 줌 애니메이션 (targetX/Y: 0-1 정규화된 영상 내 좌표)
   const animateZoomTo = useCallback((
@@ -550,55 +491,11 @@ export default function ClipPlayerSheet({
     onDone?: () => void,
   ) => {
     isAutoZoomingRef.current = true;
-    const startZoom = zoomRef.current;
-    const startPan = { ...panRef.current };
-
-    // spotlight-math.ts를 통해 좌표 변환 (설정과 동일한 로직)
-    const v = videoRef.current;
-    const containerW = v?.offsetWidth || 390;
-    const containerH = v?.offsetHeight || 844;
-    const videoW = v?.videoWidth || 1;
-    const videoH = v?.videoHeight || 1;
-
-    const targetPan = targetZoom <= 1
-      ? { x: 0, y: 0 }
-      : spotlightToPan(
-          { x: targetX, y: targetY },
-          { containerW, containerH, videoW, videoH },
-          targetZoom,
-        );
-
-    const startTime = performance.now();
-
-    // 줌인: easeOutCubic (빠르게 들어옴), 줌아웃: easeInOutCubic (스윙 방지)
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-    const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    const ease = targetZoom < startZoom ? easeInOutCubic : easeOutCubic;
-
-    const tick = (now: number) => {
-      if (!isAutoZoomingRef.current) return; // 외부에서 취소됨
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / durationMs, 1);
-      const e = ease(t);
-
-      const newZoom = startZoom + (targetZoom - startZoom) * e;
-      const newPanX = startPan.x + (targetPan.x - startPan.x) * e;
-      const newPanY = startPan.y + (targetPan.y - startPan.y) * e;
-
-      zoomRef.current = newZoom;
-      panRef.current = { x: newPanX, y: newPanY };
-      setZoom(newZoom);
-      setPan({ x: newPanX, y: newPanY });
-
-      if (t < 1) {
-        rafIdRef.current = requestAnimationFrame(tick);
-      } else {
-        isAutoZoomingRef.current = false;
-        onDone?.();
-      }
-    };
-    rafIdRef.current = requestAnimationFrame(tick);
-  }, []);
+    animateSpotlightZoom(targetX, targetY, targetZoom, durationMs, () => {
+      isAutoZoomingRef.current = false;
+      onDone?.();
+    });
+  }, [animateSpotlightZoom]);
 
   const getTouchDist = (e: React.TouchEvent) => {
     const [a, b] = [e.touches[0], e.touches[1]];
@@ -610,7 +507,7 @@ export default function ClipPlayerSheet({
     // 자동 줌 진행 중 사용자가 터치하면 즉시 취소 (현재 interpolated 값 유지)
     if (isAutoZoomingRef.current) {
       isAutoZoomingRef.current = false;
-      cancelAnimationFrame(rafIdRef.current);
+      cancelZoomAnimation();
     }
     if (e.touches.length === 2) {
       // 핀치 줌 시작 — 진행 중인 스와이프 상태 초기화 (레이스 컨디션 방지)
@@ -643,9 +540,8 @@ export default function ClipPlayerSheet({
       if (isAutoZoomingRef.current) return; // 자동 줌 중 핀치 차단
       const dist = getTouchDist(e);
       const newZoom = Math.max(1, Math.min(4, pinchRef.current.startZoom * (dist / pinchRef.current.startDist)));
-      setZoom(newZoom);
-      zoomRef.current = newZoom;
-      if (newZoom <= 1) { setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 }; setIsFocusMode(false); }
+      setTransform(newZoom, newZoom <= 1 ? { x: 0, y: 0 } : panRef.current);
+      if (newZoom <= 1) setIsFocusMode(false);
       return;
     }
     if (!swipeStart.current) return;
@@ -664,8 +560,7 @@ export default function ClipPlayerSheet({
         basePanY + (dy / window.innerHeight) * 100,
         zoom,
       );
-      panRef.current = newPan;
-      setPan(newPan);
+      setTransform(zoom, newPan);
       return;
     }
 
@@ -687,7 +582,7 @@ export default function ClipPlayerSheet({
   const handleTouchEnd = (e: React.TouchEvent) => {
     // 핀치 줌 끝
     if (pinchRef.current && e.touches.length === 0) {
-      if (zoom <= 1.05) { setZoom(1); setPan({ x: 0, y: 0 }); }
+      if (zoom <= 1.05) resetTransform();
       pinchRef.current = null;
       return;
     }
@@ -702,8 +597,7 @@ export default function ClipPlayerSheet({
       } else {
         const now = Date.now();
         if (now - lastTapRef.current < 300) {
-          setZoom(1);
-          setPan({ x: 0, y: 0 });
+          resetTransform();
           lastTapRef.current = 0;
         } else {
           lastTapRef.current = now;
@@ -741,11 +635,11 @@ export default function ClipPlayerSheet({
           setIsFocusMode(false);
         } else if (currentClip?.spotlightX != null && currentClip?.spotlightY != null) {
           // spotlight 있음 → 선수 위치로 2x 줌
-          animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, 2, 350);
+          animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, resolveFocusZoom(currentClip.effects?.focusZoom), 350);
           setIsFocusMode(true);
         } else {
           // spotlight 없음 → 그냥 2x
-          animateZoomTo(0.5, 0.5, 2, 350);
+          animateZoomTo(0.5, 0.5, focusZoom, 350);
         }
         lastTapRef.current = 0;
       } else {
@@ -776,26 +670,6 @@ export default function ClipPlayerSheet({
 
   if (!clip?.videoUrl) return null;
 
-  // letterbox 보정: spotlight 좌표를 영상 프레임 기준 → element 전체 기준으로 변환
-  // spotlight-math.ts의 computeVideoRect로 통일 (설정과 동일한 로직)
-  const adjustedSpot = (() => {
-    if (clip.spotlightX == null || clip.spotlightY == null) return null;
-    if (!videoNativeSize) return { x: clip.spotlightX, y: clip.spotlightY };
-    const v = videoRef.current;
-    const containerW = v?.offsetWidth ?? window.innerWidth;
-    const containerH = v?.offsetHeight ?? window.innerHeight;
-    const { displayW, displayH, offsetX, offsetY } = computeVideoRect({
-      containerW,
-      containerH,
-      videoW: videoNativeSize.w,
-      videoH: videoNativeSize.h,
-    });
-    return {
-      x: (offsetX + clip.spotlightX * displayW) / containerW,
-      y: (offsetY + clip.spotlightY * displayH) / containerH,
-    };
-  })();
-
   // 스와이프 다운 닫기 판정 (첫 클립에서 아래로 스와이프)
   const isDismissSwipe = swiping && swipeY > 0 && !hasPrev;
   const dismissProgress = isDismissSwipe ? Math.min(swipeY / 300, 1) : 0;
@@ -808,7 +682,7 @@ export default function ClipPlayerSheet({
 
   // 영상과 동일한 transform (zoom/pan/swipe) - overlay가 영상 위치를 따라가도록
   const videoTransform = zoom > 1
-    ? `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`
+    ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
     : (swiping && !isDismissSwipe)
       ? `translateY(${swipeY * 0.35}px) scale(${1 - Math.min(Math.abs(swipeY) / 800, 0.03)})`
       : undefined;
@@ -954,7 +828,7 @@ export default function ClipPlayerSheet({
             opacity: (!introReady || showIntro) ? 0 : 1,
             transition: zoom === 1 ? "opacity 0.3s ease, transform 0.2s ease-out" : "opacity 0.3s ease",
             transform: zoom > 1
-              ? `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`
+              ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
               : swiping ? `translateY(${swipeY * 0.2}px)` : undefined,
             transformOrigin: "center center",
             filter: effects?.color ? "saturate(1.2) contrast(1.05) brightness(1.02)" : undefined,
@@ -964,7 +838,7 @@ export default function ClipPlayerSheet({
       )}
 
       {/* ── 축구 중계 스타일 마커 오버레이 ── */}
-      {clip.playerName && introReady && !showIntro && adjustedSpot && (
+      {clip.playerName && introReady && !showIntro && adjustedSpotlight && (
         <div
           className="absolute inset-x-0 top-0 z-[45] pointer-events-none"
           style={{
@@ -975,7 +849,7 @@ export default function ClipPlayerSheet({
         >
           <VideoOverlay
             key={clip.id}
-            spotlight={adjustedSpot}
+            spotlight={adjustedSpotlight}
             player={{
               name: clip.playerName,
               position: clip.playerPosition,
@@ -1134,7 +1008,7 @@ export default function ClipPlayerSheet({
                 animateZoomTo(0.5, 0.5, 1, 400);
                 setIsFocusMode(false);
               } else {
-                animateZoomTo(clip.spotlightX!, clip.spotlightY!, 2, 400);
+                animateZoomTo(clip.spotlightX!, clip.spotlightY!, focusZoom, 400);
                 setIsFocusMode(true);
               }
             }}

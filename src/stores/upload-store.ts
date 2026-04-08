@@ -33,6 +33,14 @@ export type CompressStatus =
   | "skipped"
   | "unsupported";
 
+export interface UploadEffects {
+  color: boolean;
+  cinematic: boolean;
+  eafc: boolean;
+  intro: boolean;
+  focusZoom: number;
+}
+
 interface UploadState {
   file: File | null;
   tags: string[];
@@ -58,7 +66,7 @@ interface UploadState {
   freezeAt: number | null; // 프리즈 프레임 시점 (초)
   skillLabels: string[];
   customLabels: string[];
-  effects: { color: boolean; cinematic: boolean; eafc: boolean; intro: boolean };
+  effects: UploadEffects;
   // v4.0 슬로모션
   slowmoStart: number | null;
   slowmoEnd: number | null;
@@ -164,7 +172,7 @@ const initial = {
   freezeAt: null as number | null,
   skillLabels: [] as string[],
   customLabels: [] as string[],
-  effects: { color: false, cinematic: false, eafc: false, intro: true },
+  effects: { color: false, cinematic: false, eafc: false, intro: false, focusZoom: 1.8 },
   // v4.0
   slowmoStart: null as number | null,
   slowmoEnd: null as number | null,

@@ -14,6 +14,7 @@ const ClipPickerSheet = dynamic(() => import("@/components/player/ClipPickerShee
 
 interface TagClip {
   id: string;
+  createdAt: string;
   duration: number;
   tag: string;
   isTop: boolean;
@@ -217,6 +218,11 @@ export default function HighlightsTabV5({
     if (seenIds.has(c.id)) return false;
     seenIds.add(c.id);
     return true;
+  }).sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+    if (Number.isNaN(aTime) || Number.isNaN(bTime)) return 0;
+    return bTime - aTime;
   });
 
   // Filter by active tag

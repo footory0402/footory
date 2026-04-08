@@ -131,7 +131,9 @@ export default function PinchZoomVideo({
   const updateZoom = useCallback((newZoom: number, newPan: { x: number; y: number }) => {
     setZoom(newZoom);
     setPan(newPan);
-    onZoomChange?.(newZoom, newPan);
+    queueMicrotask(() => {
+      onZoomChange?.(newZoom, newPan);
+    });
   }, [onZoomChange]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -238,13 +240,10 @@ export default function PinchZoomVideo({
   const handleZoomIn = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setZoom((z) => {
-      const next = Math.min(MAX_ZOOM, parseFloat((z + 0.5).toFixed(1)));
-      const newPan = clampPan(pan.x, pan.y, next);
-      updateZoom(next, newPan);
-      return next;
-    });
-  }, [pan, updateZoom]);
+    const next = Math.min(MAX_ZOOM, parseFloat((zoom + 0.5).toFixed(1)));
+    const newPan = clampPan(pan.x, pan.y, next);
+    updateZoom(next, newPan);
+  }, [pan, updateZoom, zoom]);
 
   const handleZoomReset = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     e.stopPropagation();
@@ -255,17 +254,14 @@ export default function PinchZoomVideo({
   const handleZoomOut = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setZoom((z) => {
-      const next = Math.max(MIN_ZOOM, parseFloat((z - 0.5).toFixed(1)));
-      if (next <= 1) {
-        updateZoom(1, { x: 0, y: 0 });
-        return 1;
-      }
-      const newPan = clampPan(pan.x, pan.y, next);
-      updateZoom(next, newPan);
-      return next;
-    });
-  }, [pan, updateZoom]);
+    const next = Math.max(MIN_ZOOM, parseFloat((zoom - 0.5).toFixed(1)));
+    if (next <= 1) {
+      updateZoom(1, { x: 0, y: 0 });
+      return;
+    }
+    const newPan = clampPan(pan.x, pan.y, next);
+    updateZoom(next, newPan);
+  }, [pan, updateZoom, zoom]);
 
   return (
     <div
@@ -290,7 +286,7 @@ export default function PinchZoomVideo({
         onLoadedMetadata={handleLoadedMetadata}
         className="absolute inset-0 h-full w-full object-contain"
         style={{
-          transform: `scale(${zoom}) translate(${pan.x}%, ${pan.y}%)`,
+          transform: `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`,
           transformOrigin: "center center",
           transition: zoom === 1 ? "transform 0.2s ease-out" : undefined,
         }}

@@ -86,12 +86,9 @@ export default function SelectView({ onFileReady }: SelectViewProps) {
     useUploadStore.getState().setFile(selected);
     useUploadStore.getState().setDuration(Math.round(dur));
 
-    // 백그라운드 압축 + 업로드
-    const introOn = useUploadStore.getState().effects.intro;
-
     if (!isCompressionSupported() || selected.size < 5 * 1024 * 1024) {
       useUploadStore.getState().setCompressStatus("skipped");
-      if (!introOn) startR2BackgroundUpload();
+      startR2BackgroundUpload();
     } else {
       const s = useUploadStore.getState();
       s.setCompressStatus("loading");
@@ -113,10 +110,10 @@ export default function SelectView({ onFileReady }: SelectViewProps) {
           s2.setCompressStats(result.originalSize, result.compressedSize);
           s2.setCompressStatus("done");
           s2.setCompressProgress(100);
-          if (!useUploadStore.getState().effects.intro) startR2BackgroundUpload();
+          startR2BackgroundUpload();
         } catch {
           useUploadStore.getState().setCompressStatus("error");
-          if (!useUploadStore.getState().effects.intro) startR2BackgroundUpload();
+          startR2BackgroundUpload();
         }
       })();
     }

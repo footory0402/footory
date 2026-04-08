@@ -83,7 +83,13 @@ const getProfile = cache(async (handle: string) => {
     supabase.from("team_members").select("team_id, teams(name)").eq("profile_id", profile.id).neq("role", "alumni").limit(1).single(),
     supabase.from("achievements").select("*").eq("profile_id", profile.id).order("year", { ascending: false }),
     supabase.from("timeline_events").select("*").eq("profile_id", profile.id).order("created_at", { ascending: false }).limit(50),
-    supabase.from("clips").select("id, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)").eq("owner_id", profile.id),
+    supabase
+      .from("clips")
+      .select(
+        "id, created_at, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)"
+      )
+      .eq("owner_id", profile.id)
+      .order("created_at", { ascending: false }),
     supabase.from("play_styles").select("*").eq("profile_id", profile.id).maybeSingle(),
     supabase.from("tournament_records").select("*").eq("player_id", profile.id).order("created_at", { ascending: false }),
     supabase.from("awards").select("*").eq("player_id", profile.id).order("created_at", { ascending: false }),
@@ -181,13 +187,14 @@ const getProfile = cache(async (handle: string) => {
 
   // Build tagClips map from SSR data (keyed by tag id, not dbName)
   const dbNameToId = Object.fromEntries(SKILL_TAGS.map((t) => [t.dbName, t.id]));
-  type TagClipRow = { id: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null; effects?: Record<string, boolean> | null; spotlightX?: number | null; spotlightY?: number | null; freezeAt?: number | null; trimStart?: number | null; trimEnd?: number | null };
+  type TagClipRow = { id: string; createdAt: string; duration: number; tag: string; isTop: boolean; videoUrl: string; thumbnailUrl: string | null; effects?: Record<string, boolean> | null; spotlightX?: number | null; spotlightY?: number | null; freezeAt?: number | null; trimStart?: number | null; trimEnd?: number | null };
   const tagClipsMap: Record<string, TagClipRow[]> = {};
   const untaggedClipsList: TagClipRow[] = [];
   (tagClipsData.data ?? []).forEach((clip: Record<string, unknown>) => {
     const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
     const base: Omit<TagClipRow, "tag" | "isTop"> = {
       id: clip.id as string,
+      createdAt: (clip.created_at as string) ?? "",
       duration: (clip.duration_seconds as number) ?? 0,
       videoUrl: (clip.video_url as string) ?? "",
       thumbnailUrl: (clip.thumbnail_url as string | null) ?? null,

@@ -22,6 +22,7 @@ export interface RenderRequest {
       cinematic?: boolean;
       eafc?: boolean;
       intro?: boolean;
+      focusZoom?: number;
     };
   };
 }

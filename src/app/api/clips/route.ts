@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { SKILL_TAGS } from "@/lib/constants";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createNotification, notifyLinkedParents } from "@/lib/notifications";
+import type { Json } from "@/lib/supabase/database";
 
 const VALID_TAGS = SKILL_TAGS.map((t) => t.dbName);
 
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
       slowmo_end?: number;
       slowmo_speed?: number;
       bgm_id?: string;
-      effects?: Record<string, boolean>;
+      effects?: { [key: string]: Json | undefined };
       status?: string;
       clip_id?: string;
       client_trimmed?: boolean;
