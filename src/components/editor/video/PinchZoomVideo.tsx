@@ -1,15 +1,20 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
-import { clampPan } from "@/lib/spotlight-math";
+import { clampPan, computeVideoRect, screenToVideo } from "@/lib/spotlight-math";
 
 interface PinchZoomVideoProps {
   videoSrc: string;
   currentTime: number;
   /** 줌/패닝 상태 변경 시 호출 (DecorateView에서 "이대로 설정" 버튼 활성화에 사용) */
   onZoomChange?: (zoom: number, pan: { x: number; y: number }) => void;
+  /** 영상 위를 직접 눌러 선수 좌표를 지정할 때 사용 */
+  onTapSpotlight?: (spot: { x: number; y: number }) => void;
+  /** 현재 선택된 선수 좌표 표시 */
+  selectedSpotlight?: { x: number; y: number } | null;
   /** 최대 높이 (기본값: "60vh") */
   maxHeight?: string;
+  testId?: string;
 }
 
 const MAX_ZOOM = 5;
@@ -19,7 +24,10 @@ export default function PinchZoomVideo({
   videoSrc,
   currentTime,
   onZoomChange,
+  onTapSpotlight,
+  selectedSpotlight,
   maxHeight = "60vh",
+  testId,
 }: PinchZoomVideoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -98,23 +106,23 @@ export default function PinchZoomVideo({
     const cH = cRect.height;
     const vW = video?.videoWidth || cW;
     const vH = video?.videoHeight || cH;
-    const videoAR = vW / vH;
-    const containerAR = cW / cH;
+    const rect = computeVideoRect({
+      containerW: cW,
+      containerH: cH,
+      videoW: vW,
+      videoH: vH,
+    });
 
-    let renderW: number, renderH: number, offsetX: number, offsetY: number;
-    if (videoAR > containerAR) {
-      renderW = cW;
-      renderH = cW / videoAR;
-      offsetX = 0;
-      offsetY = (cH - renderH) / 2;
-    } else {
-      renderH = cH;
-      renderW = cH * videoAR;
-      offsetX = (cW - renderW) / 2;
-      offsetY = 0;
-    }
-
-    return { renderW, renderH, offsetX, offsetY, cRect };
+    return {
+      ...rect,
+      renderW: rect.displayW,
+      renderH: rect.displayH,
+      cRect,
+      cW,
+      cH,
+      vW,
+      vH,
+    };
   }, []);
 
   const getTouchDist = (e: React.TouchEvent) => {
@@ -229,12 +237,67 @@ export default function PinchZoomVideo({
         ts.lastTapTime = 0;
       } else {
         ts.lastTapTime = now;
+        if (onTapSpotlight && e.changedTouches.length === 1) {
+          const vr = getVideoRect();
+          if (vr) {
+            const point = screenToVideo(
+              e.changedTouches[0].clientX,
+              e.changedTouches[0].clientY,
+              vr.cRect,
+              {
+                containerW: vr.cW,
+                containerH: vr.cH,
+                videoW: vr.vW,
+                videoH: vr.vH,
+              },
+              zoom,
+              pan,
+            );
+            if (point) onTapSpotlight(point);
+          }
+        }
       }
     }
 
     ts.type = "none";
     ts.moved = false;
-  }, [updateZoom]);
+  }, [getVideoRect, onTapSpotlight, pan, updateZoom, zoom]);
+
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onTapSpotlight) return;
+    const vr = getVideoRect();
+    if (!vr) return;
+    const point = screenToVideo(
+      e.clientX,
+      e.clientY,
+      vr.cRect,
+      {
+        containerW: vr.cW,
+        containerH: vr.cH,
+        videoW: vr.vW,
+        videoH: vr.vH,
+      },
+      zoom,
+      pan,
+    );
+    if (point) onTapSpotlight(point);
+  }, [getVideoRect, onTapSpotlight, pan, zoom]);
+
+  const spotlightStyle = useMemo(() => {
+    if (!selectedSpotlight || !containerSize || !videoDims) return null;
+    const rect = computeVideoRect({
+      containerW: containerSize.w,
+      containerH: containerSize.h,
+      videoW: videoDims.w,
+      videoH: videoDims.h,
+    });
+    const baseX = rect.offsetX + selectedSpotlight.x * rect.displayW;
+    const baseY = rect.offsetY + selectedSpotlight.y * rect.displayH;
+    return {
+      left: containerSize.w / 2 + (baseX - containerSize.w / 2) * zoom + (pan.x / 100) * containerSize.w,
+      top: containerSize.h / 2 + (baseY - containerSize.h / 2) * zoom + (pan.y / 100) * containerSize.h,
+    };
+  }, [containerSize, pan, selectedSpotlight, videoDims, zoom]);
 
   // Zoom button handlers
   const handleZoomIn = useCallback((e: React.TouchEvent | React.MouseEvent) => {
@@ -272,9 +335,11 @@ export default function PinchZoomVideo({
         maxHeight,
         touchAction: "none",
       }}
+      data-testid={testId}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onClick={handleClick}
     >
       {/* 영상 */}
       <video
@@ -341,7 +406,19 @@ export default function PinchZoomVideo({
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
             </svg>
-            두 손가락으로 확대하세요
+            선수를 직접 누르거나 확대해서 미세 조정하세요
+          </div>
+        </div>
+      )}
+
+      {spotlightStyle && (
+        <div
+          className="pointer-events-none absolute z-[1] -translate-x-1/2 -translate-y-1/2"
+          style={spotlightStyle}
+        >
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-full border border-accent/70 bg-accent/15 shadow-[0_0_24px_rgba(212,168,83,0.25)]">
+            <div className="h-3 w-3 rounded-full bg-accent" />
+            <div className="absolute inset-0 rounded-full border border-accent/40" />
           </div>
         </div>
       )}

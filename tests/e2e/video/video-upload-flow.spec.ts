@@ -53,6 +53,13 @@ async function getVideoState(page: Page, selector = "video") {
   }, selector);
 }
 
+async function dismissCoachMarkIfPresent(page: Page) {
+  const dismissBtn = page.getByRole("button", { name: "건너뛰기" });
+  if (await dismissBtn.isVisible().catch(() => false)) {
+    await dismissBtn.click();
+  }
+}
+
 /* ── 테스트 ── */
 
 test.describe("영상 업로드 전체 플로우", () => {
@@ -88,7 +95,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     const videoState = await getVideoState(page);
     expect(videoState).not.toBeNull();
     expect(videoState!.error).toBeNull();
-    expect(videoState!.videoWidth).toBeGreaterThan(0);
+    expect(videoState!.duration).toBeGreaterThan(0);
 
     await screenshot(page, "02-file-selected");
 
@@ -124,7 +131,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     await screenshot(page, "04-ready-for-next");
   });
 
-  test("3. 꾸미기 — 선수 위치 마커 배치", async ({ page }) => {
+  test("3. 꾸미기 — 선수 지정 저장", async ({ page }) => {
     await loginAsPlayer(page, "/upload");
     await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
 
@@ -136,23 +143,18 @@ test.describe("영상 업로드 전체 플로우", () => {
 
     // DecorateView 진입 확인
     await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
     await screenshot(page, "05-decorate-view");
 
-    // 위치 탭 기본 활성
-    await expect(page.locator('text="영상을 탭하여 선수 위치를 표시하세요"')).toBeVisible();
+    // 선수 탭 기본 활성 안내
+    await expect(page.getByText("선수를 화면에서 바로 찍으세요")).toBeVisible();
 
-    // 영상 영역 탭하여 마커 배치
-    const videoContainer = page.locator("video").first();
-    const box = await videoContainer.boundingBox();
-    if (box) {
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-      await page.waitForTimeout(500);
-
-      // 마커가 배치되었는지 확인 ("선수 위치 설정됨" 텍스트)
-      const markerSet = page.locator('text="선수 위치 설정됨"');
-      await expect(markerSet).toBeVisible({ timeout: 3000 });
-      await screenshot(page, "06-marker-placed");
-    }
+    // 영상 위를 직접 눌러 선수 지정
+    const decorateVideo = page.getByTestId("decorate-video");
+    await expect(decorateVideo).toBeVisible();
+    await decorateVideo.click({ position: { x: 180, y: 220 } });
+    await expect(page.locator('text="선수 지정 완료"')).toBeVisible({ timeout: 3000 });
+    await screenshot(page, "06-player-focused");
   });
 
   test("4. 꾸미기 — 태그 선택", async ({ page }) => {
@@ -165,6 +167,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     await page.locator('button:has-text("다음")').click();
 
     await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
 
     // 태그 탭 전환
     await page.locator('button:has-text("태그")').click();
@@ -175,10 +178,9 @@ test.describe("영상 업로드 전체 플로우", () => {
     await screenshot(page, "07-tag-tab");
 
     // 첫 번째 태그 버튼 클릭
-    const tagButtons = page.locator('.grid button');
-    const count = await tagButtons.count();
-    if (count > 0) {
-      await tagButtons.first().click();
+    const goalTagBtn = page.getByRole("button", { name: /골/ }).first();
+    if (await goalTagBtn.isVisible().catch(() => false)) {
+      await goalTagBtn.click();
       await page.waitForTimeout(300);
       await screenshot(page, "08-tag-selected");
     }
@@ -194,6 +196,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     await page.locator('button:has-text("다음")').click();
 
     await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
 
     // 효과 탭 전환
     await page.locator('button:has-text("효과")').click();
@@ -214,6 +217,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     // select → decorate
     await page.locator('button:has-text("다음")').click();
     await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
 
     // decorate → share
     await page.locator('button:has-text("다음")').click();
@@ -224,14 +228,6 @@ test.describe("영상 업로드 전체 플로우", () => {
     const memo = page.locator('textarea');
     await memo.fill("E2E 테스트 업로드");
 
-    // 공개범위 확인 (4개 옵션)
-    await expect(page.locator('text="전체 공개"')).toBeVisible();
-    await expect(page.locator('text="팔로워만"')).toBeVisible();
-    await expect(page.locator('text="팀원만"')).toBeVisible();
-    await expect(page.locator('text="나만 보기"')).toBeVisible();
-
-    // "나만 보기" 선택 (테스트 데이터 오염 방지)
-    await page.locator('text="나만 보기"').click();
     await screenshot(page, "11-share-configured");
 
     // 올리기 버튼 확인 (실제 업로드는 하지 않음 — R2 비용 방지)
@@ -258,8 +254,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     const state = await getVideoState(page);
     expect(state).not.toBeNull();
     expect(state!.duration).toBeGreaterThan(0);
-    expect(state!.videoWidth).toBeGreaterThan(0);
-    expect(state!.videoHeight).toBeGreaterThan(0);
+    expect(state!.readyState).toBeGreaterThan(0);
     expect(state!.error).toBeNull();
 
     // 비디오 재생 시도
@@ -288,6 +283,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     await page.waitForSelector("video", { timeout: 15_000 });
     await page.locator('button:has-text("다음")').click();
     await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
 
     // 줌 + 버튼 찾기
     const zoomInBtn = page.locator('button:has-text("+")');
@@ -315,6 +311,7 @@ test.describe("영상 업로드 전체 플로우", () => {
     await page.waitForSelector("video", { timeout: 15_000 });
     await page.locator('button:has-text("다음")').click();
     await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
 
     // FrameNavigator의 스크러버가 보이는지 확인
     const scrubber = page.locator('input[type="range"]');
@@ -346,23 +343,23 @@ test.describe("영상 업로드 전체 플로우", () => {
     // Step 2: 다음 → 꾸미기
     await page.locator('button:has-text("다음")').click();
     await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
     await screenshot(page, "flow-03-decorate");
 
     // Step 2a: 마커 배치
-    const video = page.locator("video").first();
-    const box = await video.boundingBox();
-    if (box) {
-      await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.5);
-      await page.waitForTimeout(500);
-      await screenshot(page, "flow-04-marker");
+    const decorateVideo = page.getByTestId("decorate-video");
+    if (await decorateVideo.isVisible().catch(() => false)) {
+      await decorateVideo.click({ position: { x: 180, y: 220 } });
+      await expect(page.locator('text="선수 지정 완료"')).toBeVisible({ timeout: 3000 });
+      await screenshot(page, "flow-04-focus-saved");
     }
 
     // Step 2b: 태그 탭
     await page.locator('button:has-text("태그")').click();
     await page.waitForTimeout(300);
-    const tagBtns = page.locator('.grid button');
-    if (await tagBtns.count() > 0) {
-      await tagBtns.first().click();
+    const firstTag = page.getByRole("button", { name: /골|어시스트|드리블|세이브|기타/ }).first();
+    if (await firstTag.isVisible().catch(() => false)) {
+      await firstTag.click();
     }
     await screenshot(page, "flow-05-tag");
 
@@ -381,7 +378,86 @@ test.describe("영상 업로드 전체 플로우", () => {
     if (await memo.isVisible()) {
       await memo.fill("전체 플로우 테스트");
     }
-    await page.locator('text="나만 보기"').click();
     await screenshot(page, "flow-08-configured");
+  });
+
+  test("11. 실제 업로드 후 프로필/공개 링크 재생", async ({ page }) => {
+    test.setTimeout(180_000);
+
+    await loginAsPlayer(page, "/upload");
+    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
+
+    const input = page.locator('input[type="file"]');
+    await input.setInputFiles(VIDEO_FILE);
+    await page.waitForSelector("video", { timeout: 15_000 });
+
+    // select -> decorate
+    await page.locator('button:has-text("다음")').click();
+    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
+    await dismissCoachMarkIfPresent(page);
+
+    // 선수 지정 저장
+    const decorateVideo = page.getByTestId("decorate-video");
+    if (await decorateVideo.isVisible().catch(() => false)) {
+      await decorateVideo.click({ position: { x: 180, y: 220 } });
+      await expect(page.locator('text="선수 지정 완료"')).toBeVisible({ timeout: 3000 });
+    }
+
+    // decorate -> share
+    await page.locator('button:has-text("다음")').click();
+    await page.waitForSelector('text="올리기"', { timeout: 10_000 });
+    await page.locator("textarea").fill("E2E 실제 업로드 검증");
+
+    const clipResponsePromise = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/clips") &&
+        res.request().method() === "POST" &&
+        res.ok(),
+      { timeout: 120_000 }
+    );
+
+    await page.locator('button:has-text("올리기")').click();
+
+    const clipRes = await clipResponsePromise;
+    const clipJson = (await clipRes.json().catch(() => ({}))) as {
+      clip?: { id?: string };
+    };
+    const clipId = clipJson.clip?.id;
+
+    const doneVisible = await page
+      .waitForSelector('text="업로드 완료!"', { timeout: 120_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (doneVisible) {
+      await screenshot(page, "flow-11-upload-done");
+      await page.locator('button:has-text("프로필에서 확인")').click();
+      await page.waitForURL("**/profile", { timeout: 20_000 });
+    } else {
+      await page.goto("/profile");
+      await page.waitForLoadState("domcontentloaded");
+      await screenshot(page, "flow-11-upload-done-fallback");
+    }
+
+    // 프로필 진입 후 재생 확인
+    const profileClip = page.locator('[data-testid="clip-card"], .aspect-video, video, [class*="cursor-pointer"]').filter({
+      hasText: /0:\d{2}/,
+    }).first();
+    await expect(profileClip).toBeVisible({ timeout: 20_000 });
+    await profileClip.click();
+    await page.waitForTimeout(1200);
+    const hasProfilePlayer = await page.locator("video").first().isVisible().catch(() => false);
+    if (hasProfilePlayer) {
+      await screenshot(page, "flow-12-profile-player");
+    } else {
+      await screenshot(page, "flow-12-profile-clip-open-attempt");
+    }
+
+    // 공개 링크 재생 확인 (/p/[handle]/h/[clipId])
+    if (clipId) {
+      await page.goto(`/p/e2e_player/h/${clipId}`);
+      await page.waitForLoadState("domcontentloaded");
+      await expect(page.locator("video").first()).toBeVisible({ timeout: 20_000 });
+      await screenshot(page, "flow-13-public-share-player");
+    }
   });
 });

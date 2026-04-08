@@ -8,7 +8,11 @@ const SPEEDS = [
   { label: "0.5x", value: 0.5, desc: "슬로우" },
 ];
 
-export default function SlowmoTab() {
+interface SlowmoTabProps {
+  embedded?: boolean;
+}
+
+export default function SlowmoTab({ embedded = false }: SlowmoTabProps) {
   const trimStart = useUploadStore((s) => s.trimStart);
   const trimEnd = useUploadStore((s) => s.trimEnd);
   const duration = useUploadStore((s) => s.duration) ?? 0;
@@ -84,13 +88,15 @@ export default function SlowmoTab() {
   const endRatio = hasSlowmo ? timeToRatio(slowmoEnd) : 0;
 
   return (
-    <div className="px-4 pt-4 pb-6 space-y-5">
+    <div className={`${embedded ? "space-y-4" : "px-4 pt-4 pb-6 space-y-5"}`}>
       {/* 가이드 텍스트 */}
-      <div className="rounded-xl p-3" style={{ background: "rgba(212,168,83,0.07)", border: "1px solid rgba(212,168,83,0.15)" }}>
-        <p className="text-[12px] text-accent/80 leading-relaxed">
-          💡 핸들을 드래그해 슬로모션 구간을 설정하세요. 재생 중 해당 구간만 느리게 재생됩니다.
-        </p>
-      </div>
+      {!embedded && (
+        <div className="rounded-xl p-3" style={{ background: "rgba(212,168,83,0.07)", border: "1px solid rgba(212,168,83,0.15)" }}>
+          <p className="text-[12px] text-accent/80 leading-relaxed">
+            💡 핸들을 드래그해 슬로모션 구간을 설정하세요. 재생 중 해당 구간만 느리게 재생됩니다.
+          </p>
+        </div>
+      )}
 
       {/* 타임라인 바 */}
       <div>
@@ -205,7 +211,7 @@ export default function SlowmoTab() {
       </div>
 
       {/* 사용 팁 */}
-      {!hasSlowmo && (
+      {!hasSlowmo && !embedded && (
         <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="px-3 py-2.5" style={{ background: "rgba(255,255,255,0.02)" }}>
             <p className="text-[11px] text-text-3 leading-relaxed">

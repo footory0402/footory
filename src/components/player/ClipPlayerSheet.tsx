@@ -85,6 +85,7 @@ export default function ClipPlayerSheet({
 }: ClipPlayerSheetProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
   const INTRO_DURATION_MS = 2000;
+  const AUTO_FOCUS_HOLD_MS = 1200;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localClips, setLocalClips] = useState(clipsProp);
   const [index, setIndex] = useState(initialIndex);
@@ -116,6 +117,7 @@ export default function ClipPlayerSheet({
   // 자동 포커스 모드
   const [isFocusMode, setIsFocusMode] = useState(false);
   const isAutoZoomingRef = useRef(false);
+  const autoFocusResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // View count tracking: 3초 재생 후 1회만 호출
   const viewTrackedRef = useRef<Set<string>>(new Set());
@@ -259,6 +261,12 @@ export default function ClipPlayerSheet({
       ) {
         setIsFocusMode(true);
         animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, focusZoom, 450);
+        if (autoFocusResetTimerRef.current) clearTimeout(autoFocusResetTimerRef.current);
+        autoFocusResetTimerRef.current = setTimeout(() => {
+          animateZoomTo(0.5, 0.5, 1, 400);
+          setIsFocusMode(false);
+          autoFocusResetTimerRef.current = null;
+        }, AUTO_FOCUS_HOLD_MS);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -453,6 +461,10 @@ export default function ClipPlayerSheet({
   };
 
   const goToClip = (i: number) => {
+    if (autoFocusResetTimerRef.current) {
+      clearTimeout(autoFocusResetTimerRef.current);
+      autoFocusResetTimerRef.current = null;
+    }
     if (i >= 0 && i < clips.length) setIndex(i);
   };
 
@@ -463,6 +475,10 @@ export default function ClipPlayerSheet({
     resetTransform();
     setIsFocusMode(false);
     pinchRef.current = null;
+    if (autoFocusResetTimerRef.current) {
+      clearTimeout(autoFocusResetTimerRef.current);
+      autoFocusResetTimerRef.current = null;
+    }
 
     // 새 클립에 spotlight 있으면 자동 포커스 진입 (인트로 카드 없을 때만)
     const newClip = clips[index];
@@ -475,9 +491,20 @@ export default function ClipPlayerSheet({
         if (newClip.spotlightX != null && newClip.spotlightY != null) {
           setIsFocusMode(true);
           animateZoomTo(newClip.spotlightX, newClip.spotlightY, resolveFocusZoom(newClip.effects?.focusZoom), 450);
+          autoFocusResetTimerRef.current = setTimeout(() => {
+            animateZoomTo(0.5, 0.5, 1, 400);
+            setIsFocusMode(false);
+            autoFocusResetTimerRef.current = null;
+          }, AUTO_FOCUS_HOLD_MS);
         }
       }, delay);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        if (autoFocusResetTimerRef.current) {
+          clearTimeout(autoFocusResetTimerRef.current);
+          autoFocusResetTimerRef.current = null;
+        }
+      };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, cancelZoomAnimation, resetTransform]);
@@ -496,6 +523,10 @@ export default function ClipPlayerSheet({
       onDone?.();
     });
   }, [animateSpotlightZoom]);
+
+  useEffect(() => () => {
+    if (autoFocusResetTimerRef.current) clearTimeout(autoFocusResetTimerRef.current);
+  }, []);
 
   const getTouchDist = (e: React.TouchEvent) => {
     const [a, b] = [e.touches[0], e.touches[1]];

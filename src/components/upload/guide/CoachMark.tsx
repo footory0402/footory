@@ -99,27 +99,26 @@ export default function CoachMark({ step, onDismiss, onSkipAll }: CoachMarkProps
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
-      style={{ background: "rgba(7,7,9,0.78)" }}
-      onClick={(e) => e.stopPropagation()}
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] flex flex-col items-center justify-end px-4 pb-[calc(120px+env(safe-area-inset-bottom,0px))]"
+      style={{ background: "linear-gradient(180deg, rgba(7,7,9,0) 0%, rgba(7,7,9,0.55) 48%, rgba(7,7,9,0.78) 100%)" }}
     >
       {/* Gesture animation */}
-      <div className="mb-6">
+      <div className="mb-3 pointer-events-none">
         {step === "tap" ? <TapGesture /> : <PinchGesture />}
       </div>
 
       {/* Message card */}
       <div
-        className="mx-6 rounded-2xl px-6 py-5 text-center"
+        className="pointer-events-auto w-full max-w-[340px] rounded-2xl px-5 py-4 text-center"
         style={{
           background: "#1C1C22",
           border: "1px solid rgba(212,168,83,0.25)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
           animation: "fadeUp 0.3s ease-out",
         }}
       >
-        <p className="text-[15px] font-semibold text-white leading-snug">{message}</p>
-        <p className="mt-1.5 text-[12px] text-white/40">{sub}</p>
+        <p className="text-[14px] font-semibold text-white leading-snug">{message}</p>
+        <p className="mt-1 text-[11px] text-white/40">{sub}</p>
 
         {/* Step indicator */}
         <div className="mt-4 flex items-center justify-center gap-1.5">
@@ -137,11 +136,11 @@ export default function CoachMark({ step, onDismiss, onSkipAll }: CoachMarkProps
         </div>
 
         {/* Buttons */}
-        <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="mt-3 flex flex-col items-center gap-2">
           <button
             type="button"
             onClick={onDismiss}
-            className="w-full rounded-xl py-2.5 text-[14px] font-bold text-[#070709] active:scale-[0.98]"
+            className="w-full rounded-xl py-2.5 text-[13px] font-bold text-[#070709] active:scale-[0.98]"
             style={{ background: "#D4A853" }}
           >
             확인

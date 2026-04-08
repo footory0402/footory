@@ -47,6 +47,7 @@ interface ReelPreviewPlayerProps {
 export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
   const INTRO_DURATION_MS = 2000;
+  const AUTO_FOCUS_HOLD_MS = 1200;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [index, setIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -55,6 +56,7 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
   const [fading, setFading] = useState(false);
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
   const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Freeze frame
   const [isFreezing, setIsFreezing] = useState(false);
@@ -92,6 +94,10 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     if (focusTimerRef.current) {
       clearTimeout(focusTimerRef.current);
       focusTimerRef.current = null;
+    }
+    if (focusResetTimerRef.current) {
+      clearTimeout(focusResetTimerRef.current);
+      focusResetTimerRef.current = null;
     }
     cancelZoomAnimation();
   }, [cancelZoomAnimation]);
@@ -203,6 +209,10 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     focusTimerRef.current = setTimeout(() => {
       if (clip.spotlightX != null && clip.spotlightY != null) {
         animateZoomTo(clip.spotlightX, clip.spotlightY, focusZoom, 450);
+        focusResetTimerRef.current = setTimeout(() => {
+          animateZoomTo(0.5, 0.5, 1, 400);
+          focusResetTimerRef.current = null;
+        }, AUTO_FOCUS_HOLD_MS);
       }
     }, 500);
 
@@ -210,6 +220,10 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
       if (focusTimerRef.current) {
         clearTimeout(focusTimerRef.current);
         focusTimerRef.current = null;
+      }
+      if (focusResetTimerRef.current) {
+        clearTimeout(focusResetTimerRef.current);
+        focusResetTimerRef.current = null;
       }
     };
   }, [animateZoomTo, clip, focusZoom, introReady, showIntro]);
@@ -268,7 +282,8 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
-    v.paused ? v.play().catch(() => {}) : v.pause();
+    if (v.paused) v.play().catch(() => {});
+    else v.pause();
   };
 
   const effects = clip?.effects;
