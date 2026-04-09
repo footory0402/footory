@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
-import type { UploadPhase } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
 import { useRouter } from "next/navigation";
 import SelectView from "@/components/upload/SelectView";
-import DecorateView from "@/components/upload/DecorateView";
-import DoneView from "@/components/upload/DoneView";
-import { startUpload } from "@/lib/upload-service";
+import UploadProcessingView from "@/components/upload/UploadProcessingView";
+import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
+import { createSingleClipEditingDraft } from "@/lib/single-clip-playback";
+import { abortActiveUploadWork, startUpload } from "@/lib/upload-service";
+import { loadLatestSingleClipProject, markVideoProjectOpened, type SingleClipProjectResponse } from "@/lib/video-projects";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -16,13 +17,14 @@ export default function UploadPage() {
   const phase = useUploadStore((s) => s.phase);
   const status = useUploadStore((s) => s.status);
   const file = useUploadStore((s) => s.file);
-  const progress = useUploadStore((s) => s.progress);
+  const editorDraft = useUploadStore((s) => s.editorDraft);
 
   const role = profile?.role ?? null;
   const canUpload = role === "player" || role === "parent";
 
   // 비디오 Object URL (phase 전환 간 유지)
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [recoverableDraft, setRecoverableDraft] = useState<SingleClipProjectResponse | null>(null);
 
   // Reset stale states on mount
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function UploadPage() {
   // 파일 변경 시 비디오 URL 생성/해제
   useEffect(() => {
     if (!file) {
-      setVideoUrl(null);
+      if (!editorDraft) setVideoUrl(null);
       return;
     }
     const url = URL.createObjectURL(file);
@@ -47,19 +49,91 @@ export default function UploadPage() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  // 업로드 완료 감지 → done phase
   useEffect(() => {
-    if (status === "done") {
-      useUploadStore.getState().setPhase("done");
-    }
-  }, [status]);
+    if (!canUpload) return;
+    const state = useUploadStore.getState();
+    if (state.file || state.editorDraft || state.phase !== "select") return;
 
-  // 업로드 시작 감지 → uploading phase
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const latest = await loadLatestSingleClipProject();
+        if (cancelled) return;
+        setRecoverableDraft(latest);
+      } catch {
+        if (cancelled) return;
+        setRecoverableDraft(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canUpload, phase]);
+
+  // 처리 단계 진입 시 실제 업로드 시작
   useEffect(() => {
-    if (status === "uploading" || status === "composing" || status === "saving") {
-      useUploadStore.getState().setPhase("uploading");
+    if (phase === "processing" && file && status === "idle" && !editorDraft) {
+      void startUpload();
     }
-  }, [status]);
+  }, [editorDraft, file, phase, status]);
+
+  // 레거시 phase 유입 시 현재 3단계 흐름으로 정렬
+  useEffect(() => {
+    const store = useUploadStore.getState();
+    if (phase === "uploading") {
+      store.setPhase("processing");
+      return;
+    }
+    if (phase === "decorate" || phase === "share" || phase === "done") {
+      store.setPhase("select");
+    }
+  }, [phase]);
+
+  // 업로드 완료 후 기본 하이라이트 제안 초안 생성
+  useEffect(() => {
+    if (phase !== "processing" || status !== "done" || !file || editorDraft) return;
+
+    let cancelled = false;
+
+    const buildDraft = async () => {
+      const store = useUploadStore.getState();
+      store.setStatus("analyzing");
+
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      if (cancelled) return;
+
+      const fresh = useUploadStore.getState();
+      const durationSec = fresh.duration ?? 0;
+      const clipId = fresh.clipId ?? crypto.randomUUID();
+      const draft = createSingleClipEditingDraft({
+        clipId,
+        sourceDurationSec: durationSec,
+        trimStart: fresh.trimStart,
+        trimEnd: fresh.trimEnd ?? durationSec,
+        spotlight: fresh.spotlightX != null && fresh.spotlightY != null
+          ? { x: fresh.spotlightX, y: fresh.spotlightY }
+          : null,
+        freezeAt: fresh.freezeAt,
+        zoom: fresh.effects.focusZoom,
+        showProfileCard: fresh.effects.intro,
+        showLowerThird: fresh.effects.showLowerThird,
+      });
+
+      fresh.setEditorDraft(draft);
+      fresh.setStatus("idle");
+      fresh.setPhase("review");
+      fresh.setProgress(0);
+      fresh.setError(null);
+    };
+
+    void buildDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editorDraft, file, phase, status]);
 
   // 파일 선택 → 뒤로가기 핸들링
   useEffect(() => {
@@ -67,7 +141,7 @@ export default function UploadPage() {
     history.pushState({ uploadFile: true }, "");
     const onPop = () => {
       const s = useUploadStore.getState();
-      if (s.phase === "decorate") {
+      if (s.phase === "processing" || s.phase === "review") {
         s.setPhase("select");
       } else if (s.file) {
         handleFullReset();
@@ -79,35 +153,44 @@ export default function UploadPage() {
   }, [!!file]);
 
   const handleFullReset = useCallback(() => {
+    abortActiveUploadWork();
     useUploadStore.getState().reset();
     setVideoUrl(null);
+    setRecoverableDraft(null);
   }, []);
 
-  const handlePhase = useCallback((p: UploadPhase) => {
-    useUploadStore.getState().setPhase(p);
-  }, []);
+  const handleRestoreDraft = useCallback(async () => {
+    if (!recoverableDraft?.project || !recoverableDraft.clip) return;
 
-  // "하나 더 만들기" — 같은 파일(R2 키) 유지, 메타만 리셋
-  const handleMakeAnother = useCallback(() => {
-    const s = useUploadStore.getState();
-    const keepFile = s.file;
-    const keepR2Key = s.r2Key;
-    const keepR2ClipId = s.r2ClipId;
-    const keepDuration = s.duration;
+    const store = useUploadStore.getState();
+    store.setClipId(recoverableDraft.clip.id);
+    store.setDuration(
+      recoverableDraft.clip.duration_sec ??
+      recoverableDraft.clip.duration_seconds ??
+      recoverableDraft.project.payload.sourceDurationSec,
+    );
+    store.setTrimStart(recoverableDraft.project.payload.playback.trimStart);
+    store.setTrimEnd(recoverableDraft.project.payload.playback.trimEnd);
+    store.setTags(recoverableDraft.clip.tags);
+    store.setEditorDraft({
+      ...recoverableDraft.project.payload,
+      projectId: recoverableDraft.project.id,
+      projectStatus: recoverableDraft.project.status === "published" ? "published" : "draft",
+      lastSavedAt: recoverableDraft.project.updated_at,
+    });
+    store.setStatus("idle");
+    store.setError(null);
+    store.setProgress(0);
+    store.setPhase("review");
+    setVideoUrl(recoverableDraft.clip.video_url);
+    setRecoverableDraft(null);
 
-    s.reset();
-
-    if (keepFile) {
-      s.setFile(keepFile);
-      s.setDuration(keepDuration);
-      // R2 키 재사용 (재업로드 방지)
-      if (keepR2Key && keepR2ClipId) {
-        s.setR2Status("done");
-        s.setR2Upload(keepR2Key, keepR2ClipId);
-      }
-      s.setPhase("decorate");
+    try {
+      await markVideoProjectOpened(recoverableDraft.project.id);
+    } catch {
+      // no-op
     }
-  }, []);
+  }, [recoverableDraft]);
 
   /* ── Guard: 로딩 중 ── */
   if (loading && !role) {
@@ -165,66 +248,54 @@ export default function UploadPage() {
           <div className="ml-auto flex items-center gap-1.5">
             <div className="h-1 w-6 rounded-full bg-accent" />
             <div className="h-1 w-6 rounded-full bg-white/10" />
+            <div className="h-1 w-6 rounded-full bg-white/10" />
           </div>
         </div>
 
-        <SelectView onFileReady={() => handlePhase("decorate")} />
+        <SelectView
+          ctaLabel="업로드 시작"
+          startBackgroundUploadOnReady={false}
+          onFileReady={() => useUploadStore.getState().setPhase("processing")}
+        />
+        {recoverableDraft?.clip ? (
+          <div className="px-4 pt-4">
+            <button
+              type="button"
+              onClick={() => void handleRestoreDraft()}
+              className="flex w-full items-start gap-3 rounded-2xl border border-[#d8b36a]/20 bg-[#d8b36a]/10 px-4 py-4 text-left"
+            >
+              <span className="mt-0.5 text-lg">↺</span>
+              <div className="flex-1">
+                <p className="text-[13px] font-semibold text-[#f6d69a]">최근 single clip draft 이어서 편집</p>
+                <p className="mt-1 text-[12px] leading-5 text-text-2">
+                  trim, spotlight, overlay, highlight 설정을 서버에서 복구합니다.
+                </p>
+              </div>
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   }
 
-  // decorate: 스포트라이트 + 이벤트 태그 + 효과
-  if (phase === "decorate" && videoUrl) {
+  if (phase === "processing") {
     return (
-      <DecorateView
-        videoSrc={videoUrl}
-        onUpload={() => void startUpload()}
-        onBack={() => handlePhase("select")}
+      <UploadProcessingView
+        onRetry={() => void startUpload()}
+        onReset={handleFullReset}
       />
     );
   }
 
-  if (phase === "share") {
-    useUploadStore.getState().setPhase("decorate");
-    return null;
-  }
-
-  // uploading: 진행 상태 (GlobalUploadIndicator가 처리하므로 간단한 대기 UI)
-  if (phase === "uploading") {
+  if (phase === "review" && videoUrl && editorDraft) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4">
-        <div className="relative h-20 w-20">
-          <svg className="h-20 w-20 -rotate-90" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
-            <circle
-              cx="40" cy="40" r="36" fill="none"
-              stroke="#D4A853" strokeWidth="4"
-              strokeDasharray={`${2 * Math.PI * 36}`}
-              strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress / 100)}`}
-              strokeLinecap="round"
-              className="transition-all duration-300"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[18px] font-stat font-bold text-accent tabular-nums">{progress}%</span>
-          </div>
-        </div>
-        <p className="text-[14px] text-text-2">업로드 중...</p>
-        <p className="text-[11px] text-text-3">페이지를 나가도 백그라운드에서 계속돼요</p>
-        <button
-          type="button"
-          onClick={() => router.push("/")}
-          className="mt-2 rounded-xl border border-white/[0.08] bg-card px-5 py-2.5 text-[13px] font-medium text-text-2 active:bg-card-alt"
-        >
-          홈으로
-        </button>
-      </div>
+      <HighlightSuggestionReview
+        key={editorDraft.clipId}
+        draft={editorDraft}
+        videoSrc={videoUrl}
+        onReset={handleFullReset}
+      />
     );
-  }
-
-  // done: 완료
-  if (phase === "done") {
-    return <DoneView onMakeAnother={handleMakeAnother} />;
   }
 
   // fallback

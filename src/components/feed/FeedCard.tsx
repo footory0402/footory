@@ -215,11 +215,6 @@ function FeedBody({
 const KNOWN_FEED_TYPES = new Set(["highlight", "featured_change", "stat", "top_clip", "season"]);
 
 export default memo(function FeedCard({ item, onKudos, onComment, onShare, onPlay, eagerImage = false }: FeedCardProps) {
-  // Skip unknown event types — avoids empty placeholder cards in feed
-  if (!KNOWN_FEED_TYPES.has(item.type)) return null;
-
-  const posColor = POSITION_COLORS[item.playerPosition as Position] ?? "#A1A1AA";
-
   const [showPicker, setShowPicker] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -245,6 +240,11 @@ export default memo(function FeedCard({ item, onKudos, onComment, onShare, onPla
     onKudos(item.id, reaction);
     setShowPicker(false);
   }, [item.id, onKudos]);
+
+  // Skip unknown event types — avoids empty placeholder cards in feed
+  if (!KNOWN_FEED_TYPES.has(item.type)) return null;
+
+  const posColor = POSITION_COLORS[item.playerPosition as Position] ?? "#A1A1AA";
 
   const myReactionEmoji = item.myReaction
     ? REACTIONS.find((r) => r.key === item.myReaction)?.emoji ?? "👏"

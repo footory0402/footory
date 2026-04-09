@@ -9,6 +9,7 @@ import TagEditSheet from "@/components/player/TagEditSheet";
 import { useFeaturedClips } from "@/hooks/useClips";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { getSkillTagsForPosition } from "@/lib/constants";
+import { toast } from "sonner";
 
 const ClipPickerSheet = dynamic(() => import("@/components/player/ClipPickerSheet"), { ssr: false });
 
@@ -32,7 +33,7 @@ interface Reel {
   id: string;
   title: string | null;
   clip_ids: string[];
-  status: string;
+  status: "draft" | "published";
   created_at: string;
   thumbnail_url: string | null;
   total_duration: number;
@@ -109,6 +110,7 @@ export default function HighlightsTabV5({
   const [reelsLoading, setReelsLoading] = useState(!readOnly && !initialReels);
   const [playingReelClips, setPlayingReelClips] = useState<PlayableClip[] | null>(null);
   const [loadingReelId, setLoadingReelId] = useState<string | null>(null);
+  const [updatingReelId, setUpdatingReelId] = useState<string | null>(null);
   const [deletingReelId, setDeletingReelId] = useState<string | null>(null);
   const [isDeletingReel, setIsDeletingReel] = useState(false);
 
@@ -175,6 +177,40 @@ export default function HighlightsTabV5({
     } finally {
       setIsDeletingReel(false);
       setDeletingReelId(null);
+    }
+  };
+
+  const handleReelPublishAction = async (reelId: string, action: "publish" | "unpublish") => {
+    setUpdatingReelId(reelId);
+    try {
+      const res = await fetch(`/api/highlights/${reelId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.highlight) {
+        toast.error(data.error ?? "릴 상태를 바꾸지 못했습니다.");
+        return;
+      }
+
+      setReels((prev) => prev.map((reel) => (
+        reel.id === reelId
+          ? { ...reel, status: data.highlight.status as Reel["status"] }
+          : reel
+      )));
+
+      const message = data.transition === "republished"
+        ? "릴을 다시 공개했어요."
+        : data.transition === "published"
+          ? "릴을 프로필에 공개했어요."
+          : "릴 공개를 해제했어요.";
+      toast.success(message);
+    } catch {
+      toast.error("릴 상태를 바꾸지 못했습니다.");
+    } finally {
+      setUpdatingReelId(null);
     }
   };
 
@@ -466,7 +502,16 @@ export default function HighlightsTabV5({
                 <ReelCard
                   reel={reel}
                   loading={loadingReelId === reel.id}
+                  publishLoading={updatingReelId === reel.id}
                   onPlay={() => handlePlayReel(reel.id)}
+                  onTogglePublish={
+                    !readOnly
+                      ? () => handleReelPublishAction(
+                          reel.id,
+                          reel.status === "published" ? "unpublish" : "publish",
+                        )
+                      : undefined
+                  }
                   onDelete={!readOnly ? () => setDeletingReelId(reel.id) : undefined}
                   isEditMode={editMode}
                 />
@@ -1019,13 +1064,17 @@ function FeaturedEmptyCTA({ onAdd }: { onAdd: () => void }) {
 function ReelCard({
   reel,
   loading,
+  publishLoading,
   onPlay,
+  onTogglePublish,
   onDelete,
   isEditMode,
 }: {
   reel: Reel;
   loading: boolean;
+  publishLoading?: boolean;
   onPlay: () => void;
+  onTogglePublish?: () => void;
   onDelete?: () => void;
   isEditMode?: boolean;
 }) {
@@ -1072,10 +1121,49 @@ function ReelCard({
             REEL
           </div>
 
+          <div
+            className="absolute left-[46px] top-[5px]"
+            style={{
+              background: reel.status === "published" ? "rgba(212,168,83,0.92)" : "rgba(0,0,0,0.72)",
+              borderRadius: 3,
+              padding: "1px 5px",
+              fontSize: 8,
+              fontWeight: 800,
+              fontFamily: "var(--font-stat)",
+              color: reel.status === "published" ? "#000" : "#fff",
+              letterSpacing: "0.06em",
+            }}
+          >
+            {reel.status === "published" ? "LIVE" : "DRAFT"}
+          </div>
+
           {/* 클립 수 (top-right) */}
           <div className="absolute right-[5px] top-[5px]" style={{ background: "rgba(0,0,0,0.75)", borderRadius: 3, padding: "1px 4px", fontSize: 10, color: "#fff", fontFamily: "var(--font-stat)", lineHeight: 1.4 }}>
             {reel.clip_ids.length}
           </div>
+
+          {onTogglePublish && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onTogglePublish();
+              }}
+              disabled={publishLoading}
+              className="absolute right-[5px] bottom-[24px] z-10 rounded-full px-2.5 py-1 text-[9px] font-bold"
+              style={{
+                background: reel.status === "published" ? "rgba(0,0,0,0.75)" : "rgba(212,168,83,0.95)",
+                color: reel.status === "published" ? "#FAFAFA" : "#000",
+                opacity: publishLoading ? 0.6 : 1,
+              }}
+            >
+              {publishLoading
+                ? "처리 중"
+                : reel.status === "published"
+                  ? "비공개"
+                  : "공개"}
+            </button>
+          )}
 
           {/* 로딩 스피너 (중앙) */}
           {loading && (

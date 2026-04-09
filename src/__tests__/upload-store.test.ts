@@ -9,6 +9,7 @@ describe("Upload Store v3.0", () => {
   it("has correct initial state", () => {
     const state = useUploadStore.getState();
     expect(state.phase).toBe("select");
+    expect(state.editorDraft).toBeNull();
     expect(state.eventTag).toBeNull();
     expect(state.trimStart).toBe(0);
     expect(state.trimEnd).toBeNull();
@@ -21,6 +22,7 @@ describe("Upload Store v3.0", () => {
       cinematic: false,
       eafc: false,
       intro: false,
+      showLowerThird: true,
       focusZoom: 1.8,
     });
     expect(state.renderJobId).toBeNull();
@@ -28,8 +30,8 @@ describe("Upload Store v3.0", () => {
 
   it("sets phase correctly", () => {
     const store = useUploadStore.getState();
-    store.setPhase("decorate");
-    expect(useUploadStore.getState().phase).toBe("decorate");
+    store.setPhase("processing");
+    expect(useUploadStore.getState().phase).toBe("processing");
   });
 
   it("sets eventTag correctly", () => {
@@ -83,6 +85,7 @@ describe("Upload Store v3.0", () => {
       cinematic: false,
       eafc: false,
       intro: true,
+      showLowerThird: true,
       focusZoom: 1.8,
     });
   });
@@ -93,22 +96,52 @@ describe("Upload Store v3.0", () => {
     expect(useUploadStore.getState().status).toBe("editing");
     store.setStatus("uploading_raw");
     expect(useUploadStore.getState().status).toBe("uploading_raw");
+    store.setStatus("analyzing");
+    expect(useUploadStore.getState().status).toBe("analyzing");
   });
 
   it("reset clears all fields", () => {
     const store = useUploadStore.getState();
-    store.setPhase("decorate");
+    store.setPhase("review");
     store.setEventTag("goal");
     store.setTrimStart(10);
     store.setSpotlight(0.5, 0.5);
     store.setSkillLabels(["dribble"]);
     store.setEffects({ color: true });
     store.setRenderJobId("job-1");
+    store.setEditorDraft({
+      projectId: null,
+      projectStatus: "draft",
+      clipId: "clip-test",
+      sourceDurationSec: 10,
+      playback: {
+        trimStart: 0,
+        trimEnd: 10,
+        highlightStart: 0,
+        highlightEnd: 10,
+        spotlight: null,
+        freezeAt: null,
+        zoom: 1.8,
+        trackingMode: "fixed",
+        trackingPoints: [],
+      },
+      overlay: {
+        showProfileCard: false,
+        showLowerThird: true,
+      },
+      saveTarget: {
+        profileTarget: "featured_candidate",
+        portfolioTagName: null,
+      },
+      lastEditedAt: null,
+      lastSavedAt: null,
+    });
 
     store.reset();
 
     const state = useUploadStore.getState();
     expect(state.phase).toBe("select");
+    expect(state.editorDraft).toBeNull();
     expect(state.eventTag).toBeNull();
     expect(state.trimStart).toBe(0);
     expect(state.spotlightX).toBeNull();

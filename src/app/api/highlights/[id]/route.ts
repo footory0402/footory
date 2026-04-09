@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
+import {
+  normalizeHighlightPublishState,
+  resolvePublishTransition,
+} from "@/lib/publish-state";
 
 /**
  * GET /api/highlights/[id] — 릴 상세 (클립 데이터 포함)
@@ -34,7 +38,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .map((cid: string) => clipsMap.get(cid))
       .filter(Boolean);
 
-    return NextResponse.json({ highlight, clips: orderedClips });
+    return NextResponse.json({
+      highlight: {
+        ...highlight,
+        status: normalizeHighlightPublishState(highlight.status),
+      },
+      clips: orderedClips,
+    });
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -51,7 +61,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
 
     const body = await req.json();
-    const { title, clipIds } = body as { title?: string; clipIds?: string[] };
+    const { title, clipIds, status, action } = body as {
+      title?: string;
+      clipIds?: string[];
+      status?: "draft" | "published" | "rendering" | "failed";
+      action?: "publish" | "unpublish";
+    };
+
+    const { data: currentHighlight } = await supabase
+      .from("highlights")
+      .select("id, status")
+      .eq("id", id)
+      .eq("owner_id", user.id)
+      .single();
+
+    if (!currentHighlight) {
+      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
 
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
@@ -61,6 +87,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       updates.clip_ids = clipIds;
     }
+    if (status !== undefined) updates.status = status;
+    if (action === "publish") updates.status = "published";
+    if (action === "unpublish") updates.status = "draft";
 
     const { data, error } = await supabase
       .from("highlights")
@@ -74,7 +103,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: error?.message ?? "수정 실패" }, { status: 500 });
     }
 
-    return NextResponse.json({ highlight: data });
+    const nextStatus = normalizeHighlightPublishState((updates.status as string | undefined) ?? data.status);
+    return NextResponse.json({
+      highlight: {
+        ...data,
+        status: nextStatus,
+      },
+      transition: resolvePublishTransition({
+        previous: normalizeHighlightPublishState(currentHighlight.status),
+        next: nextStatus,
+      }),
+    });
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

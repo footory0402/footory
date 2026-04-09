@@ -4,20 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
 import { resolveFocusZoom } from "@/lib/focus-zoom";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
-import type { PlaybackEffects } from "@/lib/playback-focus";
 import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
+import {
+  resolveSingleClipPlaybackWindow,
+  type SingleClipPlaybackContract,
+} from "@/lib/single-clip-playback";
 
-interface HighlightShareClip {
-  id: string;
-  videoUrl: string;
-  thumbnailUrl?: string | null;
-  durationSeconds?: number | null;
-  spotlightX?: number | null;
-  spotlightY?: number | null;
-  freezeAt?: number | null;
-  trimStart?: number | null;
-  trimEnd?: number | null;
-  effects?: PlaybackEffects | null;
+interface HighlightShareClip extends SingleClipPlaybackContract {
   playerName: string;
   playerPosition?: string | null;
   playerBirthYear?: number | null;
@@ -47,7 +40,7 @@ export default function HighlightSharePlayerClient({
   const [isFreezing, setIsFreezing] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(clip.durationSeconds ?? 0);
+  const [duration, setDuration] = useState(clip.duration ?? 0);
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
   const focusZoom = resolveFocusZoom(clip.effects?.focusZoom);
   const spotlight =
@@ -87,23 +80,21 @@ export default function HighlightSharePlayerClient({
     if (!video) return;
 
     const handleLoadedMetadata = () => {
-      const trimStart = clip.trimStart ?? 0;
-      const trimEnd = clip.trimEnd ?? video.duration ?? clip.durationSeconds ?? 0;
+      const { trimStartSec, durationSec } = resolveSingleClipPlaybackWindow(clip, video.duration);
 
       setVideoNativeSize({ w: video.videoWidth || 1, h: video.videoHeight || 1 });
-      setDuration(Math.max(0, trimEnd - trimStart));
-      if (trimStart > 0) video.currentTime = trimStart;
+      setDuration(durationSec);
+      if (trimStartSec > 0) video.currentTime = trimStartSec;
       video.play().catch(() => {});
     };
 
     const handleTimeUpdate = () => {
-      const trimStart = clip.trimStart ?? 0;
-      const trimEnd = clip.trimEnd ?? video.duration ?? 0;
-      const elapsed = Math.max(0, video.currentTime - trimStart);
+      const { trimStartSec, trimEndSec } = resolveSingleClipPlaybackWindow(clip, video.duration);
+      const elapsed = Math.max(0, video.currentTime - trimStartSec);
       setCurrentTime(elapsed);
 
-      if (trimEnd > 0 && video.currentTime >= trimEnd) {
-        video.currentTime = trimEnd;
+      if (trimEndSec > 0 && video.currentTime >= trimEndSec) {
+        video.currentTime = trimEndSec;
         video.pause();
         setEnded(true);
         return;
@@ -207,8 +198,8 @@ export default function HighlightSharePlayerClient({
     if (!video || isFreezing) return;
 
     if (ended) {
-      const trimStart = clip.trimStart ?? 0;
-      video.currentTime = trimStart;
+      const { trimStartSec } = resolveSingleClipPlaybackWindow(clip);
+      video.currentTime = trimStartSec;
       setEnded(false);
       video.play().catch(() => {});
       return;
@@ -216,7 +207,7 @@ export default function HighlightSharePlayerClient({
 
     if (video.paused) video.play().catch(() => {});
     else video.pause();
-  }, [clip.trimStart, ended, isFreezing]);
+  }, [clip, ended, isFreezing]);
 
   const toggleFocus = useCallback(() => {
     if (!activeSpotlight || !hasFocusTarget) return;
@@ -239,9 +230,9 @@ export default function HighlightSharePlayerClient({
 
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    const trimStart = clip.trimStart ?? 0;
-    video.currentTime = trimStart + ratio * duration;
-  }, [clip.trimStart, duration]);
+    const { trimStartSec } = resolveSingleClipPlaybackWindow(clip);
+    video.currentTime = trimStartSec + ratio * duration;
+  }, [clip, duration]);
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
   const videoTransform = zoom > 1

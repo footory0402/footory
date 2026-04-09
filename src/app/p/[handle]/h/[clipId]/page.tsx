@@ -20,22 +20,37 @@ async function getHighlightData(handle: string, clipId: string) {
 
   if (!profile) return null;
 
-  const { data: clipRaw } = await supabase
-    .from("clips")
-    .select("id, video_url, thumbnail_url, duration_seconds, highlight_status, trim_start, trim_end, spotlight_x, spotlight_y, freeze_at, slowmo_start, slowmo_end, slowmo_speed, effects")
-    .eq("id", clipId)
-    .eq("owner_id", profile.id)
-    .single();
-
-  const { data: clipTagsRaw } = await supabase
-    .from("clip_tags")
-    .select("tag_name")
-    .eq("clip_id", clipId);
+  const [{ data: activeTeam }, { data: clipRaw }, { data: clipTagsRaw }, { data: featuredRow }] = await Promise.all([
+    supabase
+      .from("team_members")
+      .select("team_id, teams(name)")
+      .eq("profile_id", profile.id)
+      .neq("role", "alumni")
+      .limit(1)
+      .single(),
+    supabase
+      .from("clips")
+      .select("id, video_url, thumbnail_url, duration_seconds, highlight_status, trim_start, trim_end, spotlight_x, spotlight_y, freeze_at, slowmo_start, slowmo_end, slowmo_speed, effects")
+      .eq("id", clipId)
+      .eq("owner_id", profile.id)
+      .single(),
+    supabase.from("clip_tags").select("tag_name").eq("clip_id", clipId),
+    supabase
+      .from("featured_clips")
+      .select("id")
+      .eq("profile_id", profile.id)
+      .eq("clip_id", clipId)
+      .maybeSingle(),
+  ]);
 
   if (!clipRaw) return null;
+  const isPublishedClip = !!featuredRow || (clipTagsRaw?.length ?? 0) > 0;
+  if (!isPublishedClip) return null;
+
+  const teamData = activeTeam as { teams?: { name?: string | null } | null } | null;
   const clip = { ...clipRaw, clip_tags: clipTagsRaw ?? [] };
 
-  return { profile, clip };
+  return { profile: { ...profile, teamName: teamData?.teams?.name ?? null }, clip };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -81,7 +96,7 @@ export default async function HighlightSharePage({ params }: Props) {
     id: clip.id,
     videoUrl: clip.video_url,
     thumbnailUrl: clip.thumbnail_url ?? null,
-    durationSeconds: clip.duration_seconds ?? null,
+    duration: clip.duration_seconds ?? null,
     trimStart: clip.trim_start ?? null,
     trimEnd: clip.trim_end ?? null,
     spotlightX: clip.spotlight_x ?? null,
@@ -94,6 +109,7 @@ export default async function HighlightSharePage({ params }: Props) {
     playerName: profile.name,
     playerPosition: profile.position ?? null,
     playerBirthYear: profile.birth_year ?? null,
+    teamName: profile.teamName ?? null,
   };
 
   return (

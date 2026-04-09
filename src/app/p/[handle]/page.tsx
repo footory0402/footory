@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { SKILL_TAGS } from "@/lib/constants";
+import { normalizeHighlightPublishState } from "@/lib/publish-state";
 import {
   canFollow,
   canUseWatchlist,
@@ -52,6 +53,7 @@ const getProfile = cache(async (handle: string) => {
     viewerProfile,
     blockRow,
     featured,
+    reels,
     stats,
     seasons,
     team,
@@ -78,6 +80,11 @@ const getProfile = cache(async (handle: string) => {
       ? supabase.from("blocks").select("id").or(`and(blocker_id.eq.${currentUser!.id},blocked_id.eq.${profile.id}),and(blocker_id.eq.${profile.id},blocked_id.eq.${currentUser!.id})`).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("featured_clips").select("id, clip_id, sort_order").eq("profile_id", profile.id).order("sort_order"),
+    supabase
+      .from("highlights")
+      .select("id, title, clip_ids, status, created_at, thumbnail_url")
+      .eq("owner_id", profile.id)
+      .order("created_at", { ascending: false }),
     supabase.from("stats").select("*").eq("profile_id", profile.id).order("recorded_at", { ascending: false }),
     supabase.from("seasons").select("*").eq("profile_id", profile.id).order("year", { ascending: false }),
     supabase.from("team_members").select("team_id, teams(name)").eq("profile_id", profile.id).neq("role", "alumni").limit(1).single(),
@@ -110,6 +117,11 @@ const getProfile = cache(async (handle: string) => {
   // Enrich featured clips — tagClipsData에서 직접 조회 (중복 쿼리 제거)
   const featuredRows = featured.data ?? [];
   const clipIds = new Set(featuredRows.map((f: { clip_id: string }) => f.clip_id).filter(Boolean));
+  const publishedTagClipIds = new Set(
+    ((tagClipsData.data ?? []) as unknown as { id: string; clip_tags?: { tag_name: string }[] }[])
+      .filter((clip) => ((clip.clip_tags as { tag_name: string }[] | undefined) ?? []).length > 0)
+      .map((clip) => clip.id),
+  );
   const clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null; effects?: Record<string, boolean> | null; spotlight_x?: number | null; spotlight_y?: number | null; freeze_at?: number | null; trim_start?: number | null; trim_end?: number | null }> = {};
   for (const c of (tagClipsData.data ?? []) as { id: string; video_url: string; thumbnail_url: string | null; duration_seconds: number | null; effects: Record<string, boolean> | null; spotlight_x: number | null; spotlight_y: number | null; freeze_at: number | null; trim_start: number | null; trim_end: number | null }[]) {
     if (clipIds.has(c.id)) {
@@ -129,6 +141,38 @@ const getProfile = cache(async (handle: string) => {
   const enrichedFeatured = featuredRows.map((f: { id: string; clip_id: string; sort_order: number }) => ({
     ...f,
     clips: clipsMap[f.clip_id] ?? null,
+  }));
+
+  const reelRows = ((reels.data ?? []) as {
+    id: string;
+    title: string | null;
+    clip_ids: string[];
+    status: string | null;
+    created_at: string;
+    thumbnail_url: string | null;
+  }[]).filter((reel) => isOwner || normalizeHighlightPublishState(reel.status) === "published");
+  const reelClipIds = [...new Set(reelRows.flatMap((reel) => reel.clip_ids ?? []))];
+  const { data: reelClips } = reelClipIds.length > 0
+    ? await supabase
+        .from("clips")
+        .select("id, duration_seconds, trim_start, trim_end")
+        .in("id", reelClipIds)
+    : { data: [] as { id: string; duration_seconds: number | null; trim_start: number | null; trim_end: number | null }[] };
+  const reelClipDurationMap = new Map(
+    (reelClips ?? []).map((clip) => {
+      const rawDuration = clip.duration_seconds ?? 0;
+      const trimStart = clip.trim_start ?? 0;
+      const trimEnd = clip.trim_end ?? rawDuration;
+      return [clip.id, Math.max(0, trimEnd - trimStart)];
+    }),
+  );
+  const initialReels = reelRows.map((reel) => ({
+    ...reel,
+    status: normalizeHighlightPublishState(reel.status),
+    total_duration: (reel.clip_ids ?? []).reduce(
+      (sum, clipId) => sum + (reelClipDurationMap.get(clipId) ?? 0),
+      0,
+    ),
   }));
 
   // viewerAccess 계산
@@ -191,6 +235,9 @@ const getProfile = cache(async (handle: string) => {
   const tagClipsMap: Record<string, TagClipRow[]> = {};
   const untaggedClipsList: TagClipRow[] = [];
   (tagClipsData.data ?? []).forEach((clip: Record<string, unknown>) => {
+    const isPublishedClip = clipIds.has(clip.id as string) || publishedTagClipIds.has(clip.id as string);
+    if (!isOwner && !isPublishedClip) return;
+
     const clipTags = (clip.clip_tags as unknown as { tag_name: string; is_top: boolean }[]) ?? [];
     const base: Omit<TagClipRow, "tag" | "isTop"> = {
       id: clip.id as string,
@@ -225,6 +272,7 @@ const getProfile = cache(async (handle: string) => {
     teamName: teamData?.teams?.name ?? null,
     teamId: teamData?.team_id ?? null,
     featured: enrichedFeatured,
+    initialReels,
     stats: stats.data ?? [],
     seasons: seasons.data ?? [],
     achievements: achievements.data ?? [],

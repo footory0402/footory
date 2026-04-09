@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useUploadStore, type UploadStatus } from "@/stores/upload-store";
 import { startR2BackgroundUpload } from "@/lib/upload-service";
 
@@ -11,6 +11,7 @@ const ACTIVE_STATUSES: UploadStatus[] = [
   "uploading",
   "thumbnail",
   "saving",
+  "analyzing",
   "creating_job",
   "rendering",
 ];
@@ -26,6 +27,8 @@ function getLabel(status: UploadStatus, progress: number): string {
       return "썸네일 생성 중...";
     case "saving":
       return "저장 중...";
+    case "analyzing":
+      return "기본 하이라이트 제안 생성 중...";
     case "creating_job":
     case "rendering":
       return "영상 처리 중...";
@@ -48,26 +51,17 @@ function getLabel(status: UploadStatus, progress: number): string {
 
 export default function GlobalUploadIndicator() {
   const router = useRouter();
-  const pathname = usePathname();
   const status = useUploadStore((s) => s.status);
   const progress = useUploadStore((s) => s.progress);
   const renderProgress = useUploadStore((s) => s.renderProgress);
 
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissedStatus, setDismissedStatus] = useState<UploadStatus | null>(null);
   const dismissedStatusRef = useRef<UploadStatus | null>(null);
 
   const isActive = ACTIVE_STATUSES.includes(status);
   const isDone = status === "done";
   const isError = status === "error";
   const shouldShow = isActive || isDone || isError;
-
-  // 새로운 upload 사이클이 시작되면 dismissed 리셋
-  useEffect(() => {
-    if (isActive) {
-      setDismissed(false);
-      dismissedStatusRef.current = null;
-    }
-  }, [isActive]);
 
   // 완료 후 4초 자동 리셋
   useEffect(() => {
@@ -89,15 +83,17 @@ export default function GlobalUploadIndicator() {
         // 3회 초과 — 처음부터 다시
         s.reset();
         router.push("/upload");
-        return;
-      }
-      // 직접 재시도 — 새 presigned URL로 R2 업로드 재시작
-      s.setR2RetryCount(retryCount + 1);
-      s.setError(null);
-      s.setStatus("uploading");
-      s.setProgress(0);
-      startR2BackgroundUpload();
-    } else if (isDone) {
+      return;
+    }
+    // 직접 재시도 — 새 presigned URL로 R2 업로드 재시작
+    s.setR2RetryCount(retryCount + 1);
+    dismissedStatusRef.current = null;
+    setDismissedStatus(null);
+    s.setError(null);
+    s.setStatus("uploading");
+    s.setProgress(0);
+    startR2BackgroundUpload();
+  } else if (isDone) {
       useUploadStore.getState().reset();
       router.push("/profile");
     }
@@ -107,13 +103,14 @@ export default function GlobalUploadIndicator() {
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isActive) {
-      setDismissed(true);
+      dismissedStatusRef.current = status;
+      setDismissedStatus(status);
       if (isDone) useUploadStore.getState().reset();
       // 에러 상태에서는 reset하지 않음 — 파일 보존하여 재시도 가능
     }
   };
 
-  if (!shouldShow || dismissed) return null;
+  if (!shouldShow || (!isActive && dismissedStatus === status)) return null;
 
   return (
     <>

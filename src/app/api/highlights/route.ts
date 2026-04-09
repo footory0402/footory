@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
+import { normalizeHighlightPublishState } from "@/lib/publish-state";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const MAX_HIGHLIGHTS_PER_PROFILE = 3;
 const MAX_CLIPS_PER_REEL = 10;
 const MAX_REEL_DURATION = 300; // 프론트엔드 MAX_DURATION과 동일 (5분)
+
+function resolveClipPlayableDuration(clip: {
+  duration_seconds: number | null;
+  duration_sec?: number | null;
+  trim_start?: number | null;
+  trim_end?: number | null;
+}) {
+  if (clip.trim_start != null && clip.trim_end != null && clip.trim_end >= clip.trim_start) {
+    return clip.trim_end - clip.trim_start;
+  }
+  if (clip.duration_sec != null) return clip.duration_sec;
+  return clip.duration_seconds ?? 0;
+}
 
 /**
  * GET /api/highlights — 내 릴 목록
@@ -31,14 +45,15 @@ export async function GET() {
 
     const [{ data: firstClips }, { data: allClips }] = await Promise.all([
       supabase.from("clips").select("id, thumbnail_url").in("id", firstClipIds),
-      supabase.from("clips").select("id, duration_seconds").in("id", allClipIds),
+      supabase.from("clips").select("id, duration_seconds, duration_sec, trim_start, trim_end").in("id", allClipIds),
     ]);
 
     const thumbMap = new Map((firstClips ?? []).map((c) => [c.id, c.thumbnail_url]));
-    const durMap = new Map((allClips ?? []).map((c) => [c.id, c.duration_seconds ?? 0]));
+    const durMap = new Map((allClips ?? []).map((c) => [c.id, resolveClipPlayableDuration(c)]));
 
     const enriched = highlights.map((h) => ({
       ...h,
+      status: normalizeHighlightPublishState(h.status),
       thumbnail_url: thumbMap.get(h.clip_ids[0]) ?? null,
       total_duration: (h.clip_ids as string[]).reduce((s, id) => s + (durMap.get(id) ?? 0), 0),
     }));
@@ -72,9 +87,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { clipIds, title } = body as {
+    const { clipIds, title, status } = body as {
       clipIds: string[];
       title?: string;
+      status?: "draft" | "done";
     };
 
     if (!clipIds || clipIds.length < 2) {
@@ -107,7 +123,7 @@ export async function POST(req: NextRequest) {
     // 클립 소유권 + duration 확인
     const { data: clips } = await supabase
       .from("clips")
-      .select("id, duration_seconds, rendered_url")
+      .select("id, duration_seconds, duration_sec, trim_start, trim_end, rendered_url")
       .eq("owner_id", user.id)
       .in("id", clipIds);
 
@@ -119,7 +135,7 @@ export async function POST(req: NextRequest) {
     }
 
     const totalDuration = clips.reduce(
-      (sum, c) => sum + (c.duration_seconds ?? 0),
+      (sum, c) => sum + resolveClipPlayableDuration(c),
       0
     );
     if (totalDuration > MAX_REEL_DURATION) {
@@ -136,7 +152,8 @@ export async function POST(req: NextRequest) {
         owner_id: user.id,
         title: title ?? null,
         clip_ids: clipIds,
-        status: "draft",
+        duration_sec: Math.round(totalDuration),
+        status: status === "done" ? "done" : "draft",
       })
       .select()
       .single();

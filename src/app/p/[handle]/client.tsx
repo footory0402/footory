@@ -96,6 +96,15 @@ interface PublicProfileData {
   teamName?: string | null;
   teamId?: string | null;
   featured: FeaturedClip[];
+  initialReels?: Array<{
+    id: string;
+    title: string | null;
+    clip_ids: string[];
+    status: "draft" | "published";
+    created_at: string;
+    thumbnail_url: string | null;
+    total_duration: number;
+  }>;
   stats: Record<string, unknown>[];
   seasons: Record<string, unknown>[];
   achievements: Record<string, unknown>[];
@@ -510,6 +519,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             tagClips={tagClips}
             untaggedClips={localUntaggedClips}
             initialFeatured={localFeatured}
+            initialReels={data.initialReels}
             position={profile.position}
             playerName={profile.name}
             playerBirthYear={profile.birthYear ?? null}

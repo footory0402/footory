@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeHighlightPublishState } from "@/lib/publish-state";
 import ReelShareClient from "./ReelShareClient";
 
 interface Props {
@@ -14,18 +15,28 @@ async function getReelData(id: string) {
   // highlights 테이블 RLS: anon SELECT 허용 필요
   const { data: reel } = await supabase
     .from("highlights")
-    .select("id, title, clip_ids, owner_id, thumbnail_url")
+    .select("id, title, clip_ids, owner_id, thumbnail_url, status")
     .eq("id", id)
     .single();
 
   if (!reel) return null;
+  if (normalizeHighlightPublishState(reel.status) !== "published") return null;
 
   // 소유자 프로필
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, handle, name, position, birth_year, avatar_url")
-    .eq("id", reel.owner_id)
-    .single();
+  const [{ data: profile }, { data: activeTeam }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, handle, name, position, birth_year, avatar_url")
+      .eq("id", reel.owner_id)
+      .single(),
+    supabase
+      .from("team_members")
+      .select("team_id, teams(name)")
+      .eq("profile_id", reel.owner_id)
+      .neq("role", "alumni")
+      .limit(1)
+      .single(),
+  ]);
 
   if (!profile) return null;
 
@@ -40,7 +51,8 @@ async function getReelData(id: string) {
     .map((cid) => clipsMap.get(cid))
     .filter(Boolean) as NonNullable<typeof clips>;
 
-  return { reel, profile, clips: orderedClips };
+  const teamData = activeTeam as { teams?: { name?: string | null } | null } | null;
+  return { reel, profile: { ...profile, teamName: teamData?.teams?.name ?? null }, clips: orderedClips };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -104,6 +116,7 @@ export default async function ReelSharePage({ params }: Props) {
     playerName: profile.name,
     playerPosition: profile.position ?? null,
     playerBirthYear: profile.birth_year ?? null,
+    teamName: profile.teamName ?? null,
   }));
 
   return (

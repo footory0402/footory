@@ -3,6 +3,11 @@ import { captureVideoThumbnail } from "@/lib/thumbnail";
 import { getFileDuration } from "@/lib/video";
 import { useUploadStore } from "@/stores/upload-store";
 import type { EventTag } from "@/components/editor/video/types";
+import { uploadViaDirectApi } from "@/lib/upload-network";
+import {
+  buildGeneralUploadPayload,
+  buildParentUploadPayload,
+} from "@/lib/upload-payload";
 
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel payload 제한)
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
@@ -46,6 +51,21 @@ function resolveClipTags() {
   return mergeUploadTags(store.tags, store.eventTag);
 }
 
+const USER_ABORTED_UPLOAD = "USER_ABORTED_UPLOAD";
+
+function isAbortError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+  if (error instanceof Error) {
+    return (
+      error.message === USER_ABORTED_UPLOAD ||
+      error.message.includes("AbortError") ||
+      error.message.includes("aborted")
+    );
+  }
+  return false;
+}
+
 // ─── 유틸 ───
 
 function resolveContentType(file: File): string {
@@ -83,13 +103,19 @@ async function apiFetch(
   init: RequestInit,
   label: string,
   retries = 1,
-  timeoutMs = API_TIMEOUT_MS
+  timeoutMs = API_TIMEOUT_MS,
+  signal?: AbortSignal
 ): Promise<Response> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
+    if (signal?.aborted) {
+      throw new Error(USER_ABORTED_UPLOAD);
+    }
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const abortBySignal = () => controller.abort();
+    signal?.addEventListener("abort", abortBySignal);
 
     try {
       const res = await fetchBypassSW(url, {
@@ -97,9 +123,14 @@ async function apiFetch(
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", abortBySignal);
       return res;
     } catch (err) {
       clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", abortBySignal);
+      if (signal?.aborted) {
+        throw new Error(USER_ABORTED_UPLOAD);
+      }
       lastError = err instanceof Error ? err : new Error(String(err));
       const msg = lastError.message;
 
@@ -120,6 +151,9 @@ async function apiFetch(
 
   // 재시도 모두 실패
   const base = lastError?.message ?? "Unknown error";
+  if (base === USER_ABORTED_UPLOAD) {
+    throw new Error(USER_ABORTED_UPLOAD);
+  }
   if (base.toLowerCase().includes("abort")) {
     throw new Error(`${label}: 서버 응답 시간 초과 (${timeoutMs / 1000}초)`);
   }
@@ -141,23 +175,19 @@ async function uploadViaProxy(
   key: string,
   contentType: string
 ): Promise<void> {
-  const form = new FormData();
-  form.append("file", file);
-  form.append("key", key);
-  form.append("contentType", contentType);
-
-  const res = await apiFetch(
-    "/api/upload/direct",
-    { method: "POST", body: form },
-    "서버 프록시 업로드",
-    1,
-    UPLOAD_TIMEOUT_MS
+  await uploadViaDirectApi(
+    file,
+    key,
+    contentType,
+    (input, init) =>
+      apiFetch(
+        typeof input === "string" ? input : input.toString(),
+        init ?? {},
+        "서버 프록시 업로드",
+        1,
+        UPLOAD_TIMEOUT_MS
+      )
   );
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `서버 업로드 실패 (${res.status})`);
-  }
 }
 
 // ─── 시뮬레이션 프로그레스 (fetch 폴백용) ───
@@ -445,7 +475,8 @@ function xhrUpload(
   file: File,
   contentType: string,
   timeout: number,
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  signal?: AbortSignal
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -480,15 +511,28 @@ function xhrUpload(
 
     xhr.onload = () => {
       cleanup();
-      xhr.status < 300
-        ? resolve()
-        : reject(new Error(`R2 ${xhr.status}: ${xhr.statusText}`));
+      if (xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`R2 ${xhr.status}: ${xhr.statusText}`));
+      }
     };
     xhr.onerror = () => { cleanup(); reject(new Error("R2 네트워크 오류")); };
     xhr.ontimeout = () => { cleanup(); reject(new Error("R2 시간 초과")); };
     xhr.timeout = timeout;
     xhr.open("PUT", url);
     xhr.setRequestHeader("Content-Type", contentType);
+    if (signal) {
+      const onAbort = () => {
+        cleanup();
+        xhr.abort();
+        reject(new Error(USER_ABORTED_UPLOAD));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      xhr.onloadend = () => {
+        signal.removeEventListener("abort", onAbort);
+      };
+    }
     xhr.send(file);
   });
 }
@@ -499,8 +543,12 @@ async function uploadToR2(
   key: string,
   contentType: string,
   onProgress: (pct: number) => void,
-  getNewPresignedUrl?: () => Promise<string>
+  getNewPresignedUrl?: () => Promise<string>,
+  signal?: AbortSignal
 ): Promise<void> {
+  if (signal?.aborted) {
+    throw new Error(USER_ABORTED_UPLOAD);
+  }
   // 50MB 이상이면 Multipart Upload 시도 (청크 단위 재시도로 신뢰성 향상)
   if (file.size >= MULTIPART_THRESHOLD) {
     try {
@@ -514,7 +562,7 @@ async function uploadToR2(
       // 새 presigned URL 발급 후 단일 PUT 시도
       const fallbackUrl = getNewPresignedUrl ? await getNewPresignedUrl() : url;
       try {
-        await xhrUpload(fallbackUrl, file, contentType, calcUploadTimeout(file.size), onProgress);
+        await xhrUpload(fallbackUrl, file, contentType, calcUploadTimeout(file.size), onProgress, signal);
         return;
       } catch (fallbackErr) {
         const fallbackMsg = (fallbackErr as Error).message;
@@ -543,6 +591,7 @@ async function uploadToR2(
         await xhrUpload(currentUrl, file, contentType, timeout, onProgress);
         return; // 성공
       } catch (err) {
+        if (signal?.aborted || isAbortError(err)) throw err;
         const msg = (err as Error).message;
         console.warn(`[Upload] XHR attempt ${attempt + 1} failed:`, msg);
         errors.push(`XHR#${attempt + 1}: ${msg}`);
@@ -554,6 +603,8 @@ async function uploadToR2(
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
+        const onAbort = () => controller.abort();
+        signal?.addEventListener("abort", onAbort);
         try {
           const res = await fetch(currentUrl, {
             method: "PUT",
@@ -561,12 +612,15 @@ async function uploadToR2(
             body: file,
             signal: controller.signal,
           });
+          signal?.removeEventListener("abort", onAbort);
           if (res.ok) { sim.finish(); return; }
           errors.push(`fetch: ${res.status} ${res.statusText}`);
         } finally {
+          signal?.removeEventListener("abort", onAbort);
           clearTimeout(timeoutId);
         }
       } catch (err) {
+        if (signal?.aborted || isAbortError(err)) throw new Error(USER_ABORTED_UPLOAD);
         errors.push(`fetch: ${(err as Error).message}`);
       } finally {
         sim.stop();
@@ -621,8 +675,30 @@ function releaseWakeLock() {
 
 let bgUploadGeneration = 0;
 let activeXhr: XMLHttpRequest | null = null;
+let fgUploadGeneration = 0;
+let activeBackgroundAbortController: AbortController | null = null;
+let activeForegroundAbortController: AbortController | null = null;
 
-function waitForR2Upload(timeoutMs = 35_000): Promise<void> {
+export function abortActiveUploadWork() {
+  bgUploadGeneration += 1;
+  fgUploadGeneration += 1;
+
+  activeBackgroundAbortController?.abort();
+  activeBackgroundAbortController = null;
+  activeForegroundAbortController?.abort();
+  activeForegroundAbortController = null;
+
+  if (activeXhr) {
+    try {
+      activeXhr.abort();
+    } catch {
+      // no-op
+    }
+    activeXhr = null;
+  }
+}
+
+function waitForR2Upload(signal?: AbortSignal, timeoutMs = 35_000): Promise<void> {
   return new Promise((resolve, reject) => {
     const current = useUploadStore.getState();
     if (current.r2Status === "done") { resolve(); return; }
@@ -632,17 +708,26 @@ function waitForR2Upload(timeoutMs = 35_000): Promise<void> {
       reject(new Error("R2 업로드 대기 시간 초과"));
     }, timeoutMs);
 
+    const onAbort = () => {
+      window.clearTimeout(timeoutId);
+      unsub();
+      reject(new Error(USER_ABORTED_UPLOAD));
+    };
+
     const unsub = useUploadStore.subscribe((state) => {
       if (state.r2Status === "done") {
         window.clearTimeout(timeoutId);
+        signal?.removeEventListener("abort", onAbort);
         unsub();
         resolve();
       } else if (state.r2Status !== "uploading") {
         window.clearTimeout(timeoutId);
+        signal?.removeEventListener("abort", onAbort);
         unsub();
         reject(new Error("R2 업로드 실패"));
       }
     });
+    signal?.addEventListener("abort", onAbort, { once: true });
   });
 }
 
@@ -657,6 +742,9 @@ export function startR2BackgroundUpload() {
   if (!file) return;
 
   const generation = ++bgUploadGeneration;
+  activeBackgroundAbortController?.abort();
+  const abortController = new AbortController();
+  activeBackgroundAbortController = abortController;
   const s = useUploadStore.getState();
   s.setR2Status("uploading");
   s.setR2Progress(0);
@@ -698,7 +786,10 @@ export function startR2BackgroundUpload() {
             fileSize: file.size,
           }),
         },
-        "Presign URL 요청"
+        "Presign URL 요청",
+        1,
+        API_TIMEOUT_MS,
+        abortController.signal
       );
       if (generation !== bgUploadGeneration) return;
       if (!presignRes.ok) {
@@ -729,7 +820,10 @@ export function startR2BackgroundUpload() {
               clipId,
             }),
           },
-          "Presign URL 재발급"
+          "Presign URL 재발급",
+          1,
+          API_TIMEOUT_MS,
+          abortController.signal
         );
         if (!res.ok) throw new Error("Presign 재발급 실패");
         const data = await res.json();
@@ -744,7 +838,8 @@ export function startR2BackgroundUpload() {
             useUploadStore.getState().setLastProgressTime(Date.now());
           }
         },
-        getNewUrl
+        getNewUrl,
+        abortController.signal
       );
 
       if (generation !== bgUploadGeneration) return;
@@ -752,6 +847,12 @@ export function startR2BackgroundUpload() {
       useUploadStore.getState().setR2Status("done");
     } catch (e) {
       if (generation !== bgUploadGeneration) return;
+      if (abortController.signal.aborted || isAbortError(e)) {
+        const st = useUploadStore.getState();
+        st.setR2Status("idle");
+        st.setR2Progress(0);
+        return;
+      }
       const msg = e instanceof Error ? e.message : "업로드 실패";
       console.warn("[Upload] Background R2 upload failed:", msg);
       const st = useUploadStore.getState();
@@ -761,6 +862,9 @@ export function startR2BackgroundUpload() {
       // 백그라운드 업로드 실패는 startUpload()에서 폴백 처리함
       // status를 error로 바꾸면 startUpload() 진입 자체가 차단됨
     } finally {
+      if (activeBackgroundAbortController === abortController) {
+        activeBackgroundAbortController = null;
+      }
       document.removeEventListener("visibilitychange", handleVisibility);
       releaseWakeLock();
     }
@@ -843,9 +947,20 @@ export async function startUpload() {
   if (!store.file) return;
   // idle 또는 error(백그라운드 업로드 실패 후 재시도) 상태에서만 진입
   if (store.status !== "idle" && store.status !== "error") return;
+  const generation = ++fgUploadGeneration;
+  activeForegroundAbortController?.abort();
+  const abortController = new AbortController();
+  activeForegroundAbortController = abortController;
+
+  const ensureActive = () => {
+    if (generation !== fgUploadGeneration || abortController.signal.aborted) {
+      throw new Error(USER_ABORTED_UPLOAD);
+    }
+  };
 
   await acquireWakeLock();
   try {
+    ensureActive();
     store.setStatus("uploading");
     store.setProgress(0);
     const resolvedTags = resolveClipTags();
@@ -854,7 +969,6 @@ export async function startUpload() {
     let uploadFile: File = store.compressedFile ?? store.file!;
 
     // 인트로 카드 합성 (effects.intro가 켜져 있으면)
-    let introComposed = false;
     if (store.effects.intro) {
       try {
         store.setStatus("composing");
@@ -863,9 +977,9 @@ export async function startUpload() {
         const result = await composeIntroCard(uploadFile, (pct) => {
           store.setProgress(pct);
         });
+        ensureActive();
         if (!result.skipped) {
           uploadFile = result.file;
-          introComposed = true;
           // 합성된 파일은 새로 업로드해야 하므로 기존 백그라운드 업로드 무효화
           const s = useUploadStore.getState();
           s.setR2Status("idle");
@@ -895,11 +1009,15 @@ export async function startUpload() {
         }
       });
       try {
-        await waitForR2Upload();
+        await waitForR2Upload(abortController.signal);
+        ensureActive();
         const fresh = useUploadStore.getState();
         key = fresh.r2Key ?? "";
         clipId = fresh.r2ClipId ?? "";
-      } catch {
+      } catch (err) {
+        if (abortController.signal.aborted || isAbortError(err)) {
+          throw err;
+        }
         // Background upload failed — will fall through to direct upload
       } finally {
         unsub();
@@ -920,8 +1038,12 @@ export async function startUpload() {
             fileSize: uploadFile.size,
           }),
         },
-        "Presign URL 요청"
+        "Presign URL 요청",
+        1,
+        API_TIMEOUT_MS,
+        abortController.signal
       );
+      ensureActive();
       if (!presignRes.ok) {
         const errBody = await presignRes.json().catch(() => ({}));
         if (presignRes.status === 401) {
@@ -948,16 +1070,20 @@ export async function startUpload() {
               clipId,
             }),
           },
-          "Presign URL 재발급"
+          "Presign URL 재발급",
+          1,
+          API_TIMEOUT_MS,
+          abortController.signal
         );
         if (!res.ok) throw new Error("Presign 재발급 실패");
         const data = await res.json();
         return data.url as string;
       };
       await uploadToR2(presignData.url, uploadFile, key, fileContentType, (pct) =>
-        store.setProgress(pct), getNewUrl
+        store.setProgress(pct), getNewUrl, abortController.signal
       );
     }
+    ensureActive();
     store.setClipId(clipId);
     store.setProgress(95);
 
@@ -975,39 +1101,40 @@ export async function startUpload() {
     const isParentUpload = store.context === "parent" && store.childId;
     const apiUrl = isParentUpload ? "/api/parent/upload" : "/api/clips";
     const body = isParentUpload
-      ? {
-          child_id: store.childId,
-          clip_id: clipId,
-          video_url: videoUrl,
-          duration_seconds: duration || null,
-          file_size_bytes: uploadFile.size,
+      ? buildParentUploadPayload({
+          childId: store.childId!,
+          clipId,
+          videoUrl,
+          durationSeconds: duration || null,
+          fileSizeBytes: uploadFile.size,
           tags: resolvedTags,
-          thumbnail_url: null,
-        }
-      : {
-          clip_id: clipId,
-          video_url: videoUrl,
-          duration_seconds: duration || null,
-          file_size_bytes: uploadFile.size,
+          thumbnailUrl: null,
+        })
+      : buildGeneralUploadPayload({
+          clipId,
+          videoUrl,
+          durationSeconds: duration || null,
+          fileSizeBytes: uploadFile.size,
           memo: store.memo || null,
           tags: resolvedTags,
-          thumbnail_url: null,
-          highlight_start: store.trimStart,
-          highlight_end: highlightEnd,
-          trim_start: store.trimStart,
-          trim_end: store.trimEnd,
-          spotlight_x: store.spotlightX,
-          spotlight_y: store.spotlightY,
-          freeze_at: store.freezeAt,
-          event_tag: store.eventTag,
+          thumbnailUrl: null,
+          trimStart: store.trimStart,
+          trimEnd: store.trimEnd,
+          highlightStart: store.trimStart,
+          highlightEnd,
+          spotlightX: store.spotlightX,
+          spotlightY: store.spotlightY,
+          freezeAt: store.freezeAt,
+          eventTag: store.eventTag,
           effects: {
             intro: store.effects.intro,
+            showLowerThird: store.effects.showLowerThird,
             ...(store.spotlightX !== null ? { focusZoom: store.effects.focusZoom } : {}),
             trackingMode: store.trackingMode,
             ...(store.trackingPoints.length > 0 ? { trackingPoints: store.trackingPoints } : {}),
           },
-          client_trimmed: true,
-        };
+          clientTrimmed: true,
+        });
 
     const clipRes = await apiFetch(
       apiUrl,
@@ -1016,8 +1143,12 @@ export async function startUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       },
-      "클립 메타데이터 저장"
+      "클립 메타데이터 저장",
+      1,
+      API_TIMEOUT_MS,
+      abortController.signal
     );
+    ensureActive();
 
     if (!clipRes.ok) {
       const errBody = await clipRes.json().catch(() => ({}));
@@ -1031,9 +1162,15 @@ export async function startUpload() {
     // 썸네일은 백그라운드에서 비동기 처리 (사용자 대기 없음)
     backgroundThumbnailUpload(store.file!, clipId).catch(() => {});
   } catch (e) {
+    if (abortController.signal.aborted || isAbortError(e)) {
+      return;
+    }
     store.setError(e instanceof Error ? e.message : "업로드 실패");
     store.setStatus("error");
   } finally {
+    if (activeForegroundAbortController === abortController) {
+      activeForegroundAbortController = null;
+    }
     releaseWakeLock();
   }
 }
@@ -1139,6 +1276,7 @@ export async function startRenderUpload(compressedFile?: File) {
       freeze_at: store.freezeAt,
       effects: {
         intro: store.effects.intro,
+        showLowerThird: store.effects.showLowerThird,
         ...(store.spotlightX !== null ? { focusZoom: store.effects.focusZoom } : {}),
         trackingMode: store.trackingMode,
         ...(store.trackingPoints.length > 0 ? { trackingPoints: store.trackingPoints } : {}),

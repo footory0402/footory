@@ -6,6 +6,13 @@ import ClipSelector from "@/components/reel/ClipSelector";
 import ClipOrderEditor, { type ReelClipItem, type TransitionType } from "@/components/reel/ClipOrderEditor";
 import dynamic from "next/dynamic";
 import { toast } from "@/components/ui/Toast";
+import {
+  loadLatestReelProject,
+  markVideoProjectOpened,
+  markVideoProjectPublished,
+  saveVideoProject,
+  type ReelHighlightDraftPayload,
+} from "@/lib/video-projects";
 
 const ReelPreviewPlayer = dynamic(() => import("@/components/reel/ReelPreviewPlayer"), { ssr: false });
 
@@ -42,6 +49,9 @@ export default function ReelCreatePage() {
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectStatus, setProjectStatus] = useState<"draft" | "published">("draft");
+  const [hasRecoverableDraft, setHasRecoverableDraft] = useState(false);
 
   useEffect(() => {
     fetch("/api/clips")
@@ -49,6 +59,25 @@ export default function ReelCreatePage() {
       .then((data) => setAllClips(data.clips ?? []))
       .catch(() => setError("클립을 불러오지 못했어요. 잠시 후 다시 시도해주세요."))
       .finally(() => setLoadingClips(false));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const latest = await loadLatestReelProject();
+        if (cancelled) return;
+        setHasRecoverableDraft(!!latest?.project);
+      } catch {
+        if (cancelled) return;
+        setHasRecoverableDraft(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const totalDuration = selected.reduce((s, id) => {
@@ -73,6 +102,71 @@ export default function ReelCreatePage() {
     setStep("order");
   };
 
+  useEffect(() => {
+    const clipIds = step === "order"
+      ? orderItems.map((item) => item.id)
+      : selected;
+
+    if (clipIds.length < 2) return;
+
+    const payload: ReelHighlightDraftPayload = {
+      title,
+      clipIds,
+      items: step === "order"
+        ? orderItems
+        : clipIds.map((id) => {
+          const clip = allClips.find((item) => item.id === id);
+          return {
+            id,
+            thumbnail_url: clip?.thumbnail_url ?? null,
+            duration_seconds: clip?.duration_seconds ?? null,
+            memo: clip?.memo ?? null,
+            transition: "cut" as TransitionType,
+          };
+        }),
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const result = await saveVideoProject<ReelHighlightDraftPayload>({
+            projectId,
+            kind: "reel_highlight",
+            status: "draft",
+            title: title || null,
+            payload,
+          });
+          setProjectId(result.project.id);
+          setProjectStatus("draft");
+          setHasRecoverableDraft(false);
+        } catch {
+          // silent autosave failure
+        }
+      })();
+    }, 800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [allClips, orderItems, projectId, selected, step, title]);
+
+  const handleRestoreDraft = async () => {
+    try {
+      const latest = await loadLatestReelProject();
+      if (!latest?.project) return;
+
+      const payload = latest.project.payload;
+      setProjectId(latest.project.id);
+      setProjectStatus(latest.project.status === "published" ? "published" : "draft");
+      setTitle(payload.title);
+      setSelected(payload.clipIds);
+      setOrderItems(payload.items);
+      setStep("order");
+      setHasRecoverableDraft(false);
+      await markVideoProjectOpened(latest.project.id);
+    } catch {
+      setError("최근 reel draft를 복구하지 못했어요.");
+    }
+  };
+
   const handleSave = async () => {
     if (orderItems.length < 2) return;
     setSaving(true);
@@ -81,14 +175,25 @@ export default function ReelCreatePage() {
       const res = await fetch("/api/highlights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clipIds: orderItems.map((i) => i.id), title: title || null }),
+        body: JSON.stringify({
+          clipIds: orderItems.map((i) => i.id),
+          title: title || null,
+          status: "done",
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "저장 실패");
         return;
       }
-      toast("릴이 저장되었어요", "success");
+      if (projectId) {
+        await markVideoProjectPublished({
+          projectId,
+          highlightId: data.highlight?.id ?? null,
+        });
+        setProjectStatus("published");
+      }
+      toast("릴 초안을 저장했어요. 프로필에서 공개할 수 있습니다.", "success");
       router.push("/profile");
     } catch {
       setError("저장 중 오류가 발생했습니다");
@@ -168,14 +273,31 @@ export default function ReelCreatePage() {
               <div className="w-6 h-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
             </div>
           ) : (
-            <ClipSelector
-              clips={allClips}
-              selected={selected}
-              onToggle={toggleSelect}
-              maxDuration={MAX_DURATION}
-              totalDuration={totalDuration}
-              maxClips={MAX_CLIPS}
-            />
+            <div className="flex h-full flex-col">
+              {hasRecoverableDraft ? (
+                <div className="px-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => void handleRestoreDraft()}
+                    className="mb-3 flex w-full items-start gap-3 rounded-2xl border border-[#d8b36a]/20 bg-[#d8b36a]/10 px-4 py-4 text-left"
+                  >
+                    <span className="mt-0.5 text-lg">↺</span>
+                    <div className="flex-1">
+                      <p className="text-[13px] font-semibold text-[#f6d69a]">최근 reel draft 이어서 편집</p>
+                      <p className="mt-1 text-[12px] leading-5 text-text-2">선택 순서와 제목을 서버 draft에서 복구합니다.</p>
+                    </div>
+                  </button>
+                </div>
+              ) : null}
+              <ClipSelector
+                clips={allClips}
+                selected={selected}
+                onToggle={toggleSelect}
+                maxDuration={MAX_DURATION}
+                totalDuration={totalDuration}
+                maxClips={MAX_CLIPS}
+              />
+            </div>
           )
         )}
 
@@ -201,6 +323,11 @@ export default function ReelCreatePage() {
         className="shrink-0 px-4 py-3 border-t"
         style={{ borderColor: "rgba(255,255,255,0.06)", paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
       >
+        {projectId ? (
+          <p className="mb-2 text-[11px] text-text-3">
+            {projectStatus === "published" ? "published reel project" : "draft autosave 활성화"}
+          </p>
+        ) : null}
         {step === "select" && (
           <button
             type="button"

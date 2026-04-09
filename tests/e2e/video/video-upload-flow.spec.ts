@@ -1,11 +1,8 @@
 /**
- * 영상 업로드 + 편집 + 재생 E2E 테스트
+ * 영상 업로드 두 번째 세로 슬라이스 E2E 테스트
  *
  * 사용법:
  *   VIDEO_FILE=/path/to/video.mp4 npx playwright test tests/e2e/video/video-upload-flow.spec.ts
- *
- * 환경변수:
- *   VIDEO_FILE  — 테스트할 영상 파일 경로 (필수)
  */
 
 import { test, expect, type Page } from "@playwright/test";
@@ -13,14 +10,12 @@ import path from "node:path";
 import fs from "node:fs";
 import { loginAsPlayer } from "../setup/test-accounts";
 
-/* ── 환경변수 ── */
 const VIDEO_FILE = process.env.VIDEO_FILE ?? "";
-const SCREENSHOT_DIR = path.resolve(
-  process.cwd(),
-  "test-results/video-screenshots"
-);
+const SMOKE_VIDEO_FILE = fs.existsSync(VIDEO_FILE)
+  ? VIDEO_FILE
+  : path.resolve(process.cwd(), "tests/fixtures/videos/test1.mp4");
+const SCREENSHOT_DIR = path.resolve(process.cwd(), "test-results/video-screenshots");
 
-/* ── 헬퍼 ── */
 function ensureScreenshotDir() {
   if (!fs.existsSync(SCREENSHOT_DIR)) {
     fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -35,429 +30,188 @@ async function screenshot(page: Page, name: string) {
   });
 }
 
-/** 비디오 엘리먼트의 상태를 evaluate로 수집 */
-async function getVideoState(page: Page, selector = "video") {
-  return page.evaluate((sel) => {
-    const v = document.querySelector(sel) as HTMLVideoElement | null;
-    if (!v) return null;
-    return {
-      src: v.src,
-      currentTime: v.currentTime,
-      duration: v.duration,
-      paused: v.paused,
-      readyState: v.readyState,
-      videoWidth: v.videoWidth,
-      videoHeight: v.videoHeight,
-      error: v.error ? v.error.code : null,
-    };
-  }, selector);
-}
-
-async function dismissCoachMarkIfPresent(page: Page) {
-  const dismissBtn = page.getByRole("button", { name: "건너뛰기" });
-  if (await dismissBtn.isVisible().catch(() => false)) {
-    await dismissBtn.click();
-  }
-}
-
-/* ── 테스트 ── */
-
-test.describe("영상 업로드 전체 플로우", () => {
+test.describe("영상 업로드 두 번째 세로 슬라이스", () => {
   test.beforeEach(() => {
     test.skip(!VIDEO_FILE, "VIDEO_FILE 환경변수가 필요합니다");
-    test.skip(
-      !fs.existsSync(VIDEO_FILE),
-      `영상 파일을 찾을 수 없습니다: ${VIDEO_FILE}`
-    );
+    test.skip(!fs.existsSync(VIDEO_FILE), `영상 파일을 찾을 수 없습니다: ${VIDEO_FILE}`);
   });
 
-  test("1. 파일 선택 + 유효성 검사", async ({ page }) => {
+  test("1. 파일 선택 전에 형식과 제한을 이해할 수 있다", async ({ page }) => {
     await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
-    await screenshot(page, "01-upload-initial");
 
-    // 파일 업로드
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
+    await expect(page.getByText("영상을 선택하세요")).toBeVisible();
+    await expect(page.getByText(/MP4, MOV/i)).toBeVisible();
+    await expect(page.getByText(/5분 이내/i)).toBeVisible();
+    await expect(page.getByText(/200MB 이내/i)).toBeVisible();
 
-    // 영상 미리보기 로드 대기
-    await page.waitForSelector("video", { timeout: 15_000 });
-
-    // 에러 없는지 확인
-    const error = page.locator('text="영상 파일이 아닌 것 같아요"');
-    const sizeError = page.locator('text="200MB 이내로 선택해주세요"');
-    const durationError = page.locator('text="5분 이내로 선택해주세요"');
-    await expect(error).not.toBeVisible();
-    await expect(sizeError).not.toBeVisible();
-    await expect(durationError).not.toBeVisible();
-
-    // 영상 렌더링 확인
-    const videoState = await getVideoState(page);
-    expect(videoState).not.toBeNull();
-    expect(videoState!.error).toBeNull();
-    expect(videoState!.duration).toBeGreaterThan(0);
-
-    await screenshot(page, "02-file-selected");
-
-    // 파일 정보 오버레이 (duration + 파일 크기)
-    const durationBadge = page.locator(".font-stat").first();
-    await expect(durationBadge).toBeVisible();
+    await screenshot(page, "upload-slice-01-select");
   });
 
-  test("2. 트림 바 + 구간 선택", async ({ page }) => {
+  test("2. 유효한 파일을 선택하면 업로드 시작 버튼과 미리보기가 보인다", async ({ page }) => {
     await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
 
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
+    await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
 
-    // duration > 2초 → 트림 바 표시
-    const videoState = await getVideoState(page);
-    if (videoState && videoState.duration > 2) {
-      const trimSection = page.locator('text="구간 선택"');
-      await expect(trimSection).toBeVisible();
-      await screenshot(page, "03-trim-bar-visible");
+    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "업로드 시작" })).toBeVisible();
+    await expect(page.getByText("구간 선택")).toBeVisible();
 
-      // 시작/끝 시간 표시 확인
-      await expect(page.locator('text="시작"')).toBeVisible();
-      await expect(page.locator('text="끝"')).toBeVisible();
-      await expect(page.locator('text="길이"')).toBeVisible();
-    }
-
-    // "다음" 버튼 존재 확인
-    const nextBtn = page.locator('button:has-text("다음")');
-    await expect(nextBtn).toBeVisible();
-    await screenshot(page, "04-ready-for-next");
+    await screenshot(page, "upload-slice-02-preview");
   });
 
-  test("3. 꾸미기 — 선수 지정 저장", async ({ page }) => {
+  test("3. 업로드를 시작하면 처리 상태를 단계별로 확인할 수 있다", async ({ page }) => {
     await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
 
-    // 파일 선택 → 다음
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-    await page.locator('button:has-text("다음")').click();
+    await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
+    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "업로드 시작" }).click();
 
-    // DecorateView 진입 확인
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
-    await screenshot(page, "05-decorate-view");
+    await expect(page.getByText("업로드 처리")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("메타데이터 확인")).toBeVisible();
+    await expect(page.getByText("원본 업로드")).toBeVisible();
+    await expect(page.getByText("편집 화면 준비")).toBeVisible();
 
-    // 선수 탭 기본 활성 안내
-    await expect(page.getByText("선수를 화면에서 바로 찍으세요")).toBeVisible();
-
-    // 영상 위를 직접 눌러 선수 지정
-    const decorateVideo = page.getByTestId("decorate-video");
-    await expect(decorateVideo).toBeVisible();
-    await decorateVideo.click({ position: { x: 180, y: 220 } });
-    await expect(page.locator('text="선수 지정 완료"')).toBeVisible({ timeout: 3000 });
-    await screenshot(page, "06-player-focused");
+    await screenshot(page, "upload-slice-03-processing");
   });
 
-  test("4. 꾸미기 — 태그 선택", async ({ page }) => {
+  test("4. 업로드가 끝나면 single clip 편집 화면에서 주요 도구를 확인할 수 있다", async ({ page }) => {
     await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
 
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-    await page.locator('button:has-text("다음")').click();
+    await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
+    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "업로드 시작" }).click();
 
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
+    await expect(page.getByText("클립 편집")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId("single-clip-editor")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Trim" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Spotlight" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Overlay" })).toBeVisible();
 
-    // 태그 탭 전환
-    await page.locator('button:has-text("태그")').click();
-    await page.waitForTimeout(300);
+    await page.getByRole("button", { name: "Spotlight" }).click();
+    await expect(page.getByTestId("single-clip-spotlight-panel")).toBeVisible();
 
-    // "이 장면은?" 텍스트 확인
-    await expect(page.locator('text="이 장면은?"')).toBeVisible();
-    await screenshot(page, "07-tag-tab");
+    await page.getByRole("button", { name: "Highlight" }).click();
+    await expect(page.getByTestId("single-clip-highlight-panel")).toBeVisible();
+    await expect(page.getByTestId("single-clip-save-panel")).toBeVisible();
+    await expect(page.getByText("프로필 Featured로 공개")).toBeVisible();
 
-    // 첫 번째 태그 버튼 클릭
-    const goalTagBtn = page.getByRole("button", { name: /골/ }).first();
-    if (await goalTagBtn.isVisible().catch(() => false)) {
-      await goalTagBtn.click();
-      await page.waitForTimeout(300);
-      await screenshot(page, "08-tag-selected");
-    }
+    await screenshot(page, "upload-slice-04-review");
+  });
+});
+
+test.describe("영상 업로드 편집 진입 smoke", () => {
+  test.beforeEach(() => {
+    test.skip(!fs.existsSync(SMOKE_VIDEO_FILE), `영상 파일을 찾을 수 없습니다: ${SMOKE_VIDEO_FILE}`);
   });
 
-  test("5. 꾸미기 — 효과 토글", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
+  test("업로드 완료 후 편집 route로 진입할 수 있다", async ({ page, baseURL }) => {
+    const clipId = "clip-upload-smoke";
+    const uploadUrl = `${baseURL}/__e2e__/upload-target`;
 
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-    await page.locator('button:has-text("다음")').click();
+    await page.route("**/api/upload/presign", async (route) => {
+      const body = route.request().postDataJSON() as { type?: string; clipId?: string };
+      const isThumbnail = body?.type === "thumbnail";
 
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
-
-    // 효과 탭 전환
-    await page.locator('button:has-text("효과")').click();
-    await page.waitForTimeout(300);
-
-    await expect(page.locator('text="영상 효과"')).toBeVisible();
-    await screenshot(page, "09-effect-tab");
-  });
-
-  test("6. 공유 + 업로드 시작", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
-
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-
-    // select → decorate
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
-
-    // decorate → share
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="올리기"', { timeout: 10_000 });
-    await screenshot(page, "10-share-view");
-
-    // 메모 입력
-    const memo = page.locator('textarea');
-    await memo.fill("E2E 테스트 업로드");
-
-    await screenshot(page, "11-share-configured");
-
-    // 올리기 버튼 확인 (실제 업로드는 하지 않음 — R2 비용 방지)
-    const uploadBtn = page.locator('button:has-text("올리기")');
-    await expect(uploadBtn).toBeVisible();
-    await expect(uploadBtn).toBeEnabled();
-  });
-
-  test("7. 영상 미리보기 재생 확인", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
-
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-
-    // 비디오 메타 로드 대기
-    await page.waitForFunction(() => {
-      const v = document.querySelector("video");
-      return v && v.readyState >= 1 && v.duration > 0;
-    }, { timeout: 15_000 });
-
-    // 비디오 상태 수집
-    const state = await getVideoState(page);
-    expect(state).not.toBeNull();
-    expect(state!.duration).toBeGreaterThan(0);
-    expect(state!.readyState).toBeGreaterThan(0);
-    expect(state!.error).toBeNull();
-
-    // 비디오 재생 시도
-    await page.evaluate(() => {
-      const v = document.querySelector("video") as HTMLVideoElement;
-      if (v) v.play().catch(() => {});
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          url: uploadUrl,
+          key: isThumbnail ? `thumbs/${clipId}.jpg` : `originals/${clipId}.mp4`,
+          clipId,
+        }),
+      });
     });
-    await page.waitForTimeout(1000);
 
-    const afterPlay = await getVideoState(page);
-    // muted autoplay는 브라우저에서 보통 허용
-    // currentTime이 0보다 크면 재생 중
-    if (afterPlay && !afterPlay.paused) {
-      expect(afterPlay.currentTime).toBeGreaterThan(0);
-    }
+    await page.route("**/__e2e__/upload-target", async (route) => {
+      await route.fulfill({ status: 200, body: "" });
+    });
 
-    await screenshot(page, "12-video-playing");
-  });
+    await page.route("**/api/clips", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ clip: { id: clipId } }),
+      });
+    });
 
-  test("8. 줌 버튼 동작 (DecorateView)", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
-
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
-
-    // 줌 + 버튼 찾기
-    const zoomInBtn = page.locator('button:has-text("+")');
-    if (await zoomInBtn.isVisible()) {
-      await zoomInBtn.click();
-      await page.waitForTimeout(300);
-      await screenshot(page, "13-zoomed-in");
-
-      // 줌 - 버튼
-      const zoomOutBtn = page.locator('button:has-text("−")');
-      if (await zoomOutBtn.isVisible()) {
-        await zoomOutBtn.click();
-        await page.waitForTimeout(300);
-        await screenshot(page, "14-zoomed-out");
+    await page.route(`**/api/clips/${clipId}`, async (route) => {
+      if (route.request().method() === "GET") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            clip: {
+              id: clipId,
+              video_url: "/test-upload.mp4",
+              duration_seconds: 12,
+              duration_sec: 12,
+              trim_start: 0,
+              trim_end: 12,
+              highlight_start: 0,
+              highlight_end: 12,
+              spotlight_x: null,
+              spotlight_y: null,
+              freeze_at: null,
+              effects: {
+                intro: false,
+                showLowerThird: true,
+                focusZoom: 1.8,
+              },
+              tags: ["shooting"],
+            },
+          }),
+        });
+        return;
       }
-    }
-  });
 
-  test("9. 프레임 탐색기 (DecorateView)", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
+    });
 
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
+    await page.route("**/api/video-projects", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          project: {
+            id: "project-upload-smoke",
+            kind: "single_clip",
+            status: "draft",
+            clip_id: clipId,
+            highlight_id: null,
+            title: null,
+            payload: {},
+            last_opened_at: null,
+            published_at: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        }),
+      });
+    });
 
-    // FrameNavigator의 스크러버가 보이는지 확인
-    const scrubber = page.locator('input[type="range"]');
-    if (await scrubber.isVisible()) {
-      await screenshot(page, "15-frame-navigator");
+    await loginAsPlayer(page, "/");
+    await page.getByRole("button", { name: /^업로드$/ }).click();
+    await expect(page).toHaveURL(/\/upload$/);
 
-      // 스크러버 조작
-      await scrubber.fill("50");
-      await page.waitForTimeout(300);
-      await screenshot(page, "16-frame-scrubbed");
-    }
-  });
+    await page.locator('input[type="file"]').setInputFiles(SMOKE_VIDEO_FILE);
+    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
 
-  test("10. 전체 플로우 스크린샷 리포트", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
-    await screenshot(page, "flow-01-initial");
+    await page.getByRole("button", { name: "업로드 시작" }).click();
 
-    // Step 1: 파일 선택
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-    await page.waitForFunction(() => {
-      const v = document.querySelector("video");
-      return v && v.readyState >= 1;
-    }, { timeout: 10_000 });
-    await screenshot(page, "flow-02-file-selected");
+    await expect(page.getByText("업로드 처리")).toBeVisible();
+    await expect(page.getByRole("button", { name: "편집 화면으로 이동" })).toBeVisible({ timeout: 20_000 });
 
-    // Step 2: 다음 → 꾸미기
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
-    await screenshot(page, "flow-03-decorate");
+    await page.getByRole("button", { name: "편집 화면으로 이동" }).click();
 
-    // Step 2a: 마커 배치
-    const decorateVideo = page.getByTestId("decorate-video");
-    if (await decorateVideo.isVisible().catch(() => false)) {
-      await decorateVideo.click({ position: { x: 180, y: 220 } });
-      await expect(page.locator('text="선수 지정 완료"')).toBeVisible({ timeout: 3000 });
-      await screenshot(page, "flow-04-focus-saved");
-    }
+    await expect(page).toHaveURL(new RegExp(`/edit/${clipId}(?:\\?|$)`));
+    await expect(page.getByText("클립 편집")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("single-clip-editor")).toBeVisible();
 
-    // Step 2b: 태그 탭
-    await page.locator('button:has-text("태그")').click();
-    await page.waitForTimeout(300);
-    const firstTag = page.getByRole("button", { name: /골|어시스트|드리블|세이브|기타/ }).first();
-    if (await firstTag.isVisible().catch(() => false)) {
-      await firstTag.click();
-    }
-    await screenshot(page, "flow-05-tag");
-
-    // Step 2c: 효과 탭
-    await page.locator('button:has-text("효과")').click();
-    await page.waitForTimeout(300);
-    await screenshot(page, "flow-06-effects");
-
-    // Step 3: 다음 → 공유
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="올리기"', { timeout: 10_000 });
-    await screenshot(page, "flow-07-share");
-
-    // 메모 + 공개범위
-    const memo = page.locator("textarea");
-    if (await memo.isVisible()) {
-      await memo.fill("전체 플로우 테스트");
-    }
-    await screenshot(page, "flow-08-configured");
-  });
-
-  test("11. 실제 업로드 후 프로필/공개 링크 재생", async ({ page }) => {
-    test.setTimeout(180_000);
-
-    await loginAsPlayer(page, "/upload");
-    await page.waitForSelector('text="영상을 선택하세요"', { timeout: 10_000 });
-
-    const input = page.locator('input[type="file"]');
-    await input.setInputFiles(VIDEO_FILE);
-    await page.waitForSelector("video", { timeout: 15_000 });
-
-    // select -> decorate
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="꾸미기"', { timeout: 10_000 });
-    await dismissCoachMarkIfPresent(page);
-
-    // 선수 지정 저장
-    const decorateVideo = page.getByTestId("decorate-video");
-    if (await decorateVideo.isVisible().catch(() => false)) {
-      await decorateVideo.click({ position: { x: 180, y: 220 } });
-      await expect(page.locator('text="선수 지정 완료"')).toBeVisible({ timeout: 3000 });
-    }
-
-    // decorate -> share
-    await page.locator('button:has-text("다음")').click();
-    await page.waitForSelector('text="올리기"', { timeout: 10_000 });
-    await page.locator("textarea").fill("E2E 실제 업로드 검증");
-
-    const clipResponsePromise = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/clips") &&
-        res.request().method() === "POST" &&
-        res.ok(),
-      { timeout: 120_000 }
-    );
-
-    await page.locator('button:has-text("올리기")').click();
-
-    const clipRes = await clipResponsePromise;
-    const clipJson = (await clipRes.json().catch(() => ({}))) as {
-      clip?: { id?: string };
-    };
-    const clipId = clipJson.clip?.id;
-
-    const doneVisible = await page
-      .waitForSelector('text="업로드 완료!"', { timeout: 120_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (doneVisible) {
-      await screenshot(page, "flow-11-upload-done");
-      await page.locator('button:has-text("프로필에서 확인")').click();
-      await page.waitForURL("**/profile", { timeout: 20_000 });
-    } else {
-      await page.goto("/profile");
-      await page.waitForLoadState("domcontentloaded");
-      await screenshot(page, "flow-11-upload-done-fallback");
-    }
-
-    // 프로필 진입 후 재생 확인
-    const profileClip = page.locator('[data-testid="clip-card"], .aspect-video, video, [class*="cursor-pointer"]').filter({
-      hasText: /0:\d{2}/,
-    }).first();
-    await expect(profileClip).toBeVisible({ timeout: 20_000 });
-    await profileClip.click();
-    await page.waitForTimeout(1200);
-    const hasProfilePlayer = await page.locator("video").first().isVisible().catch(() => false);
-    if (hasProfilePlayer) {
-      await screenshot(page, "flow-12-profile-player");
-    } else {
-      await screenshot(page, "flow-12-profile-clip-open-attempt");
-    }
-
-    // 공개 링크 재생 확인 (/p/[handle]/h/[clipId])
-    if (clipId) {
-      await page.goto(`/p/e2e_player/h/${clipId}`);
-      await page.waitForLoadState("domcontentloaded");
-      await expect(page.locator("video").first()).toBeVisible({ timeout: 20_000 });
-      await screenshot(page, "flow-13-public-share-player");
-    }
+    await screenshot(page, "upload-smoke-edit-route");
   });
 });

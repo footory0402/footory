@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { EventTag } from "@/components/editor/video/types";
 import type { TrackingMode, TrackingPoint } from "@/lib/playback-focus";
+import type { SingleClipEditingDraft } from "@/lib/single-clip-playback";
 
 export interface Caption {
   text: string;       // 최대 30자
@@ -10,13 +11,21 @@ export interface Caption {
   position: "top" | "center" | "bottom";
 }
 
-export type UploadPhase = "select" | "decorate" | "share" | "uploading" | "done";
+export type UploadPhase =
+  | "select"
+  | "processing"
+  | "review"
+  | "decorate"
+  | "share"
+  | "uploading"
+  | "done";
 export type UploadStatus =
   | "idle"
   | "composing"
   | "uploading"
   | "thumbnail"
   | "saving"
+  | "analyzing"
   | "done"
   | "error"
   // v1.3 렌더 파이프라인
@@ -39,6 +48,7 @@ export interface UploadEffects {
   cinematic: boolean;
   eafc: boolean;
   intro: boolean;
+  showLowerThird: boolean;
   focusZoom: number;
 }
 
@@ -55,6 +65,7 @@ interface UploadState {
   childId: string | null;
   childName: string | null;
   childHandle: string | null;
+  editorDraft: SingleClipEditingDraft | null;
 
   // v3.0 릴스 스타일 단일 플로우
   phase: UploadPhase;
@@ -109,6 +120,7 @@ interface UploadState {
   setChallengeTag: (tag: string | null) => void;
   setChildId: (id: string | null) => void;
   setChildInfo: (info: { id: string; name: string; handle: string } | null) => void;
+  setEditorDraft: (draft: SingleClipEditingDraft | null) => void;
   // v3.0 setters
   setPhase: (p: UploadPhase) => void;
   setEventTag: (t: EventTag | null) => void;
@@ -165,6 +177,7 @@ const initial = {
   childId: null as string | null,
   childName: null as string | null,
   childHandle: null as string | null,
+  editorDraft: null as SingleClipEditingDraft | null,
 
   // v3.0
   phase: "select" as UploadPhase,
@@ -179,7 +192,7 @@ const initial = {
   trackingPoints: [] as TrackingPoint[],
   skillLabels: [] as string[],
   customLabels: [] as string[],
-  effects: { color: false, cinematic: false, eafc: false, intro: false, focusZoom: 1.8 },
+  effects: { color: false, cinematic: false, eafc: false, intro: false, showLowerThird: true, focusZoom: 1.8 },
   // v4.0
   slowmoStart: null as number | null,
   slowmoEnd: null as number | null,
@@ -209,7 +222,17 @@ const initial = {
 
 export const useUploadStore = create<UploadState>((set) => ({
   ...initial,
-  setFile: (file) => set({ file, r2Status: "idle" as const, r2Progress: 0, r2Key: null, r2ClipId: null, compressedFile: null, compressStatus: "idle" as const, compressProgress: 0 }),
+  setFile: (file) => set({
+    file,
+    editorDraft: null,
+    r2Status: "idle" as const,
+    r2Progress: 0,
+    r2Key: null,
+    r2ClipId: null,
+    compressedFile: null,
+    compressStatus: "idle" as const,
+    compressProgress: 0,
+  }),
   setTags: (tags) => set({ tags }),
   setMemo: (memo) => set({ memo }),
   setClipId: (id) => set({ clipId: id }),
@@ -220,6 +243,7 @@ export const useUploadStore = create<UploadState>((set) => ({
   setChallengeTag: (tag) => set({ challengeTag: tag }),
   setChildId: (id) => set({ childId: id }),
   setChildInfo: (info) => set(info ? { childId: info.id, childName: info.name, childHandle: info.handle } : { childId: null, childName: null, childHandle: null }),
+  setEditorDraft: (editorDraft) => set({ editorDraft }),
   // v3.0 setters
   setPhase: (phase) => set({ phase }),
   setEventTag: (eventTag) => set({ eventTag }),

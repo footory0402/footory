@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -15,6 +15,34 @@ export function useGlobalRenderPolling() {
   const renderJobId = useUploadStore((s) => s.renderJobId);
   const calledRef = useRef(false);
   const lastRealtimeUpdateRef = useRef<number>(0);
+
+  const handleJobUpdate = useCallback((job: Record<string, unknown>) => {
+    if (calledRef.current) return;
+
+    const store = useUploadStore.getState();
+
+    if (typeof job.progress === "number") {
+      store.setRenderProgress(job.progress);
+    }
+
+    if (job.status === "done") {
+      calledRef.current = true;
+      store.setProgress(100);
+      store.setStatus("done");
+      toast.success("업로드 완료!", {
+        description: "영상이 프로필에 추가되었어요",
+      });
+    } else if (job.status === "failed") {
+      calledRef.current = true;
+      store.setError(
+        typeof job.error === "string" ? job.error : "영상 처리에 실패했어요"
+      );
+      store.setStatus("error");
+      toast.error("업로드 실패", {
+        description: "탭하여 다시 시도해주세요",
+      });
+    }
+  }, []);
 
   // Reset called flag when jobId changes
   useEffect(() => {
@@ -47,7 +75,7 @@ export function useGlobalRenderPolling() {
 
     const intervalId = window.setInterval(poll, 10_000);
     return () => window.clearInterval(intervalId);
-  }, [status, renderJobId]);
+  }, [handleJobUpdate, renderJobId, status]);
 
   // Supabase Realtime subscription
   useEffect(() => {
@@ -74,34 +102,5 @@ export function useGlobalRenderPolling() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [status, renderJobId]);
-
-  function handleJobUpdate(job: Record<string, unknown>) {
-    if (calledRef.current) return;
-
-    const store = useUploadStore.getState();
-
-    // Update render progress
-    if (typeof job.progress === "number") {
-      store.setRenderProgress(job.progress);
-    }
-
-    if (job.status === "done") {
-      calledRef.current = true;
-      store.setProgress(100);
-      store.setStatus("done");
-      toast.success("업로드 완료!", {
-        description: "영상이 프로필에 추가되었어요",
-      });
-    } else if (job.status === "failed") {
-      calledRef.current = true;
-      store.setError(
-        typeof job.error === "string" ? job.error : "영상 처리에 실패했어요"
-      );
-      store.setStatus("error");
-      toast.error("업로드 실패", {
-        description: "탭하여 다시 시도해주세요",
-      });
-    }
-  }
+  }, [handleJobUpdate, renderJobId, status]);
 }

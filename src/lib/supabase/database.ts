@@ -1053,7 +1053,7 @@ export interface Database {
           rendered_url: string | null;
           thumbnail_url: string | null;
           duration_sec: number | null;
-          status: "draft" | "rendering" | "done" | "failed";
+          status: "draft" | "published" | "rendering" | "done" | "failed";
           created_at: string;
         };
         Insert: {
@@ -1065,7 +1065,7 @@ export interface Database {
           rendered_url?: string | null;
           thumbnail_url?: string | null;
           duration_sec?: number | null;
-          status?: "draft" | "rendering" | "done" | "failed";
+          status?: "draft" | "published" | "rendering" | "done" | "failed";
           created_at?: string;
         };
         Update: {
@@ -1075,7 +1075,50 @@ export interface Database {
           rendered_url?: string | null;
           thumbnail_url?: string | null;
           duration_sec?: number | null;
-          status?: "draft" | "rendering" | "done" | "failed";
+          status?: "draft" | "published" | "rendering" | "done" | "failed";
+        };
+        Relationships: [];
+      };
+      video_projects: {
+        Row: {
+          id: string;
+          owner_id: string;
+          kind: "single_clip" | "reel_highlight";
+          status: "draft" | "published" | "archived";
+          clip_id: string | null;
+          highlight_id: string | null;
+          title: string | null;
+          payload: Json;
+          last_opened_at: string | null;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          kind: "single_clip" | "reel_highlight";
+          status?: "draft" | "published" | "archived";
+          clip_id?: string | null;
+          highlight_id?: string | null;
+          title?: string | null;
+          payload?: Json;
+          last_opened_at?: string | null;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          kind?: "single_clip" | "reel_highlight";
+          status?: "draft" | "published" | "archived";
+          clip_id?: string | null;
+          highlight_id?: string | null;
+          title?: string | null;
+          payload?: Json;
+          last_opened_at?: string | null;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

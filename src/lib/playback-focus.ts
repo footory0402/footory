@@ -10,6 +10,7 @@ export interface TrackingPoint {
 
 export interface PlaybackEffects {
   intro?: boolean;
+  showLowerThird?: boolean;
   focusZoom?: number;
   color?: boolean;
   cinematic?: boolean;

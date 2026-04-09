@@ -13,6 +13,10 @@ import { resolveFocusZoom } from "@/lib/focus-zoom";
 import type { PlaybackEffects } from "@/lib/playback-focus";
 import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
 import {
+  resolveSingleClipPlaybackWindow,
+  type SingleClipPlaybackContract,
+} from "@/lib/single-clip-playback";
+import {
   buildFallbackHudPlayerData,
   buildHudPlayerData,
   getCachedPlayerCard,
@@ -31,27 +35,7 @@ function getVideoErrorMessage(code: number): { message: string; retryable: boole
   }
 }
 
-export interface PlayableClip {
-  id: string;
-  videoUrl: string;
-  thumbnailUrl?: string | null;
-  tag?: string;
-  duration?: number;
-  // spotlight overlay
-  spotlightX?: number | null;
-  spotlightY?: number | null;
-  freezeAt?: number | null;
-  playerName?: string;
-  playerPosition?: string | null;
-  playerBirthYear?: number | null;
-  teamName?: string | null;
-  // trim (런타임 구간 재생)
-  trimStart?: number | null;
-  trimEnd?: number | null;
-  slowmoStart?: number | null;
-  slowmoEnd?: number | null;
-  slowmoSpeed?: number | null;
-  bgmId?: string | null;
+export interface PlayableClip extends SingleClipPlaybackContract {
   effects?: PlaybackEffects | null;
 }
 
@@ -312,24 +296,25 @@ export default function ClipPlayerSheet({
     if (!v) return;
     const onTime = () => {
       const currentClip = clips[index];
-      const trimS = currentClip?.trimStart ?? 0;
-      const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
-      const clipDuration = trimE - trimS;
+      const { trimStartSec, trimEndSec, durationSec } = resolveSingleClipPlaybackWindow(
+        currentClip ?? { duration: null, trimStart: null, trimEnd: null },
+        v.duration,
+      );
 
       // trim 구간 끝 → 정지 (탭하면 처음부터 다시 재생)
-      if (trimE > 0 && v.currentTime >= trimE) {
-        v.currentTime = trimE;
+      if (trimEndSec > 0 && v.currentTime >= trimEndSec) {
+        v.currentTime = trimEndSec;
         v.pause();
         setProgress(1);
-        setCurrentTime(trimE - trimS);
+        setCurrentTime(durationSec);
         setEnded(true);
         return;
       }
 
-      const elapsed = Math.max(0, v.currentTime - trimS);
+      const elapsed = Math.max(0, v.currentTime - trimStartSec);
       setCurrentTime(elapsed);
-      setDuration(clipDuration || 0);
-      setProgress(clipDuration > 0 ? elapsed / clipDuration : 0);
+      setDuration(durationSec);
+      setProgress(durationSec > 0 ? elapsed / durationSec : 0);
 
       // Freeze frame detection
       if (
@@ -393,10 +378,12 @@ export default function ClipPlayerSheet({
     };
     const onLoaded = () => {
       const currentClip = clips[index];
-      const trimS = currentClip?.trimStart ?? 0;
-      const trimE = currentClip?.trimEnd ?? v.duration ?? 0;
-      if (trimS > 0) v.currentTime = trimS;
-      setDuration((trimE - trimS) || 0);
+      const { trimStartSec, durationSec } = resolveSingleClipPlaybackWindow(
+        currentClip ?? { duration: null, trimStart: null, trimEnd: null },
+        v.duration,
+      );
+      if (trimStartSec > 0) v.currentTime = trimStartSec;
+      setDuration(durationSec);
       if (v.videoWidth && v.videoHeight) {
         setVideoNativeSize({ w: v.videoWidth, h: v.videoHeight });
       }
@@ -448,8 +435,10 @@ export default function ClipPlayerSheet({
     // 영상 끝난 상태 → 처음부터 다시 재생
     if (ended) {
       const currentClip = clips[index];
-      const trimS = currentClip?.trimStart ?? 0;
-      v.currentTime = trimS;
+      const { trimStartSec } = resolveSingleClipPlaybackWindow(
+        currentClip ?? { duration: null, trimStart: null, trimEnd: null },
+      );
+      v.currentTime = trimStartSec;
       setEnded(false);
       setProgress(0);
       setCurrentTime(0);
@@ -478,8 +467,10 @@ export default function ClipPlayerSheet({
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     if (videoRef.current && duration) {
-      const trimS = clip?.trimStart ?? 0;
-      videoRef.current.currentTime = trimS + ratio * duration;
+      const { trimStartSec } = resolveSingleClipPlaybackWindow(
+        clip ?? { duration: null, trimStart: null, trimEnd: null },
+      );
+      videoRef.current.currentTime = trimStartSec + ratio * duration;
     }
   };
 
@@ -681,7 +672,7 @@ export default function ClipPlayerSheet({
   const HUD_BAR_HEIGHT = 112;
   // seekbar + 시간 표시 높이 (h-11=44px + 시간22px + 패딩약9px)
   const SEEKBAR_HEIGHT = 75;
-  const hasHud = !!introData && introReady && !showIntro;
+  const hasHud = !!introData && introReady && !showIntro && effects?.showLowerThird !== false;
 
   // 영상과 동일한 transform (zoom/pan/swipe) - overlay가 영상 위치를 따라가도록
   const videoTransform = zoom > 1

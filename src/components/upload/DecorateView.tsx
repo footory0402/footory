@@ -150,7 +150,7 @@ export default function DecorateView({ videoSrc, onUpload, onBack }: DecorateVie
     store.setFreezeAt(null);
     setSelectedSlot("start");
     setPreviewTime(anchors[0].time);
-  }, [anchors, previewTime, sanitizedPoints]);
+  }, [anchors, fixedSpotlight, previewTime, sanitizedPoints]);
 
   const handleTapSpotlight = useCallback((spot: { x: number; y: number }) => {
     const store = useUploadStore.getState();

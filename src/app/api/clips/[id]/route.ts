@@ -1,9 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
 import { SKILL_TAGS } from "@/lib/constants";
+import { sanitizeTrackingPoints } from "@/lib/playback-focus";
 import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const VALID_TAGS: string[] = SKILL_TAGS.map((t) => t.dbName);
+
+function sanitizeEffects(effects: unknown) {
+  if (!effects || typeof effects !== "object") return null;
+
+  const candidate = effects as Record<string, unknown>;
+  const nextEffects: Record<string, unknown> = {};
+
+  if (typeof candidate.intro === "boolean") {
+    nextEffects.intro = candidate.intro;
+  }
+  if (typeof candidate.showLowerThird === "boolean") {
+    nextEffects.showLowerThird = candidate.showLowerThird;
+  }
+  if (typeof candidate.focusZoom === "number" && Number.isFinite(candidate.focusZoom)) {
+    nextEffects.focusZoom = Math.max(1, Number(candidate.focusZoom));
+  }
+  if (typeof candidate.color === "boolean") {
+    nextEffects.color = candidate.color;
+  }
+  if (typeof candidate.cinematic === "boolean") {
+    nextEffects.cinematic = candidate.cinematic;
+  }
+  if (typeof candidate.eafc === "boolean") {
+    nextEffects.eafc = candidate.eafc;
+  }
+  if (candidate.trackingMode === "fixed" || candidate.trackingMode === "follow") {
+    nextEffects.trackingMode = candidate.trackingMode;
+  }
+  if (Array.isArray(candidate.trackingPoints)) {
+    nextEffects.trackingPoints = sanitizeTrackingPoints(candidate.trackingPoints);
+  }
+
+  return nextEffects;
+}
 
 /** GET /api/clips/[id] — fetch clip video_url (auth required) */
 export async function GET(
@@ -18,13 +53,24 @@ export async function GET(
 
     const { data: clip } = await supabase
       .from("clips")
-      .select("id, video_url, thumbnail_url, duration_seconds")
+      .select("id, video_url, thumbnail_url, duration_seconds, duration_sec, trim_start, trim_end, highlight_start, highlight_end, spotlight_x, spotlight_y, freeze_at, effects")
       .eq("id", id)
       .single();
 
     if (!clip) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    return NextResponse.json({ clip });
+    const { data: clipTags } = await supabase
+      .from("clip_tags")
+      .select("tag_name, is_top")
+      .eq("clip_id", id)
+      .order("is_top", { ascending: false });
+
+    return NextResponse.json({
+      clip: {
+        ...clip,
+        tags: (clipTags ?? []).map((tag) => tag.tag_name),
+      },
+    });
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
@@ -43,7 +89,7 @@ export async function PATCH(
 
     const { data: clip } = await supabase
       .from("clips")
-      .select("owner_id")
+      .select("owner_id, effects")
       .eq("id", id)
       .single();
 
@@ -95,6 +141,84 @@ export async function PATCH(
       }
       if (Object.keys(updates).length > 0) {
         await supabase.from("clips").update(updates).eq("id", id);
+      }
+    }
+
+    if (
+      "highlight_start" in body ||
+      "highlight_end" in body ||
+      "trim_start" in body ||
+      "trim_end" in body ||
+      "duration_sec" in body ||
+      "spotlight_x" in body ||
+      "spotlight_y" in body ||
+      "freeze_at" in body ||
+      "effects" in body
+    ) {
+      const timingUpdates: Record<string, unknown> = {};
+
+      if ("highlight_start" in body) {
+        timingUpdates.highlight_start = typeof body.highlight_start === "number"
+          ? Math.max(0, Math.round(body.highlight_start))
+          : null;
+      }
+
+      if ("highlight_end" in body) {
+        timingUpdates.highlight_end = typeof body.highlight_end === "number"
+          ? Math.max(0, Math.round(body.highlight_end))
+          : null;
+      }
+
+      if ("trim_start" in body) {
+        timingUpdates.trim_start = typeof body.trim_start === "number"
+          ? Math.max(0, Number(body.trim_start))
+          : null;
+      }
+
+      if ("trim_end" in body) {
+        timingUpdates.trim_end = typeof body.trim_end === "number"
+          ? Math.max(0, Number(body.trim_end))
+          : null;
+      }
+
+      if ("duration_sec" in body) {
+        timingUpdates.duration_sec = typeof body.duration_sec === "number"
+          ? Math.max(0, Number(body.duration_sec))
+          : null;
+      }
+
+      if ("spotlight_x" in body) {
+        timingUpdates.spotlight_x = typeof body.spotlight_x === "number"
+          ? Math.max(0, Math.min(1, Number(body.spotlight_x)))
+          : null;
+      }
+
+      if ("spotlight_y" in body) {
+        timingUpdates.spotlight_y = typeof body.spotlight_y === "number"
+          ? Math.max(0, Math.min(1, Number(body.spotlight_y)))
+          : null;
+      }
+
+      if ("freeze_at" in body) {
+        timingUpdates.freeze_at = typeof body.freeze_at === "number"
+          ? Math.max(0, Number(body.freeze_at))
+          : null;
+      }
+
+      if ("effects" in body) {
+        const nextEffects = sanitizeEffects(body.effects);
+        timingUpdates.effects = {
+          ...((clip.effects as Record<string, unknown> | null) ?? {}),
+          ...(nextEffects ?? {}),
+        };
+      }
+
+      if (Object.keys(timingUpdates).length > 0) {
+        const { error: timingErr } = await supabase
+          .from("clips")
+          .update(timingUpdates)
+          .eq("id", id);
+        if (timingErr) return NextResponse.json({ error: timingErr.message }, { status: 500 });
       }
     }
 
@@ -181,6 +305,22 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const messageTable = supabase.from("messages" as never) as unknown as {
+      update: (payload: { shared_clip_id: null }) => {
+        eq: (column: "shared_clip_id", value: string) => PromiseLike<{ error: { message: string } | null }>;
+      };
+    };
+    const reportTable = supabase.from("reports" as never) as unknown as {
+      update: (payload: { clip_id: null }) => {
+        eq: (column: "clip_id", value: string) => PromiseLike<{ error: { message: string } | null }>;
+      };
+    };
+    const weeklyMvpResultTable = supabase.from("weekly_mvp_results" as never) as unknown as {
+      update: (payload: { clip_id: null }) => {
+        eq: (column: "clip_id", value: string) => PromiseLike<{ error: { message: string } | null }>;
+      };
+    };
+
     // Delete dependent records first (FK constraints)
     await assertNoError(
       "delete featured clips",
@@ -196,7 +336,7 @@ export async function DELETE(
     );
     await assertNoError(
       "clear shared clips from messages",
-      (supabase.from("messages") as any).update({ shared_clip_id: null }).eq("shared_clip_id", id)
+      messageTable.update({ shared_clip_id: null }).eq("shared_clip_id", id)
     );
     await assertNoError(
       "clear evidence clips from stats",
@@ -208,11 +348,11 @@ export async function DELETE(
     );
     await assertNoError(
       "clear clip references from reports",
-      (supabase.from("reports") as any).update({ clip_id: null }).eq("clip_id", id)
+      reportTable.update({ clip_id: null }).eq("clip_id", id)
     );
     await assertNoError(
       "clear clip references from weekly mvp results",
-      (supabase.from("weekly_mvp_results") as any).update({ clip_id: null }).eq("clip_id", id)
+      weeklyMvpResultTable.update({ clip_id: null }).eq("clip_id", id)
     );
 
     const { data: highlights, error: highlightsError } = await supabase

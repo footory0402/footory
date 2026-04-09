@@ -10,9 +10,15 @@ const MAX_DURATION = 300; // 5분
 
 interface SelectViewProps {
   onFileReady: () => void;
+  ctaLabel?: string;
+  startBackgroundUploadOnReady?: boolean;
 }
 
-export default function SelectView({ onFileReady }: SelectViewProps) {
+export default function SelectView({
+  onFileReady,
+  ctaLabel = "다음",
+  startBackgroundUploadOnReady = true,
+}: SelectViewProps) {
   const store = useUploadStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -128,7 +134,7 @@ export default function SelectView({ onFileReady }: SelectViewProps) {
           </div>
           <div className="flex flex-col items-center gap-1.5">
             <span className="text-[15px] font-semibold text-text-1">영상을 선택하세요</span>
-            <span className="text-[12px] text-text-3">5분 이내 · 200MB 이내</span>
+            <span className="text-[12px] text-text-3">MP4, MOV · 5분 이내 · 200MB 이내</span>
           </div>
         </button>
 
@@ -313,13 +319,15 @@ export default function SelectView({ onFileReady }: SelectViewProps) {
           type="button"
           onClick={() => {
             onFileReady();
-            setTimeout(() => {
-              prepareR2BackgroundUpload();
-            }, 0);
+            if (startBackgroundUploadOnReady) {
+              setTimeout(() => {
+                prepareR2BackgroundUpload();
+              }, 0);
+            }
           }}
           className="w-full rounded-xl bg-accent py-3.5 text-[15px] font-bold text-bg transition-opacity active:scale-[0.99]"
         >
-          다음
+          {ctaLabel}
         </button>
       </div>
 

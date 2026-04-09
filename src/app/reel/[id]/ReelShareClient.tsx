@@ -25,6 +25,7 @@ interface Clip {
   playerName: string;
   playerPosition: string | null;
   playerBirthYear: number | null;
+  teamName?: string | null;
 }
 
 interface Props {
@@ -40,6 +41,7 @@ export default function ReelShareClient({ clips, profileHandle }: Props) {
     id: c.id,
     videoUrl: c.videoUrl,
     thumbnailUrl: c.thumbnailUrl,
+    duration: c.durationSeconds,
     spotlightX: c.spotlightX,
     spotlightY: c.spotlightY,
     freezeAt: c.freezeAt,
@@ -53,6 +55,7 @@ export default function ReelShareClient({ clips, profileHandle }: Props) {
     playerName: c.playerName,
     playerPosition: c.playerPosition,
     playerBirthYear: c.playerBirthYear ?? undefined,
+    teamName: c.teamName ?? undefined,
   }));
 
   return (

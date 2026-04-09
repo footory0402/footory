@@ -5,6 +5,11 @@ import type { LinkedChild } from "@/hooks/useParent";
 import { useUploadStore } from "@/stores/upload-store";
 import { getPublicVideoUrl } from "@/lib/r2-client";
 import { captureVideoThumbnail } from "@/lib/thumbnail";
+import {
+  requestUploadPresign,
+  uploadToPresignedWithDirectFallback,
+} from "@/lib/upload-network";
+import { buildParentUploadPayload } from "@/lib/upload-payload";
 import VideoSelector from "@/components/upload/VideoSelector";
 import TagMemoForm from "@/components/upload/TagMemoForm";
 import Button from "@/components/ui/Button";
@@ -14,27 +19,6 @@ interface ParentQuickUploadProps {
   child: LinkedChild;
   onClose: () => void;
   onComplete: () => void;
-}
-
-async function uploadViaDirectApi(
-  file: Blob,
-  key: string,
-  contentType: string
-): Promise<void> {
-  const form = new FormData();
-  form.append("file", file);
-  form.append("key", key);
-  form.append("contentType", contentType);
-
-  const res = await fetch("/api/upload/direct", {
-    method: "POST",
-    body: form,
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? "Direct upload failed");
-  }
 }
 
 export default function ParentQuickUpload({ child, onClose, onComplete }: ParentQuickUploadProps) {
@@ -58,24 +42,20 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
       setError(null);
 
       // 1. Get presigned URL
-      const presignRes = await fetch("/api/upload/presign", { method: "POST" });
-      if (!presignRes.ok) throw new Error("Presign 요청 실패");
-      const { url, key, clipId } = await presignRes.json();
+      const { url, key, clipId } = await requestUploadPresign({
+        contentType: "video/mp4",
+        fileName: store.file.name,
+        fileSize: store.file.size,
+      });
+      if (!clipId) throw new Error("Presign 응답에 clipId가 없습니다.");
 
       // 2. Upload to R2
-      const xhr = new XMLHttpRequest();
-      try {
-        await new Promise<void>((resolve, reject) => {
-          xhr.onload = () =>
-            xhr.status < 300 ? resolve() : reject(new Error("Upload failed"));
-          xhr.onerror = () => reject(new Error("Network error"));
-          xhr.open("PUT", url);
-          xhr.setRequestHeader("Content-Type", "video/mp4");
-          xhr.send(store.file);
-        });
-      } catch {
-        await uploadViaDirectApi(store.file!, key, "video/mp4");
-      }
+      await uploadToPresignedWithDirectFallback({
+        url,
+        key,
+        file: store.file,
+        contentType: "video/mp4",
+      });
 
       // 3. Capture thumbnail
       const duration = store.file ? await getFileDuration(store.file) : 0;
@@ -84,22 +64,16 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
       if (store.file) {
         const thumbBlob = await captureVideoThumbnail(store.file);
         if (thumbBlob) {
-          const thumbPresign = await fetch("/api/upload/presign", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "thumbnail", clipId }),
-          });
-          if (thumbPresign.ok) {
-            const { url: thumbUrl, key: thumbKey } = await thumbPresign.json();
-            const thumbUploadRes = await fetch(thumbUrl, {
-              method: "PUT",
-              headers: { "Content-Type": "image/jpeg" },
-              body: thumbBlob,
-            }).catch(() => null);
-            if (!thumbUploadRes || !thumbUploadRes.ok) {
-              await uploadViaDirectApi(thumbBlob, thumbKey, "image/jpeg");
-            }
-            thumbnailUrl = getPublicVideoUrl(thumbKey);
+          const thumbPresign = await requestUploadPresign({ type: "thumbnail", clipId })
+            .catch(() => null);
+          if (thumbPresign) {
+            await uploadToPresignedWithDirectFallback({
+              url: thumbPresign.url,
+              key: thumbPresign.key,
+              file: thumbBlob,
+              contentType: "image/jpeg",
+            });
+            thumbnailUrl = getPublicVideoUrl(thumbPresign.key);
           }
         }
       }
@@ -109,15 +83,17 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
       const clipRes = await fetch("/api/parent/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          child_id: child.childId,
-          clip_id: clipId,
-          video_url: videoUrl,
-          duration_seconds: duration || null,
-          file_size_bytes: store.file?.size,
-          tags: store.tags,
-          thumbnail_url: thumbnailUrl,
-        }),
+        body: JSON.stringify(
+          buildParentUploadPayload({
+            childId: child.childId,
+            clipId,
+            videoUrl,
+            durationSeconds: duration || null,
+            fileSizeBytes: store.file?.size ?? null,
+            tags: store.tags,
+            thumbnailUrl,
+          }),
+        ),
       });
 
       if (!clipRes.ok) {
