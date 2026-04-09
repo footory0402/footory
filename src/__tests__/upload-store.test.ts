@@ -20,7 +20,8 @@ describe("Upload Store v3.0", () => {
       color: false,
       cinematic: false,
       eafc: false,
-      intro: true,
+      intro: false,
+      focusZoom: 1.8,
     });
     expect(state.renderJobId).toBeNull();
   });
@@ -82,6 +83,7 @@ describe("Upload Store v3.0", () => {
       cinematic: false,
       eafc: false,
       intro: true,
+      focusZoom: 1.8,
     });
   });
 

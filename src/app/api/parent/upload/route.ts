@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       trim_end,
       spotlight_x,
       spotlight_y,
+      freeze_at,
       slowmo_start,
       slowmo_end,
       slowmo_speed,
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
       trim_end?: number;
       spotlight_x?: number;
       spotlight_y?: number;
+      freeze_at?: number;
       slowmo_start?: number;
       slowmo_end?: number;
       slowmo_speed?: number;
@@ -117,6 +119,7 @@ export async function POST(req: NextRequest) {
         ...(trim_end !== undefined && { trim_end }),
         ...(spotlight_x !== undefined && { spotlight_x }),
         ...(spotlight_y !== undefined && { spotlight_y }),
+        ...(freeze_at !== undefined && { freeze_at }),
         ...(slowmo_start !== undefined && { slowmo_start }),
         ...(slowmo_end !== undefined && { slowmo_end }),
         ...(slowmo_speed !== undefined && { slowmo_speed }),
@@ -162,6 +165,14 @@ export async function POST(req: NextRequest) {
         uploaded_by_parent: true,
         spotlight_x: clip.spotlight_x ?? null,
         spotlight_y: clip.spotlight_y ?? null,
+        freeze_at: clip.freeze_at ?? null,
+        trim_start: clip.trim_start ?? null,
+        trim_end: clip.trim_end ?? null,
+        slowmo_start: clip.slowmo_start ?? null,
+        slowmo_end: clip.slowmo_end ?? null,
+        slowmo_speed: clip.slowmo_speed ?? null,
+        bgm_id: clip.bgm_id ?? null,
+        effects: clip.effects ?? null,
       },
     });
 

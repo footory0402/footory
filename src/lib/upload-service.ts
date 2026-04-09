@@ -2,6 +2,7 @@ import { getPublicVideoUrl } from "@/lib/r2-client";
 import { captureVideoThumbnail } from "@/lib/thumbnail";
 import { getFileDuration } from "@/lib/video";
 import { useUploadStore } from "@/stores/upload-store";
+import type { EventTag } from "@/components/editor/video/types";
 
 const SERVER_PROXY_LIMIT = 4 * 1024 * 1024; // 4MB (Vercel payload 제한)
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000; // 10분 (기본값)
@@ -20,6 +21,30 @@ function calcUploadTimeout(fileSize: number): number {
   return Math.max(minTimeout, Math.min(estimatedMs, UPLOAD_TIMEOUT_MS));
 }
 const API_TIMEOUT_MS = 60_000; // API 호출 60초
+
+export const EVENT_TAG_TO_CLIP_TAG: Record<EventTag, string> = {
+  goal: "슈팅",
+  assist: "전진패스",
+  dribble: "1v1 돌파",
+  save: "세이브",
+  other: "기타",
+};
+
+export function mergeUploadTags(tags: string[], eventTag: EventTag | null) {
+  const resolvedTags = [...tags];
+  const mappedEventTag = eventTag ? EVENT_TAG_TO_CLIP_TAG[eventTag] : null;
+
+  if (mappedEventTag && !resolvedTags.includes(mappedEventTag)) {
+    resolvedTags.unshift(mappedEventTag);
+  }
+
+  return resolvedTags;
+}
+
+function resolveClipTags() {
+  const store = useUploadStore.getState();
+  return mergeUploadTags(store.tags, store.eventTag);
+}
 
 // ─── 유틸 ───
 
@@ -823,6 +848,7 @@ export async function startUpload() {
   try {
     store.setStatus("uploading");
     store.setProgress(0);
+    const resolvedTags = resolveClipTags();
 
     // 압축 파일 우선 사용 (용량 절감)
     let uploadFile: File = store.compressedFile ?? store.file!;
@@ -955,7 +981,7 @@ export async function startUpload() {
           video_url: videoUrl,
           duration_seconds: duration || null,
           file_size_bytes: uploadFile.size,
-          tags: store.tags,
+          tags: resolvedTags,
           thumbnail_url: null,
         }
       : {
@@ -964,7 +990,7 @@ export async function startUpload() {
           duration_seconds: duration || null,
           file_size_bytes: uploadFile.size,
           memo: store.memo || null,
-          tags: store.tags,
+          tags: resolvedTags,
           thumbnail_url: null,
           highlight_start: store.trimStart,
           highlight_end: highlightEnd,
@@ -974,16 +1000,11 @@ export async function startUpload() {
           spotlight_y: store.spotlightY,
           freeze_at: store.freezeAt,
           event_tag: store.eventTag,
-          slowmo_start: store.slowmoStart,
-          slowmo_end: store.slowmoEnd,
-          slowmo_speed: store.slowmoStart !== null ? store.slowmoSpeed : undefined,
           effects: {
-            color: store.effects.color,
-            cinematic: store.effects.cinematic,
-            eafc: store.effects.eafc,
             intro: store.effects.intro,
             ...(store.spotlightX !== null ? { focusZoom: store.effects.focusZoom } : {}),
-            ...(store.captions.length > 0 ? { captions: store.captions } : {}),
+            trackingMode: store.trackingMode,
+            ...(store.trackingPoints.length > 0 ? { trackingPoints: store.trackingPoints } : {}),
           },
           client_trimmed: true,
         };
@@ -1026,6 +1047,7 @@ export async function startUpload() {
 export async function startRenderUpload(compressedFile?: File) {
   const store = useUploadStore.getState();
   if (!store.file || store.status !== "idle") return;
+  const resolvedTags = resolveClipTags();
 
   // 업로드할 파일: 압축 완료 파일 > 원본
   const uploadFile = compressedFile ?? store.file;
@@ -1104,7 +1126,7 @@ export async function startRenderUpload(compressedFile?: File) {
       duration_seconds: duration || null,
       file_size_bytes: uploadFile.size,
       memo: store.memo || null,
-      tags: store.tags,
+      tags: resolvedTags,
       thumbnail_url: null,
       highlight_start: clientTrimmed ? 0 : store.trimStart,
       highlight_end: clientTrimmed ? Math.min(duration || 30, 30) : (store.trimEnd ?? Math.min(duration || 30, 30)),
@@ -1115,16 +1137,11 @@ export async function startRenderUpload(compressedFile?: File) {
       spotlight_x: store.spotlightX,
       spotlight_y: store.spotlightY,
       freeze_at: store.freezeAt,
-      slowmo_start: store.slowmoStart,
-      slowmo_end: store.slowmoEnd,
-      slowmo_speed: store.slowmoStart !== null ? store.slowmoSpeed : undefined,
       effects: {
-        color: store.effects.color,
-        cinematic: store.effects.cinematic,
-        eafc: store.effects.eafc,
         intro: store.effects.intro,
         ...(store.spotlightX !== null ? { focusZoom: store.effects.focusZoom } : {}),
-        ...(store.captions.length > 0 ? { captions: store.captions } : {}),
+        trackingMode: store.trackingMode,
+        ...(store.trackingPoints.length > 0 ? { trackingPoints: store.trackingPoints } : {}),
       },
       raw_key: key,
       client_trimmed: clientTrimmed,

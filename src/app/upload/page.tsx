@@ -7,8 +7,8 @@ import { useProfileContext } from "@/providers/ProfileProvider";
 import { useRouter } from "next/navigation";
 import SelectView from "@/components/upload/SelectView";
 import DecorateView from "@/components/upload/DecorateView";
-import ShareView from "@/components/upload/ShareView";
 import DoneView from "@/components/upload/DoneView";
+import { startUpload } from "@/lib/upload-service";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -69,8 +69,6 @@ export default function UploadPage() {
       const s = useUploadStore.getState();
       if (s.phase === "decorate") {
         s.setPhase("select");
-      } else if (s.phase === "share") {
-        s.setPhase("decorate");
       } else if (s.file) {
         handleFullReset();
       }
@@ -167,7 +165,6 @@ export default function UploadPage() {
           <div className="ml-auto flex items-center gap-1.5">
             <div className="h-1 w-6 rounded-full bg-accent" />
             <div className="h-1 w-6 rounded-full bg-white/10" />
-            <div className="h-1 w-6 rounded-full bg-white/10" />
           </div>
         </div>
 
@@ -181,17 +178,15 @@ export default function UploadPage() {
     return (
       <DecorateView
         videoSrc={videoUrl}
-        onNext={() => handlePhase("share")}
+        onUpload={() => void startUpload()}
         onBack={() => handlePhase("select")}
       />
     );
   }
 
-  // share: 메모 + 공개범위 + 올리기
   if (phase === "share") {
-    return (
-      <ShareView onBack={() => handlePhase("decorate")} />
-    );
+    useUploadStore.getState().setPhase("decorate");
+    return null;
   }
 
   // uploading: 진행 상태 (GlobalUploadIndicator가 처리하므로 간단한 대기 UI)

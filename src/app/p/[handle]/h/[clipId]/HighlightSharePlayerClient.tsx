@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import CaptionOverlay from "@/components/video/CaptionOverlay";
 import VideoOverlay from "@/components/video/VideoOverlay";
-import type { Caption } from "@/stores/upload-store";
 import { resolveFocusZoom } from "@/lib/focus-zoom";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
+import type { PlaybackEffects } from "@/lib/playback-focus";
+import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
 
 interface HighlightShareClip {
   id: string;
@@ -17,17 +17,7 @@ interface HighlightShareClip {
   freezeAt?: number | null;
   trimStart?: number | null;
   trimEnd?: number | null;
-  slowmoStart?: number | null;
-  slowmoEnd?: number | null;
-  slowmoSpeed?: number | null;
-  effects?: {
-    color?: boolean;
-    cinematic?: boolean;
-    eafc?: boolean;
-    intro?: boolean;
-    focusZoom?: number;
-    captions?: Caption[];
-  } | null;
+  effects?: PlaybackEffects | null;
   playerName: string;
   playerPosition?: string | null;
   playerBirthYear?: number | null;
@@ -45,9 +35,9 @@ function formatTime(seconds: number) {
 export default function HighlightSharePlayerClient({
   clip,
 }: HighlightSharePlayerClientProps) {
+  const FREEZE_HOLD_MS = 1500;
   const videoRef = useRef<HTMLVideoElement>(null);
   const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const freezeFiredRef = useRef(false);
 
   const [paused, setPaused] = useState(false);
@@ -64,6 +54,14 @@ export default function HighlightSharePlayerClient({
     clip.spotlightX != null && clip.spotlightY != null
       ? { x: clip.spotlightX, y: clip.spotlightY }
       : null;
+  const trackingPoints = sanitizeTrackingPoints(clip.effects?.trackingPoints);
+  const activeSpotlight = resolvePlaybackSpotlight({
+    spotlight,
+    trackingMode: clip.effects?.trackingMode,
+    trackingPoints,
+    time: (clip.trimStart ?? 0) + currentTime,
+  });
+  const hasFocusTarget = hasPlaybackFocus(spotlight, clip.effects?.trackingMode, trackingPoints);
 
   const {
     adjustedSpotlight,
@@ -71,19 +69,16 @@ export default function HighlightSharePlayerClient({
     cancelZoomAnimation,
     pan,
     resetTransform,
+    syncZoomTo,
     zoom,
     zoomRef,
   } = useSpotlightZoom({
     videoRef,
     videoNativeSize,
-    spotlight,
+    spotlight: activeSpotlight,
   });
 
   const cancelFocusAnimation = useCallback(() => {
-    if (focusTimerRef.current) {
-      clearTimeout(focusTimerRef.current);
-      focusTimerRef.current = null;
-    }
     cancelZoomAnimation();
   }, [cancelZoomAnimation]);
 
@@ -114,30 +109,31 @@ export default function HighlightSharePlayerClient({
         return;
       }
 
-      const slowmoStart = clip.slowmoStart;
-      const slowmoEnd = clip.slowmoEnd;
-      const slowmoSpeed = clip.slowmoSpeed ?? 0.5;
-      if (slowmoStart != null && slowmoEnd != null) {
-        const inSlowmo = video.currentTime >= slowmoStart && video.currentTime < slowmoEnd;
-        if (inSlowmo && video.playbackRate !== slowmoSpeed) video.playbackRate = slowmoSpeed;
-        if (!inSlowmo && video.playbackRate !== 1) video.playbackRate = 1;
-      }
-
       if (
         clip.freezeAt != null &&
-        clip.spotlightX != null &&
+        hasFocusTarget &&
         !freezeFiredRef.current &&
         !video.paused &&
         video.currentTime >= clip.freezeAt
       ) {
+        const freezeSpotlight = resolvePlaybackSpotlight({
+          spotlight,
+          trackingMode: clip.effects?.trackingMode,
+          trackingPoints,
+          time: clip.freezeAt,
+        });
+        if (!freezeSpotlight) return;
+
         freezeFiredRef.current = true;
         video.pause();
         setIsFreezing(true);
+        setIsFocusMode(true);
+        animateZoomTo(freezeSpotlight.x, freezeSpotlight.y, focusZoom, 250);
         freezeTimerRef.current = setTimeout(() => {
-          setIsFreezing(false);
           freezeTimerRef.current = null;
+          setIsFreezing(false);
           video.play().catch(() => {});
-        }, 1000);
+        }, FREEZE_HOLD_MS);
       }
     };
 
@@ -175,7 +171,12 @@ export default function HighlightSharePlayerClient({
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("canplay", handleCanPlay);
     };
-  }, [clip, isFreezing]);
+  }, [clip, isFreezing, animateZoomTo, focusZoom, hasFocusTarget, spotlight, trackingPoints]);
+
+  useEffect(() => {
+    if (!activeSpotlight || !hasFocusTarget || !isFocusMode || isFreezing) return;
+    syncZoomTo(activeSpotlight.x, activeSpotlight.y, focusZoom);
+  }, [activeSpotlight, focusZoom, hasFocusTarget, isFocusMode, isFreezing, syncZoomTo]);
 
   useEffect(() => {
     freezeFiredRef.current = false;
@@ -183,7 +184,7 @@ export default function HighlightSharePlayerClient({
     setPaused(false);
     setEnded(false);
     setCurrentTime(0);
-    setIsFocusMode(false);
+    setIsFocusMode(hasFocusTarget);
     setIsFreezing(false);
 
     return () => {
@@ -193,29 +194,11 @@ export default function HighlightSharePlayerClient({
       }
       cancelFocusAnimation();
     };
-  }, [clip.id, cancelFocusAnimation, resetTransform]);
-
-  useEffect(() => {
-    if (clip.spotlightX == null || clip.spotlightY == null || !videoNativeSize) return;
-
-    focusTimerRef.current = setTimeout(() => {
-      animateZoomTo(clip.spotlightX ?? 0.5, clip.spotlightY ?? 0.5, focusZoom, 450, () => {
-        setIsFocusMode(true);
-      });
-    }, 450);
-
-    return () => {
-      if (focusTimerRef.current) {
-        clearTimeout(focusTimerRef.current);
-        focusTimerRef.current = null;
-      }
-    };
-  }, [animateZoomTo, clip.spotlightX, clip.spotlightY, focusZoom, videoNativeSize]);
+  }, [clip.id, cancelFocusAnimation, hasFocusTarget, resetTransform]);
 
   useEffect(() => {
     return () => {
       if (freezeTimerRef.current) clearTimeout(freezeTimerRef.current);
-      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
     };
   }, []);
 
@@ -236,7 +219,7 @@ export default function HighlightSharePlayerClient({
   }, [clip.trimStart, ended, isFreezing]);
 
   const toggleFocus = useCallback(() => {
-    if (clip.spotlightX == null || clip.spotlightY == null) return;
+    if (!activeSpotlight || !hasFocusTarget) return;
 
     if (zoomRef.current > 1) {
       animateZoomTo(0.5, 0.5, 1, 400, () => {
@@ -245,10 +228,10 @@ export default function HighlightSharePlayerClient({
       return;
     }
 
-    animateZoomTo(clip.spotlightX, clip.spotlightY, focusZoom, 400, () => {
+    animateZoomTo(activeSpotlight.x, activeSpotlight.y, focusZoom, 400, () => {
       setIsFocusMode(true);
     });
-  }, [animateZoomTo, clip.spotlightX, clip.spotlightY, focusZoom]);
+  }, [activeSpotlight, animateZoomTo, focusZoom, hasFocusTarget, zoomRef]);
 
   const handleSeek = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     const video = videoRef.current;
@@ -302,7 +285,6 @@ export default function HighlightSharePlayerClient({
             objectFit: "contain",
             transform: videoTransform,
             transformOrigin: "center center",
-            filter: clip.effects?.color ? "saturate(1.2) contrast(1.05) brightness(1.02)" : undefined,
           }}
           onClick={togglePlayback}
         />
@@ -325,15 +307,6 @@ export default function HighlightSharePlayerClient({
               effects={clip.effects}
               freezeMode={isFreezing}
               zoomLevel={zoom}
-            />
-          </div>
-        )}
-
-        {clip.effects?.captions && clip.effects.captions.length > 0 && (
-          <div className="pointer-events-none absolute inset-0 z-[11]">
-            <CaptionOverlay
-              captions={clip.effects.captions}
-              currentTime={currentTime}
             />
           </div>
         )}
@@ -361,7 +334,7 @@ export default function HighlightSharePlayerClient({
           </div>
         )}
 
-        {clip.spotlightX != null && clip.spotlightY != null && (
+        {hasFocusTarget && (isFreezing || isFocusMode || zoom > 1.05) && (
           <div className="absolute left-3 top-3 z-[21] flex gap-2">
             <span
               className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
@@ -423,7 +396,7 @@ export default function HighlightSharePlayerClient({
             {paused ? (ended ? "다시 보기" : "재생") : "일시정지"}
           </button>
 
-          {clip.spotlightX != null && clip.spotlightY != null && (
+          {hasFocusTarget && (
             <button
               onClick={toggleFocus}
               className="rounded-full px-4 py-2 text-[12px] font-semibold"

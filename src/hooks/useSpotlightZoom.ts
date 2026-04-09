@@ -100,6 +100,30 @@ export function useSpotlightZoom({
     rafIdRef.current = requestAnimationFrame(tick);
   }, [cancelZoomAnimation, setTransform, videoNativeSize, videoRef]);
 
+  const syncZoomTo = useCallback((
+    targetX: number,
+    targetY: number,
+    targetZoom: number,
+  ) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const containerW = video.offsetWidth || 390;
+    const containerH = video.offsetHeight || 844;
+    const videoW = video.videoWidth || videoNativeSize?.w || 1;
+    const videoH = video.videoHeight || videoNativeSize?.h || 1;
+    const nextPan = targetZoom <= 1
+      ? { x: 0, y: 0 }
+      : spotlightToPan(
+          { x: targetX, y: targetY },
+          { containerW, containerH, videoW, videoH },
+          targetZoom,
+        );
+
+    cancelZoomAnimation();
+    setTransform(targetZoom, nextPan);
+  }, [cancelZoomAnimation, setTransform, videoNativeSize, videoRef]);
+
   const adjustedSpotlight = useMemo(() => {
     if (!spotlight) return null;
     if (!videoNativeSize) return spotlight;
@@ -130,6 +154,7 @@ export function useSpotlightZoom({
     panRef,
     resetTransform,
     setTransform,
+    syncZoomTo,
     zoom,
     zoomRef,
   };

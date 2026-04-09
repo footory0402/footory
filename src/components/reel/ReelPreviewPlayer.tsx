@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
-import type { Caption } from "@/stores/upload-store";
 import type { HudPlayerData } from "@/components/video/hud/types";
-import CaptionOverlay from "@/components/video/CaptionOverlay";
 import { resolveFocusZoom } from "@/lib/focus-zoom";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
+import type { PlaybackEffects } from "@/lib/playback-focus";
+import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
 import {
   buildHudPlayerData,
   getCachedPlayerCard,
@@ -23,19 +23,10 @@ interface ReelClip {
   duration_seconds?: number | null;
   trimStart?: number | null;
   trimEnd?: number | null;
-  slowmoStart?: number | null;
-  slowmoEnd?: number | null;
-  slowmoSpeed?: number | null;
   spotlightX?: number | null;
   spotlightY?: number | null;
   freezeAt?: number | null;
-  effects?: {
-    captions?: Caption[];
-    color?: boolean;
-    cinematic?: boolean;
-    intro?: boolean;
-    focusZoom?: number;
-  } | null;
+  effects?: PlaybackEffects | null;
   transition?: "cut" | "fade";
 }
 
@@ -47,7 +38,7 @@ interface ReelPreviewPlayerProps {
 export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
   const INTRO_DURATION_MS = 2000;
-  const AUTO_FOCUS_HOLD_MS = 1200;
+  const FREEZE_HOLD_MS = 1500;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [index, setIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -55,9 +46,6 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
   const [paused, setPaused] = useState(false);
   const [fading, setFading] = useState(false);
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
-  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const focusResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Freeze frame
   const [isFreezing, setIsFreezing] = useState(false);
   const freezeFiredRef = useRef<Set<string>>(new Set());
@@ -76,6 +64,14 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     clip?.spotlightX != null && clip?.spotlightY != null
       ? { x: clip.spotlightX, y: clip.spotlightY }
       : null;
+  const trackingPoints = sanitizeTrackingPoints(clip?.effects?.trackingPoints);
+  const activeSpotlight = resolvePlaybackSpotlight({
+    spotlight,
+    trackingMode: clip?.effects?.trackingMode,
+    trackingPoints,
+    time: (clip?.trimStart ?? 0) + currentTime,
+  });
+  const hasFocusTarget = hasPlaybackFocus(spotlight, clip?.effects?.trackingMode, trackingPoints);
 
   const {
     adjustedSpotlight,
@@ -83,22 +79,15 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     cancelZoomAnimation,
     pan,
     resetTransform,
+    syncZoomTo,
     zoom,
   } = useSpotlightZoom({
     videoRef,
     videoNativeSize,
-    spotlight,
+    spotlight: activeSpotlight,
   });
 
   const cancelAutoFocus = useCallback(() => {
-    if (focusTimerRef.current) {
-      clearTimeout(focusTimerRef.current);
-      focusTimerRef.current = null;
-    }
-    if (focusResetTimerRef.current) {
-      clearTimeout(focusResetTimerRef.current);
-      focusResetTimerRef.current = null;
-    }
     cancelZoomAnimation();
   }, [cancelZoomAnimation]);
 
@@ -179,9 +168,6 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     } else {
       setIndex((i) => i + 1);
     }
-    if (videoRef.current && nextClip?.slowmoStart == null) {
-      videoRef.current.playbackRate = 1;
-    }
   }, [index, clips, clip]);
 
   // 클립 변경 시 비디오 초기화
@@ -203,31 +189,6 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, clip]);
 
-  useEffect(() => {
-    if (!introReady || showIntro || clip?.spotlightX == null || clip.spotlightY == null) return;
-
-    focusTimerRef.current = setTimeout(() => {
-      if (clip.spotlightX != null && clip.spotlightY != null) {
-        animateZoomTo(clip.spotlightX, clip.spotlightY, focusZoom, 450);
-        focusResetTimerRef.current = setTimeout(() => {
-          animateZoomTo(0.5, 0.5, 1, 400);
-          focusResetTimerRef.current = null;
-        }, AUTO_FOCUS_HOLD_MS);
-      }
-    }, 500);
-
-    return () => {
-      if (focusTimerRef.current) {
-        clearTimeout(focusTimerRef.current);
-        focusTimerRef.current = null;
-      }
-      if (focusResetTimerRef.current) {
-        clearTimeout(focusResetTimerRef.current);
-        focusResetTimerRef.current = null;
-      }
-    };
-  }, [animateZoomTo, clip, focusZoom, introReady, showIntro]);
-
   // timeupdate 핸들러
   useEffect(() => {
     const v = videoRef.current;
@@ -244,31 +205,31 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
       if (totalDuration > 0) {
         setTotalProgress((passedDuration + elapsed) / totalDuration);
       }
-      // 슬로모
-      const sStart = clip.slowmoStart;
-      const sEnd = clip.slowmoEnd;
-      const sSpeed = clip.slowmoSpeed ?? 0.5;
-      if (sStart != null && sEnd != null) {
-        const inSlowmo = v.currentTime >= sStart && v.currentTime < sEnd;
-        if (inSlowmo && v.playbackRate !== sSpeed) v.playbackRate = sSpeed;
-        else if (!inSlowmo && v.playbackRate !== 1) v.playbackRate = 1;
-      }
       // freeze frame
       if (
         clip.freezeAt != null &&
-        clip.spotlightX != null &&
+        hasFocusTarget &&
         !freezeFiredRef.current.has(clip.id) &&
         !v.paused &&
         v.currentTime >= clip.freezeAt
       ) {
+        const freezeSpotlight = resolvePlaybackSpotlight({
+          spotlight,
+          trackingMode: clip.effects?.trackingMode,
+          trackingPoints,
+          time: clip.freezeAt,
+        });
+        if (!freezeSpotlight) return;
+
         freezeFiredRef.current.add(clip.id);
         v.pause();
         setIsFreezing(true);
+        animateZoomTo(freezeSpotlight.x, freezeSpotlight.y, focusZoom, 250);
         freezeTimerRef.current = setTimeout(() => {
-          setIsFreezing(false);
           freezeTimerRef.current = null;
+          setIsFreezing(false);
           v.play().catch(() => {});
-        }, 1000);
+        }, FREEZE_HOLD_MS);
       }
     };
     v.addEventListener("timeupdate", onTime);
@@ -277,7 +238,12 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     return () => {
       v.removeEventListener("timeupdate", onTime);
     };
-  }, [index, clip, goNext, passedDuration, totalDuration]);
+  }, [index, clip, goNext, passedDuration, totalDuration, animateZoomTo, focusZoom, hasFocusTarget, spotlight, trackingPoints]);
+
+  useEffect(() => {
+    if (!activeSpotlight || !hasFocusTarget || isFreezing) return;
+    syncZoomTo(activeSpotlight.x, activeSpotlight.y, focusZoom);
+  }, [activeSpotlight, focusZoom, hasFocusTarget, isFreezing, syncZoomTo]);
 
   const togglePlay = () => {
     const v = videoRef.current;
@@ -287,7 +253,6 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
   };
 
   const effects = clip?.effects;
-  const captions = effects?.captions ?? [];
 
   const videoTransform = zoom > 1
     ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
@@ -335,7 +300,6 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
             transition: fading ? "opacity 0.5s" : "none",
             transform: videoTransform,
             transformOrigin: "center center",
-            filter: effects?.color ? "saturate(1.2) contrast(1.05)" : undefined,
           }}
         />
 
@@ -357,21 +321,6 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
               zoomLevel={zoom}
             />
           </div>
-        )}
-
-        {/* 캡션 오버레이 */}
-        {captions.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none">
-            <CaptionOverlay captions={captions} currentTime={currentTime} />
-          </div>
-        )}
-
-        {/* 시네마틱 바 */}
-        {effects?.cinematic && (
-          <>
-            <div className="absolute top-0 left-0 right-0 h-[10%]" style={{ background: "rgba(0,0,0,0.85)" }} />
-            <div className="absolute bottom-0 left-0 right-0 h-[10%]" style={{ background: "rgba(0,0,0,0.85)" }} />
-          </>
         )}
 
         {/* 재생/일시정지 탭 */}

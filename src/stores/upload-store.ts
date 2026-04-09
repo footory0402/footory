@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { EventTag } from "@/components/editor/video/types";
+import type { TrackingMode, TrackingPoint } from "@/lib/playback-focus";
 
 export interface Caption {
   text: string;       // 최대 30자
@@ -64,6 +65,8 @@ interface UploadState {
   spotlightX: number | null; // 스포트라이트 오버레이 좌표 (0~1 정규화)
   spotlightY: number | null; // 스포트라이트 오버레이 좌표 (0~1 정규화)
   freezeAt: number | null; // 프리즈 프레임 시점 (초)
+  trackingMode: TrackingMode;
+  trackingPoints: TrackingPoint[];
   skillLabels: string[];
   customLabels: string[];
   effects: UploadEffects;
@@ -114,6 +117,8 @@ interface UploadState {
   setDuration: (d: number | null) => void;
   setSpotlight: (x: number | null, y: number | null) => void;
   setFreezeAt: (t: number | null) => void;
+  setTrackingMode: (mode: TrackingMode) => void;
+  setTrackingPoints: (points: TrackingPoint[]) => void;
   setSkillLabels: (labels: string[]) => void;
   setCustomLabels: (labels: string[]) => void;
   setEffects: (effects: Partial<UploadState["effects"]>) => void;
@@ -170,6 +175,8 @@ const initial = {
   spotlightX: null as number | null,
   spotlightY: null as number | null,
   freezeAt: null as number | null,
+  trackingMode: "fixed" as TrackingMode,
+  trackingPoints: [] as TrackingPoint[],
   skillLabels: [] as string[],
   customLabels: [] as string[],
   effects: { color: false, cinematic: false, eafc: false, intro: false, focusZoom: 1.8 },
@@ -221,6 +228,8 @@ export const useUploadStore = create<UploadState>((set) => ({
   setDuration: (duration) => set({ duration }),
   setSpotlight: (x, y) => set({ spotlightX: x, spotlightY: y }),
   setFreezeAt: (t) => set({ freezeAt: t }),
+  setTrackingMode: (trackingMode) => set({ trackingMode }),
+  setTrackingPoints: (trackingPoints) => set({ trackingPoints }),
   setSkillLabels: (skillLabels) => set({ skillLabels }),
   setCustomLabels: (customLabels) => set({ customLabels }),
   setEffects: (partial) => set((state) => ({

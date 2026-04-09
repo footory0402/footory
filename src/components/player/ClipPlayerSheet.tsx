@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
-import CaptionOverlay from "@/components/video/CaptionOverlay";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
@@ -11,6 +10,8 @@ import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import ClipActionsSheet from "@/components/player/ClipActionsSheet";
 import { clampPan } from "@/lib/spotlight-math";
 import { resolveFocusZoom } from "@/lib/focus-zoom";
+import type { PlaybackEffects } from "@/lib/playback-focus";
+import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
 import {
   buildFallbackHudPlayerData,
   buildHudPlayerData,
@@ -47,21 +48,11 @@ export interface PlayableClip {
   // trim (런타임 구간 재생)
   trimStart?: number | null;
   trimEnd?: number | null;
-  // 슬로모션
   slowmoStart?: number | null;
   slowmoEnd?: number | null;
   slowmoSpeed?: number | null;
-  // BGM
   bgmId?: string | null;
-  // css effects (captions/bgmVolume/originalVolume도 포함)
-  effects?: {
-    color?: boolean;
-    cinematic?: boolean;
-    eafc?: boolean;
-    intro?: boolean;
-    focusZoom?: number;
-    captions?: import("@/stores/upload-store").Caption[];
-  } | null;
+  effects?: PlaybackEffects | null;
 }
 
 interface ClipPlayerSheetProps {
@@ -85,7 +76,7 @@ export default function ClipPlayerSheet({
 }: ClipPlayerSheetProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
   const INTRO_DURATION_MS = 2000;
-  const AUTO_FOCUS_HOLD_MS = 1200;
+  const FREEZE_HOLD_MS = 1500;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localClips, setLocalClips] = useState(clipsProp);
   const [index, setIndex] = useState(initialIndex);
@@ -117,7 +108,6 @@ export default function ClipPlayerSheet({
   // 자동 포커스 모드
   const [isFocusMode, setIsFocusMode] = useState(false);
   const isAutoZoomingRef = useRef(false);
-  const autoFocusResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // View count tracking: 3초 재생 후 1회만 호출
   const viewTrackedRef = useRef<Set<string>>(new Set());
@@ -126,13 +116,27 @@ export default function ClipPlayerSheet({
   const clip = clips[index];
   const hasNext = index < clips.length - 1;
   const hasPrev = index > 0;
-  const effects = clip?.effects;
+  const effects = clip?.effects ?? null;
   const focusZoom = resolveFocusZoom(effects?.focusZoom);
   const touchHandled = useRef(false);
   const spotlight =
     clip?.spotlightX != null && clip?.spotlightY != null
       ? { x: clip.spotlightX, y: clip.spotlightY }
       : null;
+  const trackingPoints = useMemo(
+    () => sanitizeTrackingPoints(effects?.trackingPoints),
+    [effects?.trackingPoints],
+  );
+  const activeSpotlight = useMemo(
+    () => resolvePlaybackSpotlight({
+      spotlight,
+      trackingMode: effects?.trackingMode,
+      trackingPoints,
+      time: (clip?.trimStart ?? 0) + currentTime,
+    }),
+    [clip?.trimStart, currentTime, effects?.trackingMode, spotlight, trackingPoints],
+  );
+  const hasFocusTarget = hasPlaybackFocus(spotlight, effects?.trackingMode, trackingPoints);
 
   // Intro card overlay
   const [showIntro, setShowIntro] = useState(false);
@@ -150,12 +154,13 @@ export default function ClipPlayerSheet({
     panRef,
     resetTransform,
     setTransform,
+    syncZoomTo,
     zoom,
     zoomRef,
   } = useSpotlightZoom({
     videoRef,
     videoNativeSize,
-    spotlight,
+    spotlight: activeSpotlight,
   });
 
   // Freeze frame state
@@ -248,29 +253,28 @@ export default function ClipPlayerSheet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialIndex, playIntro, clipsProp]);
 
-  // introReady가 true가 되면 영상 재생 시작 + spotlight 있으면 자동 포커스
+  // 인트로 종료 후 영상 재생 시작
   useEffect(() => {
     if (introReady && !showIntro && videoRef.current) {
       videoRef.current.play().catch(() => {});
-      // spotlight가 있는 클립이면 자동 2x 포커스 진입
-      const currentClip = clips[index];
-      if (
-        currentClip?.spotlightX != null &&
-        currentClip?.spotlightY != null &&
-        zoomRef.current <= 1
-      ) {
-        setIsFocusMode(true);
-        animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, focusZoom, 450);
-        if (autoFocusResetTimerRef.current) clearTimeout(autoFocusResetTimerRef.current);
-        autoFocusResetTimerRef.current = setTimeout(() => {
-          animateZoomTo(0.5, 0.5, 1, 400);
-          setIsFocusMode(false);
-          autoFocusResetTimerRef.current = null;
-        }, AUTO_FOCUS_HOLD_MS);
-      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [introReady, showIntro, focusZoom]);
+  }, [introReady, showIntro]);
+
+  // rAF 기반 줌 애니메이션 (targetX/Y: 0-1 정규화된 영상 내 좌표)
+  const animateZoomTo = useCallback((
+    targetX: number,
+    targetY: number,
+    targetZoom: number,
+    durationMs: number,
+    onDone?: () => void,
+  ) => {
+    isAutoZoomingRef.current = true;
+    animateSpotlightZoom(targetX, targetY, targetZoom, durationMs, () => {
+      isAutoZoomingRef.current = false;
+      onDone?.();
+    });
+  }, [animateSpotlightZoom]);
 
   // Reset on clip change
   useEffect(() => {
@@ -283,6 +287,7 @@ export default function ClipPlayerSheet({
     setRetryCount(0);
     setShowControls(true);
     setIsFreezing(false);
+    setIsFocusMode(hasFocusTarget);
     setVideoNativeSize(null);
     if (freezeTimerRef.current) { clearTimeout(freezeTimerRef.current); freezeTimerRef.current = null; }
     scheduleHide();
@@ -292,7 +297,7 @@ export default function ClipPlayerSheet({
       playIntro(clip.id);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, introData, playIntro, clip]);
+  }, [hasFocusTarget, index, introData, playIntro, clip]);
 
   const scheduleHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -326,32 +331,45 @@ export default function ClipPlayerSheet({
       setDuration(clipDuration || 0);
       setProgress(clipDuration > 0 ? elapsed / clipDuration : 0);
 
-      // 슬로모션 구간 playbackRate 제어
-      const sStart = currentClip?.slowmoStart;
-      const sEnd = currentClip?.slowmoEnd;
-      const sSpeed = currentClip?.slowmoSpeed ?? 0.5;
-      if (sStart != null && sEnd != null) {
-        const inSlowmo = v.currentTime >= sStart && v.currentTime < sEnd;
-        if (inSlowmo && v.playbackRate !== sSpeed) v.playbackRate = sSpeed;
-        else if (!inSlowmo && v.playbackRate !== 1) v.playbackRate = 1;
-      }
-
       // Freeze frame detection
       if (
         currentClip?.freezeAt != null &&
-        currentClip.spotlightX != null &&
+        hasPlaybackFocus(
+          currentClip.spotlightX != null && currentClip.spotlightY != null
+            ? { x: currentClip.spotlightX, y: currentClip.spotlightY }
+            : null,
+          currentClip.effects?.trackingMode,
+          sanitizeTrackingPoints(currentClip.effects?.trackingPoints),
+        ) &&
         !freezeFiredRef.current.has(currentClip.id) &&
         !v.paused &&
         v.currentTime >= currentClip.freezeAt
       ) {
+        const freezeSpotlight = resolvePlaybackSpotlight({
+          spotlight: currentClip.spotlightX != null && currentClip.spotlightY != null
+            ? { x: currentClip.spotlightX, y: currentClip.spotlightY }
+            : null,
+          trackingMode: currentClip.effects?.trackingMode,
+          trackingPoints: sanitizeTrackingPoints(currentClip.effects?.trackingPoints),
+          time: currentClip.freezeAt,
+        });
+        if (!freezeSpotlight) return;
+
         freezeFiredRef.current.add(currentClip.id);
         v.pause();
         setIsFreezing(true);
+        setIsFocusMode(true);
+        animateZoomTo(
+          freezeSpotlight.x,
+          freezeSpotlight.y,
+          resolveFocusZoom(currentClip.effects?.focusZoom),
+          250,
+        );
         freezeTimerRef.current = setTimeout(() => {
-          setIsFreezing(false);
           freezeTimerRef.current = null;
+          setIsFreezing(false);
           v.play().catch(() => {});
-        }, 1000);
+        }, FREEZE_HOLD_MS);
       }
     };
     const onPlay = () => {
@@ -415,7 +433,12 @@ export default function ClipPlayerSheet({
       v.removeEventListener("canplay", onCanPlay);
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
     };
-  }, [scheduleHide, index]);
+  }, [scheduleHide, index, animateZoomTo]);
+
+  useEffect(() => {
+    if (!clip || !activeSpotlight || !hasFocusTarget || !isFocusMode || isFreezing) return;
+    syncZoomTo(activeSpotlight.x, activeSpotlight.y, focusZoom);
+  }, [activeSpotlight, clip, focusZoom, hasFocusTarget, isFocusMode, isFreezing, syncZoomTo]);
 
   const handleTap = useCallback(() => {
     const v = videoRef.current;
@@ -461,71 +484,21 @@ export default function ClipPlayerSheet({
   };
 
   const goToClip = (i: number) => {
-    if (autoFocusResetTimerRef.current) {
-      clearTimeout(autoFocusResetTimerRef.current);
-      autoFocusResetTimerRef.current = null;
-    }
     if (i >= 0 && i < clips.length) setIndex(i);
   };
 
-  // 줌 리셋 + 자동 포커스 재진입 (클립 변경 시)
+  // 줌 리셋 (클립 변경 시)
   useEffect(() => {
     isAutoZoomingRef.current = false;
     cancelZoomAnimation();
     resetTransform();
     setIsFocusMode(false);
     pinchRef.current = null;
-    if (autoFocusResetTimerRef.current) {
-      clearTimeout(autoFocusResetTimerRef.current);
-      autoFocusResetTimerRef.current = null;
-    }
-
-    // 새 클립에 spotlight 있으면 자동 포커스 진입 (인트로 카드 없을 때만)
-    const newClip = clips[index];
-    if (newClip?.spotlightX != null && newClip?.spotlightY != null) {
-      // 인트로 카드가 표시되는 동안은 자동 포커스 지연
-      const delay = introEnabledRef.current && newClip.effects?.intro === true && introData && !introShownRef.current.has(newClip.id)
-        ? INTRO_DURATION_MS + 100
-        : 600;
-      const timer = setTimeout(() => {
-        if (newClip.spotlightX != null && newClip.spotlightY != null) {
-          setIsFocusMode(true);
-          animateZoomTo(newClip.spotlightX, newClip.spotlightY, resolveFocusZoom(newClip.effects?.focusZoom), 450);
-          autoFocusResetTimerRef.current = setTimeout(() => {
-            animateZoomTo(0.5, 0.5, 1, 400);
-            setIsFocusMode(false);
-            autoFocusResetTimerRef.current = null;
-          }, AUTO_FOCUS_HOLD_MS);
-        }
-      }, delay);
-      return () => {
-        clearTimeout(timer);
-        if (autoFocusResetTimerRef.current) {
-          clearTimeout(autoFocusResetTimerRef.current);
-          autoFocusResetTimerRef.current = null;
-        }
-      };
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, cancelZoomAnimation, resetTransform]);
 
-  // rAF 기반 줌 애니메이션 (targetX/Y: 0-1 정규화된 영상 내 좌표)
-  const animateZoomTo = useCallback((
-    targetX: number,
-    targetY: number,
-    targetZoom: number,
-    durationMs: number,
-    onDone?: () => void,
-  ) => {
-    isAutoZoomingRef.current = true;
-    animateSpotlightZoom(targetX, targetY, targetZoom, durationMs, () => {
-      isAutoZoomingRef.current = false;
-      onDone?.();
-    });
-  }, [animateSpotlightZoom]);
-
   useEffect(() => () => {
-    if (autoFocusResetTimerRef.current) clearTimeout(autoFocusResetTimerRef.current);
+    if (freezeTimerRef.current) clearTimeout(freezeTimerRef.current);
   }, []);
 
   const getTouchDist = (e: React.TouchEvent) => {
@@ -659,14 +632,13 @@ export default function ClipPlayerSheet({
       // 더블탭: spotlight 있으면 선수 위치 기준, 없으면 1x ↔ 2x 토글
       const now = Date.now();
       if (now - lastTapRef.current < 300) {
-        const currentClip = clips[index];
         if (zoomRef.current > 1) {
           // 현재 줌 상태 → 1x로 리셋 (easeInOutCubic으로 스윙 방지, 450ms)
           animateZoomTo(0.5, 0.5, 1, 450);
           setIsFocusMode(false);
-        } else if (currentClip?.spotlightX != null && currentClip?.spotlightY != null) {
-          // spotlight 있음 → 선수 위치로 2x 줌
-          animateZoomTo(currentClip.spotlightX, currentClip.spotlightY, resolveFocusZoom(currentClip.effects?.focusZoom), 350);
+        } else if (activeSpotlight) {
+          // spotlight 있음 → 현재 선수 위치로 2x 줌
+          animateZoomTo(activeSpotlight.x, activeSpotlight.y, focusZoom, 350);
           setIsFocusMode(true);
         } else {
           // spotlight 없음 → 그냥 2x
@@ -862,7 +834,6 @@ export default function ClipPlayerSheet({
               ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
               : swiping ? `translateY(${swipeY * 0.2}px)` : undefined,
             transformOrigin: "center center",
-            filter: effects?.color ? "saturate(1.2) contrast(1.05) brightness(1.02)" : undefined,
           }}
           onClick={(e) => { e.preventDefault(); if (!touchHandled.current) handleTap(); }}
         />
@@ -891,19 +862,6 @@ export default function ClipPlayerSheet({
             hideNametag={!!introData}
             freezeMode={isFreezing}
             zoomLevel={zoom}
-          />
-        </div>
-      )}
-
-      {/* ── 캡션 오버레이 ── */}
-      {effects?.captions && effects.captions.length > 0 && introReady && !showIntro && (
-        <div className="absolute inset-x-0 top-0 pointer-events-none" style={{
-          height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT + SEEKBAR_HEIGHT}px)` : "100%",
-          zIndex: 46,
-        }}>
-          <CaptionOverlay
-            captions={effects.captions}
-            currentTime={currentTime}
           />
         </div>
       )}
@@ -1031,15 +989,15 @@ export default function ClipPlayerSheet({
         transition: "opacity 0.3s",
         pointerEvents: showControls ? "auto" : "none",
       }}>
-        {/* 선수 포커스 토글 (spotlight 있는 클립만) */}
-        {clip.spotlightX != null && clip.spotlightY != null && introReady && (
+        {/* 선수 포커스 토글 */}
+        {hasFocusTarget && introReady && (
           <button
             onClick={() => {
               if (isFocusMode || zoom > 1) {
                 animateZoomTo(0.5, 0.5, 1, 400);
                 setIsFocusMode(false);
-              } else {
-                animateZoomTo(clip.spotlightX!, clip.spotlightY!, focusZoom, 400);
+              } else if (activeSpotlight) {
+                animateZoomTo(activeSpotlight.x, activeSpotlight.y, focusZoom, 400);
                 setIsFocusMode(true);
               }
             }}

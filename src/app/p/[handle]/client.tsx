@@ -269,12 +269,21 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const { profile: ownProfile, updateProfile, uploadAvatar, checkHandle } = useProfile({
     enabled: !!data.isOwnProfile,
   });
+  const [localTagClips, setLocalTagClips] = useState<Record<string, TagClip[]>>(data.tagClips ?? {});
+  const [localUntaggedClips, setLocalUntaggedClips] = useState<TagClip[]>(data.untaggedClips ?? []);
+  const [localFeatured, setLocalFeatured] = useState<FeaturedClip[]>(data.featured ?? []);
 
   const profile = toProfile(data);
   const stats = useMemo(() => computeAggregatedStats(data.stats), [data.stats]);
   const seasons = mapSeasons(data.seasons);
   const achievements = mapAchievements(data.achievements ?? []);
-  const tagClips = data.tagClips ?? {};
+  const tagClips = localTagClips;
+
+  useEffect(() => {
+    setLocalTagClips(data.tagClips ?? {});
+    setLocalUntaggedClips(data.untaggedClips ?? []);
+    setLocalFeatured(data.featured ?? []);
+  }, [data.featured, data.tagClips, data.untaggedClips]);
 
   // 스탯 탭 활성화 시 또래 비교 데이터 로드
   useEffect(() => {
@@ -499,8 +508,8 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           <HighlightsTabV5
             readOnly={!data.isOwnProfile}
             tagClips={tagClips}
-            untaggedClips={data.untaggedClips ?? []}
-            initialFeatured={data.featured}
+            untaggedClips={localUntaggedClips}
+            initialFeatured={localFeatured}
             position={profile.position}
             playerName={profile.name}
             playerBirthYear={profile.birthYear ?? null}
@@ -518,10 +527,29 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
             }}
             {...(data.isOwnProfile ? {
               onDeleteClip: async (clipId: string) => {
+                const prevTagClips = localTagClips;
+                const prevUntaggedClips = localUntaggedClips;
+                const prevFeatured = localFeatured;
+
+                setLocalTagClips((prev) =>
+                  Object.fromEntries(
+                    Object.entries(prev)
+                      .map(([tagId, clips]) => [tagId, clips.filter((clip) => clip.id !== clipId)])
+                      .filter(([, clips]) => clips.length > 0)
+                  )
+                );
+                setLocalUntaggedClips((prev) => prev.filter((clip) => clip.id !== clipId));
+                setLocalFeatured((prev) => prev.filter((item) => item.clip_id !== clipId));
+
                 const res = await fetch(`/api/clips/${clipId}`, { method: "DELETE" });
                 if (res.ok) {
                   toast.success("영상이 삭제되었습니다.");
                   router.refresh();
+                } else {
+                  setLocalTagClips(prevTagClips);
+                  setLocalUntaggedClips(prevUntaggedClips);
+                  setLocalFeatured(prevFeatured);
+                  toast.error("영상 삭제에 실패했습니다.");
                 }
                 return res.ok;
               },

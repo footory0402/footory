@@ -3,14 +3,16 @@
 /**
  * VideoOverlay — 축구 중계 스타일 선수 마커 오버레이
  *
- * 1x 전체뷰: 마커 + 라벨 영상 전체 상시 표시 (무한 float)
- * 2x 이상 줌: 마커가 1.5초 후 자동 fadeout (확대 상태엔 선수가 크게 보여 불필요)
+ * 기본 상태: 마커 숨김
+ * 확대/프리즈 상태: 마커 노출 후 1.5초 뒤 자동 fadeout
  * 프리즈 모드: scale 1.2 + glow 강화
  *
  * pointer-events: none → 영상 컨트롤 방해 없음
  */
 
 import { useEffect, useRef, useState } from "react";
+
+const MARKER_HIDE_DELAY_MS = 1500;
 
 interface VideoOverlayProps {
   spotlight: { x: number; y: number } | null;
@@ -40,31 +42,31 @@ export default function VideoOverlay({
   freezeMode,
   zoomLevel = 1,
 }: VideoOverlayProps) {
-  const [markerVisible, setMarkerVisible] = useState(true);
+  const [markerVisible, setMarkerVisible] = useState(false);
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevZoomRef = useRef(zoomLevel);
 
-  // 줌 레벨 변화 감지: 1x→2x+ 전환 시 1.5초 후 fadeout, 2x+→1x 전환 시 마커 재표시
+  // 확대 또는 프리즈 상태에서만 마커를 잠깐 노출한다.
   useEffect(() => {
-    const wasZoomed = prevZoomRef.current >= 2;
-    const isZoomed = zoomLevel >= 2;
-    prevZoomRef.current = zoomLevel;
-
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
 
-    if (isZoomed) {
-      // 줌 상태: 1.5초 후 마커 숨김
-      setMarkerVisible(true); // 전환 순간엔 잠깐 보여줌
-      fadeTimerRef.current = setTimeout(() => setMarkerVisible(false), 1500);
-    } else if (wasZoomed && !isZoomed) {
-      // 줌 해제: 즉시 마커 재표시
+    if (freezeMode) {
       setMarkerVisible(true);
+      return () => {
+        if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      };
+    }
+
+    if (zoomLevel > 1.05) {
+      setMarkerVisible(true);
+      fadeTimerRef.current = setTimeout(() => setMarkerVisible(false), MARKER_HIDE_DELAY_MS);
+    } else {
+      setMarkerVisible(false);
     }
 
     return () => {
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
     };
-  }, [zoomLevel]);
+  }, [freezeMode, zoomLevel]);
 
   const infoChunks: string[] = [];
   if (player.position) infoChunks.push(player.position);
@@ -73,8 +75,6 @@ export default function VideoOverlay({
     infoChunks.push(`U${age}`);
   }
   const infoLine = infoChunks.join(" · ");
-
-  const isZoomed = zoomLevel >= 2;
 
   return (
     <div

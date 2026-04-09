@@ -730,7 +730,7 @@ export default function HighlightsTabV5({
                     const ok = await onDeleteClip(deletingClipId);
                     setIsDeleting(false);
                     setDeletingClipId(null);
-                    if (ok && dedupedClips.length <= 1) setEditMode(false);
+                    if (ok) setEditMode(false);
                   }}
                   className="mb-3 flex w-full items-center justify-center"
                   style={{

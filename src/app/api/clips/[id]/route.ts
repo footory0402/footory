@@ -149,6 +149,16 @@ async function deleteR2Objects(keys: (string | null)[]) {
   );
 }
 
+async function assertNoError(
+  action: string,
+  promise: PromiseLike<{ error: { message: string } | null }>
+) {
+  const { error } = await promise;
+  if (error) {
+    throw new Error(`${action}: ${error.message}`);
+  }
+}
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -172,12 +182,61 @@ export async function DELETE(
     }
 
     // Delete dependent records first (FK constraints)
-    await supabase.from("featured_clips").delete().eq("clip_id", id);
-    await supabase.from("highlights").delete().eq("clip_id", id);
-    await supabase.from("clip_tags").delete().eq("clip_id", id);
-    await supabase.from("coach_reviews").delete().eq("clip_id", id);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from("messages") as any).update({ shared_clip_id: null }).eq("shared_clip_id", id);
+    await assertNoError(
+      "delete featured clips",
+      supabase.from("featured_clips").delete().eq("clip_id", id)
+    );
+    await assertNoError(
+      "delete clip tags",
+      supabase.from("clip_tags").delete().eq("clip_id", id)
+    );
+    await assertNoError(
+      "delete coach reviews",
+      supabase.from("coach_reviews").delete().eq("clip_id", id)
+    );
+    await assertNoError(
+      "clear shared clips from messages",
+      (supabase.from("messages") as any).update({ shared_clip_id: null }).eq("shared_clip_id", id)
+    );
+    await assertNoError(
+      "clear evidence clips from stats",
+      supabase.from("stats").update({ evidence_clip_id: null }).eq("evidence_clip_id", id)
+    );
+    await assertNoError(
+      "clear highlight clips from seasons",
+      supabase.from("seasons").update({ highlight_clip_id: null }).eq("highlight_clip_id", id)
+    );
+    await assertNoError(
+      "clear clip references from reports",
+      (supabase.from("reports") as any).update({ clip_id: null }).eq("clip_id", id)
+    );
+    await assertNoError(
+      "clear clip references from weekly mvp results",
+      (supabase.from("weekly_mvp_results") as any).update({ clip_id: null }).eq("clip_id", id)
+    );
+
+    const { data: highlights, error: highlightsError } = await supabase
+      .from("highlights")
+      .select("id, clip_ids")
+      .eq("owner_id", user.id)
+      .contains("clip_ids", [id]);
+    if (highlightsError) {
+      throw new Error(`load highlights: ${highlightsError.message}`);
+    }
+    for (const highlight of highlights ?? []) {
+      const remainingClipIds = (highlight.clip_ids ?? []).filter((clipId) => clipId !== id);
+      if (remainingClipIds.length < 2) {
+        await assertNoError(
+          "delete highlight with removed clip",
+          supabase.from("highlights").delete().eq("id", highlight.id)
+        );
+        continue;
+      }
+      await assertNoError(
+        "update highlight clips",
+        supabase.from("highlights").update({ clip_ids: remainingClipIds }).eq("id", highlight.id)
+      );
+    }
 
     // Delete feed items referencing this clip (and their kudos/comments)
     const { data: feedItems } = await supabase
@@ -186,13 +245,24 @@ export async function DELETE(
       .eq("reference_id", id);
     if (feedItems && feedItems.length > 0) {
       const feedIds = feedItems.map((f: { id: string }) => f.id);
-      await supabase.from("kudos").delete().in("feed_item_id", feedIds);
-      await supabase.from("comments").delete().in("feed_item_id", feedIds);
-      await supabase.from("feed_items").delete().eq("reference_id", id);
+      await assertNoError(
+        "delete feed kudos",
+        supabase.from("kudos").delete().in("feed_item_id", feedIds)
+      );
+      await assertNoError(
+        "delete feed comments",
+        supabase.from("comments").delete().in("feed_item_id", feedIds)
+      );
+      await assertNoError(
+        "delete feed items",
+        supabase.from("feed_items").delete().eq("reference_id", id)
+      );
     }
 
-    const { error } = await supabase.from("clips").delete().eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await assertNoError(
+      "delete clip",
+      supabase.from("clips").delete().eq("id", id)
+    );
 
     // Best-effort R2 file deletion (failures don't affect response)
     const videoKey = clip.video_url ? extractR2Key(clip.video_url) : null;
@@ -201,7 +271,8 @@ export async function DELETE(
     await deleteR2Objects([videoKey, thumbKey, rawKey]);
 
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
