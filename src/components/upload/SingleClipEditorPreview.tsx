@@ -190,8 +190,8 @@ export default function SingleClipEditorPreview({
   const hudVisible = draft.overlay.showLowerThird && !!playerData;
   const overlayLabel = useMemo(() => {
     if (spotlightPicking) return "프리뷰를 눌러 선수를 지정하세요";
-    if (!spotlight) return "스포트라이트를 켜면 자동 확대가 적용됩니다";
-    if (freezeActive) return "프리즈 프레임 미리보기";
+    if (!spotlight) return "주인공을 고르면 확대 재생이 함께 적용돼요";
+    if (freezeActive) return "고정 화면 미리보기";
     return `자동 확대 ${draft.playback.zoom.toFixed(1)}x`;
   }, [draft.playback.zoom, freezeActive, spotlight, spotlightPicking]);
 
@@ -222,7 +222,7 @@ export default function SingleClipEditorPreview({
 
         <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-3">
           <span className="rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold text-white/85">
-            SINGLE CLIP
+            한 장면 편집
           </span>
           <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
             spotlightPicking ? "bg-[#d8b36a] text-[#09090b]" : "bg-black/55 text-white/85"
@@ -291,10 +291,10 @@ export default function SingleClipEditorPreview({
             {isPlaying ? "일시정지" : ended ? "다시 보기" : "재생"}
           </button>
           <div className="rounded-full bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-text-2">
-            Trim {formatTime(draft.playback.trimStart)} - {formatTime(draft.playback.trimEnd)}
+            구간 {formatTime(draft.playback.trimStart)} - {formatTime(draft.playback.trimEnd)}
           </div>
           <div className="rounded-full bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-text-2">
-            Highlight {formatTime(draft.playback.highlightStart)} - {formatTime(draft.playback.highlightEnd)}
+            하이라이트 {formatTime(draft.playback.highlightStart)} - {formatTime(draft.playback.highlightEnd)}
           </div>
         </div>
 
@@ -314,7 +314,7 @@ export default function SingleClipEditorPreview({
               onPreviewTimeChange(nextValue);
             }}
             className="w-full accent-[#d8b36a]"
-            aria-label="single clip preview seek"
+            aria-label="편집 미리보기 이동"
           />
           <div className="mt-2 flex items-center justify-between text-[12px] text-white/55">
             <span>{formatTime(seekValue)}</span>

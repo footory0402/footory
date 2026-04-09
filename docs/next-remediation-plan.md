@@ -113,3 +113,6 @@
 - `단위 B5-2` 완료:
   - 공통 payload 빌더 추가 (`src/lib/upload-payload.ts`)
   - 일반 업로드(`startUpload`)와 부모 업로드(`ParentQuickUpload`)가 동일 payload 생성 함수를 사용하도록 수렴
+- `단위 B5-3` 완료:
+  - parent 업로드 E2E 성공/실패/취소 시나리오 추가 (`tests/e2e/phase-e/parent-upload.spec.ts`)
+  - Playwright `testMatch`에 포함되도록 parent 진입 spec 추가 (`tests/e2e/parent.spec.ts`)

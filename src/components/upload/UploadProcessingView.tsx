@@ -23,14 +23,14 @@ function formatBytes(bytes: number) {
 function getCurrentLabel(status: UploadStatus, error: string | null) {
   switch (status) {
     case "composing":
-      return "원본을 업로드용으로 준비하고 있어요.";
+      return "편집할 영상을 준비하고 있어요.";
     case "uploading":
     case "uploading_raw":
-      return "원본 영상을 업로드하고 있어요.";
+      return "영상을 올리고 있어요.";
     case "saving":
-      return "업로드 메타데이터를 저장하고 있어요.";
+      return "편집을 열기 위한 정보를 저장하고 있어요.";
     case "analyzing":
-      return "single clip 편집 화면을 준비하는 중이에요.";
+      return "선택형 편집 화면을 준비하고 있어요.";
     case "error":
       return error ?? "업로드 중 문제가 발생했어요.";
     default:
@@ -74,20 +74,20 @@ function resolveStages({
   return [
     {
       key: "metadata",
-      title: "메타데이터 확인",
-      description: "길이와 기본 업로드 정보를 정리합니다.",
+      title: "영상 준비",
+      description: "길이와 기본 정보를 확인합니다.",
       state: metadataState,
     },
     {
       key: "upload",
-      title: "원본 업로드",
-      description: "원본은 그대로 저장하고 이후 단계에서 재사용합니다.",
+      title: "원본 올리기",
+      description: "영상 파일을 그대로 올립니다.",
       state: uploadState,
     },
     {
       key: "analysis",
-      title: "편집 화면 준비",
-      description: "single clip preview와 기본 편집값을 정리합니다.",
+      title: "편집 준비",
+      description: "선택형 편집 화면을 열 준비를 합니다.",
       state: analysisState,
     },
   ];
@@ -166,8 +166,8 @@ export default function UploadProcessingView({ onRetry, onReset }: UploadProcess
           2
         </div>
         <div>
-          <h1 className="text-[17px] font-bold text-text-1">업로드 처리</h1>
-          <p className="text-[12px] text-text-3">원본 저장과 기본 제안 생성을 순서대로 진행합니다.</p>
+          <h1 className="text-[17px] font-bold text-text-1">업로드 중</h1>
+          <p className="text-[12px] text-text-3">올리는 동안 다음 편집 화면을 바로 준비해요.</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <div className="h-1 w-6 rounded-full bg-accent" />
@@ -224,9 +224,9 @@ export default function UploadProcessingView({ onRetry, onReset }: UploadProcess
         </div>
 
         <div className="rounded-2xl border border-accent/15 bg-accent/8 p-4">
-          <p className="text-[12px] font-semibold text-accent">이번 단계에서는 원본과 제안 초안만 만듭니다.</p>
+          <p className="text-[12px] font-semibold text-accent">구간 자르기, 주인공 강조, 확대 재생, 선수 정보는 모두 선택사항이에요.</p>
           <p className="mt-1 text-[11px] leading-5 text-text-3">
-            다음 화면에서는 clip 하나만 기준으로 trim, spotlight, zoom, overlay, highlight range만 다룹니다.
+            다음 화면에서 원하면 하나씩만 고르고, 그대로 둔 채 저장할 수도 있어요.
           </p>
         </div>
 
@@ -244,7 +244,7 @@ export default function UploadProcessingView({ onRetry, onReset }: UploadProcess
               onClick={onReset}
               className="flex-1 rounded-2xl border border-white/[0.08] bg-card py-3.5 text-[14px] font-medium text-text-1 active:scale-[0.99]"
             >
-              다른 파일 선택
+              다른 영상 고르기
             </button>
           </div>
         ) : canEnterEditor ? (
@@ -254,14 +254,14 @@ export default function UploadProcessingView({ onRetry, onReset }: UploadProcess
               onClick={() => router.push(editorHref!)}
               className="flex-1 rounded-2xl bg-accent py-3.5 text-[14px] font-bold text-bg active:scale-[0.99]"
             >
-              편집 화면으로 이동
+              바로 편집하기
             </button>
             <button
               type="button"
               onClick={onReset}
               className="rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-[14px] font-medium text-text-2 active:scale-[0.99]"
             >
-              다른 파일 선택
+              다른 영상 고르기
             </button>
           </div>
         ) : (
@@ -270,7 +270,7 @@ export default function UploadProcessingView({ onRetry, onReset }: UploadProcess
             onClick={onReset}
             className="w-full rounded-2xl border border-white/[0.08] bg-card py-3.5 text-[14px] font-medium text-text-2 active:scale-[0.99]"
           >
-            다른 파일 선택
+            다른 영상 고르기
           </button>
         )}
       </div>

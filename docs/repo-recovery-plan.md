@@ -272,6 +272,78 @@
 - 팀원이 `docs/next-remediation-plan.md`만 읽고 blocker 3~5의 다음 실행 순서를 즉시 결정할 수 있어야 한다.
 - 각 blocker의 최소 작업 단위가 독립 실행 가능한 크기로 정의되어 있어야 한다.
 
+## 0.9B단계: 영상 편집 UX 기준 문서 잠금 (코드 수정 금지)
+
+### 목표
+- 기능 추가보다 먼저 Footory 영상 편집 UX와 화면 흐름의 기준을 단순하게 다시 고정한다.
+- 업로드 직후 편집 진입, clip-first 편집, 선택형 highlight, 상위 기능 reel highlight 원칙을 문서로 먼저 잠근다.
+- 사용자 문구를 쉬운 한국어 중심으로 통일하고 선수 정보 overlay 안전 영역 원칙을 함께 정리한다.
+
+### 이번 단계 산출물
+- `docs/video-ux-principles.md`
+- `docs/video-edit-flow.md`
+- `docs/video-copy-guidelines.md`
+
+### 이번 단계에서 반드시 확인할 것
+- `AGENTS.md`
+- `docs/repo-audit.md`
+- `docs/UPLOAD-ARCHITECTURE.md`
+- `docs/ARCHITECTURE.md`
+- `docs/video-product-decisions.md`
+- `docs/video-upload-editing-spec.md`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+- `tests/e2e/upload-wizard.spec.ts`
+- 현재 `/upload`와 편집 진입 관련 실제 라우트 및 문구
+
+### 문서로 먼저 잠글 결정
+- 기본 영상 단위는 `clip`이다.
+- 사용자는 업로드 후 바로 편집에 들어갈 수 있어야 한다.
+- 편집 화면의 핵심 기능은 구간 자르기, 주인공 강조, 확대 재생, 선수 정보 넣기다.
+- `highlight`는 선택형이며 기본 흐름을 막지 않는다.
+- `reel highlight`는 단일 clip 편집보다 위에 있는 상위 기능이다.
+- 한 화면에서 사용자가 해야 할 행동은 1개 또는 2개만 분명해야 한다.
+- 사용자 노출 문구는 쉬운 한국어를 우선하고 영어, 기술 용어, 긴 설명을 피한다.
+- 선수 정보 overlay는 safe area 원칙으로 영상 시야를 우선 보호한다.
+
+### 완료 기준
+- 팀원이 세 문서만 읽고 업로드 후 편집 흐름, 화면별 CTA, 문구 톤, overlay 배치 원칙을 바로 이해할 수 있어야 한다.
+- 현재 구형 테스트와 문구 중 무엇이 새 기준과 충돌하는지 문서만 보고 판단할 수 있어야 한다.
+
+## 0.9C단계: 영상 편집 UX 기준 반영 구현 (선택형 편집 원칙 우선)
+
+### 목표
+- 문서에 잠근 clip-first 편집 원칙을 실제 `/upload`, `/edit/[clipId]` 화면에 반영한다.
+- 구간 자르기, 주인공 강조, 확대 재생, 선수 정보 넣기, 하이라이트를 모두 선택형 편집으로 보여준다.
+- 업로드 후 편집 진입, 화면별 CTA, 쉬운 한국어 문구, overlay safe area 안내를 실제 UI 기준으로 맞춘다.
+
+### 이번 단계 산출물
+- `/upload` 처리 화면 문구와 진입 흐름 정리
+- `/edit/[clipId]` 편집 화면 구조 및 문구 정리
+- 관련 E2E 기대값 갱신
+
+### 이번 단계에서 반드시 확인할 것
+- `AGENTS.md`
+- `docs/video-ux-principles.md`
+- `docs/video-edit-flow.md`
+- `docs/video-copy-guidelines.md`
+- `src/app/upload/page.tsx`
+- `src/components/upload/UploadProcessingView.tsx`
+- `src/components/upload/SelectView.tsx`
+- `src/app/edit/[clipId]/page.tsx`
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+
+### 구현 원칙
+- 편집 항목은 모두 선택사항으로 노출한다.
+- 한 화면에서 핵심 행동은 1개 또는 2개만 두고, 나머지는 숨기거나 접는다.
+- 영어와 기술 용어를 사용자 노출 문구에서 제거한다.
+- 선수 정보는 꾸미기보다 가림 방지 원칙을 먼저 안내한다.
+
+### 완료 기준
+- 사용자가 업로드 후 바로 편집에 들어가고, 각 편집 항목을 건너뛰어도 저장까지 갈 수 있어야 한다.
+- 편집 화면에서 각 도구가 필수가 아니라 선택사항임이 문구와 구조로 드러나야 한다.
+- 관련 테스트가 새 문구와 새 단계 이름을 기준으로 통과해야 한다.
+
 ## 1단계: 현재 상태를 기준 문서로 고정
 
 ### 목표

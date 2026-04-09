@@ -101,7 +101,7 @@ export default function ClipEditPage() {
         const body = await response.json().catch(() => ({})) as ClipEditingResponse;
 
         if (!response.ok || !body.clip) {
-          throw new Error(body.error ?? "편집할 clip을 불러오지 못했습니다.");
+          throw new Error(body.error ?? "편집할 영상을 불러오지 못했습니다.");
         }
 
         const clip = body.clip;
@@ -162,7 +162,7 @@ export default function ClipEditPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-[#070709]">
-        <p className="text-sm text-text-3">편집 화면 준비 중...</p>
+        <p className="text-sm text-text-3">편집 화면을 불러오는 중이에요...</p>
       </div>
     );
   }
@@ -171,13 +171,13 @@ export default function ClipEditPage() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-[#070709] px-4 text-center">
         <p className="text-sm font-semibold text-text-1">편집 화면에 들어갈 수 없어요</p>
-        <p className="text-sm text-text-3">{error ?? "clip 정보를 다시 확인해주세요."}</p>
+        <p className="text-sm text-text-3">{error ?? "영상 정보를 다시 확인해주세요."}</p>
         <button
           type="button"
           onClick={() => router.push("/upload")}
           className="rounded-2xl bg-accent px-5 py-3 text-sm font-bold text-bg"
         >
-          업로드로 돌아가기
+          영상 올리기로 돌아가기
         </button>
       </div>
     );

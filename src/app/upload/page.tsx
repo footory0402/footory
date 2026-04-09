@@ -253,7 +253,7 @@ export default function UploadPage() {
         </div>
 
         <SelectView
-          ctaLabel="업로드 시작"
+          ctaLabel="바로 편집하기"
           startBackgroundUploadOnReady={false}
           onFileReady={() => useUploadStore.getState().setPhase("processing")}
         />
@@ -266,9 +266,9 @@ export default function UploadPage() {
             >
               <span className="mt-0.5 text-lg">↺</span>
               <div className="flex-1">
-                <p className="text-[13px] font-semibold text-[#f6d69a]">최근 single clip draft 이어서 편집</p>
+                <p className="text-[13px] font-semibold text-[#f6d69a]">최근 편집 이어서 하기</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  trim, spotlight, overlay, highlight 설정을 서버에서 복구합니다.
+                  구간 자르기와 선수 정보 설정을 이어서 불러와요.
                 </p>
               </div>
             </button>

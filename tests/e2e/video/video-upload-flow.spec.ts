@@ -39,7 +39,7 @@ test.describe("영상 업로드 두 번째 세로 슬라이스", () => {
   test("1. 파일 선택 전에 형식과 제한을 이해할 수 있다", async ({ page }) => {
     await loginAsPlayer(page, "/upload");
 
-    await expect(page.getByText("영상을 선택하세요")).toBeVisible();
+    await expect(page.getByText("영상을 골라요")).toBeVisible();
     await expect(page.getByText(/MP4, MOV/i)).toBeVisible();
     await expect(page.getByText(/5분 이내/i)).toBeVisible();
     await expect(page.getByText(/200MB 이내/i)).toBeVisible();
@@ -53,8 +53,8 @@ test.describe("영상 업로드 두 번째 세로 슬라이스", () => {
     await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
 
     await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("button", { name: "업로드 시작" })).toBeVisible();
-    await expect(page.getByText("구간 선택")).toBeVisible();
+    await expect(page.getByRole("button", { name: "바로 편집하기" })).toBeVisible();
+    await expect(page.getByText("원하면 구간을 다듬어요")).toBeVisible();
 
     await screenshot(page, "upload-slice-02-preview");
   });
@@ -64,36 +64,37 @@ test.describe("영상 업로드 두 번째 세로 슬라이스", () => {
 
     await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
     await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "업로드 시작" }).click();
+    await page.getByRole("button", { name: "바로 편집하기" }).click();
 
-    await expect(page.getByText("업로드 처리")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("메타데이터 확인")).toBeVisible();
-    await expect(page.getByText("원본 업로드")).toBeVisible();
-    await expect(page.getByText("편집 화면 준비")).toBeVisible();
+    await expect(page.getByText("업로드 중")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("영상 준비")).toBeVisible();
+    await expect(page.getByText("원본 올리기")).toBeVisible();
+    await expect(page.getByText("편집 준비")).toBeVisible();
 
     await screenshot(page, "upload-slice-03-processing");
   });
 
-  test("4. 업로드가 끝나면 single clip 편집 화면에서 주요 도구를 확인할 수 있다", async ({ page }) => {
+  test("4. 업로드가 끝나면 선택형 편집 화면에서 주요 도구를 확인할 수 있다", async ({ page }) => {
     await loginAsPlayer(page, "/upload");
 
     await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
     await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "업로드 시작" }).click();
+    await page.getByRole("button", { name: "바로 편집하기" }).click();
 
-    await expect(page.getByText("클립 편집")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("영상 편집")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("이 화면의 편집 항목은 모두 선택사항이에요.")).toBeVisible();
     await expect(page.getByTestId("single-clip-editor")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Trim" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Spotlight" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Overlay" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "구간 자르기" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "주인공 강조" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "선수 정보 넣기" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Spotlight" }).click();
+    await page.getByRole("button", { name: "주인공 강조" }).click();
     await expect(page.getByTestId("single-clip-spotlight-panel")).toBeVisible();
 
-    await page.getByRole("button", { name: "Highlight" }).click();
+    await page.getByRole("button", { name: "하이라이트" }).click();
     await expect(page.getByTestId("single-clip-highlight-panel")).toBeVisible();
     await expect(page.getByTestId("single-clip-save-panel")).toBeVisible();
-    await expect(page.getByText("프로필 Featured로 공개")).toBeVisible();
+    await expect(page.getByText("프로필 대표로 저장")).toBeVisible();
 
     await screenshot(page, "upload-slice-04-review");
   });
@@ -201,15 +202,15 @@ test.describe("영상 업로드 편집 진입 smoke", () => {
     await page.locator('input[type="file"]').setInputFiles(SMOKE_VIDEO_FILE);
     await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
 
-    await page.getByRole("button", { name: "업로드 시작" }).click();
+    await page.getByRole("button", { name: "바로 편집하기" }).click();
 
-    await expect(page.getByText("업로드 처리")).toBeVisible();
-    await expect(page.getByRole("button", { name: "편집 화면으로 이동" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("업로드 중")).toBeVisible();
+    await expect(page.getByRole("button", { name: "바로 편집하기" })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole("button", { name: "편집 화면으로 이동" }).click();
+    await page.getByRole("button", { name: "바로 편집하기" }).click();
 
     await expect(page).toHaveURL(new RegExp(`/edit/${clipId}(?:\\?|$)`));
-    await expect(page.getByText("클립 편집")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("영상 편집")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("single-clip-editor")).toBeVisible();
 
     await screenshot(page, "upload-smoke-edit-route");

@@ -88,7 +88,7 @@ function ToggleRow({
           checked ? "bg-[#d8b36a] text-[#09090b]" : "bg-white/[0.08] text-text-2"
         }`}
       >
-        {checked ? "ON" : "OFF"}
+        {checked ? "넣음" : "안 넣음"}
       </span>
     </button>
   );
@@ -146,14 +146,14 @@ export default function HighlightSuggestionReview({
   );
 
   const toolDescription = activeTool === "trim"
-    ? "clip의 시작과 끝만 먼저 다듬습니다."
+    ? "구간은 그대로 둔 채 필요할 때만 조금 다듬으면 돼요."
     : activeTool === "spotlight"
-      ? "프리뷰를 눌러 선수를 찍고, 프리즈 시점을 맞춥니다."
+      ? "주인공은 꼭 정하지 않아도 돼요. 원하면 한 지점만 고를 수 있어요."
       : activeTool === "zoom"
-        ? "재생 중 자동 확대 강도를 고릅니다."
+        ? "확대 재생도 선택사항이에요. 더 가까이 볼지만 고르면 돼요."
         : activeTool === "overlay"
-          ? "프로필 카드와 하단 선수 정보 노출만 정합니다."
-          : "대표 highlight 범위만 짧게 표시합니다.";
+          ? "선수 정보는 넣지 않아도 저장할 수 있어요. 가릴 수 있으면 아래에 두세요."
+          : "하이라이트는 나중에 더해도 돼요. 지금은 비워 둬도 됩니다.";
 
   const handleSave = async () => {
     setSaveState("saving");
@@ -238,11 +238,11 @@ export default function HighlightSuggestionReview({
             ←
           </button>
           <div className="min-w-0">
-            <h1 className="text-[17px] font-bold text-text-1">클립 편집</h1>
+            <h1 className="text-[17px] font-bold text-text-1">영상 편집</h1>
             <p className="truncate text-[12px] text-text-3">{toolDescription}</p>
           </div>
           <div className="ml-auto rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-semibold text-text-2">
-            {draft.projectStatus === "published" ? "공개됨" : draft.lastSavedAt ? "draft 저장됨" : "저장 전"}
+            {draft.projectStatus === "published" ? "공개됨" : draft.lastSavedAt ? "임시 저장됨" : "저장 전"}
           </div>
         </div>
 
@@ -267,19 +267,34 @@ export default function HighlightSuggestionReview({
           />
         </div>
 
+        <div className="px-4 pt-3">
+          <div className="rounded-3xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
+            <p className="text-[12px] font-semibold text-text-1">이 화면의 편집 항목은 모두 선택사항이에요.</p>
+            <p className="mt-1 text-[11px] leading-5 text-text-3">
+              구간 자르기, 주인공 강조, 확대 재생, 선수 정보 넣기, 하이라이트는 필요한 것만 고르면 돼요.
+            </p>
+          </div>
+        </div>
+
         <div className="px-4 pb-4 pt-4">
           <div className="flex gap-2 overflow-x-auto pb-1">
-            <ToolPill active={activeTool === "trim"} label="Trim" onClick={() => setActiveTool("trim")} />
-            <ToolPill active={activeTool === "spotlight"} label="Spotlight" onClick={() => setActiveTool("spotlight")} />
-            <ToolPill active={activeTool === "zoom"} label="Zoom" onClick={() => setActiveTool("zoom")} />
-            <ToolPill active={activeTool === "overlay"} label="Overlay" onClick={() => setActiveTool("overlay")} />
-            <ToolPill active={activeTool === "highlight"} label="Highlight" onClick={() => setActiveTool("highlight")} />
+            <ToolPill active={activeTool === "trim"} label="구간 자르기" onClick={() => setActiveTool("trim")} />
+            <ToolPill active={activeTool === "spotlight"} label="주인공 강조" onClick={() => setActiveTool("spotlight")} />
+            <ToolPill active={activeTool === "zoom"} label="확대 재생" onClick={() => setActiveTool("zoom")} />
+            <ToolPill active={activeTool === "overlay"} label="선수 정보 넣기" onClick={() => setActiveTool("overlay")} />
+            <ToolPill active={activeTool === "highlight"} label="하이라이트" onClick={() => setActiveTool("highlight")} />
           </div>
         </div>
 
         <div data-testid="single-clip-editor" className="flex-1 overflow-y-auto px-4 pb-40">
           {activeTool === "trim" ? (
             <div data-testid="single-clip-trim-panel" className="space-y-4">
+              <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
+                <p className="text-[13px] font-semibold text-[#f6d69a]">구간 자르기는 건너뛰어도 돼요.</p>
+                <p className="mt-1 text-[12px] leading-5 text-text-2">
+                  원하는 구간만 남기고 싶을 때만 시작과 끝을 조금만 조정하면 됩니다.
+                </p>
+              </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
                   <p className="text-[10px] text-text-3">시작</p>
@@ -308,7 +323,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="text-[11px] font-semibold text-[#f6d69a]"
                   >
-                    현재 시점으로
+                    이 시점으로
                   </button>
                 </div>
                 <input
@@ -332,7 +347,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] py-2.5 text-[12px] font-semibold text-text-1"
                   >
-                    -0.5초
+                    0.5초 앞
                   </button>
                   <button
                     type="button"
@@ -342,7 +357,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] py-2.5 text-[12px] font-semibold text-text-1"
                   >
-                    +0.5초
+                    0.5초 뒤
                   </button>
                 </div>
               </div>
@@ -358,7 +373,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="text-[11px] font-semibold text-[#f6d69a]"
                   >
-                    현재 시점으로
+                    이 시점으로
                   </button>
                 </div>
                 <input
@@ -382,7 +397,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] py-2.5 text-[12px] font-semibold text-text-1"
                   >
-                    -0.5초
+                    0.5초 앞
                   </button>
                   <button
                     type="button"
@@ -392,7 +407,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] py-2.5 text-[12px] font-semibold text-text-1"
                   >
-                    +0.5초
+                    0.5초 뒤
                   </button>
                 </div>
               </div>
@@ -402,9 +417,9 @@ export default function HighlightSuggestionReview({
           {activeTool === "spotlight" ? (
             <div data-testid="single-clip-spotlight-panel" className="space-y-4">
               <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
-                <p className="text-[13px] font-semibold text-[#f6d69a]">프리뷰를 눌러 선수 한 명만 지정하세요.</p>
+                <p className="text-[13px] font-semibold text-[#f6d69a]">주인공 강조는 선택이에요.</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  모바일에서 빠르게 쓰도록 따라가기 대신 한 지점을 고정하고, freeze 시점만 따로 맞춥니다.
+                  필요할 때만 한 지점을 고르고, 나중에 다시 바꿔도 됩니다.
                 </p>
               </div>
 
@@ -416,14 +431,14 @@ export default function HighlightSuggestionReview({
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
                   <p className="text-[10px] text-text-3">상태</p>
                   <p className="mt-1 text-[15px] font-semibold text-text-1">
-                    {draft.playback.spotlight ? "선수 지정됨" : "아직 없음"}
+                    {draft.playback.spotlight ? "주인공 있음" : "아직 없음"}
                   </p>
                 </div>
               </div>
 
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-[13px] font-semibold text-text-1">Spotlight freeze</p>
+                  <p className="text-[13px] font-semibold text-text-1">고정 시점</p>
                   <button
                     type="button"
                     onClick={() => commitDraft((current) => ({
@@ -436,7 +451,7 @@ export default function HighlightSuggestionReview({
                     disabled={!draft.playback.spotlight}
                     className="text-[11px] font-semibold text-[#f6d69a] disabled:opacity-40"
                   >
-                    현재 시점으로
+                    이 시점으로
                   </button>
                 </div>
                 <input
@@ -464,10 +479,10 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] py-2.5 text-[12px] font-semibold text-text-1"
                   >
-                    Spotlight 지우기
+                    주인공 지우기
                   </button>
                   <div className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-[12px] text-text-2">
-                    Freeze {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "미지정"}
+                    고정 {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "미지정"}
                   </div>
                 </div>
               </div>
@@ -477,9 +492,9 @@ export default function HighlightSuggestionReview({
           {activeTool === "zoom" ? (
             <div data-testid="single-clip-zoom-panel" className="space-y-4">
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
-                <p className="text-[13px] font-semibold text-text-1">자동 확대 강도</p>
+                <p className="text-[13px] font-semibold text-text-1">확대 재생 강도</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-3">
-                  spotlight가 있으면 재생 중 같은 확대 강도로 따라갑니다.
+                  주인공을 고르지 않아도 확대만 조절할 수 있어요.
                 </p>
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {FOCUS_ZOOM_PRESETS.map((preset) => {
@@ -510,9 +525,15 @@ export default function HighlightSuggestionReview({
 
           {activeTool === "overlay" ? (
             <div data-testid="single-clip-overlay-panel" className="space-y-4">
+              <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
+                <p className="text-[13px] font-semibold text-[#f6d69a]">선수 정보는 넣지 않아도 돼요.</p>
+                <p className="mt-1 text-[12px] leading-5 text-text-2">
+                  넣을 때는 영상 시야를 가리지 않게 아래쪽 안전 영역부터 먼저 맞춰주세요.
+                </p>
+              </div>
               <ToggleRow
-                title="Profile Card"
-                description="재생 전에 선수 카드 인트로를 붙입니다."
+                title="프로필 카드"
+                description="재생 전에 선수 카드 인트로를 붙일지 고릅니다."
                 checked={draft.overlay.showProfileCard}
                 onChange={(checked) => commitDraft((current) => ({
                   ...current,
@@ -520,8 +541,8 @@ export default function HighlightSuggestionReview({
                 }))}
               />
               <ToggleRow
-                title="Lower Third"
-                description="재생 중 하단 선수 정보 바를 유지합니다."
+                title="하단 선수 정보"
+                description="재생 중 아래 정보 바를 붙일지 고릅니다."
                 checked={draft.overlay.showLowerThird}
                 onChange={(checked) => commitDraft((current) => ({
                   ...current,
@@ -532,8 +553,8 @@ export default function HighlightSuggestionReview({
               {draft.overlay.showProfileCard ? (
                 <div className="overflow-hidden rounded-3xl border border-white/[0.06] bg-card">
                   <div className="px-4 py-3">
-                    <p className="text-[13px] font-semibold text-text-1">Profile card preview</p>
-                    <p className="mt-1 text-[12px] text-text-3">현재 선수 프로필 정보를 그대로 사용합니다.</p>
+                    <p className="text-[13px] font-semibold text-text-1">프로필 카드 미리보기</p>
+                    <p className="mt-1 text-[12px] text-text-3">현재 선수 정보를 그대로 보여줍니다.</p>
                   </div>
                   <div className="aspect-video overflow-hidden border-t border-white/[0.06]">
                     <IntroCard data={playerData} />
@@ -546,15 +567,15 @@ export default function HighlightSuggestionReview({
           {activeTool === "highlight" ? (
             <div data-testid="single-clip-highlight-panel" className="space-y-4">
               <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
-                <p className="text-[13px] font-semibold text-[#f6d69a]">Highlight는 선택형입니다.</p>
+                <p className="text-[13px] font-semibold text-[#f6d69a]">하이라이트는 선택사항이에요.</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  trim 전체를 그대로 저장해도 되고, 대표 구간만 더 짧게 잡아 둘 수도 있습니다.
+                  그대로 저장해도 되고, 나중에 대표 구간만 더 짧게 잡아도 됩니다.
                 </p>
               </div>
 
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-[13px] font-semibold text-text-1">Highlight 시작</p>
+                  <p className="text-[13px] font-semibold text-text-1">하이라이트 시작</p>
                   <button
                     type="button"
                     onClick={() => commitDraft((current) => ({
@@ -563,7 +584,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="text-[11px] font-semibold text-[#f6d69a]"
                   >
-                    현재 시점으로
+                    이 시점으로
                   </button>
                 </div>
                 <input
@@ -582,7 +603,7 @@ export default function HighlightSuggestionReview({
 
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-[13px] font-semibold text-text-1">Highlight 끝</p>
+                  <p className="text-[13px] font-semibold text-text-1">하이라이트 끝</p>
                   <button
                     type="button"
                     onClick={() => commitDraft((current) => ({
@@ -591,7 +612,7 @@ export default function HighlightSuggestionReview({
                     }))}
                     className="text-[11px] font-semibold text-[#f6d69a]"
                   >
-                    현재 시점으로
+                    이 시점으로
                   </button>
                 </div>
                 <input
@@ -614,25 +635,25 @@ export default function HighlightSuggestionReview({
             <div>
               <p className="text-[15px] font-semibold text-text-1">저장</p>
               <p className="mt-1 text-[12px] leading-5 text-text-3">
-                이 화면에서 정한 single clip metadata만 저장합니다. reel highlight로 확장하지 않습니다.
+                이 화면에서 정한 내용만 저장해요. 바꾸지 않은 항목은 그대로 두면 됩니다.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-2xl bg-white/[0.03] p-3">
-                <p className="text-[10px] text-text-3">Trim</p>
+                <p className="text-[10px] text-text-3">구간 자르기</p>
                 <p className="mt-1 text-[13px] font-semibold text-text-1">
                   {formatDuration(draft.playback.trimStart, draft.playback.trimEnd)}
                 </p>
               </div>
               <div className="rounded-2xl bg-white/[0.03] p-3">
-                <p className="text-[10px] text-text-3">Highlight</p>
+                <p className="text-[10px] text-text-3">하이라이트</p>
                 <p className="mt-1 text-[13px] font-semibold text-text-1">
                   {formatDuration(draft.playback.highlightStart, draft.playback.highlightEnd)}
                 </p>
               </div>
               <div className="rounded-2xl bg-white/[0.03] p-3">
-                <p className="text-[10px] text-text-3">Zoom</p>
+                <p className="text-[10px] text-text-3">확대 재생</p>
                 <p className="mt-1 text-[13px] font-semibold text-text-1">{draft.playback.zoom.toFixed(1)}x</p>
               </div>
             </div>
@@ -654,9 +675,9 @@ export default function HighlightSuggestionReview({
                     : "border-white/[0.06] bg-white/[0.03]"
                 }`}
               >
-                <p className="text-[14px] font-semibold text-text-1">프로필 Featured로 공개</p>
+                <p className="text-[14px] font-semibold text-text-1">프로필 대표로 저장</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-3">
-                  프로필 대표 자산으로 바로 연결합니다.
+                  프로필 대표 자산으로 연결해요.
                 </p>
               </button>
 
@@ -676,16 +697,16 @@ export default function HighlightSuggestionReview({
                     : "border-white/[0.06] bg-white/[0.03]"
                 }`}
               >
-                <p className="text-[14px] font-semibold text-text-1">태그 포트폴리오로 공개</p>
+                <p className="text-[14px] font-semibold text-text-1">태그 묶음으로 저장</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-3">
-                  슈팅, 드리블 같은 기존 기술 포트폴리오 묶음에 연결합니다.
+                  슈팅, 드리블 같은 기술 묶음에 연결해요.
                 </p>
               </button>
             </div>
 
             {draft.saveTarget.profileTarget === "tag_portfolio" ? (
               <div className="rounded-3xl border border-white/[0.06] bg-white/[0.03] p-4">
-                <p className="text-[13px] font-semibold text-text-1">포트폴리오 태그</p>
+                <p className="text-[13px] font-semibold text-text-1">태그 고르기</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {tagOptions.map((tag) => {
                     const selected = draft.saveTarget.portfolioTagName === tag.dbName;
@@ -743,7 +764,7 @@ export default function HighlightSuggestionReview({
             disabled={saveState === "saving" || saveState === "autosaving"}
             className="flex-1 rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b] disabled:opacity-60"
           >
-            {saveState === "saving" ? "공개 저장 중..." : saveState === "autosaving" ? "draft 저장 중..." : "공개 저장"}
+            {saveState === "saving" ? "저장 중..." : saveState === "autosaving" ? "임시 저장 중..." : "저장"}
           </button>
           {draft.lastSavedAt ? (
             <button

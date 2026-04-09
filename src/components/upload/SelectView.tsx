@@ -16,7 +16,7 @@ interface SelectViewProps {
 
 export default function SelectView({
   onFileReady,
-  ctaLabel = "다음",
+  ctaLabel = "바로 편집하기",
   startBackgroundUploadOnReady = true,
 }: SelectViewProps) {
   const store = useUploadStore();
@@ -133,7 +133,7 @@ export default function SelectView({
             </svg>
           </div>
           <div className="flex flex-col items-center gap-1.5">
-            <span className="text-[15px] font-semibold text-text-1">영상을 선택하세요</span>
+            <span className="text-[15px] font-semibold text-text-1">영상을 골라요</span>
             <span className="text-[12px] text-text-3">MP4, MOV · 5분 이내 · 200MB 이내</span>
           </div>
         </button>
@@ -144,8 +144,8 @@ export default function SelectView({
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-base">🎴</span>
           <div className="flex-1">
-            <p className="text-[12px] font-semibold text-accent">선수 프로필 카드 만들기</p>
-            <p className="text-[10px] text-text-3">영상 인트로에 넣을 선수 카드를 제작하세요</p>
+            <p className="text-[12px] font-semibold text-accent">선수 카드 만들기</p>
+            <p className="text-[10px] text-text-3">영상에 넣을 선수 정보를 먼저 준비해요</p>
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
             <path d="M9 18l6-6-6-6" />
@@ -202,7 +202,7 @@ export default function SelectView({
           onClick={() => inputRef.current?.click()}
           className="absolute top-2 right-2 rounded-lg bg-black/60 px-2.5 py-1 text-[11px] text-white/70 active:bg-black/80"
         >
-          변경
+          다시 고르기
         </button>
       </div>
 
@@ -210,7 +210,7 @@ export default function SelectView({
       {duration > 2 && (
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[12px] font-semibold text-text-2">구간 선택</span>
+            <span className="text-[12px] font-semibold text-text-2">원하면 구간을 다듬어요</span>
             <span className="text-[11px] font-stat text-accent">
               {fmt(trimmedDuration)} 선택됨
             </span>
@@ -308,7 +308,7 @@ export default function SelectView({
           </div>
 
           {duration === trimmedDuration && (
-            <p className="mt-1.5 text-[10px] text-text-3">드래그하여 원하는 구간만 선택할 수 있어요</p>
+            <p className="mt-1.5 text-[10px] text-text-3">그대로 두고 넘어가도 돼요</p>
           )}
         </div>
       )}
