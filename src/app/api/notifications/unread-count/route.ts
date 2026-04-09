@@ -15,7 +15,14 @@ export async function GET() {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ count: count ?? 0 });
+    return NextResponse.json(
+      { count: count ?? 0 },
+      {
+        headers: {
+          "Cache-Control": "private, max-age=15, stale-while-revalidate=60",
+        },
+      }
+    );
   } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

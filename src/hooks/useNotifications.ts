@@ -15,6 +15,16 @@ export interface Notification {
   created_at: string;
 }
 
+const UNREAD_COUNT_TTL_MS = 30_000;
+
+let unreadCountCache:
+  | {
+      count: number;
+      expiresAt: number;
+    }
+  | null = null;
+let unreadCountInFlight: Promise<number> | null = null;
+
 export function useNotifications() {
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,18 +89,65 @@ export function useNotifications() {
 }
 
 export function useUnreadCount() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(() => {
+    if (unreadCountCache && unreadCountCache.expiresAt > Date.now()) {
+      return unreadCountCache.count;
+    }
+    return 0;
+  });
 
-  const fetchCount = useCallback(async () => {
+  const fetchCount = useCallback(async (force = false) => {
+    if (!force && unreadCountCache && unreadCountCache.expiresAt > Date.now()) {
+      setCount(unreadCountCache.count);
+      return unreadCountCache.count;
+    }
+
+    if (!force && unreadCountInFlight) {
+      const nextCount = await unreadCountInFlight;
+      setCount(nextCount);
+      return nextCount;
+    }
+
+    const request = (async () => {
+      try {
+        const res = await fetch("/api/notifications/unread-count");
+        if (!res.ok) {
+          return unreadCountCache?.count ?? 0;
+        }
+        const data = await res.json();
+        const nextCount = data.count ?? 0;
+        unreadCountCache = {
+          count: nextCount,
+          expiresAt: Date.now() + UNREAD_COUNT_TTL_MS,
+        };
+        return nextCount;
+      } catch {
+        return unreadCountCache?.count ?? 0;
+      }
+    })();
+
+    unreadCountInFlight = request;
+
     try {
-      const res = await fetch("/api/notifications/unread-count");
-      if (!res.ok) return;
-      const data = await res.json();
-      setCount(data.count ?? 0);
+      const nextCount = await request;
+      setCount(nextCount);
+      return nextCount;
     } catch {
-      // ignore
+      return unreadCountCache?.count ?? 0;
+    } finally {
+      if (unreadCountInFlight === request) {
+        unreadCountInFlight = null;
+      }
     }
   }, []);
 
-  return { count, fetchCount, setCount };
+  const updateCount = useCallback((nextCount: number) => {
+    unreadCountCache = {
+      count: nextCount,
+      expiresAt: Date.now() + UNREAD_COUNT_TTL_MS,
+    };
+    setCount(nextCount);
+  }, []);
+
+  return { count, fetchCount, setCount: updateCount };
 }

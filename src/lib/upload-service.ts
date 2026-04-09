@@ -742,6 +742,75 @@ export function startR2BackgroundUpload() {
   })();
 }
 
+function canUseClientCompression(): boolean {
+  if (typeof WebAssembly === "undefined") return false;
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.hardwareConcurrency === "number" &&
+    navigator.hardwareConcurrency <= 2
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function prepareR2BackgroundUpload() {
+  const store = useUploadStore.getState();
+  const selected = store.file;
+  if (!selected) return;
+
+  if (store.r2Status === "uploading" || store.r2Status === "done") {
+    return;
+  }
+
+  if (store.compressStatus === "loading" || store.compressStatus === "compressing") {
+    return;
+  }
+
+  if (!canUseClientCompression() || selected.size < 5 * 1024 * 1024) {
+    store.setCompressStatus("skipped");
+    startR2BackgroundUpload();
+    return;
+  }
+
+  store.setCompressStatus("loading");
+  store.setCompressProgress(0);
+  store.setCompressStats(selected.size, null);
+
+  void (async () => {
+    try {
+      const { loadFFmpeg, compressVideo } = await import("./video-compressor");
+
+      await loadFFmpeg((ratio) => {
+        useUploadStore.getState().setCompressProgress(Math.round(ratio * 10));
+      });
+
+      useUploadStore.getState().setCompressStatus("compressing");
+
+      const currentStore = useUploadStore.getState();
+      const result = await compressVideo(selected, {
+        trimStart: currentStore.trimStart || undefined,
+        trimEnd: currentStore.trimEnd ?? undefined,
+        onProgress: (pct) => {
+          useUploadStore.getState().setCompressProgress(10 + Math.round(pct * 0.9));
+        },
+      });
+
+      const fresh = useUploadStore.getState();
+      fresh.setCompressedFile(result.file);
+      fresh.setCompressStats(result.originalSize, result.compressedSize);
+      fresh.setCompressStatus("done");
+      fresh.setCompressProgress(100);
+      startR2BackgroundUpload();
+    } catch (err) {
+      console.warn("[Upload] Compression failed, uploading raw:", err);
+      const fresh = useUploadStore.getState();
+      fresh.setCompressStatus("error");
+      startR2BackgroundUpload();
+    }
+  })();
+}
+
 // ─── startUpload (legacy) ───
 
 export async function startUpload() {

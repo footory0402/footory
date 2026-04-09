@@ -21,6 +21,11 @@ interface TeamApiResponse {
   memberCount: number;
   myRole: "admin" | "member" | "alumni" | null;
   last_activity: string | null;
+  ranking?: {
+    activity_score?: number;
+    rank?: number;
+    mvp_count?: number;
+  } | null;
 }
 
 function toTeam(data: TeamApiResponse): Team {
@@ -41,11 +46,25 @@ function toTeam(data: TeamApiResponse): Team {
   };
 }
 
-export function useMyTeams() {
+interface UseMyTeamsOptions {
+  initialTeams?: Team[];
+  hasInitialData?: boolean;
+}
+
+export function useMyTeams({
+  initialTeams = [],
+  hasInitialData = false,
+}: UseMyTeamsOptions = {}) {
   const [teams, setTeams] = useState<Team[]>(
-    teamCache && Date.now() - teamCache.ts < TEAM_CACHE_TTL ? teamCache.data : []
+    hasInitialData
+      ? initialTeams
+      : teamCache && Date.now() - teamCache.ts < TEAM_CACHE_TTL
+        ? teamCache.data
+        : []
   );
-  const [loading, setLoading] = useState(!teamCache || Date.now() - teamCache.ts >= TEAM_CACHE_TTL);
+  const [loading, setLoading] = useState(
+    hasInitialData ? false : !teamCache || Date.now() - teamCache.ts >= TEAM_CACHE_TTL
+  );
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
 
@@ -70,6 +89,11 @@ export function useMyTeams() {
   }, []);
 
   useEffect(() => {
+    if (hasInitialData) {
+      teamCache = { data: initialTeams, ts: Date.now() };
+      fetchedRef.current = true;
+      return;
+    }
     // Use cache if fresh, skip fetch
     if (teamCache && Date.now() - teamCache.ts < TEAM_CACHE_TTL && !fetchedRef.current) {
       fetchedRef.current = true;
@@ -77,7 +101,7 @@ export function useMyTeams() {
     }
     fetchedRef.current = true;
     fetchTeams();
-  }, [fetchTeams]);
+  }, [fetchTeams, hasInitialData, initialTeams]);
 
   return { teams, loading, error, refetch: fetchTeams };
 }
@@ -85,6 +109,7 @@ export function useMyTeams() {
 export function useTeamDetail(teamId: string | null) {
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [ranking, setRanking] = useState<{ activity_score?: number; rank?: number; mvp_count?: number }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,7 +118,7 @@ export function useTeamDetail(teamId: string | null) {
     try {
       setLoading(true);
       const [teamRes, membersRes] = await Promise.all([
-        fetch(`/api/teams/${teamId}`),
+        fetch(`/api/teams/${teamId}?includeRanking=true`),
         fetch(`/api/teams/${teamId}/members`),
       ]);
 
@@ -101,6 +126,7 @@ export function useTeamDetail(teamId: string | null) {
 
       const teamData: TeamApiResponse = await teamRes.json();
       setTeam(toTeam(teamData));
+      setRanking(teamData.ranking ?? {});
 
       if (membersRes.ok) {
         const membersData = await membersRes.json();
@@ -126,7 +152,7 @@ export function useTeamDetail(teamId: string | null) {
 
   useEffect(() => { fetchTeam(); }, [fetchTeam]);
 
-  return { team, members, loading, error, refetch: fetchTeam };
+  return { team, members, ranking, loading, error, refetch: fetchTeam };
 }
 
 export function useTeamActions() {

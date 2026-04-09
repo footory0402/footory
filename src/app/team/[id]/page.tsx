@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useTeamDetail, useTeamActions } from "@/hooks/useTeam";
 import TeamHeader from "@/components/team/TeamHeader";
@@ -9,7 +9,6 @@ import TeamFeed from "@/components/team/TeamFeed";
 import TeamRecordsTab from "@/components/team/TeamRecordsTab";
 import PillTabs from "@/components/ui/PillTabs";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 
 type TeamTab = "영상" | "기록" | "멤버";
 const TABS: { key: TeamTab; label: string }[] = [
@@ -21,27 +20,10 @@ const TABS: { key: TeamTab; label: string }[] = [
 export default function TeamDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { team, members, loading, refetch } = useTeamDetail(id);
+  const { team, members, ranking, loading, refetch } = useTeamDetail(id);
   const { removeMember, leaveTeam } = useTeamActions();
   const [activeTab, setActiveTab] = useState<TeamTab>("영상");
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
-  const [ranking, setRanking] = useState<{ activity_score?: number; rank?: number; mvp_count?: number }>({});
   const [codeCopied, setCodeCopied] = useState(false);
-
-  useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? undefined));
-  }, []);
-
-  // Fetch team ranking data
-  useEffect(() => {
-    if (!id) return;
-    fetch(`/api/teams/${id}?includeRanking=true`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => {
-        if (d?.ranking) setRanking(d.ranking);
-      })
-      .catch(() => {});
-  }, [id]);
 
   if (loading) {
     return (
@@ -204,7 +186,6 @@ export default function TeamDetailPage({ params }: { params: Promise<{ id: strin
           <MemberList
             members={members}
             isAdmin={isAdmin}
-            currentUserId={currentUserId}
             onRemove={handleRemove}
           />
         )}

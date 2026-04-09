@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 interface ClipItem {
   id: string;
   thumbnail_url: string | null;
@@ -14,6 +16,7 @@ interface ClipSelectorProps {
   onToggle: (id: string) => void;
   maxDuration: number;
   totalDuration: number;
+  maxClips: number;
 }
 
 function formatDuration(sec: number | null) {
@@ -22,7 +25,14 @@ function formatDuration(sec: number | null) {
   return `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 }
 
-export default function ClipSelector({ clips, selected, onToggle, maxDuration, totalDuration }: ClipSelectorProps) {
+export default function ClipSelector({
+  clips,
+  selected,
+  onToggle,
+  maxDuration,
+  totalDuration,
+  maxClips,
+}: ClipSelectorProps) {
   const pct = Math.min(100, (totalDuration / maxDuration) * 100);
   const overLimit = totalDuration > maxDuration;
 
@@ -44,6 +54,9 @@ export default function ClipSelector({ clips, selected, onToggle, maxDuration, t
             style={{ width: `${pct}%`, background: overLimit ? "#ef4444" : "#D4A853" }}
           />
         </div>
+        <p className="mt-1 text-[11px] text-text-3">
+          최소 2개, 최대 {maxClips}개까지 선택할 수 있어요.
+        </p>
         {overLimit && (
           <p className="text-[11px] text-red-400 mt-1">총 {maxDuration}초를 초과했습니다</p>
         )}
@@ -55,6 +68,12 @@ export default function ClipSelector({ clips, selected, onToggle, maxDuration, t
           <span className="text-[40px]">🎬</span>
           <p className="text-[14px] font-semibold text-text-1">업로드한 클립이 없습니다</p>
           <p className="text-[12px] text-text-3">영상을 먼저 업로드하고 릴을 만들어보세요</p>
+          <Link
+            href="/upload"
+            className="mt-2 rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-bg"
+          >
+            영상 올리기
+          </Link>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -62,11 +81,18 @@ export default function ClipSelector({ clips, selected, onToggle, maxDuration, t
             {clips.map((clip, idx) => {
               const isSelected = selected.includes(clip.id);
               const order = selected.indexOf(clip.id) + 1;
+              const durationLabel = formatDuration(clip.duration_seconds);
               return (
                 <button
                   key={clip.id}
                   type="button"
                   onClick={() => onToggle(clip.id)}
+                  aria-pressed={isSelected}
+                  aria-label={
+                    isSelected
+                      ? `${clip.memo || `클립 ${idx + 1}`} 선택됨, ${order}번째, ${durationLabel}`
+                      : `${clip.memo || `클립 ${idx + 1}`} 선택, ${durationLabel}`
+                  }
                   className="relative aspect-[9/16] rounded-xl overflow-hidden transition-all active:scale-95"
                   style={{
                     outline: isSelected ? "2px solid #D4A853" : "none",
@@ -94,7 +120,7 @@ export default function ClipSelector({ clips, selected, onToggle, maxDuration, t
 
                   {/* 길이 */}
                   <span className="absolute bottom-1.5 left-2 text-[10px] font-mono text-white/80">
-                    {formatDuration(clip.duration_seconds)}
+                    {durationLabel}
                   </span>
 
                   {/* 선택 뱃지 */}

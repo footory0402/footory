@@ -16,6 +16,11 @@ export function useProfile({ enabled = true }: UseProfileOptions = {}) {
   const ctx = useProfileContext();
   const [localProfile, setLocalProfile] = useState<Profile | null>(null);
 
+  useEffect(() => {
+    if (!enabled || ctx.profile || ctx.hasFetched) return;
+    void ctx.refetch();
+  }, [enabled, ctx]);
+
   // Sync local state with context
   useEffect(() => {
     if (ctx.profile) setLocalProfile(ctx.profile);

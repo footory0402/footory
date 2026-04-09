@@ -11,9 +11,11 @@ interface UseRealtimeFeedOptions {
 
 export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: UseRealtimeFeedOptions) {
   const itemIdSetRef = useRef<Set<string>>(new Set(feedItemIds));
-  const kudosFetchInFlightRef = useRef<Set<string>>(new Set());
   const onKudosChangeRef = useRef(onKudosChange);
   const onNewCommentRef = useRef(onNewComment);
+  const pendingKudosSyncRef = useRef<Set<string>>(new Set());
+  const kudosFetchInFlightRef = useRef<Set<string>>(new Set());
+  const kudosFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     itemIdSetRef.current = new Set(feedItemIds);
@@ -38,6 +40,37 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
     function setupChannel() {
     const supabase = createClient();
 
+    const flushPendingKudos = async () => {
+      const feedItemIds = Array.from(pendingKudosSyncRef.current);
+      pendingKudosSyncRef.current.clear();
+      kudosFlushTimerRef.current = null;
+
+      await Promise.all(
+        feedItemIds.map(async (feedItemId) => {
+          if (kudosFetchInFlightRef.current.has(feedItemId)) return;
+          kudosFetchInFlightRef.current.add(feedItemId);
+
+          try {
+            const { count } = await supabase
+              .from("kudos")
+              .select("id", { count: "exact", head: true })
+              .eq("feed_item_id", feedItemId);
+            onKudosChangeRef.current?.(feedItemId, count ?? 0);
+          } finally {
+            kudosFetchInFlightRef.current.delete(feedItemId);
+          }
+        })
+      );
+    };
+
+    const scheduleKudosSync = (feedItemId: string) => {
+      pendingKudosSyncRef.current.add(feedItemId);
+      if (kudosFlushTimerRef.current) return;
+      kudosFlushTimerRef.current = setTimeout(() => {
+        void flushPendingKudos();
+      }, 1200);
+    };
+
     const channel = supabase
       .channel("feed-realtime")
       .on(
@@ -52,22 +85,7 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
             ?? (payload.old as Record<string, unknown>)?.feed_item_id as string;
 
           if (feedItemId && itemIdSetRef.current.has(feedItemId) && onKudosChangeRef.current) {
-            if (kudosFetchInFlightRef.current.has(feedItemId)) return;
-            kudosFetchInFlightRef.current.add(feedItemId);
-
-            const syncKudosCount = async () => {
-              try {
-                const { count } = await supabase
-                  .from("kudos")
-                  .select("id", { count: "exact", head: true })
-                  .eq("feed_item_id", feedItemId);
-                onKudosChangeRef.current?.(feedItemId, count ?? 0);
-              } finally {
-                kudosFetchInFlightRef.current.delete(feedItemId);
-              }
-            };
-
-            void syncKudosCount();
+            scheduleKudosSync(feedItemId);
           }
         }
       )
@@ -92,6 +110,9 @@ export function useRealtimeFeed({ feedItemIds, onKudosChange, onNewComment }: Us
 
     return () => {
       clearTimeout(timer);
+      if (kudosFlushTimerRef.current) {
+        clearTimeout(kudosFlushTimerRef.current);
+      }
       if (channelRef) {
         const supabase = createClient();
         supabase.removeChannel(channelRef);

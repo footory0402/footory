@@ -159,10 +159,10 @@ export async function DELETE(
     if (auth instanceof NextResponse) return auth;
     const { user, supabase } = auth;
 
-    // Verify ownership and get URLs for R2 cleanup
+    // Verify ownership and get URLs/keys for R2 cleanup
     const { data: clip } = await supabase
       .from("clips")
-      .select("owner_id, video_url, thumbnail_url")
+      .select("owner_id, video_url, thumbnail_url, raw_key")
       .eq("id", id)
       .single();
 
@@ -197,7 +197,8 @@ export async function DELETE(
     // Best-effort R2 file deletion (failures don't affect response)
     const videoKey = clip.video_url ? extractR2Key(clip.video_url) : null;
     const thumbKey = clip.thumbnail_url ? extractR2Key(clip.thumbnail_url) : null;
-    await deleteR2Objects([videoKey, thumbKey]);
+    const rawKey = typeof clip.raw_key === "string" ? clip.raw_key : null;
+    await deleteR2Objects([videoKey, thumbKey, rawKey]);
 
     return NextResponse.json({ success: true });
   } catch {

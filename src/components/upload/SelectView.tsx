@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
-import { startR2BackgroundUpload } from "@/lib/upload-service";
-import { isCompressionSupported, loadFFmpeg, compressVideo } from "@/lib/video-compressor";
+import { prepareR2BackgroundUpload } from "@/lib/upload-service";
 import Link from "next/link";
 
 const MAX_SIZE = 200 * 1024 * 1024; // 200MB
@@ -86,37 +85,6 @@ export default function SelectView({ onFileReady }: SelectViewProps) {
     useUploadStore.getState().setFile(selected);
     useUploadStore.getState().setDuration(Math.round(dur));
 
-    if (!isCompressionSupported() || selected.size < 5 * 1024 * 1024) {
-      useUploadStore.getState().setCompressStatus("skipped");
-      startR2BackgroundUpload();
-    } else {
-      const s = useUploadStore.getState();
-      s.setCompressStatus("loading");
-      s.setCompressProgress(0);
-      s.setCompressStats(selected.size, null);
-      (async () => {
-        try {
-          await loadFFmpeg((ratio) => {
-            useUploadStore.getState().setCompressProgress(Math.round(ratio * 10));
-          });
-          useUploadStore.getState().setCompressStatus("compressing");
-          const result = await compressVideo(selected, {
-            onProgress: (pct) => {
-              useUploadStore.getState().setCompressProgress(10 + Math.round(pct * 0.9));
-            },
-          });
-          const s2 = useUploadStore.getState();
-          s2.setCompressedFile(result.file);
-          s2.setCompressStats(result.originalSize, result.compressedSize);
-          s2.setCompressStatus("done");
-          s2.setCompressProgress(100);
-          startR2BackgroundUpload();
-        } catch {
-          useUploadStore.getState().setCompressStatus("error");
-          startR2BackgroundUpload();
-        }
-      })();
-    }
   }, []);
 
   const handleTrimDrag = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, type: "start" | "end") => {
@@ -343,7 +311,12 @@ export default function SelectView({ onFileReady }: SelectViewProps) {
       <div className="px-4 pt-4">
         <button
           type="button"
-          onClick={onFileReady}
+          onClick={() => {
+            onFileReady();
+            setTimeout(() => {
+              prepareR2BackgroundUpload();
+            }, 0);
+          }}
           className="w-full rounded-xl bg-accent py-3.5 text-[15px] font-bold text-bg transition-opacity active:scale-[0.99]"
         >
           다음

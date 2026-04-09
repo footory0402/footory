@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import FollowList from "@/components/social/FollowList";
 
@@ -18,15 +18,6 @@ function FollowsContent() {
   const initialTab = searchParams.get("tab") === "following" ? "following" : "followers";
   const profileId = searchParams.get("profileId") ?? undefined;
   const [tab, setTab] = useState<"followers" | "following">(initialTab);
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
-
-  useEffect(() => {
-    // Fetch current user id for follow button logic
-    fetch("/api/profile")
-      .then((r) => r.json())
-      .then((d) => setCurrentUserId(d.id))
-      .catch(() => {});
-  }, []);
 
   return (
     <div className="px-4 pt-4">
@@ -59,7 +50,7 @@ function FollowsContent() {
         ))}
       </div>
 
-      <FollowList type={tab} profileId={profileId} currentUserId={currentUserId} />
+      <FollowList type={tab} profileId={profileId} />
     </div>
   );
 }

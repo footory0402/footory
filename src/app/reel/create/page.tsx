@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import ClipSelector from "@/components/reel/ClipSelector";
 import ClipOrderEditor, { type ReelClipItem, type TransitionType } from "@/components/reel/ClipOrderEditor";
 import dynamic from "next/dynamic";
+import { toast } from "@/components/ui/Toast";
 
 const ReelPreviewPlayer = dynamic(() => import("@/components/reel/ReelPreviewPlayer"), { ssr: false });
 
@@ -32,7 +33,7 @@ type Step = "select" | "order" | "preview";
 
 export default function ReelCreatePage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("select");
+  const [step, setStep] = useState<Exclude<Step, "preview">>("select");
   const [allClips, setAllClips] = useState<ClipItem[]>([]);
   const [loadingClips, setLoadingClips] = useState(true);
   const [selected, setSelected] = useState<string[]>([]);
@@ -46,7 +47,7 @@ export default function ReelCreatePage() {
     fetch("/api/clips")
       .then((r) => r.json())
       .then((data) => setAllClips(data.clips ?? []))
-      .catch(() => {})
+      .catch(() => setError("클립을 불러오지 못했어요. 잠시 후 다시 시도해주세요."))
       .finally(() => setLoadingClips(false));
   }, []);
 
@@ -87,6 +88,7 @@ export default function ReelCreatePage() {
         setError(data.error ?? "저장 실패");
         return;
       }
+      toast("릴이 저장되었어요", "success");
       router.push("/profile");
     } catch {
       setError("저장 중 오류가 발생했습니다");
@@ -117,15 +119,18 @@ export default function ReelCreatePage() {
   });
 
   return (
-    <div className="flex flex-col bg-[#070709] min-h-dvh max-w-[430px] mx-auto">
+    <div className="mx-auto flex h-dvh max-w-[430px] flex-col overflow-hidden bg-[#070709]">
       {/* 헤더 */}
       <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
         <button
           type="button"
+          aria-label={step === "select" ? "프로필로 돌아가기" : "이전 단계로 돌아가기"}
           onClick={() => {
-            if (step === "select") router.back();
-            else if (step === "order") setStep("select");
-            else setStep("order");
+            if (step === "select") {
+              router.push("/profile");
+              return;
+            }
+            setStep("select");
           }}
           className="w-8 h-8 rounded-full flex items-center justify-center active:bg-white/10"
         >
@@ -136,7 +141,7 @@ export default function ReelCreatePage() {
         <div>
           <h1 className="text-[15px] font-bold text-white">하이라이트 릴</h1>
           <p className="text-[11px] text-text-3">
-            {step === "select" ? "클립 선택" : step === "order" ? "순서 편집" : "미리보기"}
+            {step === "select" ? "클립 선택" : "순서 편집"}
           </p>
         </div>
         {/* 단계 표시 */}
@@ -169,6 +174,7 @@ export default function ReelCreatePage() {
               onToggle={toggleSelect}
               maxDuration={MAX_DURATION}
               totalDuration={totalDuration}
+              maxClips={MAX_CLIPS}
             />
           )
         )}

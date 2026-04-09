@@ -2,15 +2,17 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useUnreadCount } from "@/hooks/useNotifications";
 
 export default function AppHeader() {
+  const pathname = usePathname();
   const { count, fetchCount } = useUnreadCount();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchCount();
-    }, 2000);
+    if (pathname === "/notifications") return;
+
+    void fetchCount();
 
     const fetchWhenVisible = () => {
       if (document.visibilityState === "visible") {
@@ -21,10 +23,9 @@ export default function AppHeader() {
     document.addEventListener("visibilitychange", fetchWhenVisible);
 
     return () => {
-      clearTimeout(timer);
       document.removeEventListener("visibilitychange", fetchWhenVisible);
     };
-  }, [fetchCount]);
+  }, [fetchCount, pathname]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 glass-nav">

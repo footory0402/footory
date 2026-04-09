@@ -14,17 +14,22 @@ export function useGlobalRenderPolling() {
   const status = useUploadStore((s) => s.status);
   const renderJobId = useUploadStore((s) => s.renderJobId);
   const calledRef = useRef(false);
+  const lastRealtimeUpdateRef = useRef<number>(0);
 
   // Reset called flag when jobId changes
   useEffect(() => {
     calledRef.current = false;
+    lastRealtimeUpdateRef.current = 0;
   }, [renderJobId]);
 
-  // Polling
+  // Polling fallback: Realtime이 주 수단이고, 폴링은 느리게 보조한다.
   useEffect(() => {
     if (status !== "rendering" || !renderJobId) return;
 
     const poll = async () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastRealtimeUpdateRef.current < 15_000) return;
+
       try {
         const res = await fetch(`/api/render/${renderJobId}`, {
           cache: "no-store",
@@ -40,7 +45,7 @@ export function useGlobalRenderPolling() {
     // Initial fetch
     poll();
 
-    const intervalId = window.setInterval(poll, 3000);
+    const intervalId = window.setInterval(poll, 10_000);
     return () => window.clearInterval(intervalId);
   }, [status, renderJobId]);
 
@@ -60,6 +65,7 @@ export function useGlobalRenderPolling() {
           filter: `id=eq.${renderJobId}`,
         },
         (payload) => {
+          lastRealtimeUpdateRef.current = Date.now();
           handleJobUpdate(payload.new);
         }
       )

@@ -10,10 +10,9 @@ import { POSITION_COLORS } from "@/lib/constants";
 interface FollowListProps {
   type: "followers" | "following";
   profileId?: string;
-  currentUserId?: string;
 }
 
-function UserRow({ user, currentUserId }: { user: FollowUser; currentUserId?: string }) {
+function UserRow({ user }: { user: FollowUser }) {
   const posColor = POSITION_COLORS[user.position as Position] ?? "#A1A1AA";
 
   return (
@@ -31,14 +30,12 @@ function UserRow({ user, currentUserId }: { user: FollowUser; currentUserId?: st
         </div>
         <span className="text-[12px] text-text-3">@{user.handle}</span>
       </div>
-      {currentUserId && currentUserId !== user.id && (
-        <FollowButton targetId={user.id} size="sm" />
-      )}
+      <FollowButton targetId={user.id} size="sm" />
     </div>
   );
 }
 
-export default function FollowList({ type, profileId, currentUserId }: FollowListProps) {
+export default function FollowList({ type, profileId }: FollowListProps) {
   const { items, loading, fetchList } = useFollowList();
 
   useEffect(() => {
@@ -64,7 +61,7 @@ export default function FollowList({ type, profileId, currentUserId }: FollowLis
   return (
     <div className="divide-y divide-border">
       {items.map((user) => (
-        <UserRow key={user.id} user={user} currentUserId={currentUserId} />
+        <UserRow key={user.id} user={user} />
       ))}
     </div>
   );

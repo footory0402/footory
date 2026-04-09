@@ -10,7 +10,7 @@ import BottomTab from "./BottomTab";
 import GlobalUploadIndicator from "@/components/upload/GlobalUploadIndicator";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
-const BARE_ROUTES = ["/login", "/onboarding", "/signup", "/auth/", "/editor", "/edit", "/upload"];
+const BARE_ROUTES = ["/login", "/onboarding", "/signup", "/auth/", "/editor", "/edit", "/upload", "/reel/create"];
 // 네비 없이 ProfileProvider만 필요한 경로
 const PROFILE_BARE_ROUTES = ["/upload", "/editor", "/edit"];
 

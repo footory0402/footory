@@ -1,34 +1,25 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import ProfileSkeleton from "@/components/player/ProfileSkeleton";
+export default async function ProfilePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function ProfilePage() {
-  const router = useRouter();
+  if (!user) {
+    redirect("/login");
+  }
 
-  useEffect(() => {
-    async function redirectToPublicProfile() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
-      const { data } = await supabase
-        .from("profiles")
-        .select("handle")
-        .eq("id", user.id)
-        .single();
-      if (data?.handle) {
-        router.replace(`/p/${data.handle}`);
-      } else {
-        router.replace("/onboarding");
-      }
-    }
-    redirectToPublicProfile();
-  }, [router]);
+  const { data } = await supabase
+    .from("profiles")
+    .select("handle")
+    .eq("id", user.id)
+    .single();
 
-  return <ProfileSkeleton />;
+  if (data?.handle) {
+    redirect(`/p/${data.handle}`);
+  }
+
+  redirect("/onboarding");
 }

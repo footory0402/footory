@@ -12,7 +12,6 @@ import type { Position } from "@/lib/constants";
 interface MemberListProps {
   members: TeamMember[];
   isAdmin?: boolean;
-  currentUserId?: string;
   onRemove?: (profileId: string) => void;
 }
 
@@ -25,12 +24,10 @@ const ROLE_SECTIONS = [
 function MemberCard({
   member,
   isAdmin,
-  currentUserId,
   onRemove,
 }: {
   member: TeamMember;
   isAdmin?: boolean;
-  currentUserId?: string;
   onRemove?: (profileId: string) => void;
 }) {
   return (
@@ -78,11 +75,9 @@ function MemberCard({
         </div>
       </Link>
 
-      {currentUserId && currentUserId !== member.profileId && (
-        <div className="shrink-0">
-          <FollowButton targetId={member.profileId} size="sm" />
-        </div>
-      )}
+      <div className="shrink-0">
+        <FollowButton targetId={member.profileId} size="sm" />
+      </div>
 
       {isAdmin && member.role !== "admin" && onRemove && (
         <button
@@ -96,7 +91,7 @@ function MemberCard({
   );
 }
 
-export default function MemberList({ members, isAdmin, currentUserId, onRemove }: MemberListProps) {
+export default function MemberList({ members, isAdmin, onRemove }: MemberListProps) {
   const grouped = useMemo(() => {
     const groups: Record<string, TeamMember[]> = { player: [], parent: [], scout: [] };
     for (const m of members) {
@@ -137,7 +132,6 @@ export default function MemberList({ members, isAdmin, currentUserId, onRemove }
                   key={member.id}
                   member={member}
                   isAdmin={isAdmin}
-                  currentUserId={currentUserId}
                   onRemove={onRemove}
                 />
               ))}

@@ -3,8 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { useUploadStore } from "@/stores/upload-store";
-import { startR2BackgroundUpload } from "@/lib/upload-service";
-import { isCompressionSupported, loadFFmpeg, compressVideo } from "@/lib/video-compressor";
+import { prepareR2BackgroundUpload } from "@/lib/upload-service";
 
 const MAX_SIZE = 200 * 1024 * 1024; // 200MB
 const MAX_DURATION = 300; // 300초 (5분)
@@ -99,52 +98,9 @@ export default function VideoSelector() {
     setFile(selected);
     useUploadStore.getState().setDuration(Math.round(dur));
 
-    // 압축 지원 여부 확인
-    if (!isCompressionSupported() || selected.size < 5 * 1024 * 1024) {
-      // 미지원 또는 5MB 미만 소용량 → 즉시 R2 업로드
-      useUploadStore.getState().setCompressStatus("skipped");
-      startR2BackgroundUpload();
-      return;
-    }
-
-    // 백그라운드 압축 시작
-    const store = useUploadStore.getState();
-    store.setCompressStatus("loading");
-    store.setCompressProgress(0);
-    store.setCompressStats(selected.size, null);
-
-    // 비동기 — await 없이 백그라운드 실행
-    (async () => {
-      try {
-        // WASM 로드 (첫 번째만 시간 걸림, 이후 캐시)
-        await loadFFmpeg((ratio) => {
-          useUploadStore.getState().setCompressProgress(Math.round(ratio * 10));
-        });
-
-        useUploadStore.getState().setCompressStatus("compressing");
-
-        const result = await compressVideo(selected, {
-          onProgress: (pct) => {
-            useUploadStore.getState().setCompressProgress(10 + Math.round(pct * 0.9));
-          },
-        });
-
-        const s = useUploadStore.getState();
-        s.setCompressedFile(result.file);
-        s.setCompressStats(result.originalSize, result.compressedSize);
-        s.setCompressStatus("done");
-        s.setCompressProgress(100);
-
-        // 압축 완료 → R2 업로드 시작 (compressedFile 우선 사용)
-        startR2BackgroundUpload();
-      } catch (err) {
-        console.warn("[VideoSelector] Compression failed, uploading raw:", err);
-        const s = useUploadStore.getState();
-        s.setCompressStatus("error");
-        // 압축 실패 → 원본으로 폴백
-        startR2BackgroundUpload();
-      }
-    })();
+    setTimeout(() => {
+      prepareR2BackgroundUpload();
+    }, 0);
   };
 
   const formatDuration = (sec: number) => {

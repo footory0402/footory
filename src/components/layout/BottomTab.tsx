@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -58,18 +58,7 @@ export default function BottomTab() {
 
   const role = profile?.role ?? "player";
   const isGuest = error === "not_authenticated";
-  const isLoading = loading || (!isGuest && !profile?.id);
   const tabs = getTabsForRole(role);
-  const prefetchedRef = useRef(false);
-
-  // Prefetch all tab destinations on mount (hover/focus doesn't work on mobile touch)
-  useEffect(() => {
-    if (prefetchedRef.current) return;
-    prefetchedRef.current = true;
-    tabs.forEach((tab) => {
-      if (!tab.isCenter) router.prefetch(tab.href);
-    });
-  }, [tabs, router]);
 
   // 인스타그램 방식: 탭 전환은 무조건 replace (히스토리에 다른 탭 흔적 남기지 않음)
   // - 탭 루트에서 뒤로가기 → 앱 종료 (Android) / 아무 동작 없음 (iOS)
@@ -135,7 +124,7 @@ export default function BottomTab() {
                 href={tab.href}
                 replace={shouldReplace}
                 aria-current={active ? "page" : undefined}
-                prefetch={true}
+                prefetch={false}
                 className="relative flex flex-1 flex-col items-center gap-0.5 pt-1.5"
               >
                 {active && (
@@ -226,4 +215,3 @@ function TeamIcon({ active }: { active: boolean }) {
     </svg>
   );
 }
-

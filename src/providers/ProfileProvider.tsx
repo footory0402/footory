@@ -69,6 +69,7 @@ interface ProfileContextValue {
   error: string | null;
   refetch: () => Promise<void>;
   hydrateProfile: (data: Record<string, unknown>) => void;
+  hasFetched: boolean;
 }
 
 const ProfileContext = createContext<ProfileContextValue>({
@@ -77,6 +78,7 @@ const ProfileContext = createContext<ProfileContextValue>({
   error: null,
   refetch: async () => {},
   hydrateProfile: () => {},
+  hasFetched: false,
 });
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
@@ -117,20 +119,15 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     setError(null);
   }, []);
 
-  // 서버 hydration이 없는 페이지에서만 자동 fetch (예: /mvp, /discover)
-  useEffect(() => {
-    if (fetchedRef.current) return;
-    // 짧은 딜레이로 ProfileHydrator가 먼저 실행될 기회 부여
-    const timer = setTimeout(() => {
-      if (fetchedRef.current) return;
-      fetchedRef.current = true;
-      void fetchProfile();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchProfile]);
-
   const value = useMemo(
-    () => ({ profile, loading, error, refetch: fetchProfile, hydrateProfile }),
+    () => ({
+      profile,
+      loading,
+      error,
+      refetch: fetchProfile,
+      hydrateProfile,
+      hasFetched: fetchedRef.current,
+    }),
     [profile, loading, error, fetchProfile, hydrateProfile]
   );
 

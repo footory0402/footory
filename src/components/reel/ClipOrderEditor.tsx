@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef, useState } from "react";
-
 export type TransitionType = "cut" | "fade";
 
 export interface ReelClipItem {
@@ -25,24 +23,11 @@ function formatDuration(sec: number | null) {
 }
 
 export default function ClipOrderEditor({ items, onChange, title, onTitleChange }: ClipOrderEditorProps) {
-  const dragIdx = useRef<number | null>(null);
-  const [draggingOver, setDraggingOver] = useState<number | null>(null);
-
-  const handleDragStart = (i: number) => { dragIdx.current = i; };
-  const handleDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setDraggingOver(i); };
-  const handleDrop = (i: number) => {
-    if (dragIdx.current === null || dragIdx.current === i) { setDraggingOver(null); return; }
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= items.length || from === to) return;
     const next = [...items];
-    const [moved] = next.splice(dragIdx.current, 1);
-    next.splice(i, 0, moved);
-    onChange(next);
-    dragIdx.current = null;
-    setDraggingOver(null);
-  };
-
-  const setTransition = (i: number, t: TransitionType) => {
-    const next = [...items];
-    next[i] = { ...next[i], transition: t };
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
     onChange(next);
   };
 
@@ -54,7 +39,11 @@ export default function ClipOrderEditor({ items, onChange, title, onTitleChange 
     <div className="flex flex-col h-full">
       {/* 제목 입력 */}
       <div className="px-4 py-3 shrink-0">
+        <label htmlFor="reel-title" className="mb-2 block text-[11px] font-semibold text-text-3">
+          릴 제목
+        </label>
         <input
+          id="reel-title"
           type="text"
           value={title}
           onChange={(e) => onTitleChange(e.target.value.slice(0, 40))}
@@ -67,7 +56,7 @@ export default function ClipOrderEditor({ items, onChange, title, onTitleChange 
       {/* 안내 */}
       <div className="px-4 pb-2 shrink-0">
         <p className="text-[11px] text-text-3">
-          💡 드래그하여 순서를 변경하세요
+          위아래 버튼으로 순서를 바꾸고, 필요 없는 클립은 제외할 수 있어요.
         </p>
       </div>
 
@@ -77,15 +66,10 @@ export default function ClipOrderEditor({ items, onChange, title, onTitleChange 
           <div key={item.id}>
             {/* 클립 카드 */}
             <div
-              draggable
-              onDragStart={() => handleDragStart(i)}
-              onDragOver={(e) => handleDragOver(e, i)}
-              onDrop={() => handleDrop(i)}
-              onDragEnd={() => setDraggingOver(null)}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-grab active:cursor-grabbing transition-all"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all"
               style={{
-                background: draggingOver === i ? "rgba(212,168,83,0.1)" : "rgba(255,255,255,0.04)",
-                border: `1px solid ${draggingOver === i ? "rgba(212,168,83,0.3)" : "rgba(255,255,255,0.07)"}`,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.07)",
               }}
             >
               {/* 순서 번호 */}
@@ -112,11 +96,31 @@ export default function ClipOrderEditor({ items, onChange, title, onTitleChange 
                 <p className="text-[10px] text-text-3">{formatDuration(item.duration_seconds)}</p>
               </div>
 
-              {/* 드래그 핸들 */}
-              <div className="shrink-0 flex flex-col gap-1 px-1 py-2">
-                {[0,1,2].map((n) => (
-                  <div key={n} className="w-4 h-[2px] rounded-full" style={{ background: "rgba(255,255,255,0.2)" }} />
-                ))}
+              <div className="shrink-0 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => move(i, i - 1)}
+                  disabled={i === 0}
+                  aria-label={`${i + 1}번 클립 위로 이동`}
+                  className="flex h-7 w-7 items-center justify-center rounded-full active:bg-white/10 disabled:opacity-30"
+                  style={{ color: "rgba(255,255,255,0.75)" }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
+                    <path d="M18 15l-6-6-6 6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(i, i + 1)}
+                  disabled={i === items.length - 1}
+                  aria-label={`${i + 1}번 클립 아래로 이동`}
+                  className="flex h-7 w-7 items-center justify-center rounded-full active:bg-white/10 disabled:opacity-30"
+                  style={{ color: "rgba(255,255,255,0.75)" }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}>
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
               </div>
 
               {/* 삭제 */}
@@ -133,29 +137,6 @@ export default function ClipOrderEditor({ items, onChange, title, onTitleChange 
                 </button>
               )}
             </div>
-
-            {/* 트랜지션 선택 (마지막 클립 제외) */}
-            {i < items.length - 1 && (
-              <div className="flex items-center justify-center gap-2 py-1.5">
-                <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
-                {(["cut", "fade"] as TransitionType[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTransition(i, t)}
-                    className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-all active:scale-95"
-                    style={{
-                      background: item.transition === t ? "rgba(212,168,83,0.15)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${item.transition === t ? "#D4A853" : "rgba(255,255,255,0.08)"}`,
-                      color: item.transition === t ? "#D4A853" : "rgba(255,255,255,0.3)",
-                    }}
-                  >
-                    {t === "cut" ? "컷" : "페이드"}
-                  </button>
-                ))}
-                <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
-              </div>
-            )}
           </div>
         ))}
       </div>
