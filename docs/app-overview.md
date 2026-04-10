@@ -125,15 +125,15 @@
 - 공개 재생 URL은 `src/lib/r2-client.ts`의 공개 URL 조합을 사용한다.
 
 ## 부모 업로드 흐름
-- 부모 홈의 자녀 대시보드에서 `영상 올려주기`를 누르면 `ParentQuickUpload`가 열린다.
-- 이 흐름은 일반 업로드와 별도 구현이며 `VideoSelector`와 `TagMemoForm`을 사용한다.
+- 부모 홈의 자녀 대시보드에서 `영상 올려주기`를 누르면 자녀 정보를 쿼리로 실은 공통 `/upload` 화면으로 이동한다.
+- 파일 선택 이후 업로드/저장/선택 편집 단계는 선수와 부모가 같은 화면을 사용한다.
 - 서버 저장은 `/api/parent/upload`로 간다.
 
 ### 관련 파일
 - `src/components/parent/ChildDashboard.tsx`
-- `src/components/parent/ParentQuickUpload.tsx`
-- `src/components/upload/VideoSelector.tsx`
-- `src/components/upload/TagMemoForm.tsx`
+- `src/app/upload/page.tsx`
+- `src/components/upload/SelectView.tsx`
+- `src/components/upload/UploadProcessingView.tsx`
 
 ## 하이라이트 재생과 릴
 - 개별 클립 재생은 `ClipPlayerSheet`가 맡고, 런타임 오버레이 방식으로 spotlight, freeze, trim 정보를 적용한다.

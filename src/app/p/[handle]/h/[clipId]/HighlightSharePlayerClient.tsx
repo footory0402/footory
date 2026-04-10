@@ -13,6 +13,7 @@ import {
   resolveSingleClipFreezePoint,
   type SingleClipPlaybackContract,
 } from "@/lib/single-clip-playback";
+import { resolveUiVideoAspectRatio } from "@/lib/video-layout";
 import {
   buildFallbackHudPlayerData,
   buildHudPlayerData,
@@ -349,6 +350,7 @@ export default function HighlightSharePlayerClient({
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
   const isPortraitVideo = videoNativeSize ? videoNativeSize.h > videoNativeSize.w : false;
+  const uiAspectRatio = resolveUiVideoAspectRatio(videoNativeSize);
   const playerMaxHeight = hasHud
     ? (isPortraitVideo ? "58vh" : "68vh")
     : "75vh";
@@ -362,8 +364,9 @@ export default function HighlightSharePlayerClient({
         style={{
           borderRadius: 16,
           background: "#0D0D10",
-          aspectRatio: videoNativeSize ? `${videoNativeSize.w} / ${videoNativeSize.h}` : "9 / 16",
+          aspectRatio: String(uiAspectRatio),
           maxHeight: playerMaxHeight,
+          minHeight: 220,
         }}
       >
         {clip.thumbnailUrl && (

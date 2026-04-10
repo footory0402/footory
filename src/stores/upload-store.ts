@@ -14,7 +14,8 @@ export interface Caption {
 export type UploadPhase =
   | "select"
   | "processing"
-  | "review"
+  | "choice"
+  | "edit"
   | "decorate"
   | "share"
   | "uploading"

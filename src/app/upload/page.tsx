@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { useProfileContext } from "@/providers/ProfileProvider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import SelectView from "@/components/upload/SelectView";
 import UploadProcessingView from "@/components/upload/UploadProcessingView";
 import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
@@ -15,14 +15,20 @@ import { applySingleClipDraftToUploadStore, createSingleClipDraftFromStoreSource
 
 export default function UploadPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { profile, loading } = useProfileContext();
   const phase = useUploadStore((s) => s.phase);
   const status = useUploadStore((s) => s.status);
   const file = useUploadStore((s) => s.file);
   const editorDraft = useUploadStore((s) => s.editorDraft);
+  const childHandle = useUploadStore((s) => s.childHandle);
 
   const role = profile?.role ?? null;
   const canUpload = role === "player" || role === "parent";
+  const uploadTargetChildId = searchParams.get("childId");
+  const uploadTargetChildName = searchParams.get("childName");
+  const uploadTargetChildHandle = searchParams.get("childHandle");
+  const isParentUpload = role === "parent" && !!uploadTargetChildId;
 
   // 비디오 Object URL (phase 전환 간 유지)
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -37,8 +43,20 @@ export default function UploadPage() {
   // Reset context on mount
   useEffect(() => {
     if (!canUpload) return;
-    useUploadStore.getState().setContext("general");
-  }, [canUpload]);
+    const store = useUploadStore.getState();
+    if (role === "parent" && uploadTargetChildId) {
+      store.setContext("parent");
+      store.setChildInfo({
+        id: uploadTargetChildId,
+        name: uploadTargetChildName ?? "자녀",
+        handle: uploadTargetChildHandle ?? "",
+      });
+      return;
+    }
+
+    store.setContext("general");
+    store.setChildInfo(null);
+  }, [canUpload, role, uploadTargetChildHandle, uploadTargetChildId, uploadTargetChildName]);
 
   // 파일 변경 시 비디오 URL 생성/해제
   useEffect(() => {
@@ -95,43 +113,16 @@ export default function UploadPage() {
     }
   }, [phase]);
 
-  // 업로드 완료 후 기본 하이라이트 제안 초안 생성
+  // 업로드 완료 후 저장/편집 선택 단계로 이동
   useEffect(() => {
-    if (phase !== "processing" || status !== "done" || !file || editorDraft) return;
+    if (phase !== "processing" || status !== "done" || !file) return;
 
-    let cancelled = false;
-
-    const buildDraft = async () => {
-      const store = useUploadStore.getState();
-      store.setStatus("analyzing");
-
-      await new Promise((resolve) => window.setTimeout(resolve, 250));
-      if (cancelled) return;
-
-      const fresh = useUploadStore.getState();
-      if (!fresh.clipId) {
-        fresh.setClipId(crypto.randomUUID());
-      }
-      const draft = createSingleClipDraftFromStoreSource(useUploadStore.getState());
-      if (!draft) {
-        fresh.setStatus("error");
-        fresh.setError("편집 초안을 만들지 못했어요.");
-        return;
-      }
-
-      fresh.setEditorDraft(draft);
-      fresh.setStatus("idle");
-      fresh.setPhase("review");
-      fresh.setProgress(0);
-      fresh.setError(null);
-    };
-
-    void buildDraft();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [editorDraft, file, phase, status]);
+    const store = useUploadStore.getState();
+    store.setPhase("choice");
+    store.setStatus("idle");
+    store.setProgress(100);
+    store.setError(null);
+  }, [file, phase, status]);
 
   // 파일 선택 → 뒤로가기 핸들링
   useEffect(() => {
@@ -139,7 +130,7 @@ export default function UploadPage() {
     history.pushState({ uploadFile: true }, "");
     const onPop = () => {
       const s = useUploadStore.getState();
-      if (s.phase === "processing" || s.phase === "review") {
+      if (s.phase === "processing" || s.phase === "choice" || s.phase === "edit") {
         s.setPhase("select");
       } else if (s.file) {
         handleFullReset();
@@ -190,6 +181,21 @@ export default function UploadPage() {
     }
   }, [recoverableDraft]);
 
+  const handleEdit = useCallback(() => {
+    const state = useUploadStore.getState();
+    const activeDraft = state.editorDraft ?? createSingleClipDraftFromStoreSource(state);
+    if (!activeDraft || !activeDraft.clipId) {
+      state.setError("편집 화면을 준비하지 못했어요.");
+      return;
+    }
+
+    state.setEditorDraft(activeDraft);
+    state.setStatus("idle");
+    state.setError(null);
+    state.setProgress(0);
+    state.setPhase("edit");
+  }, []);
+
   const handleSaveNow = useCallback(async () => {
     const state = useUploadStore.getState();
     const activeDraft = state.editorDraft ?? createSingleClipDraftFromStoreSource(state);
@@ -202,8 +208,12 @@ export default function UploadPage() {
     });
 
     state.reset();
+    if (role === "parent" && childHandle) {
+      router.push(`/p/${childHandle}`);
+      return;
+    }
     router.push("/profile");
-  }, [router]);
+  }, [childHandle, role, router]);
 
   /* ── Guard: 로딩 중 ── */
   if (loading && !role) {
@@ -280,7 +290,7 @@ export default function UploadPage() {
           startBackgroundUploadOnReady={false}
           onFileReady={() => useUploadStore.getState().setPhase("processing")}
         />
-        {recoverableDraft?.clip ? (
+        {!isParentUpload && recoverableDraft?.clip ? (
           <div className="px-4 pt-4">
             <button
               type="button"
@@ -311,7 +321,19 @@ export default function UploadPage() {
     );
   }
 
-  if (phase === "review" && videoUrl && editorDraft) {
+  if (phase === "choice") {
+    return (
+      <UploadProcessingView
+        onRetry={() => void startUpload()}
+        onReset={handleFullReset}
+        onSaveNow={handleSaveNow}
+        onEdit={handleEdit}
+        readyForChoice
+      />
+    );
+  }
+
+  if (phase === "edit" && videoUrl && editorDraft) {
     return (
       <HighlightSuggestionReview
         key={editorDraft.clipId}

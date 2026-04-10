@@ -1,3 +1,5 @@
+import { resolveThumbnailCanvasSize } from "@/lib/video-layout";
+
 /**
  * Capture a frame from a video file at a given time (default 5s) and return as Blob.
  */
@@ -30,9 +32,12 @@ export function captureVideoThumbnail(
     video.onseeked = () => {
       clearTimeout(timeout);
       const canvas = document.createElement("canvas");
-      // 레티나(2x~3x) 디스플레이에서 선명하게 보이도록 640×360
-      canvas.width = 640;
-      canvas.height = 360;
+      const { width, height } = resolveThumbnailCanvasSize({
+        w: video.videoWidth || 0,
+        h: video.videoHeight || 0,
+      });
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         URL.revokeObjectURL(url);

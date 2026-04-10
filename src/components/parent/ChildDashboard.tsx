@@ -7,7 +7,6 @@ import type { ParentDashboardData } from "@/lib/home-types";
 import ChildSelector from "./ChildSelector";
 import WeeklyRecap from "./WeeklyRecap";
 import LinkChildSheet from "./LinkChildSheet";
-import ParentQuickUpload from "./ParentQuickUpload";
 
 interface ChildDashboardProps {
   initialChildren?: LinkedChild[];
@@ -22,7 +21,7 @@ export default function ChildDashboard({
   initialSelectedChildId = null,
   initialDashboard = null,
 }: ChildDashboardProps) {
-  const { children, loading: childrenLoading, linkChild, refetch } = useLinkedChildren({
+  const { children, loading: childrenLoading, linkChild } = useLinkedChildren({
     initialChildren,
     hasInitialData: hasInitialChildrenData,
   });
@@ -33,7 +32,6 @@ export default function ChildDashboard({
   const [loading, setLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [showLink, setShowLink] = useState(false);
-  const [uploadTarget, setUploadTarget] = useState<LinkedChild | null>(null);
   const shouldSkipInitialFetch = useRef(
     Boolean(initialDashboard && initialSelectedChildId)
   );
@@ -111,6 +109,7 @@ export default function ChildDashboard({
   }
 
   const selectedChild = children.find((c) => c.childId === selectedChildId) ?? children[0];
+  const uploadHref = `/upload?childId=${encodeURIComponent(selectedChild.childId)}&childName=${encodeURIComponent(selectedChild.name)}&childHandle=${encodeURIComponent(selectedChild.handle ?? "")}`;
 
   return (
     <div className="px-4 pt-2">
@@ -134,12 +133,12 @@ export default function ChildDashboard({
         >
           👤 {selectedChild.name} 프로필
         </Link>
-        <button
-          onClick={() => setUploadTarget(selectedChild)}
-          className="flex-1 rounded-xl bg-gradient-to-r from-accent to-accent-dim py-3 text-[13px] font-semibold text-bg"
+        <Link
+          href={uploadHref}
+          className="flex flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-accent to-accent-dim py-3 text-[13px] font-semibold text-bg"
         >
           📹 영상 올려주기
-        </button>
+        </Link>
       </div>
 
       {/* Weekly Recap (Monday only) */}
@@ -295,17 +294,6 @@ export default function ChildDashboard({
       </button>
 
       <LinkChildSheet open={showLink} onClose={() => setShowLink(false)} onLink={linkChild} />
-
-      {uploadTarget && (
-        <ParentQuickUpload
-          child={uploadTarget}
-          onClose={() => setUploadTarget(null)}
-          onComplete={() => {
-            refetch();
-            if (selectedChildId) fetchDashboard(selectedChildId);
-          }}
-        />
-      )}
     </div>
   );
 }

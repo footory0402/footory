@@ -46,32 +46,15 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 0 6px rgba(212, 168, 83, 0.4);
 }
 
-/* Card intro animation preview */
-@keyframes cardIntro {
-  0% {
-    opacity: 0;
-    transform: scale(0.85) translateY(20px);
-    filter: brightness(0.3) blur(4px);
-  }
-  30% {
-    opacity: 1;
-    transform: scale(1.02) translateY(-4px);
-    filter: brightness(1.1) blur(0px);
-  }
-  50% {
-    transform: scale(1) translateY(0);
-    filter: brightness(1) blur(0px);
-  }
-  70% {
-    transform: scale(1);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: brightness(1) blur(0px);
-  }
+.editor-select {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.animate-card-intro {
-  animation: cardIntro 2s cubic-bezier(0.16, 1, 0.3, 1) both;
+.editor-select option {
+  background: #151519;
+  color: #f5f5f7;
 }

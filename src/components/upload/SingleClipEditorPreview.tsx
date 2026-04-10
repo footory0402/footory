@@ -7,6 +7,7 @@ import type { HudPlayerData } from "@/components/video/hud/types";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import { screenToVideo } from "@/lib/spotlight-math";
 import type { SingleClipEditingDraft } from "@/lib/single-clip-playback";
+import { resolveUiVideoAspectRatio } from "@/lib/video-layout";
 
 interface SingleClipEditorPreviewProps {
   videoSrc: string;
@@ -310,6 +311,7 @@ export default function SingleClipEditorPreview({
   const seekMax = draft.playback.trimEnd;
   const seekValue = Math.min(Math.max(previewTime, seekMin), seekMax);
   const videoTransform = zoom > 1 ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})` : undefined;
+  const previewAspectRatio = resolveUiVideoAspectRatio(videoNativeSize);
   const helperText = useMemo(() => {
     if (focusPreviewVisible && spotlightPicking) {
       return spotlight
@@ -343,8 +345,9 @@ export default function SingleClipEditorPreview({
         data-testid="single-clip-focus-target"
         className="relative w-full overflow-hidden bg-black"
         style={{
-          aspectRatio: videoNativeSize ? `${videoNativeSize.w} / ${videoNativeSize.h}` : "16 / 9",
+          aspectRatio: String(previewAspectRatio),
           maxHeight: "64dvh",
+          minHeight: "220px",
           touchAction: focusPreviewVisible && spotlight ? "none" : "auto",
         }}
         onClick={handleTap}

@@ -27,7 +27,7 @@ interface UploadStoreDraftWriter {
   setStatus: (status: "idle") => void;
   setError: (error: string | null) => void;
   setProgress: (progress: number) => void;
-  setPhase: (phase: "review") => void;
+  setPhase: (phase: "edit") => void;
 }
 
 export function createSingleClipDraftFromStoreSource(
@@ -81,5 +81,5 @@ export function applySingleClipDraftToUploadStore({
   store.setStatus("idle");
   store.setError(null);
   store.setProgress(0);
-  store.setPhase("review");
+  store.setPhase("edit");
 }

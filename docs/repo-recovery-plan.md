@@ -1,6 +1,6 @@
 # Footory 저장소 현재 실행 계획
 
-> Last updated: 2026-04-10
+> Last updated: 2026-04-11
 > 목적: Codex와 작업자가 지금 해야 할 일만 빠르게 파악하는 운영용 계획 문서
 > 원칙: 실제 코드 우선, 현재 배치 우선, 완료 이력은 별도 로그로 분리
 
@@ -44,6 +44,43 @@
 - 남은 위험은 작은 화면 회귀 강도, 느린 네트워크/복귀 조합 검증, 로컬 preview와 원격 재생 자산 검증 분리, featured 저장의 완전 원자성 미보장이다.
 - 문서 쪽에서는 `docs/repo-recovery-plan.md`가 실행 계획, 로그, 참고 설명을 한 파일에 모두 누적해 탐색 비용이 너무 커졌다.
 
+## 문서 정책 변경 배치 (2026-04-11)
+
+- 대상: `AGENTS.md`, `docs/video-ux-principles.md`, `docs/video-upload-editing-spec.md`, `docs/video-edit-flow.md`
+- 변경 이유: 업로드 화면에 선수 프로필 편집/저장 기능을 함께 둘 수 없다는 제약을 제거해, 화면 구성 실험과 구현 선택 폭을 열어 둔다.
+- 변경 범위: `한 화면 핵심 행동 1~2개`, `한 화면 한 가지 판단`, `기본 재생과 선택 편집 강제 분리`, `업로드 화면에서 선수 정보 입력 숨김` 계열 문구 삭제 또는 비강제 문구로 전환.
+- 비범위: clip-first, optional editing, playback/storage 계약(`clips` 메타데이터, trim/highlight 필드 등)은 유지한다.
+
+## 업로드·편집 플로우 문서 정렬 배치 (2026-04-11)
+
+- 대상: `docs/video-ux-principles.md`, `docs/video-upload-editing-spec.md`, `docs/video-edit-flow.md`, `docs/video-copy-guidelines.md`
+- 변경 이유: 메인 업로드는 `선수 프로필 편집`과 `영상 선택`을 함께 두고, 영상 편집은 `영상 선택 후 필요 시 편집하고 저장`하는 흐름으로 더 유연하게 정의한다.
+- 변경 범위: `업로드 직후 바로 편집` 기본 전제 제거, `이대로 저장 / 편집하고 저장` 선택 단계 명시, 기본 편집 도구를 `주인공 선택`, `구간 자르기`, `프로필카드 표시`, `하단 선수정보 표시` 중심으로 재정리한다.
+- 비범위: 전체 프로필 편집을 영상 편집 안으로 합치지 않으며, clip 저장 계약과 playback 계약은 유지한다.
+
+## 공통 업로드·편집 프로세스 단일화 배치 (2026-04-11)
+
+- 대상: `src/app/upload/page.tsx`, `src/components/upload/UploadProcessingView.tsx`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/parent/ParentQuickUpload.tsx`, `src/components/parent/ChildDashboard.tsx`, `tests/e2e/video/video-upload-flow.spec.ts`
+- 변경 이유: 선수와 부모가 서로 다른 업로드 UI를 타고, 업로드 뒤 자동 편집 초안 생성과 저장 전 추가 선택이 남아 있어 핵심 흐름 `영상 선택 -> 업로드 -> 저장 또는 편집 -> 저장`이 흐려진다.
+- 변경 범위: 부모/선수 모두 같은 `/upload` 흐름을 사용하게 정리하고, 업로드 상태를 `select -> processing -> choice -> edit`로 단순화하며, 저장 전 `저장 위치/태그` 같은 부가 결정을 기본 흐름에서 제거한다.
+- 비범위: `clips` 저장 계약, `spotlight/trim/freeze` 재생 계약, 업로드 API의 내부 role 처리 방식 자체를 새로 설계하지는 않는다.
+
+## 모바일 카드 에디터 압축 배치 (2026-04-11)
+
+- 대상: `src/app/editor/page.tsx`, `src/components/editor/CardPreview.tsx`, `src/components/editor/EditorForm.tsx`, `tests/e2e/video/profile-card-editor.spec.ts`
+- 변경 이유: 모바일 기준에서 `/editor` 세로 길이가 길고, 상단 카드/사진 영역 균형이 깨지며, 선수 정보 필드가 불필요하게 가로 폭을 크게 차지해 스크롤 피로가 높다.
+- 변경 범위: 카드 미리보기 버튼 제거, 상단 카드/사진 레이아웃 모바일 우선 정렬, 선수 정보 필드를 글자수 기반 가변 폭으로 재배치해 높이를 줄인다.
+- 검증 범위: `npm run lint`, `npm run typecheck`, `npm run test:run`, `npx playwright test tests/e2e/video/profile-card-editor.spec.ts --project='iPhone 15'`
+- 비범위: 카드 데이터 계약, 저장 API, 영상 편집(`single-clip editor`) 로직은 변경하지 않는다.
+
+## 카드 편집 화면 사용자 재배치 배치 (2026-04-11)
+
+- 대상: `src/app/editor/page.tsx`, `src/components/editor/CardPreview.tsx`, `src/components/editor/EditorForm.tsx`, `src/app/editor/editor.css`
+- 변경 이유: 카드 편집 화면에서 레이어 우선순위가 약해 사용자가 `지금 결과를 본다 → 사진을 바꾼다 → 정보만 고친다` 흐름을 즉시 읽기 어렵고, `select`가 브라우저 기본 스타일로 보여 화면 톤이 깨진다.
+- 변경 범위: 모바일 기준으로 상단 결과 미리보기 카드와 사진 액션을 한 묶음으로 재배치하고, 기본 정보/상세 정보/테마를 섹션 카드로 재정렬하며, `select` 전용 래퍼와 화살표 스타일을 추가한다.
+- 검증 범위: `npm run lint`, `npm run typecheck`, `npm run test:run`, `npx playwright test tests/e2e/video/profile-card-editor.spec.ts --project='iPhone 15'`
+- 비범위: 카드 템플릿 종류 추가, 저장 API 변경, 영상 편집 플로우 변경은 하지 않는다.
+
 ## 현재 목표
 
 ### 목표 1. 실행 계획 문서 슬림화 고정
@@ -81,6 +118,7 @@
 - review 미리보기와 원격 재생 자산 검증 경로 분리
 - featured 저장의 부분 성공은 안내되지만 완전 원자성은 아직 아님
 - 온보딩/가이드 UI가 모바일 화면 비율과 실제 조작 타깃을 기준으로 검증되지 않아 사용성을 해친다.
+- 영상 화면 비율(세로/가로)에 따라 업로드 편집 미리보기와 프로필/공유 재생에서 조작 불가 또는 재생 실패 회귀가 보고됐다.
 
 ## 현재 기준 문서
 
@@ -152,6 +190,7 @@
 - 세로 플레이어의 프로필 카드는 16:9 비율을 유지한 채 가운데에 맞춰 보여주고, 실제 재생 플레이어의 하이라이트는 freeze 종료와 동시에 즉시 사라지게 유지한다.
 - `testplayer@footory.kr` 실계정 기준으로 프로필 카드 소비, freeze hold, 화면 비율별 하단 선수 정보 잘림을 브라우저에서 직접 재현해 확인한다.
 - 기존 `trim_start`, `trim_end`, `highlight_start`, `highlight_end`, `spotlight_x`, `spotlight_y`, `freeze_at`, `effects.focusZoom` 저장 계약은 유지하되, 사용자가 이 계약 구조를 직접 의식하지 않게 UX를 재구성한다.
+- `testplayer@footory.kr` 계정 기준으로 세로/가로 비율 영상 각각에서 업로드→편집→저장→프로필 재생→공유 재생까지 막힘 없이 동작하도록 회귀를 우선 복구한다.
 
 ### 병행 배치 목표 (ops-console)
 
@@ -208,11 +247,11 @@
 ### 5. 검증 및 회귀
 
 - 편집 플로우 E2E는 `선수 탭 → 자동 지정 → 확대 조정 → 저장 → 재진입 복구` 기준으로 유지/보강한다.
-- 사용자 관점 검토 항목은 `처음 쓰는 사람이 1분 안에 저장 가능`, `한 화면 핵심 행동 1~2개 유지`, `저장 직전 새 판단 없음`으로 고정한다.
+- 사용자 관점 검토 항목은 `처음 쓰는 사람이 1분 안에 저장 가능`, `모바일에서 핵심 흐름 막힘 없음`, `저장 직전 이탈 없이 완료 가능`으로 고정한다.
 - 필수 검증: `npm run lint`, `npm run typecheck`, `npm run test:run`, 관련 Playwright upload/video 흐름.
 - 사용자 앱 검증은 모바일 뷰포트를 기본으로 두고, 데스크톱은 보조 확인으로만 남긴다.
 - 온보딩/코치마크 변경은 모바일 실제 화면 스크린샷 또는 모바일 Playwright 캡처 근거를 남긴다.
-- 사용자 문구는 한국어 기준으로 다시 검토하고, 한 화면 핵심 행동 1~2개 원칙 위반 여부를 함께 점검한다.
+- 사용자 문구는 한국어 기준으로 다시 검토하고, 모바일 화면에서 행동 우선순위가 즉시 읽히는지 함께 점검한다.
 
 ### 5. 운영실 온보딩 정리 (ops-console)
 

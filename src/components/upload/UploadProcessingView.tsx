@@ -8,6 +8,8 @@ interface UploadProcessingViewProps {
   onRetry: () => void;
   onReset: () => void;
   onSaveNow: () => Promise<void> | void;
+  onEdit?: () => void;
+  readyForChoice?: boolean;
 }
 
 type StageState = "done" | "active" | "pending" | "error";
@@ -44,11 +46,13 @@ function resolveStages({
   duration,
   clipId,
   draftReady,
+  choiceReady,
 }: {
   status: UploadStatus;
   duration: number | null;
   clipId: string | null;
   draftReady: boolean;
+  choiceReady: boolean;
 }) {
   const metadataState: StageState = status === "error"
     ? "error"
@@ -58,7 +62,7 @@ function resolveStages({
 
   const uploadState: StageState = status === "error"
     ? "error"
-    : draftReady || status === "analyzing" || status === "done" || (status === "idle" && !!clipId)
+    : choiceReady || draftReady || status === "analyzing" || status === "done" || (status === "idle" && !!clipId)
       ? "done"
       : status === "uploading" || status === "uploading_raw" || status === "saving" || status === "composing"
         ? "active"
@@ -66,7 +70,7 @@ function resolveStages({
 
   const choiceState: StageState = status === "error"
     ? "error"
-    : draftReady
+    : choiceReady || draftReady
       ? "done"
       : status === "analyzing"
         ? "active"
@@ -118,6 +122,8 @@ export default function UploadProcessingView({
   onRetry,
   onReset,
   onSaveNow,
+  onEdit,
+  readyForChoice = false,
 }: UploadProcessingViewProps) {
   const router = useRouter();
   const file = useUploadStore((state) => state.file);
@@ -130,15 +136,6 @@ export default function UploadProcessingView({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const stages = useMemo(
-    () => resolveStages({
-      status,
-      duration,
-      clipId,
-      draftReady: !!editorDraft,
-    }),
-    [clipId, duration, editorDraft, status],
-  );
   const editorHref = (() => {
     if (!clipId) return null;
     const params = new URLSearchParams();
@@ -149,11 +146,21 @@ export default function UploadProcessingView({
 
     return `/edit/${clipId}?${params.toString()}`;
   })();
-  const readyForChoice = Boolean(editorHref)
-    && (status === "done" || status === "analyzing" || !!editorDraft);
+  const choiceReady = readyForChoice || (Boolean(editorHref)
+    && (status === "done" || status === "analyzing" || !!editorDraft));
+  const stages = useMemo(
+    () => resolveStages({
+      status,
+      duration,
+      clipId,
+      draftReady: !!editorDraft,
+      choiceReady,
+    }),
+    [choiceReady, clipId, duration, editorDraft, status],
+  );
   const canSaveNow = Boolean(clipId)
-    && (readyForChoice || !!editorDraft);
-  const progressValue = Math.max(progress, status === "analyzing" || readyForChoice ? 100 : 6);
+    && (choiceReady || !!editorDraft);
+  const progressValue = Math.max(progress, status === "analyzing" || choiceReady ? 100 : 6);
 
   if (!file) return null;
 
@@ -163,10 +170,10 @@ export default function UploadProcessingView({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-[20px] font-bold text-text-1">
-              {readyForChoice ? "올리기는 끝났어요" : "영상을 올리고 있어요"}
+              {choiceReady ? "올리기는 끝났어요" : "영상을 올리고 있어요"}
             </h1>
             <p className="mt-1 text-[12px] leading-5 text-text-3">
-              {readyForChoice ? "이대로 저장하거나, 필요한 것만 편집할 수 있어요." : getCurrentLabel(status, error)}
+              {choiceReady ? "이대로 저장하거나, 필요한 것만 편집할 수 있어요." : getCurrentLabel(status, error)}
             </p>
           </div>
           <button
@@ -241,7 +248,7 @@ export default function UploadProcessingView({
               다른 영상 고르기
             </button>
           </div>
-        ) : readyForChoice ? (
+        ) : choiceReady ? (
           <div className="grid gap-3">
             <button
               type="button"
@@ -266,7 +273,13 @@ export default function UploadProcessingView({
             </button>
             <button
               type="button"
-              onClick={() => router.push(editorHref!)}
+              onClick={() => {
+                if (onEdit) {
+                  onEdit();
+                  return;
+                }
+                router.push(editorHref!);
+              }}
               className="w-full rounded-2xl border border-white/[0.08] bg-card py-3.5 text-[14px] font-medium text-text-1 active:scale-[0.99]"
             >
               편집하고 저장

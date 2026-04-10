@@ -1,6 +1,6 @@
 # 영상 제품 결정사항
 
-> Last synced: 2026-04-10
+> Last synced: 2026-04-12
 > 이 문서는 Footory 영상 제품의 현재 기준 결정을 잠그는 문서다. Prompt C 이전의 제품 판단, 문서 갱신, 구현 우선순위는 이 문서를 기준으로 맞춘다.
 
 ## 문서 목적
@@ -47,8 +47,8 @@
 6. 저장 결과는 기존 `clips` 메타데이터와 프로필 연결 구조 안에서 소비된다.
 
 ## Optional Editing Flow
-1. 사용자는 필요할 때만 편집으로 들어간다.
-2. 선택 편집 항목은 trim, spotlight, zoom playback 관련 설정, player info overlay, highlight range다.
+1. 업로드가 끝나면 사용자는 `이대로 저장`하거나, 필요할 때만 편집으로 들어간다.
+2. 기본 편집 항목은 주인공 선택, trim, profile card, lower third 표시 제어다.
 3. highlight는 항상 강제되지 않으며, 대표 범위를 정해야 할 때만 설정한다.
 4. 저장은 현재 살아 있는 `trim_start`, `trim_end`, `highlight_start`, `highlight_end`, `duration_sec` 계약을 우선 따른다.
 

@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import GuideHighlightOverlay from "@/components/upload/GuideHighlightOverlay";
 import SingleClipEditorPreview from "@/components/upload/SingleClipEditorPreview";
-import { getSkillTagsForPosition } from "@/lib/constants";
 import { DEFAULT_FOCUS_ZOOM } from "@/lib/focus-zoom";
 import { publishSingleClipDraft, saveSingleClipDraft } from "@/lib/highlight-save";
 import { useUploadGuide } from "@/hooks/useUploadGuide";
@@ -22,7 +21,7 @@ interface HighlightSuggestionReviewProps {
   onReset: () => void;
 }
 
-const TOOL_ORDER = ["focus", "trim", "overlay", "save"] as const;
+const TOOL_ORDER = ["focus", "trim", "overlay"] as const;
 type EditorTool = (typeof TOOL_ORDER)[number];
 
 function formatTime(seconds: number) {
@@ -123,6 +122,8 @@ export default function HighlightSuggestionReview({
   const router = useRouter();
   const { profile } = useProfileContext();
   const childName = useUploadStore((state) => state.childName);
+  const childHandle = useUploadStore((state) => state.childHandle);
+  const context = useUploadStore((state) => state.context);
   const storeTags = useUploadStore((state) => state.tags);
   const setEditorDraft = useUploadStore((state) => state.setEditorDraft);
 
@@ -184,19 +185,12 @@ export default function HighlightSuggestionReview({
     accentColor: "#d8b36a",
   };
 
-  const tagOptions = useMemo(
-    () => getSkillTagsForPosition(profile?.position ?? null),
-    [profile?.position]
-  );
-
   const toolDescription =
     activeTool === "focus"
       ? "주인공이 잘 보이게 먼저 맞춰요."
       : activeTool === "trim"
         ? "필요할 때만 시작과 끝을 다듬어요."
-        : activeTool === "overlay"
-          ? "정보는 작게만 보여줘요."
-          : "결과만 확인하고 저장해요.";
+        : "정보는 필요할 때만 켜요.";
 
   useEffect(() => {
     if (guideStep === "focus_pick" || guideStep === "focus_zoom") {
@@ -281,6 +275,10 @@ export default function HighlightSuggestionReview({
         highlightStart: current.playback.trimStart,
         highlightEnd: current.playback.trimEnd,
       },
+      saveTarget: {
+        profileTarget: "featured_candidate",
+        portfolioTagName: null,
+      },
     }));
 
     setSaveState("saving");
@@ -313,6 +311,10 @@ export default function HighlightSuggestionReview({
       );
       useUploadStore.getState().reset();
       setSaveState("idle");
+      if (context === "parent" && childHandle) {
+        router.replace(`/p/${childHandle}`);
+        return;
+      }
       router.replace(result.featuredLinkFailed ? "/profile?saved=clip" : "/profile?saved=featured");
     } catch (error) {
       const message = error instanceof Error ? error.message : "저장에 실패했습니다.";
@@ -419,15 +421,6 @@ export default function HighlightSuggestionReview({
             </div>
             <p className="truncate text-[12px] text-text-3">{toolDescription}</p>
           </div>
-          <div className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] font-semibold text-text-2">
-            {draft.projectStatus === "published"
-              ? "저장됨"
-              : !draftSyncEnabled
-                ? "임시 저장 없음"
-                : draft.lastSavedAt
-                  ? "임시 저장됨"
-                  : "편집 중"}
-          </div>
         </div>
 
         <div className="px-4">
@@ -476,7 +469,7 @@ export default function HighlightSuggestionReview({
         </div>
 
         <div className="px-4 pt-4">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <ToolChip
               active={activeTool === "focus"}
               step="1"
@@ -491,20 +484,13 @@ export default function HighlightSuggestionReview({
               testId="single-clip-tool-trim"
               onClick={() => setActiveTool("trim")}
             />
-            <ToolChip
-              active={activeTool === "overlay"}
-              step="3"
-              label="정보"
-              testId="single-clip-tool-overlay"
-              onClick={() => setActiveTool("overlay")}
-            />
-            <ToolChip
-              active={activeTool === "save"}
-              step="4"
-              label="저장"
-              testId="single-clip-tool-save"
-              onClick={() => setActiveTool("save")}
-            />
+              <ToolChip
+                active={activeTool === "overlay"}
+                step="3"
+                label="정보"
+                testId="single-clip-tool-overlay"
+                onClick={() => setActiveTool("overlay")}
+              />
           </div>
         </div>
 
@@ -518,12 +504,6 @@ export default function HighlightSuggestionReview({
           {saveError ? (
             <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-[12px] leading-5 text-red-200">
               {saveError}
-            </div>
-          ) : null}
-
-          {!draftSyncEnabled ? (
-            <div className="mb-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 text-[12px] leading-5 text-text-2">
-              임시 저장은 지금 꺼져 있어요. 마지막 저장만 눌러도 진행은 계속할 수 있어요.
             </div>
           ) : null}
 
@@ -882,136 +862,6 @@ export default function HighlightSuggestionReview({
             </div>
           ) : null}
 
-          {activeTool === "save" ? (
-            <div data-testid="single-clip-save-panel" className="space-y-4">
-              <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
-                <p className="text-[13px] font-semibold text-[#f6d69a]">
-                  이제 저장만 정하면 끝이에요.
-                </p>
-                <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  여기서는 결과를 다시 확인하고 어디에 저장할지만 정해요.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-2xl bg-white/[0.03] p-3">
-                  <p className="text-[10px] text-text-3">구간</p>
-                  <p className="mt-1 text-[13px] font-semibold text-text-1">
-                    {formatDuration(draft.playback.trimStart, draft.playback.trimEnd)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.03] p-3">
-                  <p className="text-[10px] text-text-3">주인공</p>
-                  <p className="mt-1 text-[13px] font-semibold text-text-1">
-                    {draft.playback.spotlight ? "선택됨" : "없음"}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.03] p-3">
-                  <p className="text-[10px] text-text-3">확대</p>
-                  <p className="mt-1 text-[13px] font-semibold text-text-1">
-                    {draft.playback.zoom.toFixed(1)}x
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.03] p-3">
-                  <p className="text-[10px] text-text-3">잠깐 멈춤</p>
-                  <p className="mt-1 text-[13px] font-semibold text-text-1">
-                    {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "없음"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3 rounded-[28px] border border-white/[0.06] bg-card p-5">
-                <div>
-                  <p className="text-[15px] font-semibold text-text-1">저장 위치</p>
-                  <p className="mt-1 text-[12px] leading-5 text-text-3">
-                    대표 영상으로 보일지, 기술 묶음에 넣을지만 정하면 돼요.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    commitDraft((current) => ({
-                      ...current,
-                      saveTarget: {
-                        ...current.saveTarget,
-                        profileTarget: "featured_candidate",
-                        portfolioTagName: null,
-                      },
-                    }))
-                  }
-                  className={`w-full rounded-3xl border p-4 text-left ${
-                    draft.saveTarget.profileTarget === "featured_candidate"
-                      ? "border-[#d8b36a]/35 bg-[#d8b36a]/10"
-                      : "border-white/[0.06] bg-white/[0.03]"
-                  }`}
-                >
-                  <p className="text-[14px] font-semibold text-text-1">프로필 대표로 저장</p>
-                  <p className="mt-1 text-[12px] leading-5 text-text-3">
-                    프로필에서 가장 먼저 보여줄 영상으로 연결해요.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    commitDraft((current) => ({
-                      ...current,
-                      saveTarget: {
-                        ...current.saveTarget,
-                        profileTarget: "tag_portfolio",
-                        portfolioTagName:
-                          current.saveTarget.portfolioTagName ??
-                          storeTags[0] ??
-                          tagOptions[0]?.dbName ??
-                          null,
-                      },
-                    }))
-                  }
-                  className={`w-full rounded-3xl border p-4 text-left ${
-                    draft.saveTarget.profileTarget === "tag_portfolio"
-                      ? "border-[#d8b36a]/35 bg-[#d8b36a]/10"
-                      : "border-white/[0.06] bg-white/[0.03]"
-                  }`}
-                >
-                  <p className="text-[14px] font-semibold text-text-1">기술 묶음으로 저장</p>
-                  <p className="mt-1 text-[12px] leading-5 text-text-3">
-                    슈팅, 드리블 같은 태그 묶음에 넣어요.
-                  </p>
-                </button>
-
-                {draft.saveTarget.profileTarget === "tag_portfolio" ? (
-                  <div className="rounded-3xl border border-white/[0.06] bg-white/[0.03] p-4">
-                    <p className="text-[13px] font-semibold text-text-1">태그 고르기</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {tagOptions.map((tag) => {
-                        const selected = draft.saveTarget.portfolioTagName === tag.dbName;
-                        return (
-                          <button
-                            key={tag.id}
-                            type="button"
-                            onClick={() =>
-                              commitDraft((current) => ({
-                                ...current,
-                                saveTarget: { ...current.saveTarget, portfolioTagName: tag.dbName },
-                              }))
-                            }
-                            className={`rounded-full border px-3 py-2 text-[12px] font-semibold ${
-                              selected
-                                ? "border-[#d8b36a]/35 bg-[#d8b36a]/15 text-[#f6d69a]"
-                                : "border-white/[0.08] bg-white/[0.03] text-text-2"
-                            }`}
-                          >
-                            {tag.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -1020,43 +870,28 @@ export default function HighlightSuggestionReview({
         style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mx-auto flex w-full max-w-[430px] gap-3">
-          {activeTool === "save" ? (
-            <>
-              <button
-                type="button"
-                onClick={() => previousTool && setActiveTool(previousTool)}
-                className="min-w-[96px] shrink-0 rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-[14px] font-medium text-text-1"
-              >
-                이전
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={saveState === "saving"}
-                className="flex-1 rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b] disabled:opacity-60"
-              >
-                {saveState === "saving" ? "저장 중..." : "내 영상으로 저장"}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={saveState === "saving"}
-                className="min-w-[96px] shrink-0 rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-[14px] font-medium text-text-1 disabled:opacity-60"
-              >
-                {saveState === "saving" ? "저장 중..." : "이대로 저장"}
-              </button>
-              <button
-                type="button"
-                onClick={() => nextTool && setActiveTool(nextTool)}
-                className="flex-1 rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b]"
-              >
-                {nextTool === "save" ? "저장 단계" : "다음"}
-              </button>
-            </>
-          )}
+          <>
+            <button
+              type="button"
+              onClick={
+                nextTool
+                  ? () => void handleSave()
+                  : () => previousTool && setActiveTool(previousTool)
+              }
+              disabled={saveState === "saving" || (!nextTool && !previousTool)}
+              className="min-w-[96px] shrink-0 rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-[14px] font-medium text-text-1 disabled:opacity-60"
+            >
+              {nextTool ? (saveState === "saving" ? "저장 중..." : "이대로 저장") : "이전"}
+            </button>
+            <button
+              type="button"
+              onClick={nextTool ? () => nextTool && setActiveTool(nextTool) : () => void handleSave()}
+              disabled={saveState === "saving"}
+              className="flex-1 rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b]"
+            >
+              {nextTool ? "다음" : saveState === "saving" ? "저장 중..." : "내 영상으로 저장"}
+            </button>
+          </>
         </div>
       </div>
 
