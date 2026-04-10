@@ -90,6 +90,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async () => {
     try {
+      fetchedRef.current = true;
       setLoading(true);
       const res = await fetch("/api/profile");
       if (!res.ok) {
@@ -118,6 +119,18 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
     setError(null);
   }, []);
+
+  useEffect(() => {
+    if (hydratedRef.current || fetchedRef.current) return;
+
+    // ProfileHydrator가 있는 경로는 같은 mount cycle에서 먼저 hydrate되게 둔다.
+    const timer = window.setTimeout(() => {
+      if (hydratedRef.current || fetchedRef.current) return;
+      void fetchProfile();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchProfile]);
 
   const value = useMemo(
     () => ({

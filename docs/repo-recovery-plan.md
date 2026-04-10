@@ -1075,3 +1075,27 @@
 - single-clip 편집에서 바꾼 값이 autosave draft 또는 저장 결과로 다시 열었을 때 복구된다.
 - 모바일 Playwright에서 `업로드 -> 편집 -> 변경 -> 재진입 -> 복구` 흐름이 통과한다.
 - 저장되는 값, 복구되는 값, 남은 blocker를 문서와 실행 결과로 설명할 수 있어야 한다.
+
+## 0.13단계: `/upload` 진입 로딩 고착 복구 (2026-04-10)
+
+### 목표
+- `/upload`로 직접 이동하거나 다른 bare route에서 넘어올 때 `로딩 중...` 상태가 풀리지 않는 문제를 최소 범위로 복구한다.
+- 제품 방향 변경 없이 프로필 초기화 경로만 바로잡는다.
+
+### 이번 단계에서 확인한 실제 원인
+- `/upload`는 `AppShell`의 bare route 분기에서 `ProfileProvider`만 감싸고 렌더된다.
+- 현재 `ProfileProvider`는 `ProfileHydrator`가 주입될 때만 `loading`을 해제하고, bare route 자체 초기 fetch는 수행하지 않는다.
+- 그래서 `/upload`, `/edit`, `/editor`처럼 hydrate가 없는 경로에서는 `useProfileContext()`가 `loading=true`, `profile=null`에 고정될 수 있다.
+
+### 수정 범위
+- `src/providers/ProfileProvider.tsx`
+- 필요 시 `/upload` 진입 회귀 테스트 또는 관련 검증 문서
+
+### 이번 단계에서 하지 말 것
+- 업로드 처리/저장/publish 플로우 구조 변경
+- 부모 업로드 경로 정리
+- 단일 편집 UX 추가 변경
+
+### 완료 기준
+- 인증된 사용자가 `/upload`에 진입했을 때 파일 선택 UI까지 안정적으로 도달해야 한다.
+- `ProfileHydrator`가 있는 경로에서는 중복 fetch 없이 기존 동작을 유지해야 한다.

@@ -219,6 +219,30 @@
 - `npm run test:run`
   - 결과: 통과 (`7 files / 49 tests`)
 
+## 13) `/upload` bare route 로딩 고착 복구 검증 (2026-04-10)
+
+### 수정 대상
+- `src/providers/ProfileProvider.tsx`
+- `src/app/upload/page.tsx` 영향 경로 확인
+
+### 막힌 원인
+- `/upload`는 `AppShell`의 bare route 분기에서 `ProfileProvider`만 감싼다.
+- 그런데 `ProfileProvider`는 `ProfileHydrator`가 주입되는 경로에서만 `loading`을 해제하고, bare route 자체 초기 fetch는 하지 않았다.
+- 그 결과 `/upload` 진입 시 `useProfileContext()`가 `loading=true`, `profile=null`에 고정되며 `로딩 중...` 화면에 머무를 수 있었다.
+
+### 복구 결과
+- `ProfileProvider`가 mount 직후 지연된 초기 fetch를 수행해 bare route에서도 프로필을 읽어 온다.
+- `ProfileHydrator`가 있는 경로는 같은 mount cycle에서 먼저 hydrate되므로 기존 hydrate 우선 경로를 유지한다.
+- `/upload` 직접 진입과 fixture smoke 기준에서 파일 선택 UI 노출이 다시 확인됐다.
+
+### 검증 결과
+- `npm run lint`: 통과 (`65 warnings`)
+- `npm run typecheck`: 통과
+- `npm run test:run`: 통과 (`7 files / 49 tests`)
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `5 passed`
+  - 확인 범위: `/upload` 직접 진입, fixture 비디오 선택 화면 노출, 업로드 후 편집 진입, draft 복구, 프로필 저장
+
 ### 비고
 - 이번 단계는 업로드 진행 표현과 single-clip 편집 UX 단순화에 한정했다.
 - share/reel/profile playback contract 정렬, upload-store 구조 축소, 업로드 서비스 중복 제거는 여전히 다음 단계 과제로 남는다.
