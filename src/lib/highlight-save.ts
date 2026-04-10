@@ -3,7 +3,7 @@ import {
   markSingleClipDraftPersisted,
   resolveSingleClipEditingPatch,
 } from "@/lib/single-clip-playback";
-import { saveVideoProject } from "@/lib/video-projects";
+import { saveVideoProject, VideoProjectStorageUnavailableError } from "@/lib/video-projects";
 
 interface SaveSingleClipDraftParams {
   draft: SingleClipEditingDraft;
@@ -27,19 +27,27 @@ async function readJsonSafe(response: Response) {
 export async function saveSingleClipDraft({
   draft,
 }: SaveSingleClipDraftParams): Promise<SingleClipEditingDraft> {
-  const result = await saveVideoProject<SingleClipEditingDraft>({
-    projectId: draft.projectId,
-    kind: "single_clip",
-    status: "draft",
-    clipId: draft.clipId,
-    payload: draft,
-  });
+  try {
+    const result = await saveVideoProject<SingleClipEditingDraft>({
+      projectId: draft.projectId,
+      kind: "single_clip",
+      status: "draft",
+      clipId: draft.clipId,
+      payload: draft,
+    });
 
-  return markSingleClipDraftPersisted(draft, {
-    projectId: result.project.id,
-    projectStatus: "draft",
-    savedAt: result.project.updated_at,
-  });
+    return markSingleClipDraftPersisted(draft, {
+      projectId: result.project.id,
+      projectStatus: "draft",
+      savedAt: result.project.updated_at,
+    });
+  } catch (error) {
+    if (error instanceof VideoProjectStorageUnavailableError) {
+      return draft;
+    }
+
+    throw error;
+  }
 }
 
 export async function publishSingleClipDraft({
@@ -68,13 +76,19 @@ export async function publishSingleClipDraft({
     throw new Error(String(body.error ?? "클립 저장에 실패했습니다."));
   }
 
-  const persisted = await saveVideoProject<SingleClipEditingDraft>({
-    projectId: draft.projectId,
-    kind: "single_clip",
-    status: "published",
-    clipId,
-    payload: draft,
-  });
+  try {
+    await saveVideoProject<SingleClipEditingDraft>({
+      projectId: draft.projectId,
+      kind: "single_clip",
+      status: "published",
+      clipId,
+      payload: draft,
+    });
+  } catch (error) {
+    if (!(error instanceof VideoProjectStorageUnavailableError)) {
+      throw error;
+    }
+  }
 
   if (draft.saveTarget.profileTarget === "featured_candidate") {
     const featuredRes = await fetch("/api/featured", {
@@ -97,7 +111,7 @@ export async function publishSingleClipDraft({
     }
 
     return {
-      connectionLabel: persisted.project.id ? "프로필 Featured" : "프로필 Featured",
+      connectionLabel: "프로필 Featured",
       publishTransition: "published",
     };
   }

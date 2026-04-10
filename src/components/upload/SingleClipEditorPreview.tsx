@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import HudOverlay from "@/components/video/hud/HudOverlay";
-import type { HudPlayerData } from "@/components/video/hud/types";
-import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import VideoOverlay from "@/components/video/VideoOverlay";
+import type { HudPlayerData } from "@/components/video/hud/types";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import { screenToVideo } from "@/lib/spotlight-math";
 import type { SingleClipEditingDraft } from "@/lib/single-clip-playback";
@@ -15,6 +13,8 @@ interface SingleClipEditorPreviewProps {
   playerData: HudPlayerData | null;
   previewTime: number;
   spotlightPicking: boolean;
+  focusPreviewVisible: boolean;
+  overlayPreviewVisible: boolean;
   onPreviewTimeChange: (time: number) => void;
   onSpotlightChange: (spotlight: { x: number; y: number } | null) => void;
 }
@@ -24,12 +24,50 @@ function formatTime(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
+function OverlayPreviewGuide({
+  playerData,
+  showLowerThird,
+  showProfileCard,
+}: {
+  playerData: HudPlayerData | null;
+  showLowerThird: boolean;
+  showProfileCard: boolean;
+}) {
+  return (
+    <>
+      {showProfileCard ? (
+        <div className="pointer-events-none absolute left-[6%] top-[8%] z-20 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white/80">
+          재생 전 카드 표시
+        </div>
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-x-[6%] bottom-[8%] z-20 rounded-[20px] border border-dashed border-white/20 bg-black/25 px-3 py-2 backdrop-blur-sm">
+        {showLowerThird && playerData ? (
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[#d8b36a] px-2 py-1 text-[10px] font-bold text-[#09090b]">
+              {playerData.position || "선수"}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[12px] font-semibold text-white">{playerData.name || "선수 정보"}</p>
+              <p className="text-[10px] text-white/60">아래 영역에만 보여요</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-[11px] font-medium text-white/70">정보를 켜면 아래에만 보여요</p>
+        )}
+      </div>
+    </>
+  );
+}
+
 export default function SingleClipEditorPreview({
   videoSrc,
   draft,
   playerData,
   previewTime,
   spotlightPicking,
+  focusPreviewVisible,
+  overlayPreviewVisible,
   onPreviewTimeChange,
   onSpotlightChange,
 }: SingleClipEditorPreviewProps) {
@@ -131,6 +169,13 @@ export default function SingleClipEditorPreview({
     resetTransform();
   }, [draft.playback.zoom, resetTransform, spotlight, syncZoomTo]);
 
+  useEffect(() => {
+    if (!spotlightPicking) return;
+    const video = videoRef.current;
+    if (!video || video.paused) return;
+    video.pause();
+  }, [spotlightPicking]);
+
   const togglePlayback = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -187,13 +232,21 @@ export default function SingleClipEditorPreview({
   const videoTransform = zoom > 1
     ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
     : undefined;
-  const hudVisible = draft.overlay.showLowerThird && !!playerData;
-  const overlayLabel = useMemo(() => {
-    if (spotlightPicking) return "프리뷰를 눌러 선수를 지정하세요";
-    if (!spotlight) return "주인공을 고르면 확대 재생이 함께 적용돼요";
-    if (freezeActive) return "고정 화면 미리보기";
-    return `자동 확대 ${draft.playback.zoom.toFixed(1)}x`;
-  }, [draft.playback.zoom, freezeActive, spotlight, spotlightPicking]);
+  const helperText = useMemo(() => {
+    if (focusPreviewVisible && spotlightPicking) {
+      return "선수를 한 번 눌러주세요.";
+    }
+    if (focusPreviewVisible && spotlight) {
+      return `${draft.playback.zoom.toFixed(1)}x로 따라가요.`;
+    }
+    if (focusPreviewVisible) {
+      return "주인공을 고르면 확대돼요.";
+    }
+    if (overlayPreviewVisible) {
+      return "정보는 아래에만 보여요.";
+    }
+    return "필요한 구간만 바로 확인하세요.";
+  }, [draft.playback.zoom, focusPreviewVisible, overlayPreviewVisible, spotlight, spotlightPicking]);
 
   return (
     <div className="overflow-hidden rounded-[28px] border border-white/[0.06] bg-[#0b0b0f]">
@@ -201,8 +254,8 @@ export default function SingleClipEditorPreview({
         ref={containerRef}
         className="relative w-full overflow-hidden bg-black"
         style={{
-          aspectRatio: videoNativeSize ? `${videoNativeSize.w} / ${videoNativeSize.h}` : "9 / 16",
-          maxHeight: "56dvh",
+          aspectRatio: videoNativeSize ? `${videoNativeSize.w} / ${videoNativeSize.h}` : "16 / 9",
+          maxHeight: "64dvh",
         }}
         onClick={handleTap}
       >
@@ -220,18 +273,7 @@ export default function SingleClipEditorPreview({
           }}
         />
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-3">
-          <span className="rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold text-white/85">
-            한 장면 편집
-          </span>
-          <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-            spotlightPicking ? "bg-[#d8b36a] text-[#09090b]" : "bg-black/55 text-white/85"
-          }`}>
-            {overlayLabel}
-          </span>
-        </div>
-
-        {playerData?.name && adjustedSpotlight ? (
+        {focusPreviewVisible && playerData?.name && adjustedSpotlight ? (
           <div
             className="pointer-events-none absolute inset-0 z-10"
             style={{
@@ -245,16 +287,19 @@ export default function SingleClipEditorPreview({
                 name: playerData.name,
                 position: playerData.position,
               }}
+              hideNametag
               freezeMode={freezeActive}
               zoomLevel={zoom}
             />
           </div>
         ) : null}
 
-        {hudVisible && playerData ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
-            <HudOverlay data={playerData} config={DEFAULT_HUD_CONFIG} mode="docked" />
-          </div>
+        {overlayPreviewVisible ? (
+          <OverlayPreviewGuide
+            playerData={playerData}
+            showLowerThird={draft.overlay.showLowerThird}
+            showProfileCard={draft.overlay.showProfileCard}
+          />
         ) : null}
 
         {isBuffering && isPlaying ? (
@@ -263,7 +308,7 @@ export default function SingleClipEditorPreview({
           </div>
         ) : null}
 
-        {!isPlaying ? (
+        {!isPlaying && !spotlightPicking ? (
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
               {ended ? (
@@ -281,8 +326,8 @@ export default function SingleClipEditorPreview({
         ) : null}
       </div>
 
-      <div className="border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(216,179,106,0.08),rgba(11,11,15,0.95))] p-4">
-        <div className="flex items-center gap-2">
+      <div className="border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(216,179,106,0.05),rgba(11,11,15,0.96))] p-4">
+        <div className="flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={togglePlayback}
@@ -291,10 +336,10 @@ export default function SingleClipEditorPreview({
             {isPlaying ? "일시정지" : ended ? "다시 보기" : "재생"}
           </button>
           <div className="rounded-full bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-text-2">
-            구간 {formatTime(draft.playback.trimStart)} - {formatTime(draft.playback.trimEnd)}
+            {formatTime(seekValue)} / {formatTime(seekMax)}
           </div>
           <div className="rounded-full bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-text-2">
-            하이라이트 {formatTime(draft.playback.highlightStart)} - {formatTime(draft.playback.highlightEnd)}
+            구간 {formatTime(draft.playback.trimStart)} - {formatTime(draft.playback.trimEnd)}
           </div>
         </div>
 
@@ -316,9 +361,10 @@ export default function SingleClipEditorPreview({
             className="w-full accent-[#d8b36a]"
             aria-label="편집 미리보기 이동"
           />
-          <div className="mt-2 flex items-center justify-between text-[12px] text-white/55">
-            <span>{formatTime(seekValue)}</span>
-            <span>{formatTime(Math.max(0, seekMax - seekMin))}</span>
+          <div className="mt-2 flex items-center justify-between gap-3 text-[11px] leading-5 text-white/60">
+            <span>{formatTime(seekMin)}</span>
+            <p className="flex-1 text-center">{helperText}</p>
+            <span>{formatTime(seekMax)}</span>
           </div>
         </div>
       </div>

@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import SelectView from "@/components/upload/SelectView";
 import UploadProcessingView from "@/components/upload/UploadProcessingView";
 import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
-import { createSingleClipEditingDraft } from "@/lib/single-clip-playback";
+import { createSingleClipEditingDraft, type SingleClipEditingDraft } from "@/lib/single-clip-playback";
+import { publishSingleClipDraft } from "@/lib/highlight-save";
 import { abortActiveUploadWork, startUpload } from "@/lib/upload-service";
 import { loadLatestSingleClipProject, markVideoProjectOpened, type SingleClipProjectResponse } from "@/lib/video-projects";
 
@@ -40,14 +41,16 @@ export default function UploadPage() {
 
   // 파일 변경 시 비디오 URL 생성/해제
   useEffect(() => {
-    if (!file) {
-      if (!editorDraft) setVideoUrl(null);
-      return;
-    }
+    if (!file) return;
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
+
+  useEffect(() => {
+    if (file || editorDraft) return;
+    setVideoUrl(null);
+  }, [editorDraft, file]);
 
   useEffect(() => {
     if (!canUpload) return;
@@ -117,7 +120,7 @@ export default function UploadPage() {
           : null,
         freezeAt: fresh.freezeAt,
         zoom: fresh.effects.focusZoom,
-        showProfileCard: fresh.effects.intro,
+        showProfileCard: true,
         showLowerThird: fresh.effects.showLowerThird,
       });
 
@@ -163,21 +166,33 @@ export default function UploadPage() {
     if (!recoverableDraft?.project || !recoverableDraft.clip) return;
 
     const store = useUploadStore.getState();
+    const restoredDraft: SingleClipEditingDraft = {
+      ...recoverableDraft.project.payload,
+      projectId: recoverableDraft.project.id,
+      projectStatus: recoverableDraft.project.status === "published" ? "published" : "draft",
+      lastSavedAt: recoverableDraft.project.updated_at,
+    };
+
     store.setClipId(recoverableDraft.clip.id);
     store.setDuration(
       recoverableDraft.clip.duration_sec ??
       recoverableDraft.clip.duration_seconds ??
       recoverableDraft.project.payload.sourceDurationSec,
     );
-    store.setTrimStart(recoverableDraft.project.payload.playback.trimStart);
-    store.setTrimEnd(recoverableDraft.project.payload.playback.trimEnd);
-    store.setTags(recoverableDraft.clip.tags);
-    store.setEditorDraft({
-      ...recoverableDraft.project.payload,
-      projectId: recoverableDraft.project.id,
-      projectStatus: recoverableDraft.project.status === "published" ? "published" : "draft",
-      lastSavedAt: recoverableDraft.project.updated_at,
+    store.setTrimStart(restoredDraft.playback.trimStart);
+    store.setTrimEnd(restoredDraft.playback.trimEnd);
+    store.setSpotlight(
+      restoredDraft.playback.spotlight?.x ?? null,
+      restoredDraft.playback.spotlight?.y ?? null,
+    );
+    store.setFreezeAt(restoredDraft.playback.freezeAt);
+    store.setEffects({
+      intro: restoredDraft.overlay.showProfileCard,
+      showLowerThird: restoredDraft.overlay.showLowerThird,
+      focusZoom: restoredDraft.playback.zoom,
     });
+    store.setTags(recoverableDraft.clip.tags);
+    store.setEditorDraft(restoredDraft);
     store.setStatus("idle");
     store.setError(null);
     store.setProgress(0);
@@ -191,6 +206,34 @@ export default function UploadPage() {
       // no-op
     }
   }, [recoverableDraft]);
+
+  const handleSaveNow = useCallback(async () => {
+    const state = useUploadStore.getState();
+    if (!state.clipId) return;
+
+    const activeDraft = state.editorDraft ?? createSingleClipEditingDraft({
+      clipId: state.clipId,
+      sourceDurationSec: state.duration ?? 0,
+      trimStart: state.trimStart,
+      trimEnd: state.trimEnd ?? state.duration ?? 0,
+      spotlight: state.spotlightX != null && state.spotlightY != null
+        ? { x: state.spotlightX, y: state.spotlightY }
+        : null,
+      freezeAt: state.freezeAt,
+      zoom: state.effects.focusZoom,
+      showProfileCard: true,
+      showLowerThird: state.effects.showLowerThird,
+    });
+
+    await publishSingleClipDraft({
+      draft: activeDraft,
+      clipId: state.clipId,
+      existingTags: state.tags,
+    });
+
+    state.reset();
+    router.push("/profile");
+  }, [router]);
 
   /* ── Guard: 로딩 중 ── */
   if (loading && !role) {
@@ -253,7 +296,7 @@ export default function UploadPage() {
         </div>
 
         <SelectView
-          ctaLabel="바로 편집하기"
+          ctaLabel="영상 올리기"
           startBackgroundUploadOnReady={false}
           onFileReady={() => useUploadStore.getState().setPhase("processing")}
         />
@@ -283,6 +326,7 @@ export default function UploadPage() {
       <UploadProcessingView
         onRetry={() => void startUpload()}
         onReset={handleFullReset}
+        onSaveNow={handleSaveNow}
       />
     );
   }

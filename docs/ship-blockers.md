@@ -14,6 +14,10 @@
   - 업로드 실행 흐름(`startUpload`, `startR2BackgroundUpload`)에 abort signal/generation guard를 연결해 reset 이후 stale write를 차단
 - 해결 완료 2: `src/app/api/video-projects/route.ts` 타입 안정성 오류 3건 해결
   - 과도한 커스텀 supabase 타입 경로를 제거하고 GET 경로 내 clip/tags 조회를 단순화
+- 해결 완료 3: single-clip 편집 draft 저장/복구 불안정
+  - 원인: `/upload` 복구는 draft payload를 쓰고 있었지만 `/edit/[clipId]` 직접 재진입은 `clips` 메타데이터만 다시 읽어 unpublished draft 편집값이 빠질 수 있었다.
+  - 수정: `src/lib/video-projects.ts`에 clip 기준 single-clip draft 조회를 추가하고, `/upload`와 `/edit/[clipId]` 모두 trim, spotlight, freeze, zoom, overlay 기준값을 같은 draft payload에서 복구하도록 정렬했다.
+  - 검증: `tests/e2e/video/video-upload-flow.spec.ts`에 `업로드 -> 편집 -> 값 변경 -> /upload 재진입 복구`, `/edit 재진입 복구` 시나리오를 추가했고 `npm run test:video`에서 통과했다.
 
 ## 우선순위 순서 (남은 3개)
 1. share/reel/profile 간 single-clip playback contract 불일치 리스크
@@ -57,6 +61,25 @@
 - 확인 포인트
   - typecheck 실패 원인 3건 제거
   - API 계약 확장 없이 기존 응답 구조 유지
+
+## Resolved 3. single-clip draft 재진입 복구 불안정
+- 상태: `해결 완료 (2026-04-10)`
+- 막힌 원인
+  - `/upload`의 `최근 편집 이어서 하기`는 `video_projects` payload를 사용했지만, `/edit/[clipId]` 직접 재진입은 latest draft를 다시 읽지 않아 unpublished 편집값이 빠질 수 있었다.
+  - 복구 시 store primitive와 editor draft가 일부 분리돼 trim 외 spotlight/freeze/zoom/overlay 기준이 경로별로 어긋날 여지가 있었다.
+- 반영 파일
+  - `src/lib/video-projects.ts`
+  - `src/app/upload/page.tsx`
+  - `src/app/edit/[clipId]/page.tsx`
+  - `tests/e2e/video/video-upload-flow.spec.ts`
+- 복구 방식
+  - `clipId` 기준 latest single-clip draft 조회를 추가해 `/edit/[clipId]`가 server draft를 직접 복원
+  - `/upload` draft 복구 시 trim, spotlight, freeze, zoom, overlay 효과를 store와 editor draft에 함께 반영
+  - iPhone 15 Playwright에서 `/upload` 재진입과 `/edit` 직접 재진입 둘 다 검증
+- 확인 포인트
+  - draft 저장 대상: trim, spotlight, freeze, zoom, overlay, highlight range, save target
+  - unpublished 상태에서도 다시 열었을 때 마지막 편집값이 유지돼야 함
+  - publish/profile 확장 없이 single-clip 범위만 안정화해야 함
 
 ## Blocker 3. share/reel/profile playback contract 불일치
 - 왜 blocker인가

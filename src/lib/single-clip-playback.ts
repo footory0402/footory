@@ -100,7 +100,7 @@ export function createSingleClipEditingDraft({
   spotlight,
   freezeAt,
   zoom = DEFAULT_FOCUS_ZOOM,
-  showProfileCard = false,
+  showProfileCard: _showProfileCard = true,
   showLowerThird = true,
 }: {
   clipId: string;
@@ -115,6 +115,7 @@ export function createSingleClipEditingDraft({
   showProfileCard?: boolean;
   showLowerThird?: boolean;
 }): SingleClipEditingDraft {
+  void _showProfileCard;
   const safeDuration = Math.max(roundToTenths(sourceDurationSec), 0.1);
   const normalizedTrim = normalizeRange(trimStart, trimEnd ?? safeDuration, 0, safeDuration);
   const normalizedHighlight = normalizeRange(
@@ -141,7 +142,7 @@ export function createSingleClipEditingDraft({
       trackingPoints: [],
     },
     overlay: {
-      showProfileCard,
+      showProfileCard: true,
       showLowerThird,
     },
     saveTarget: {
@@ -183,6 +184,10 @@ export function resolveSingleClipEditingDraft(draft: SingleClipEditingDraft): Si
       zoom: roundToTenths(Math.max(1, draft.playback.zoom)),
       trackingMode: "fixed",
       trackingPoints: [],
+    },
+    overlay: {
+      ...draft.overlay,
+      showProfileCard: true,
     },
   };
 }

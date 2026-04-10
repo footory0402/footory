@@ -2,17 +2,22 @@
 
 import { useState, useCallback, useEffect } from "react";
 
-const STORAGE_KEY = "footory_upload_guide_v1";
+const STORAGE_KEY = "footory_upload_guide_v2";
 
-export type GuideStep = "tap" | "pinch";
+export type GuideStep = "flow" | "focus";
 
 export function useUploadGuide() {
   const [step, setStep] = useState<GuideStep | null>(null);
 
   useEffect(() => {
     try {
-      if (localStorage.getItem(STORAGE_KEY)) return;
-      setStep("tap");
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === "done") return;
+      if (stored === "focus") {
+        setStep("focus");
+        return;
+      }
+      setStep("flow");
     } catch {
       // SSR or storage unavailable
     }
@@ -20,15 +25,17 @@ export function useUploadGuide() {
 
   const dismissStep = useCallback(() => {
     setStep((prev) => {
-      if (prev === "tap") return "pinch";
-      // pinch → done
-      try { localStorage.setItem(STORAGE_KEY, "1"); } catch {}
+      if (prev === "flow") {
+        try { localStorage.setItem(STORAGE_KEY, "focus"); } catch {}
+        return "focus";
+      }
+      try { localStorage.setItem(STORAGE_KEY, "done"); } catch {}
       return null;
     });
   }, []);
 
   const skipAll = useCallback(() => {
-    try { localStorage.setItem(STORAGE_KEY, "1"); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, "done"); } catch {}
     setStep(null);
   }, []);
 

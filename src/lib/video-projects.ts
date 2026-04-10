@@ -26,7 +26,7 @@ export interface VideoProjectRecord<TPayload = Json> {
 }
 
 export interface SingleClipProjectResponse {
-  project: VideoProjectRecord<SingleClipEditingDraft>;
+  project: VideoProjectRecord<SingleClipEditingDraft> | null;
   clip: {
     id: string;
     video_url: string;
@@ -39,7 +39,24 @@ export interface SingleClipProjectResponse {
 }
 
 export interface ReelProjectResponse {
-  project: VideoProjectRecord<ReelHighlightDraftPayload>;
+  project: VideoProjectRecord<ReelHighlightDraftPayload> | null;
+}
+
+interface VideoProjectMutationResult {
+  project: VideoProjectRecord | null;
+}
+
+let videoProjectStorageAvailable = true;
+
+export class VideoProjectStorageUnavailableError extends Error {
+  constructor(message = "임시 저장은 지금 사용할 수 없어요.") {
+    super(message);
+    this.name = "VideoProjectStorageUnavailableError";
+  }
+}
+
+export function isVideoProjectStorageUnavailableMessage(message: string) {
+  return /video_projects|schema cache|relation .*video_projects/i.test(message);
 }
 
 async function readJsonSafe<T>(response: Response): Promise<T> {
@@ -63,6 +80,10 @@ export async function saveVideoProject<TPayload>({
   title?: string | null;
   payload: TPayload;
 }) {
+  if (!videoProjectStorageAvailable) {
+    throw new VideoProjectStorageUnavailableError();
+  }
+
   const response = await fetch("/api/video-projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -79,35 +100,94 @@ export async function saveVideoProject<TPayload>({
 
   if (!response.ok) {
     const body = await readJsonSafe<{ error?: string }>(response);
-    throw new Error(body.error ?? "드래프트 저장에 실패했습니다.");
+    const message = body.error ?? "드래프트 저장에 실패했습니다.";
+    if (isVideoProjectStorageUnavailableMessage(message)) {
+      videoProjectStorageAvailable = false;
+      throw new VideoProjectStorageUnavailableError();
+    }
+    throw new Error(message);
   }
 
   return readJsonSafe<{ project: VideoProjectRecord<TPayload> }>(response);
 }
 
 export async function loadLatestSingleClipProject() {
+  if (!videoProjectStorageAvailable) return null;
+
   const response = await fetch("/api/video-projects?kind=single_clip&latest=1&status=draft");
   if (response.status === 404) return null;
   if (!response.ok) {
     const body = await readJsonSafe<{ error?: string }>(response);
-    throw new Error(body.error ?? "최근 single clip draft를 불러오지 못했습니다.");
+    const message = body.error ?? "최근 single clip draft를 불러오지 못했습니다.";
+    if (isVideoProjectStorageUnavailableMessage(message)) {
+      videoProjectStorageAvailable = false;
+      return null;
+    }
+    throw new Error(message);
   }
 
-  return readJsonSafe<SingleClipProjectResponse>(response);
+  const result = await readJsonSafe<SingleClipProjectResponse & { unavailable?: boolean }>(response);
+  if (result.unavailable || !result.project) {
+    videoProjectStorageAvailable = false;
+    return null;
+  }
+
+  return result;
+}
+
+export async function loadSingleClipProjectByClipId(clipId: string) {
+  if (!videoProjectStorageAvailable) return null;
+
+  const response = await fetch(`/api/video-projects?kind=single_clip&latest=1&status=draft&clipId=${encodeURIComponent(clipId)}`);
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    const body = await readJsonSafe<{ error?: string }>(response);
+    const message = body.error ?? "single clip draft를 불러오지 못했습니다.";
+    if (isVideoProjectStorageUnavailableMessage(message)) {
+      videoProjectStorageAvailable = false;
+      return null;
+    }
+    throw new Error(message);
+  }
+
+  const result = await readJsonSafe<SingleClipProjectResponse & { unavailable?: boolean }>(response);
+  if (result.unavailable || !result.project) {
+    videoProjectStorageAvailable = false;
+    return null;
+  }
+
+  return result;
 }
 
 export async function loadLatestReelProject() {
+  if (!videoProjectStorageAvailable) return null;
+
   const response = await fetch("/api/video-projects?kind=reel_highlight&latest=1&status=draft");
   if (response.status === 404) return null;
   if (!response.ok) {
     const body = await readJsonSafe<{ error?: string }>(response);
-    throw new Error(body.error ?? "최근 reel draft를 불러오지 못했습니다.");
+    const message = body.error ?? "최근 reel draft를 불러오지 못했습니다.";
+    if (isVideoProjectStorageUnavailableMessage(message)) {
+      videoProjectStorageAvailable = false;
+      return null;
+    }
+    throw new Error(message);
   }
 
-  return readJsonSafe<ReelProjectResponse>(response);
+  const result = await readJsonSafe<ReelProjectResponse & { unavailable?: boolean }>(response);
+  if (result.unavailable || !result.project) {
+    videoProjectStorageAvailable = false;
+    return null;
+  }
+
+  return result;
 }
 
-export async function markVideoProjectOpened(projectId: string) {
+export async function markVideoProjectOpened(projectId: string): Promise<VideoProjectMutationResult> {
+  if (!videoProjectStorageAvailable) {
+    return { project: null };
+  }
+
   const response = await fetch(`/api/video-projects/${projectId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -116,10 +196,15 @@ export async function markVideoProjectOpened(projectId: string) {
 
   if (!response.ok) {
     const body = await readJsonSafe<{ error?: string }>(response);
-    throw new Error(body.error ?? "draft 열기 상태를 기록하지 못했습니다.");
+    const message = body.error ?? "draft 열기 상태를 기록하지 못했습니다.";
+    if (isVideoProjectStorageUnavailableMessage(message)) {
+      videoProjectStorageAvailable = false;
+      return { project: null };
+    }
+    throw new Error(message);
   }
 
-  return readJsonSafe<{ project: VideoProjectRecord }>(response);
+  return readJsonSafe<VideoProjectMutationResult>(response);
 }
 
 export async function markVideoProjectPublished({
@@ -128,7 +213,11 @@ export async function markVideoProjectPublished({
 }: {
   projectId: string;
   highlightId?: string | null;
-}) {
+}): Promise<VideoProjectMutationResult> {
+  if (!videoProjectStorageAvailable) {
+    return { project: null };
+  }
+
   const response = await fetch(`/api/video-projects/${projectId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -140,8 +229,13 @@ export async function markVideoProjectPublished({
 
   if (!response.ok) {
     const body = await readJsonSafe<{ error?: string }>(response);
-    throw new Error(body.error ?? "project publish 상태 저장에 실패했습니다.");
+    const message = body.error ?? "project publish 상태 저장에 실패했습니다.";
+    if (isVideoProjectStorageUnavailableMessage(message)) {
+      videoProjectStorageAvailable = false;
+      return { project: null };
+    }
+    throw new Error(message);
   }
 
-  return readJsonSafe<{ project: VideoProjectRecord }>(response);
+  return readJsonSafe<VideoProjectMutationResult>(response);
 }

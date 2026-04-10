@@ -49,13 +49,12 @@ test.describe("프로필 카드 에디터", () => {
     await page.waitForTimeout(3000);
     await screenshot(page, "card-02-editor-logged-in");
 
-    // 카드가 렌더링되었는지 확인 (canvas 또는 카드 컴포넌트)
-    const canvas = page.locator("canvas");
-    const cardArea = page.locator('[class*="card"], [class*="template"]');
-    const hasCanvas = await canvas.first().isVisible().catch(() => false);
-    const hasCardArea = await cardArea.first().isVisible().catch(() => false);
-
-    expect(hasCanvas || hasCardArea).toBeTruthy();
+    // 현재 에디터는 div 기반 카드 프리뷰라 캔버스/클래스 셀렉터보다
+    // 실제 자동 채움 결과와 핵심 액션을 확인하는 편이 안정적이다.
+    await expect(page.getByRole("textbox", { name: "이름 입력" })).toHaveValue(
+      "E2E Player"
+    );
+    await expect(page.getByRole("button", { name: "미리보기" })).toBeVisible();
   });
 
   test("3. 템플릿 전환", async ({ page }) => {

@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
 import { resolveFocusZoom } from "@/lib/focus-zoom";
 import { createSingleClipEditingDraft, type SingleClipEditingDraft } from "@/lib/single-clip-playback";
-import { markVideoProjectOpened } from "@/lib/video-projects";
+import { loadSingleClipProjectByClipId, markVideoProjectOpened } from "@/lib/video-projects";
 import { useUploadStore } from "@/stores/upload-store";
 
 interface ClipEditingResponse {
@@ -30,6 +30,8 @@ interface ClipEditingResponse {
   };
   error?: string;
 }
+
+type EditableClip = NonNullable<ClipEditingResponse["clip"]>;
 
 export default function ClipEditPage() {
   const { clipId } = useParams<{ clipId: string }>();
@@ -78,17 +80,27 @@ export default function ClipEditPage() {
   }, [projectId]);
 
   useEffect(() => {
-    if (matchingDraft && localVideoUrl) {
-      const nextDraft = projectId && !matchingDraft.projectId
-        ? { ...matchingDraft, projectId }
-        : matchingDraft;
-      setDraft(nextDraft);
-      setEditorDraft(nextDraft);
+    if (!matchingDraft) return;
+
+    const nextDraft = projectId && !matchingDraft.projectId
+      ? { ...matchingDraft, projectId }
+      : matchingDraft;
+
+    setDraft(nextDraft);
+    setEditorDraft(nextDraft);
+    setError(null);
+
+    if (localVideoUrl) {
       setVideoSrc(localVideoUrl);
       setLoading(false);
-      setError(null);
       return;
     }
+
+    setVideoSrc((current) => current);
+  }, [localVideoUrl, matchingDraft, projectId, setEditorDraft]);
+
+  useEffect(() => {
+    if (matchingDraft && (localVideoUrl || videoSrc)) return;
 
     let cancelled = false;
 
@@ -97,16 +109,45 @@ export default function ClipEditPage() {
       setError(null);
 
       try {
-        const response = await fetch(`/api/clips/${clipId}`);
-        const body = await response.json().catch(() => ({})) as ClipEditingResponse;
+        const latestProject = await loadSingleClipProjectByClipId(clipId);
+        const restoredDraft = latestProject?.project && latestProject.clip
+          ? {
+              ...latestProject.project.payload,
+              projectId: latestProject.project.id,
+              projectStatus: latestProject.project.status === "published" ? "published" : "draft",
+              lastSavedAt: latestProject.project.updated_at,
+            } satisfies SingleClipEditingDraft
+          : null;
 
-        if (!response.ok || !body.clip) {
-          throw new Error(body.error ?? "편집할 영상을 불러오지 못했습니다.");
+        let clip: EditableClip | null = latestProject?.clip
+          ? {
+              ...latestProject.clip,
+              highlight_start: null,
+              highlight_end: null,
+              spotlight_x: null,
+              spotlight_y: null,
+              freeze_at: null,
+              effects: null,
+            }
+          : null;
+
+        if (!clip) {
+          const response = await fetch(`/api/clips/${clipId}`);
+          const body = await response.json().catch(() => ({})) as ClipEditingResponse;
+
+          if (!response.ok || !body.clip) {
+            throw new Error(body.error ?? "편집할 영상을 불러오지 못했습니다.");
+          }
+
+          clip = body.clip;
         }
 
-        const clip = body.clip;
-        const durationSec = clip.duration_sec ?? clip.duration_seconds ?? 0;
-        const baseDraft = matchingDraft ?? createSingleClipEditingDraft({
+        if (!clip) {
+          throw new Error("편집할 영상을 불러오지 못했습니다.");
+        }
+
+        const durationSec = clip.duration_sec ?? clip.duration_seconds ?? restoredDraft?.sourceDurationSec ?? 0;
+        const baseDraft = restoredDraft ?? createSingleClipEditingDraft({
           clipId: clip.id,
           sourceDurationSec: durationSec,
           trimStart: clip.trim_start ?? 0,
@@ -131,6 +172,16 @@ export default function ClipEditPage() {
         setDuration(durationSec);
         setTrimStart(hydratedDraft.playback.trimStart);
         setTrimEnd(hydratedDraft.playback.trimEnd);
+        useUploadStore.getState().setSpotlight(
+          hydratedDraft.playback.spotlight?.x ?? null,
+          hydratedDraft.playback.spotlight?.y ?? null,
+        );
+        useUploadStore.getState().setFreezeAt(hydratedDraft.playback.freezeAt);
+        useUploadStore.getState().setEffects({
+          intro: hydratedDraft.overlay.showProfileCard,
+          showLowerThird: hydratedDraft.overlay.showLowerThird,
+          focusZoom: hydratedDraft.playback.zoom,
+        });
         setTags(clip.tags ?? []);
         setEditorDraft(hydratedDraft);
         setDraft(hydratedDraft);
@@ -157,6 +208,7 @@ export default function ClipEditPage() {
     setTags,
     setTrimEnd,
     setTrimStart,
+    videoSrc,
   ]);
 
   if (loading) {

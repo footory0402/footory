@@ -258,6 +258,51 @@
 - `src/components/player/ClipPlayerSheet.tsx`
 - `src/app/p/[handle]/h/[clipId]/HighlightSharePlayerClient.tsx`
 - `src/app/reel/[id]/ReelShareClient.tsx`
+
+## 0.9B단계: 영상 핵심 플로우 E2E 상시 실행 복구
+
+### 목표
+- `VIDEO_FILE` 환경변수가 없어도 영상 핵심 Playwright 시나리오가 항상 실행되게 만든다.
+- 업로드 이후 편집 진입, draft 저장/복구, 저장 후 프로필 반영 3개 핵심 흐름을 fixture + API 모킹 기준으로 상시 회귀 가능하게 고정한다.
+- 이번 단계는 제품 기능 확장 없이 테스트 자산, 테스트 헬퍼, 검증 문서만 최소 범위로 정리한다.
+
+### 이번 단계 산출물
+- `tests/fixtures/videos/*` 사용 규칙 정리
+- `tests/e2e/video/video-upload-flow.spec.ts` 개편
+- 필요 시 `tests/e2e/video/*` 공통 헬퍼 추가
+- `docs/testing/video-validation-report.md` 갱신
+
+### 이번 단계에서 반드시 확인할 것
+- `AGENTS.md`
+- `docs/video-ux-principles.md`
+- `docs/video-edit-flow.md`
+- `docs/video-copy-guidelines.md`
+- `docs/testing/video-highlight-acceptance.md`
+- `docs/testing/playwright-scenarios.md`
+- `docs/testing/video-validation-report.md`
+- 현재 `/upload`, `/edit/[clipId]`, `/profile` 실제 구현
+- 현재 `tests/e2e/video/*.spec.ts`
+- `tests/fixtures/videos/*.mp4`
+
+### 해야 할 일
+- 저장소에 포함된 작은 mp4 fixture를 기본 업로드 입력으로 고정하고, 환경변수는 override 용도로만 남긴다.
+- `VIDEO_FILE` 의존으로 skip되는 테스트를 fixture fallback 기반으로 전환한다.
+- presign/upload/clips/video-projects/featured/profile 관련 API를 테스트 안에서 모킹해 업로드 이후 핵심 사용자 플로우를 외부 상태 없이 재현한다.
+- 최소 3개 핵심 시나리오를 실제로 실행한다:
+- 업로드 -> 편집 진입
+- 업로드 -> 편집 -> 값 변경 -> 저장 -> 재진입 복구
+- 업로드 -> 편집 -> 저장 -> publish/profile 반영
+- 실행 결과와 남은 skip/제약을 `docs/testing/video-validation-report.md`에 기록한다.
+
+### 하지 않을 일
+- 제품 기능 확장
+- playback contract 대수술
+- cleanup 대수술
+
+### 완료 기준
+- 기본 Playwright 실행에서 `VIDEO_FILE` 부재로 skip되는 핵심 video E2E가 없어야 한다.
+- 최소 3개 핵심 시나리오가 fixture 기반으로 실제 통과해야 한다.
+- fixture 위치, 사용 방식, 실행 결과, 남은 skip 목록이 문서에 반영되어 있어야 한다.
 - `src/stores/upload-store.ts`
 - `src/lib/upload-service.ts`
 - `src/components/parent/ParentQuickUpload.tsx`
@@ -935,3 +980,98 @@
 - publish/profile 연결 수정
 - reel highlight 작업
 - cleanup 작업
+
+## 0.11단계: 업로드 진행 표현 및 단일 영상 편집 UX 단순화 (2026-04-10)
+
+### 목표
+- `/upload`의 업로드 진행 화면과 단일 영상 편집 화면을 실제 사용자 기준으로 다시 단순화한다.
+- 업로드 중에는 "지금 어디까지 됐는지"만 바로 읽히게 하고, 업로드 완료 뒤에는 편집할지 바로 저장할지 결정이 쉬워야 한다.
+- 편집 화면에서는 영상이 먼저 보여야 하며, 작은 화면에서도 오버레이와 설명 카드가 영상을 가리지 않게 조정한다.
+
+### 작업 배경
+- 현재 `UploadProcessingView`는 `1. 영상 준비 / 2. 원본 올리기 / 3. 편집 준비`를 세로 카드로 반복 노출해 흐름은 보이지만 사용자가 빠르게 이해하기 어렵다.
+- 현재 `HighlightSuggestionReview`와 `SingleClipEditorPreview`는 영상 위 배지, 하단 요약, 다수 설명 카드가 먼저 보여 작은 모바일 화면에서 실제 영상 확인이 답답하다.
+- 사용자 피드백 기준으로 업로드 완료 후 다음 행동이 불명확하고, 편집 문구가 많아 처음 쓰는 사람에게 오히려 방해가 된다.
+
+### 이번 단계에서 반드시 확인할 것
+- `AGENTS.md`
+- `docs/video-ux-principles.md`
+- `docs/video-edit-flow.md`
+- `docs/video-copy-guidelines.md`
+- `docs/video-product-decisions.md`
+- `docs/video-upload-editing-spec.md`
+- `docs/media-pipeline.md`
+- `docs/testing/video-highlight-acceptance.md`
+- `docs/testing/playwright-scenarios.md`
+- 실제 `/upload`, `/edit/[clipId]`, `UploadProcessingView`, `HighlightSuggestionReview`, `SingleClipEditorPreview`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+- 테스트용 `tests/fixtures/videos/test2.mp4`
+
+### 해야 할 일
+- 업로드 진행 UI를 세로 3단계 나열 대신 연결형 진행 표현이나 체크형 상태 표현 중심으로 재구성한다.
+- 업로드 완료 직후 CTA를 정리해 "편집 계속"과 "바로 저장" 중 핵심 선택만 남긴다.
+- 편집 화면 상단 설명, 안내 카드, 저장 영역 문구를 줄여 한 화면에서 행동 1~2개만 읽히게 만든다.
+- `SingleClipEditorPreview`에서 영상 가시 영역을 우선 확보하고, 오버레이와 HUD는 safe area 안에서 더 작고 덜 공격적으로 보이게 조정한다.
+- 1차 단순화 뒤에도 모바일 하단 액션 바가 잘리거나 단계 설명이 다시 길어지는 지점을 한 번 더 줄인다.
+- 상시 문구를 줄이는 대신 처음 한 번만 보이는 짧은 온보딩 힌트로 핵심 조작 순서를 안내한다.
+- trim 조절은 시작/끝 개별 슬라이더 대신 하나의 range 형태로 재구성해 현재 선택 구간을 한 번에 이해하게 만든다.
+- `주인공` 단계에서는 정지 상태 오버레이가 선택을 가리지 않게 하고, `고정 시점`은 "지금 장면 고정" 같은 행동 중심 문구로 바꾼다.
+- 프로필 카드는 단일 영상 편집 기본값에서 항상 보이도록 되돌리고, 마지막 저장 뒤에는 다음 화면으로 명확히 이동시킨다.
+- Playwright MCP와 관련 E2E로 `test2.mp4` 기준 반복 수동 검증을 수행하고, 불편·혼란·비효율 항목을 수정 뒤 다시 확인한다.
+- 필요한 경우 업로드/편집 관련 Playwright 시나리오를 현재 UX 기준으로 갱신한다.
+- 최종적으로 `npm run lint`, `npm run typecheck`, `npm run test:run`과 관련 Playwright 검증을 실행한다.
+
+### 이번 단계에서 하지 말 것
+- clip-first 제품 방향 변경
+- reel highlight 또는 phase 2 기능 확장
+- 업로드 서비스/저장 계약 대수술
+- profile publish 계약 재설계
+- 영상 재생 엔진 자체 교체
+
+### 완료 기준
+- 사용자가 업로드 중 현재 상태를 한눈에 이해할 수 있어야 한다.
+- 업로드 완료 뒤 다음 행동이 1~2개 수준으로 정리되어 있어야 한다.
+- 단일 영상 편집 첫 화면에서 영상이 가장 먼저 크게 보여야 한다.
+- 작은 모바일 화면에서도 주요 CTA와 프리뷰가 함께 보이고 서로 가리지 않아야 한다.
+- `test2.mp4` 기준 반복 검증과 자동 검증 결과로 개선 내용을 설명할 수 있어야 한다.
+
+## 0.12단계: single-clip 편집 저장/복구 안정화 (2026-04-10)
+
+### 목표
+- single-clip 편집 화면에서 실제로 바꿀 수 있는 값이 서버 draft에 저장되고 재진입 시 복구되도록 안정화한다.
+- 이번 단계는 reel highlight, publish/profile 확장, cleanup 확대 없이 single-clip draft 흐름만 다룬다.
+
+### 이번 단계에서 반드시 확인할 것
+- `docs/video-ux-principles.md`
+- `docs/video-edit-flow.md`
+- `docs/video-upload-editing-spec.md`
+- `docs/media-pipeline.md`
+- `docs/testing/video-highlight-acceptance.md`
+- `docs/testing/video-validation-report.md`
+- `src/app/upload/page.tsx`
+- `src/app/edit/[clipId]/page.tsx`
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `src/lib/single-clip-playback.ts`
+- `src/lib/highlight-save.ts`
+- `src/lib/video-projects.ts`
+- `src/app/api/video-projects/route.ts`
+- `src/app/api/video-projects/[id]/route.ts`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+
+### 해야 할 일
+- `video_projects`의 `single_clip` draft 저장 구조와 `clips` publish patch 흐름을 실제 코드 기준으로 다시 점검한다.
+- trim, spotlight, zoom, player info overlay, highlight range, save target 중 현재 UI에서 실제 편집 가능한 값만 저장/복구 대상으로 고정한다.
+- `/upload` 재진입 복구와 `/edit/[clipId]` 직접 재진입 복구를 최소 범위로 맞춘다.
+- Playwright에 `업로드 -> 편집 -> 값 변경 -> 저장 또는 재진입 -> 복구` 시나리오를 추가 또는 갱신한다.
+- `docs/ship-blockers.md`, `docs/testing/video-validation-report.md`에 이번 단계 결과와 남은 blocker를 반영한다.
+- 최종적으로 `npm run lint`, `npm run typecheck`, `npm run test:run`, 관련 Playwright 실행 결과를 기록한다.
+
+### 이번 단계에서 하지 말 것
+- reel highlight 저장/복구 확장
+- publish/profile 기능 범위 확장
+- upload/store 구조 전체 cleanup 확대
+
+### 완료 기준
+- single-clip 편집에서 바꾼 값이 autosave draft 또는 저장 결과로 다시 열었을 때 복구된다.
+- 모바일 Playwright에서 `업로드 -> 편집 -> 변경 -> 재진입 -> 복구` 흐름이 통과한다.
+- 저장되는 값, 복구되는 값, 남은 blocker를 문서와 실행 결과로 설명할 수 있어야 한다.

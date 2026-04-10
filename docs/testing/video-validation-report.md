@@ -163,3 +163,190 @@
 
 ### 비고
 - 이번 단계는 blocker 0 복구만 다뤘고, share/reel playback contract, upload-store 구조, publish/profile 연결 등 다른 blocker는 의도적으로 제외했다.
+
+## 12) 업로드 진행 표현 및 단일 편집 UX 단순화 검증 (2026-04-10)
+
+### 수정 대상
+- `src/app/upload/page.tsx`
+- `src/components/upload/SelectView.tsx`
+- `src/components/upload/UploadProcessingView.tsx`
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `src/components/upload/SingleClipEditorPreview.tsx`
+- `src/lib/video-projects.ts`
+- `src/lib/highlight-save.ts`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+- `tests/e2e/video/profile-card-editor.spec.ts`
+
+### 사용자 관점에서 정리한 문제
+- 업로드 진행 화면이 `1/2/3` 세로 나열 중심이라 지금 무엇을 기다리는지 파악하기 어려웠다.
+- 업로드 직후 행동이 `편집` 하나로 기울어 있어, 바로 저장하려는 사용자 의도가 막혔다.
+- 단일 영상 편집 화면은 설명 문구와 패널이 많아 작은 화면에서 정작 영상이 거의 보이지 않았다.
+- `video_projects` 저장소가 없는 환경에서 raw 에러가 노출돼 초반 신뢰감을 떨어뜨렸다.
+
+### 반영 결과
+- 업로드 중 상태는 `영상 확인 → 올리는 중 → 저장 선택` 연결형 진행 표시로 축약했다.
+- 업로드 완료 후 `이대로 저장` / `편집하고 저장` 두 갈래로 바로 선택할 수 있게 바꿨다.
+- 편집 화면은 `구간 / 주인공 / 정보 / 저장` 4단계로 정리하고, 저장 패널은 마지막 단계에만 보이도록 줄였다.
+- 편집 미리보기에서는 큰 HUD/문구를 걷어내고 영상 본체와 안전 영역 가이드만 남겼다.
+- 상시 설명 카드 대신 1회성 온보딩 힌트로 전체 순서와 `주인공` 단계 탭 동작만 짧게 안내한다.
+- `video_projects` 테이블이 없는 경우 draft sync를 조용히 비활성화하고, 저장은 계속 진행되도록 처리했다.
+
+### Playwright MCP 수동 점검
+- 사용 파일: `tests/fixtures/videos/test2.mp4`
+- 확인 흐름:
+  - 로그인 → `/upload` 진입
+  - 파일 선택 → trim 확인 → 업로드 시작
+  - 업로드 완료 후 `이대로 저장` / `편집하고 저장` 노출 확인
+  - 편집 진입 후 `구간`, `주인공`, `정보`, `저장` 각 단계 직접 조작
+  - 직접 저장 경로와 편집 후 저장 경로 각각 확인
+- 관찰 결과:
+  - 업로드 직후 의사결정이 한 화면에서 끝나 사용자 판단이 빨라졌다.
+  - 편집 화면에서 비디오 가시 면적이 확실히 커졌고, 하단 단계 구조가 더 이해하기 쉬워졌다.
+  - 새로고침 후 최근 콘솔 기준 `/upload` 화면에서 fresh error는 재현되지 않았다.
+
+### 자동화 검증
+- `VIDEO_FILE=tests/fixtures/videos/test2.mp4 npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='Desktop Chrome'`
+  - 결과: `6 passed`
+- `VIDEO_FILE=tests/fixtures/videos/test2.mp4 npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `6 passed`
+- `VIDEO_FILE=tests/fixtures/videos/test2.mp4 npm run test:video`
+  - 결과: `12 passed, 5 skipped`
+  - 비고: `video-player.spec.ts` 5건은 기존과 동일하게 clip seed 부재로 skip
+- `npm run lint`
+  - 결과: 통과 (`66 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`7 files / 49 tests`)
+
+### 비고
+- 이번 단계는 업로드 진행 표현과 single-clip 편집 UX 단순화에 한정했다.
+- share/reel/profile playback contract 정렬, upload-store 구조 축소, 업로드 서비스 중복 제거는 여전히 다음 단계 과제로 남는다.
+- 후속 보정으로 편집 단계 설명을 더 짧게 줄이고, 하단 액션 바 보조 버튼 최소 너비와 safe area 여백을 늘려 작은 화면 안정성을 다시 확인했다.
+- 추가 후속 보정으로 상시 문구 일부를 1회성 온보딩 힌트로 옮겨, 첫 사용자 안내와 상시 화면 밀도를 분리했다.
+
+## 13) fixture 기반 영상 핵심 E2E 상시 실행 복구 (2026-04-10)
+
+### fixture 전략
+- 기본 영상 fixture는 `tests/fixtures/videos/test2.mp4`를 사용한다.
+- `VIDEO_FILE`은 더 큰 샘플이나 수동 검증이 필요할 때만 override 용도로 유지한다.
+- 핵심 helper는 `tests/e2e/video/video-test-helpers.ts`에 두고, upload/publish/draft/featured API를 context route 모킹으로 묶어 새 탭 재진입까지 같은 상태로 재현한다.
+- fixture 비디오는 `/__e2e__/fixture-video.mp4`로 서빙해 `/edit/[clipId]` 재진입과 프로필 플레이어 경로에서 같은 파일을 다시 소비한다.
+
+### 이번 단계에서 상시 실행 가능해진 핵심 시나리오
+- `tests/e2e/video/video-upload-flow.spec.ts` `업로드 뒤 바로 편집에 들어갈 수 있다`
+- `tests/e2e/video/video-upload-flow.spec.ts` `편집 값을 바꾸면 draft가 저장되고 다시 들어와 복구할 수 있다`
+- `tests/e2e/video/video-upload-flow.spec.ts` `저장하면 프로필 대표 영상에 반영된다`
+- `tests/e2e/video/video-player.spec.ts` `프로필 대표 영상에서 플레이어를 열 수 있다`
+- `tests/e2e/video/video-player.spec.ts` `프로필 반영된 영상은 trim과 spotlight 정보를 소비한다`
+
+### 더 이상 `VIDEO_FILE` 또는 clip seed 때문에 skip되지 않는 테스트
+- `tests/e2e/video/video-upload-flow.spec.ts` 전체 4개
+- `tests/e2e/video/video-player.spec.ts` 전체 2개
+
+### Playwright 실제 실행 결과
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `4 passed`
+- `npx playwright test tests/e2e/video/video-player.spec.ts --project='iPhone 15'`
+  - 결과: `2 passed`
+- `npm run test:video`
+  - 결과: `12 passed, 0 skipped`
+
+### 기본 검증 결과
+- `npm run lint`
+  - 결과: 통과 (`66 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`7 files / 49 tests`)
+
+### 판정 메모
+- 영상 핵심 happy path 3종은 이제 fixture 기반으로 iPhone 15에서 항상 재현 가능하다.
+- 기존 `video-player.spec.ts`의 seed 의존 skip은 제거됐다.
+- 이번 단계는 fixture 회귀 안정화에 한정했으므로, 실패/지연 전용 시나리오와 share/reel 계약 정렬은 별도 후속 작업으로 남는다.
+
+## 14) single-clip 편집 저장/복구 안정화 검증 (2026-04-10)
+
+### 범위
+- single-clip 편집 화면에서 실제 UI로 바꿀 수 있는 값만 저장/복구 대상으로 재검증
+- reel highlight, publish/profile 확장, cleanup 확대는 이번 단계 범위에서 제외
+
+### 이번 단계에서 저장/복구 확인한 값
+- `playback.trimStart`
+- `playback.freezeAt`
+- `playback.zoom`
+- `overlay.showProfileCard`
+- `overlay.showLowerThird`
+- `playback.highlightStart`
+- `playback.highlightEnd`
+- `saveTarget.profileTarget`
+
+### 구현 보정 결과
+- `/upload`의 `최근 편집 이어서 하기`는 draft payload를 store primitive와 `editorDraft`에 함께 주입해 trim/spotlight/freeze/zoom/overlay 기준이 한 경로로 복구된다.
+- `/edit/[clipId]`는 latest single-clip draft를 `clipId` 기준으로 먼저 조회하고, draft가 있으면 clip metadata보다 draft payload를 우선 복원한다.
+- direct route 재진입에서도 unpublished draft 편집값이 유지된다.
+
+### Acceptance 반영
+- `AC-12A` single clip draft 서버 저장/복구: `부분 통과 -> 통과`
+- `AC-10` spotlight/zoom/overlay 선택 편집: trim 외 focus/overlay 복구 자동화가 추가돼 `부분 통과` 근거 강화
+- `AC-17` clip vs 편집 정보 구분: `/edit/[clipId]` direct 재진입에서도 draft payload 우선 복구가 확인돼 유지
+
+### Playwright 실제 실행 결과
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `5 passed`
+  - 추가 검증:
+    - `업로드 -> 편집 -> 값 변경 -> /upload 재진입 -> 복구`
+    - `업로드 -> 편집 -> 값 변경 -> /edit/[clipId] 재진입 -> 복구`
+- `npm run test:video`
+  - 결과: `13 passed`
+
+### 기본 검증 결과
+- `npm run lint`
+  - 결과: 통과 (`66 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`7 files / 49 tests`)
+
+### 남은 blocker 메모
+- 이번 단계로 single-clip draft 저장/복구 자체는 blocker에서 해소
+- 남은 최상위 blocker는 여전히 `share/reel/profile playback contract`, `upload-store 레거시 필드`, `upload-service 중복`
+
+## 15) single-clip 편집 후속 UX 보정 검증 (2026-04-10)
+
+### 사용자 피드백 기준 보정 항목
+- 구간 편집은 시작/끝을 각각 따로 움직이는 대신 한 줄 range에서 함께 잡히게 바꿨다.
+- `주인공` 단계에서는 정지 상태 재생 아이콘이 중앙을 가리지 않게 제거하고, focus 단계 진입 시 자동 일시정지되게 맞췄다.
+- `고정 시점`은 슬라이더 대신 `지금 장면 고정` 행동으로 단순화했다.
+- 프로필 카드는 다시 기본 고정 요소로 올리고, 편집 화면에서 항상 켜짐으로 처리했다.
+- 마지막 저장 단계의 하이라이트는 기본 저장과 분리해 "대표 장면만 짧게 다시 보여주기" 선택형으로 낮췄다.
+- 최종 저장 후에는 편집 화면에 머무르지 않고 `/profile`로 이동하도록 바꿨다.
+
+### 반영 파일
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `src/components/upload/SingleClipEditorPreview.tsx`
+- `src/lib/single-clip-playback.ts`
+- `src/app/upload/page.tsx`
+- `src/app/edit/[clipId]/page.tsx`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+
+### Playwright 검증
+- `VIDEO_FILE=tests/fixtures/videos/test2.mp4 npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='Desktop Chrome'`
+  - 결과: `5 passed`
+- `VIDEO_FILE=tests/fixtures/videos/test2.mp4 npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `5 passed`
+- `VIDEO_FILE=tests/fixtures/videos/test2.mp4 npm run test:video`
+  - 결과: `13 passed`
+
+### 기본 검증 결과
+- `npm run lint`
+  - 결과: 통과 (`67 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`7 files / 49 tests`)
+
+### 판정 메모
+- `구간` 단계는 현재 선택 범위를 한 번에 읽을 수 있게 됐고, `주인공` 단계는 실제 탭 대상이 가려지지 않는다.
+- 프로필 카드는 single-clip 편집 기준에서 다시 항상 노출되는 방향으로 고정됐다.
+- 마지막 저장은 "옵션 조정 -> 저장 -> 프로필 이동"으로 닫혀, 저장 뒤 멈춰 있는 흐름이 제거됐다.

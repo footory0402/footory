@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { prepareR2BackgroundUpload } from "@/lib/upload-service";
-import Link from "next/link";
 
 const MAX_SIZE = 200 * 1024 * 1024; // 200MB
 const MAX_DURATION = 300; // 5분
@@ -16,7 +15,7 @@ interface SelectViewProps {
 
 export default function SelectView({
   onFileReady,
-  ctaLabel = "바로 편집하기",
+  ctaLabel = "영상 올리기",
   startBackgroundUploadOnReady = true,
 }: SelectViewProps) {
   const store = useUploadStore();
@@ -138,19 +137,9 @@ export default function SelectView({
           </div>
         </button>
 
-        <Link
-          href="/editor"
-          className="mt-4 flex items-center gap-3 rounded-xl border border-accent/15 bg-accent/8 px-4 py-3 transition-colors active:bg-accent/12"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-base">🎴</span>
-          <div className="flex-1">
-            <p className="text-[12px] font-semibold text-accent">선수 카드 만들기</p>
-            <p className="text-[10px] text-text-3">영상에 넣을 선수 정보를 먼저 준비해요</p>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </Link>
+        <p className="mt-4 text-center text-[12px] text-text-3">
+          선수 정보는 업로드 뒤에 넣어도 돼요.
+        </p>
 
         {error && (
           <div className="mt-3 rounded-xl bg-[#2a1f1f] px-4 py-3 ring-1 ring-[#ff6b6b]/20">

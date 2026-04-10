@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
 import type { Json } from "@/lib/supabase/database";
-import type { VideoProjectKind, VideoProjectStatus } from "@/lib/video-projects";
+import {
+  isVideoProjectStorageUnavailableMessage,
+  type VideoProjectKind,
+  type VideoProjectStatus,
+} from "@/lib/video-projects";
 
 function isProjectKind(value: string | null): value is VideoProjectKind {
   return value === "single_clip" || value === "reel_highlight";
@@ -43,6 +47,9 @@ export async function GET(req: NextRequest) {
 
     const { data: projects, error } = await query;
     if (error) {
+      if (isVideoProjectStorageUnavailableMessage(error.message)) {
+        return NextResponse.json({ project: null, clip: null, unavailable: true });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

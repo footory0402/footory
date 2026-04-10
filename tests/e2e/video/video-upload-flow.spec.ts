@@ -1,218 +1,187 @@
-/**
- * 영상 업로드 두 번째 세로 슬라이스 E2E 테스트
- *
- * 사용법:
- *   VIDEO_FILE=/path/to/video.mp4 npx playwright test tests/e2e/video/video-upload-flow.spec.ts
- */
+import { test, expect, type Locator, type Page } from "@playwright/test";
+import {
+  installMockVideoFlow,
+  openUpload,
+  selectFixtureVideo,
+  uploadFixtureAndOpenEditor,
+} from "./video-test-helpers";
 
-import { test, expect, type Page } from "@playwright/test";
-import path from "node:path";
-import fs from "node:fs";
-import { loginAsPlayer } from "../setup/test-accounts";
-
-const VIDEO_FILE = process.env.VIDEO_FILE ?? "";
-const SMOKE_VIDEO_FILE = fs.existsSync(VIDEO_FILE)
-  ? VIDEO_FILE
-  : path.resolve(process.cwd(), "tests/fixtures/videos/test1.mp4");
-const SCREENSHOT_DIR = path.resolve(process.cwd(), "test-results/video-screenshots");
-
-function ensureScreenshotDir() {
-  if (!fs.existsSync(SCREENSHOT_DIR)) {
-    fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  }
+async function setRangeValue(locator: Locator, value: number) {
+  await locator.evaluate((element, nextValue) => {
+    const input = element as HTMLInputElement;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    setter?.call(input, String(nextValue));
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+  await expect(locator).toHaveValue(String(value));
 }
 
-async function screenshot(page: Page, name: string) {
-  ensureScreenshotDir();
-  await page.screenshot({
-    path: path.join(SCREENSHOT_DIR, `${name}.png`),
-    fullPage: false,
-  });
+async function applySingleClipDraftChanges(page: Page) {
+  const trimPanel = page.getByTestId("single-clip-trim-panel");
+  await expect(trimPanel).toBeVisible();
+  const previewSeek = page.getByLabel("편집 미리보기 이동");
+  await setRangeValue(previewSeek, 1);
+  await trimPanel.getByRole("button", { name: "지금 장면을 시작점으로" }).click();
+
+  await page.getByRole("button", { name: /주인공/ }).click();
+  await setRangeValue(previewSeek, 2);
+  await page.getByTestId("single-clip-spotlight-panel").getByRole("button", { name: "지금 장면 고정" }).click();
+  await page.getByTestId("single-clip-zoom-panel").getByRole("button", { name: /강하게/ }).click();
+
+  await page.getByRole("button", { name: /정보/ }).click();
+  await page.getByRole("button", { name: /재생 중 하단 정보/ }).click();
+
+  await page.getByRole("button", { name: /^4 저장$/ }).click();
+  const savePanel = page.getByTestId("single-clip-save-panel");
+  await expect(savePanel).toBeVisible();
+  await savePanel.getByRole("button", { name: /대표 장면만 짧게 다시 보여주기/ }).click();
+  await setRangeValue(previewSeek, 2);
+  await savePanel.getByRole("button", { name: "지금 장면으로" }).nth(0).click();
+  await setRangeValue(previewSeek, 4);
+  await savePanel.getByRole("button", { name: "지금 장면으로" }).nth(1).click();
+  await savePanel.getByRole("button", { name: /기술 묶음으로 저장/ }).click();
 }
 
-test.describe("영상 업로드 두 번째 세로 슬라이스", () => {
-  test.beforeEach(() => {
-    test.skip(!VIDEO_FILE, "VIDEO_FILE 환경변수가 필요합니다");
-    test.skip(!fs.existsSync(VIDEO_FILE), `영상 파일을 찾을 수 없습니다: ${VIDEO_FILE}`);
+async function expectRestoredDraft(page: Page) {
+  await expect(page.getByTestId("single-clip-trim-panel").getByText("0:01")).toBeVisible();
+
+  await page.getByRole("button", { name: /주인공/ }).click();
+  await expect(page.getByTestId("single-clip-freeze-value")).toHaveText("0:02");
+  await page.getByRole("button", { name: /^4 저장$/ }).click();
+  const savePanel = page.getByTestId("single-clip-save-panel");
+  await expect(savePanel.getByText("0:02")).toBeVisible();
+  await expect(savePanel.getByText("2.2x")).toBeVisible();
+  await expect(savePanel.getByText("태그 고르기")).toBeVisible();
+  await page.getByRole("button", { name: /정보/ }).click();
+  await expect(page.getByTestId("single-clip-overlay-panel").getByText("재생 전 카드 항상 켜짐")).toBeVisible();
+  await expect(page.getByTestId("single-clip-overlay-panel").getByText("하단 정보 꺼짐")).toBeVisible();
+}
+
+test.describe("영상 핵심 플로우", () => {
+  test("업로드 뒤 바로 편집에 들어갈 수 있다", async ({ page }) => {
+    const flow = await installMockVideoFlow(page.context());
+
+    await uploadFixtureAndOpenEditor(page);
+
+    await expect(page).toHaveURL(new RegExp(`/edit/${flow.clipId}(?:\\?|$)`));
+    await expect(page.getByText("영상 편집")).toBeVisible();
+    await expect(page.getByTestId("single-clip-editor")).toBeVisible();
+    await expect(page.getByRole("button", { name: /구간/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /주인공/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /정보/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^4 저장$/ })).toBeVisible();
   });
 
-  test("1. 파일 선택 전에 형식과 제한을 이해할 수 있다", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
+  test("편집 값을 바꾸면 draft가 저장되고 다시 들어와 복구할 수 있다", async ({
+    page,
+    context,
+  }) => {
+    const flow = await installMockVideoFlow(context);
+
+    await uploadFixtureAndOpenEditor(page);
+    await applySingleClipDraftChanges(page);
+
+    await expect
+      .poll(() => {
+        const latestPayload = flow.getProjectPayloads().at(-1) as
+          | {
+              playback?: {
+                trimStart?: number;
+                freezeAt?: number | null;
+                zoom?: number;
+                highlightStart?: number;
+                highlightEnd?: number;
+              };
+              overlay?: {
+                showProfileCard?: boolean;
+                showLowerThird?: boolean;
+              };
+              saveTarget?: {
+                profileTarget?: string;
+              };
+            }
+          | undefined;
+        if (!latestPayload?.playback) return null;
+        return {
+          trimStart: latestPayload.playback.trimStart ?? null,
+          freezeAt: latestPayload.playback.freezeAt ?? null,
+          zoom: latestPayload.playback.zoom ?? null,
+          highlightStart: latestPayload.playback.highlightStart ?? null,
+          highlightEnd: latestPayload.playback.highlightEnd ?? null,
+          showProfileCard: latestPayload.overlay?.showProfileCard ?? null,
+          showLowerThird: latestPayload.overlay?.showLowerThird ?? null,
+          profileTarget: latestPayload.saveTarget?.profileTarget ?? null,
+        };
+      })
+      .toEqual({
+        trimStart: 1,
+        freezeAt: 2,
+        zoom: 2.2,
+        highlightStart: 2,
+        highlightEnd: 4,
+        showProfileCard: true,
+        showLowerThird: false,
+        profileTarget: "tag_portfolio",
+      });
+
+    const restoredPage = await context.newPage();
+    await openUpload(restoredPage);
+
+    await expect(restoredPage.getByText("최근 편집 이어서 하기")).toBeVisible();
+    await restoredPage.getByRole("button", { name: /최근 편집 이어서 하기/ }).click();
+
+    await expect(restoredPage.getByText("영상 편집")).toBeVisible();
+    await expect(restoredPage.getByTestId("single-clip-editor")).toBeVisible();
+    await expectRestoredDraft(restoredPage);
+  });
+
+  test("/edit 재진입에서도 최근 single-clip draft를 복구한다", async ({ page, context }) => {
+    const flow = await installMockVideoFlow(context);
+
+    await uploadFixtureAndOpenEditor(page);
+    await applySingleClipDraftChanges(page);
+
+    await expect.poll(() => flow.getProjectPayloads().length).toBeGreaterThan(0);
+
+    const restoredPage = await context.newPage();
+    await restoredPage.goto(`/edit/${flow.clipId}`);
+
+    await expect(restoredPage.getByText("영상 편집")).toBeVisible();
+    await expect(restoredPage.getByTestId("single-clip-editor")).toBeVisible();
+    await expectRestoredDraft(restoredPage);
+  });
+
+  test("저장하면 프로필 대표 영상에 반영된다", async ({ page }) => {
+    const flow = await installMockVideoFlow(page.context());
+
+    await uploadFixtureAndOpenEditor(page);
+
+    await page.getByRole("button", { name: /^4 저장$/ }).click();
+    await expect(page.getByTestId("single-clip-save-panel")).toBeVisible();
+    await expect(page.getByText("프로필 대표로 저장")).toBeVisible();
+
+    await page.getByRole("button", { name: "내 영상으로 저장" }).click();
+    await expect(page).toHaveURL(new RegExp(`/(profile|p/${flow.profileHandle})(?:\\?|$)`), {
+      timeout: 20_000,
+    });
+    await expect(page.getByText("대표 영상")).toBeVisible();
+    await expect.poll(() => flow.getFeatured().length).toBe(1);
+  });
+});
+
+test.describe("영상 업로드 fixture smoke", () => {
+  test("fixture 비디오로 업로드 선택 화면을 항상 열 수 있다", async ({ page }) => {
+    await installMockVideoFlow(page.context());
+
+    await openUpload(page);
 
     await expect(page.getByText("영상을 골라요")).toBeVisible();
     await expect(page.getByText(/MP4, MOV/i)).toBeVisible();
     await expect(page.getByText(/5분 이내/i)).toBeVisible();
     await expect(page.getByText(/200MB 이내/i)).toBeVisible();
 
-    await screenshot(page, "upload-slice-01-select");
-  });
-
-  test("2. 유효한 파일을 선택하면 업로드 시작 버튼과 미리보기가 보인다", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-
-    await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
-
-    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("button", { name: "바로 편집하기" })).toBeVisible();
-    await expect(page.getByText("원하면 구간을 다듬어요")).toBeVisible();
-
-    await screenshot(page, "upload-slice-02-preview");
-  });
-
-  test("3. 업로드를 시작하면 처리 상태를 단계별로 확인할 수 있다", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-
-    await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
-    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "바로 편집하기" }).click();
-
-    await expect(page.getByText("업로드 중")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("영상 준비")).toBeVisible();
-    await expect(page.getByText("원본 올리기")).toBeVisible();
-    await expect(page.getByText("편집 준비")).toBeVisible();
-
-    await screenshot(page, "upload-slice-03-processing");
-  });
-
-  test("4. 업로드가 끝나면 선택형 편집 화면에서 주요 도구를 확인할 수 있다", async ({ page }) => {
-    await loginAsPlayer(page, "/upload");
-
-    await page.locator('input[type="file"]').setInputFiles(VIDEO_FILE);
-    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "바로 편집하기" }).click();
-
-    await expect(page.getByText("영상 편집")).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText("이 화면의 편집 항목은 모두 선택사항이에요.")).toBeVisible();
-    await expect(page.getByTestId("single-clip-editor")).toBeVisible();
-    await expect(page.getByRole("button", { name: "구간 자르기" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "주인공 강조" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "선수 정보 넣기" })).toBeVisible();
-
-    await page.getByRole("button", { name: "주인공 강조" }).click();
-    await expect(page.getByTestId("single-clip-spotlight-panel")).toBeVisible();
-
-    await page.getByRole("button", { name: "하이라이트" }).click();
-    await expect(page.getByTestId("single-clip-highlight-panel")).toBeVisible();
-    await expect(page.getByTestId("single-clip-save-panel")).toBeVisible();
-    await expect(page.getByText("프로필 대표로 저장")).toBeVisible();
-
-    await screenshot(page, "upload-slice-04-review");
-  });
-});
-
-test.describe("영상 업로드 편집 진입 smoke", () => {
-  test.beforeEach(() => {
-    test.skip(!fs.existsSync(SMOKE_VIDEO_FILE), `영상 파일을 찾을 수 없습니다: ${SMOKE_VIDEO_FILE}`);
-  });
-
-  test("업로드 완료 후 편집 route로 진입할 수 있다", async ({ page, baseURL }) => {
-    const clipId = "clip-upload-smoke";
-    const uploadUrl = `${baseURL}/__e2e__/upload-target`;
-
-    await page.route("**/api/upload/presign", async (route) => {
-      const body = route.request().postDataJSON() as { type?: string; clipId?: string };
-      const isThumbnail = body?.type === "thumbnail";
-
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          url: uploadUrl,
-          key: isThumbnail ? `thumbs/${clipId}.jpg` : `originals/${clipId}.mp4`,
-          clipId,
-        }),
-      });
-    });
-
-    await page.route("**/__e2e__/upload-target", async (route) => {
-      await route.fulfill({ status: 200, body: "" });
-    });
-
-    await page.route("**/api/clips", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ clip: { id: clipId } }),
-      });
-    });
-
-    await page.route(`**/api/clips/${clipId}`, async (route) => {
-      if (route.request().method() === "GET") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            clip: {
-              id: clipId,
-              video_url: "/test-upload.mp4",
-              duration_seconds: 12,
-              duration_sec: 12,
-              trim_start: 0,
-              trim_end: 12,
-              highlight_start: 0,
-              highlight_end: 12,
-              spotlight_x: null,
-              spotlight_y: null,
-              freeze_at: null,
-              effects: {
-                intro: false,
-                showLowerThird: true,
-                focusZoom: 1.8,
-              },
-              tags: ["shooting"],
-            },
-          }),
-        });
-        return;
-      }
-
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ success: true }),
-      });
-    });
-
-    await page.route("**/api/video-projects", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          project: {
-            id: "project-upload-smoke",
-            kind: "single_clip",
-            status: "draft",
-            clip_id: clipId,
-            highlight_id: null,
-            title: null,
-            payload: {},
-            last_opened_at: null,
-            published_at: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        }),
-      });
-    });
-
-    await loginAsPlayer(page, "/");
-    await page.getByRole("button", { name: /^업로드$/ }).click();
-    await expect(page).toHaveURL(/\/upload$/);
-
-    await page.locator('input[type="file"]').setInputFiles(SMOKE_VIDEO_FILE);
-    await expect(page.locator("video")).toBeVisible({ timeout: 15_000 });
-
-    await page.getByRole("button", { name: "바로 편집하기" }).click();
-
-    await expect(page.getByText("업로드 중")).toBeVisible();
-    await expect(page.getByRole("button", { name: "바로 편집하기" })).toBeVisible({ timeout: 20_000 });
-
-    await page.getByRole("button", { name: "바로 편집하기" }).click();
-
-    await expect(page).toHaveURL(new RegExp(`/edit/${clipId}(?:\\?|$)`));
-    await expect(page.getByText("영상 편집")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("single-clip-editor")).toBeVisible();
-
-    await screenshot(page, "upload-smoke-edit-route");
+    await selectFixtureVideo(page);
+    await expect(page.getByRole("button", { name: "영상 올리기" })).toBeVisible();
   });
 });
