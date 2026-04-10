@@ -21,7 +21,7 @@ describe("Upload Store v3.0", () => {
       color: false,
       cinematic: false,
       eafc: false,
-      intro: false,
+      intro: true,
       showLowerThird: true,
       focusZoom: 1.8,
     });
@@ -148,5 +148,43 @@ describe("Upload Store v3.0", () => {
     expect(state.skillLabels).toEqual([]);
     expect(state.effects.color).toBe(false);
     expect(state.renderJobId).toBeNull();
+  });
+
+  it("setFile resets clip-flow and legacy fields but keeps upload context", () => {
+    const store = useUploadStore.getState();
+    store.setContext("parent");
+    store.setChildInfo({ id: "child-1", name: "민준", handle: "minjun" });
+    store.setChallengeTag("weekly");
+    store.setMemo("memo");
+    store.setEventTag("goal");
+    store.setSkillLabels(["dribble"]);
+    store.setCustomLabels(["left-foot"]);
+    store.setTrackingMode("follow");
+    store.setTrackingPoints([{ time: 1, x: 0.4, y: 0.6 }]);
+    store.setSlowmo(1, 2);
+    store.setBgm("bgm-1");
+    store.setR2Upload("r2-key", "clip-legacy");
+
+    const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
+    store.setFile(file);
+
+    const state = useUploadStore.getState();
+    expect(state.file).toBe(file);
+    expect(state.context).toBe("parent");
+    expect(state.childId).toBe("child-1");
+    expect(state.childName).toBe("민준");
+    expect(state.childHandle).toBe("minjun");
+    expect(state.challengeTag).toBe("weekly");
+    expect(state.memo).toBe("");
+    expect(state.eventTag).toBeNull();
+    expect(state.skillLabels).toEqual([]);
+    expect(state.customLabels).toEqual([]);
+    expect(state.trackingMode).toBe("fixed");
+    expect(state.trackingPoints).toEqual([]);
+    expect(state.slowmoStart).toBeNull();
+    expect(state.slowmoEnd).toBeNull();
+    expect(state.bgmId).toBeNull();
+    expect(state.r2Key).toBeNull();
+    expect(state.r2ClipId).toBeNull();
   });
 });

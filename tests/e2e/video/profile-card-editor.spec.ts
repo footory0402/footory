@@ -32,14 +32,13 @@ async function screenshot(page: Page, name: string) {
 }
 
 test.describe("프로필 카드 에디터", () => {
-  test("1. 에디터 페이지 로드 (비로그인)", async ({ page }) => {
+  test("1. 에디터 페이지 로드 (비로그인 시 로그인 이동)", async ({ page }) => {
     await page.goto("/editor");
 
-    // /editor는 public 경로 — 로그인 없이 접근 가능
-    // 로그인 페이지로 리다이렉트되지 않아야 함
+    // 현재 정책상 /editor는 인증이 필요하므로 로그인 페이지로 이동한다.
     await page.waitForTimeout(2000);
     const url = page.url();
-    expect(url).not.toContain("/login");
+    expect(url).toContain("/login");
 
     await screenshot(page, "card-01-editor-public");
   });

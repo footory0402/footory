@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { DEFAULT_PLAYER_DATA, type PlayerData } from "@/components/editor/types";
-import { CARD_THEMES } from "@/components/editor/constants";
 import { useBackgroundRemoval } from "@/components/editor/useBackgroundRemoval";
 import EditorForm from "@/components/editor/EditorForm";
 import CardPreview from "@/components/editor/CardPreview";
 import EditorHeader from "@/components/editor/EditorHeader";
+import { loadPlayerCardData, savePlayerCardData } from "@/lib/player-card-editor";
 
 export default function EditorPage() {
   const [data, setData] = useState<PlayerData>(DEFAULT_PLAYER_DATA);
@@ -17,80 +17,9 @@ export default function EditorPage() {
 
   // Load saved card + profile data on mount
   useEffect(() => {
-    // Map broad position (FW/MF/DF/GK) to specific position for card
-    const mapPosition = (pos: string | null): string => {
-      if (!pos) return "ST";
-      const map: Record<string, string> = { FW: "ST", MF: "CM", DF: "CB", GK: "GK" };
-      return map[pos] || pos;
-    };
-
-    // Map foot to Korean
-    const mapFoot = (foot: string | null): string => {
-      if (!foot) return "오른발";
-      const map: Record<string, string> = { right: "오른발", left: "왼발", both: "양발" };
-      return map[foot] || foot;
-    };
-
-    fetch("/api/player-card")
-      .then((r) => {
-        if (!r.ok) return null;
-        return r.json();
-      })
-      .then((res) => {
-        if (!res) { setLoaded(true); return; }
-
-        const { card, profile } = res;
-
-        // Start with profile data as defaults
-        const profileDefaults: Partial<PlayerData> = {};
-        if (profile) {
-          if (profile.name) {
-            profileDefaults.name = profile.name.trim();
-          }
-          profileDefaults.position = mapPosition(profile.position);
-          if (profile.height_cm) profileDefaults.height = String(profile.height_cm);
-          if (profile.weight_kg) profileDefaults.weight = String(profile.weight_kg);
-          profileDefaults.foot = mapFoot(profile.preferred_foot);
-          if (profile.birth_year) profileDefaults.birthDate = String(profile.birth_year);
-          if (profile.avatar_url) profileDefaults.photoUrl = profile.avatar_url;
-        }
-
-        if (card) {
-          // Restore saved card data
-          const cardData = card.card_data as Record<string, string>;
-          // Normalize foot value to Korean
-          const normalizedFoot = mapFoot(cardData.foot || profileDefaults.foot || null);
-          // Skip blob URLs (not persistent) — fall back to profile avatar
-          const savedPhoto = cardData.photoUrl && !cardData.photoUrl.startsWith("blob:") ? cardData.photoUrl : undefined;
-          // Restore theme from saved colors (find matching theme or keep saved colors)
-          const savedColor = card.main_color || DEFAULT_PLAYER_DATA.customClubColor;
-          const savedAccent = card.accent_color || DEFAULT_PLAYER_DATA.customClubAccent;
-          const matchedTheme = CARD_THEMES.find((t) => t.color === savedColor) ?? null;
-          setData({
-            ...DEFAULT_PLAYER_DATA,
-            ...profileDefaults,
-            name: cardData.name || profileDefaults.name || "",
-            number: cardData.number || DEFAULT_PLAYER_DATA.number,
-            position: cardData.position || profileDefaults.position || DEFAULT_PLAYER_DATA.position,
-            age: cardData.age || DEFAULT_PLAYER_DATA.age,
-            birthDate: cardData.birthDate || DEFAULT_PLAYER_DATA.birthDate,
-            height: cardData.height || profileDefaults.height || DEFAULT_PLAYER_DATA.height,
-            weight: cardData.weight || profileDefaults.weight || DEFAULT_PLAYER_DATA.weight,
-            nationality: cardData.nationality || DEFAULT_PLAYER_DATA.nationality,
-            photoUrl: savedPhoto || profileDefaults.photoUrl || "",
-            foot: normalizedFoot,
-            teamName: card.club_name || cardData.teamName || "",
-            themeId: matchedTheme?.id || cardData.themeId || DEFAULT_PLAYER_DATA.themeId,
-            customClubColor: savedColor,
-            customClubAccent: savedAccent,
-          });
-        } else {
-          // No saved card — use profile defaults
-          setData({
-            ...DEFAULT_PLAYER_DATA,
-            ...profileDefaults,
-          });
-        }
+    loadPlayerCardData()
+      .then((nextData) => {
+        setData(nextData);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -107,76 +36,8 @@ export default function EditorPage() {
   const handleSave = useCallback(async () => {
     setSaveStatus("saving");
     try {
-      const hasNewPhoto = data.photoUrl && data.photoUrl.startsWith("data:");
-      const r2Url = process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
-
-      const res = await fetch("/api/player-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          template: "fifa",
-          clubName: data.teamName,
-          mainColor: data.customClubColor,
-          accentColor: data.customClubAccent,
-          needPhotoUploadUrl: hasNewPhoto,
-          cardData: {
-            name: data.name,
-            number: data.number,
-            position: data.position,
-            teamName: data.teamName,
-            themeId: data.themeId,
-            age: data.age,
-            birthDate: data.birthDate,
-            height: data.height,
-            weight: data.weight,
-            foot: data.foot,
-            nationality: data.nationality,
-            // Store R2 URL if already uploaded, otherwise will upload below
-            photoUrl: data.photoUrl && !data.photoUrl.startsWith("data:") ? data.photoUrl : undefined,
-          },
-        }),
-      });
-
-      const result = await res.json();
-
-      // Upload photo to R2 if we have a new base64 photo
-      if (hasNewPhoto && result.photoUploadUrl) {
-        // Convert base64 to blob
-        const base64 = data.photoUrl.split(",")[1];
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blob = new Blob([bytes], { type: "image/jpeg" });
-
-        await fetch(result.photoUploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": "image/jpeg" },
-          body: blob,
-        });
-
-        // Update card with R2 photo URL
-        const photoKey = `card-photos/${result.card.profile_id}/photo.jpg`;
-        const photoR2Url = `${r2Url}/${photoKey}?t=${Date.now()}`;
-
-        await fetch("/api/player-card", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            template: "fifa",
-            clubName: data.teamName,
-            mainColor: data.customClubColor,
-            accentColor: data.customClubAccent,
-            cardData: {
-              ...result.card.card_data,
-              photoUrl: photoR2Url,
-            },
-          }),
-        });
-
-        // Update local state with R2 URL
-        setData((prev) => ({ ...prev, photoUrl: photoR2Url }));
-      }
-
+      const savedData = await savePlayerCardData(data);
+      setData(savedData);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch {

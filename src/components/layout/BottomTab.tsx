@@ -1,15 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useProfileContext } from "@/providers/ProfileProvider";
-
-const UploadBottomSheet = dynamic(
-  () => import("@/components/upload/UploadBottomSheet"),
-  { ssr: false }
-);
 
 /* ── Tab definitions per role ── */
 
@@ -53,11 +46,9 @@ function getTabsForRole(role: string): Tab[] {
 export default function BottomTab() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, loading, error } = useProfileContext();
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const { profile } = useProfileContext();
 
   const role = profile?.role ?? "player";
-  const isGuest = error === "not_authenticated";
   const tabs = getTabsForRole(role);
 
   // 인스타그램 방식: 탭 전환은 무조건 replace (히스토리에 다른 탭 흔적 남기지 않음)
@@ -75,13 +66,6 @@ export default function BottomTab() {
 
   return (
     <>
-      {sheetOpen && (
-        <UploadBottomSheet
-          open={sheetOpen}
-          onClose={() => setSheetOpen(false)}
-        />
-      )}
-
       <nav aria-label="하단 탭 네비게이션" className="fixed bottom-0 left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-white/5 glass-nav">
         <div
           className="flex h-[54px] items-center justify-around pb-[env(safe-area-inset-bottom)]"

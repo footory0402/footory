@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
 import { resolveFocusZoom } from "@/lib/focus-zoom";
 import { createSingleClipEditingDraft, type SingleClipEditingDraft } from "@/lib/single-clip-playback";
+import { applySingleClipDraftToUploadStore } from "@/lib/single-clip-store-sync";
 import { loadSingleClipProjectByClipId, markVideoProjectOpened } from "@/lib/video-projects";
 import { useUploadStore } from "@/stores/upload-store";
 
@@ -42,11 +43,6 @@ export default function ClipEditPage() {
   const file = useUploadStore((state) => state.file);
   const storeClipId = useUploadStore((state) => state.clipId);
   const editorDraft = useUploadStore((state) => state.editorDraft);
-  const setClipId = useUploadStore((state) => state.setClipId);
-  const setDuration = useUploadStore((state) => state.setDuration);
-  const setTrimStart = useUploadStore((state) => state.setTrimStart);
-  const setTrimEnd = useUploadStore((state) => state.setTrimEnd);
-  const setTags = useUploadStore((state) => state.setTags);
   const setEditorDraft = useUploadStore((state) => state.setEditorDraft);
 
   const matchingDraft = editorDraft?.clipId === clipId ? editorDraft : null;
@@ -159,7 +155,7 @@ export default function ClipEditPage() {
             : null,
           freezeAt: clip.freeze_at,
           zoom: resolveFocusZoom(clip.effects?.focusZoom),
-          showProfileCard: Boolean(clip.effects?.intro),
+          showProfileCard: clip.effects?.intro !== false,
           showLowerThird: clip.effects?.showLowerThird ?? true,
         });
         const hydratedDraft = projectId && !baseDraft.projectId
@@ -168,22 +164,13 @@ export default function ClipEditPage() {
 
         if (cancelled) return;
 
-        setClipId(clip.id);
-        setDuration(durationSec);
-        setTrimStart(hydratedDraft.playback.trimStart);
-        setTrimEnd(hydratedDraft.playback.trimEnd);
-        useUploadStore.getState().setSpotlight(
-          hydratedDraft.playback.spotlight?.x ?? null,
-          hydratedDraft.playback.spotlight?.y ?? null,
-        );
-        useUploadStore.getState().setFreezeAt(hydratedDraft.playback.freezeAt);
-        useUploadStore.getState().setEffects({
-          intro: hydratedDraft.overlay.showProfileCard,
-          showLowerThird: hydratedDraft.overlay.showLowerThird,
-          focusZoom: hydratedDraft.playback.zoom,
+        applySingleClipDraftToUploadStore({
+          store: useUploadStore.getState(),
+          draft: hydratedDraft,
+          clipId: clip.id,
+          durationSec,
+          tags: clip.tags ?? [],
         });
-        setTags(clip.tags ?? []);
-        setEditorDraft(hydratedDraft);
         setDraft(hydratedDraft);
         setVideoSrc(localVideoUrl ?? clip.video_url);
         setLoading(false);
@@ -202,12 +189,7 @@ export default function ClipEditPage() {
     localVideoUrl,
     matchingDraft,
     projectId,
-    setClipId,
-    setDuration,
     setEditorDraft,
-    setTags,
-    setTrimEnd,
-    setTrimStart,
     videoSrc,
   ]);
 

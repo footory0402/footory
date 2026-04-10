@@ -1,0 +1,4 @@
+.next
+.playwright-mcp
+*-snapshot.md
+company-data/ops-state.json

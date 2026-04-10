@@ -59,7 +59,7 @@ export default function ClipPlayerSheet({
   onHighlightEdit,
 }: ClipPlayerSheetProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
-  const INTRO_DURATION_MS = 2000;
+  const INTRO_DURATION_MS = 1400;
   const FREEZE_HOLD_MS = 1500;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localClips, setLocalClips] = useState(clipsProp);
@@ -184,12 +184,8 @@ export default function ClipPlayerSheet({
   const playIntro = useCallback((clipId: string) => {
     introShownRef.current.add(clipId);
     setShowIntro(true);
-    setIntroReady(false);
     window.setTimeout(() => {
       setShowIntro(false);
-      setIntroReady(true);
-      setShowControls(false);
-      videoRef.current?.play()?.catch(() => {});
     }, INTRO_DURATION_MS);
   }, []);
 
@@ -721,83 +717,57 @@ export default function ClipPlayerSheet({
       {/* ── 인트로 카드 오버레이 ── */}
       {showIntro && introData && (
         <div
-          className="absolute inset-0 z-[60] flex items-center justify-center bg-black"
-          style={{ animation: "fullscreen-player-fade-in 0.5s ease-out" }}
+          className="pointer-events-none absolute left-4 right-4 z-[60]"
+          style={{
+            top: "calc(env(safe-area-inset-top, 16px) + 60px)",
+            animation: "fullscreen-player-fade-in 0.35s ease-out",
+          }}
         >
-          <div className="flex h-full w-full flex-col items-center justify-center p-6">
-            {/* 선수 정보 카드 — 모바일 세로 최적화 */}
+          <div className="mx-auto w-full max-w-[360px]">
             <div
-              className="flex w-full max-w-[360px] flex-col items-center rounded-2xl p-7"
+              className="rounded-[28px] border px-4 py-4 backdrop-blur-xl"
               style={{
-                background: `linear-gradient(135deg, ${introData.mainColor} 0%, #0a0a0a 50%, ${introData.accentColor}44 100%)`,
+                background: `linear-gradient(135deg, rgba(7,7,9,0.92) 0%, rgba(18,18,22,0.84) 58%, ${introData.accentColor}22 100%)`,
                 border: "1px solid rgba(255,255,255,0.08)",
-                boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 40px ${introData.accentColor}22`,
+                boxShadow: `0 18px 40px rgba(0,0,0,0.34), 0 0 24px ${introData.accentColor}14`,
               }}
             >
-              {/* Number + Position */}
-              <div className="flex w-full items-start justify-between">
-                <div>
-                  <div className="font-[var(--font-stat)] text-[48px] font-black leading-none text-white" style={{ textShadow: `2px 2px 20px ${introData.accentColor}66` }}>
-                    {introData.number || "9"}
-                  </div>
-                  <div className="mt-1 text-[13px] font-semibold uppercase tracking-[3px] text-white/50">
-                    {introData.position || "ST"}
-                  </div>
-                </div>
+              <div className="flex items-center gap-3">
                 <div
-                  className="flex h-11 w-11 items-center justify-center rounded-lg text-[10px] font-bold text-white"
-                  style={{ background: `linear-gradient(135deg, ${introData.mainColor}, ${introData.accentColor})` }}
+                  className="flex h-[66px] w-[66px] shrink-0 items-center justify-center overflow-hidden rounded-2xl"
+                  style={{ border: `1px solid ${introData.accentColor}33`, background: "rgba(255,255,255,0.05)" }}
                 >
-                  {introData.club.replace(/\s*U\d+/, "").substring(0, 5)}
+                  {introData.photoUrl && !introData.photoUrl.startsWith("blob:") ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={introData.photoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  )}
                 </div>
-              </div>
 
-              {/* Photo */}
-              <div
-                className="mt-4 flex h-[140px] w-[140px] items-center justify-center overflow-hidden rounded-full"
-                style={{ border: `2px solid ${introData.accentColor}44`, background: "rgba(255,255,255,0.05)" }}
-              >
-                {introData.photoUrl && !introData.photoUrl.startsWith("blob:") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={introData.photoUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                )}
-              </div>
-
-              {/* Name */}
-              <div className="mt-4 text-center">
-                <div className="text-[32px] font-black text-white">
-                  {introData.name}
-                </div>
-                <div
-                  className="mt-1.5 inline-block rounded px-3 py-1 text-[12px] font-bold text-white"
-                  style={{ background: `${introData.accentColor}33` }}
-                >
-                  {introData.club}
-                </div>
-              </div>
-
-              {/* Info grid */}
-              <div className="mt-4 grid w-full grid-cols-2 gap-px overflow-hidden rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
-                {[
-                  { label: "생년월일", value: introData.birthDate || "-" },
-                  { label: "나이", value: introData.age ? `${introData.age}세` : "-" },
-                  { label: "키", value: introData.height ? `${introData.height}cm` : "-" },
-                  { label: "몸무게", value: introData.weight ? `${introData.weight}kg` : "-" },
-                ].map((item, i) => (
-                  <div key={i} className="px-3.5 py-2.5" style={{ background: "rgba(10,10,12,0.85)" }}>
-                    <div className="text-[9px] font-semibold uppercase tracking-[1px] text-white/30">{item.label}</div>
-                    <div className="mt-0.5 text-[13px] font-bold" style={{ color: introData.accentColor }}>{item.value}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#09090b]"
+                      style={{ background: introData.accentColor }}
+                    >
+                      {introData.position || "PLAYER"}
+                    </span>
+                    <span className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42">
+                      {introData.club}
+                    </span>
                   </div>
-                ))}
+                  <p className="mt-2 truncate text-[18px] font-bold text-white">{introData.name}</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/68">
+                    {introData.number ? <span>등번호 {introData.number}</span> : null}
+                    {introData.birthDate ? <span>{introData.birthDate}년생</span> : null}
+                    {introData.height ? <span>{introData.height}cm</span> : null}
+                  </div>
+                </div>
               </div>
-
-              {/* Footer */}
-              <div className="mt-4 text-[10px] tracking-[3px] text-white/20">FOOTORY.COM</div>
             </div>
           </div>
         </div>
@@ -819,7 +789,7 @@ export default function ClipPlayerSheet({
           style={{
             height: hasHud ? `calc(100% - env(safe-area-inset-bottom, 16px) - ${HUD_BAR_HEIGHT + SEEKBAR_HEIGHT}px)` : "100%",
             objectFit: "contain",
-            opacity: (!introReady || showIntro) ? 0 : 1,
+            opacity: introReady ? 1 : 0,
             transition: zoom === 1 ? "opacity 0.3s ease, transform 0.2s ease-out" : "opacity 0.3s ease",
             transform: zoom > 1
               ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`

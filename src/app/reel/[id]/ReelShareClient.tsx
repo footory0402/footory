@@ -3,25 +3,14 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { PlayableClip } from "@/components/player/ClipPlayerSheet";
+import type { PlaybackEffects } from "@/lib/playback-focus";
+import type { SingleClipPlaybackContract } from "@/lib/single-clip-playback";
 
 const ClipPlayerSheet = dynamic(() => import("@/components/player/ClipPlayerSheet"), { ssr: false });
 
-interface Clip {
-  id: string;
-  videoUrl: string;
-  thumbnailUrl: string | null;
+interface Clip extends SingleClipPlaybackContract {
   memo: string | null;
-  durationSeconds: number | null;
-  spotlightX: number | null;
-  spotlightY: number | null;
-  freezeAt: number | null;
-  trimStart: number | null;
-  trimEnd: number | null;
-  slowmoStart: number | null;
-  slowmoEnd: number | null;
-  slowmoSpeed: number | null;
-  bgmId: string | null;
-  effects: Record<string, unknown> | null;
+  effects?: PlaybackEffects | null;
   playerName: string;
   playerPosition: string | null;
   playerBirthYear: number | null;
@@ -30,10 +19,9 @@ interface Clip {
 
 interface Props {
   clips: Clip[];
-  profileHandle: string;
 }
 
-export default function ReelShareClient({ clips, profileHandle }: Props) {
+export default function ReelShareClient({ clips }: Props) {
   const [playing, setPlaying] = useState(false);
   const [startIndex, setStartIndex] = useState(0);
 
@@ -41,7 +29,7 @@ export default function ReelShareClient({ clips, profileHandle }: Props) {
     id: c.id,
     videoUrl: c.videoUrl,
     thumbnailUrl: c.thumbnailUrl,
-    duration: c.durationSeconds,
+    duration: c.duration,
     spotlightX: c.spotlightX,
     spotlightY: c.spotlightY,
     freezeAt: c.freezeAt,
@@ -99,9 +87,9 @@ export default function ReelShareClient({ clips, profileHandle }: Props) {
                   <p style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600, color: "var(--color-text-1)", margin: 0 }}>
                     {clip.memo ?? `클립 ${i + 1}`}
                   </p>
-                  {clip.durationSeconds != null && (
+                  {clip.duration != null && (
                     <p style={{ fontFamily: "var(--font-stat)", fontSize: 11, color: "var(--color-text-3)", marginTop: 2 }}>
-                      {Math.floor(clip.durationSeconds / 60)}:{String(Math.round(clip.durationSeconds % 60)).padStart(2, "0")}
+                      {Math.floor(clip.duration / 60)}:{String(Math.round(clip.duration % 60)).padStart(2, "0")}
                     </p>
                   )}
                 </div>

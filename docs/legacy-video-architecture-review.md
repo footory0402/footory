@@ -36,8 +36,9 @@
 - 부모 업로드, 일반 업로드, 렌더 워커 모두 R2를 공통 저장소로 사용한다.
 
 ### 주의할 점
-- 기존 `docs/UPLOAD-ARCHITECTURE.md`는 일반 업로드의 기본을 "파일 선택 즉시 백그라운드 업로드"로 설명하지만, 현재 `/upload` 메인 경로는 `업로드 시작` 버튼 후 처리 단계에서 실제 업로드를 시작한다.
+- 기존 `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md`는 일반 업로드의 기본을 "파일 선택 즉시 백그라운드 업로드"로 설명하지만, 현재 `/upload` 메인 경로는 `업로드 시작` 버튼 후 처리 단계에서 실제 업로드를 시작한다.
 - 기존 문서의 `MULTIPART_THRESHOLD = 200MB` 설명도 실제 코드의 `50MB`와 다르다.
+- 기존 문서의 `thumbnails/{userId}/{clipId}_thumb.jpg`, `highlights/` 기본 결과물 설명도 현재 key 계약과 맞지 않는다.
 - 즉 R2 자체는 유효하지만, R2 사용 방식 설명은 현행 코드 기준으로 다시 흡수해야 한다.
 
 ## 3. 원본 저장 + 편집 데이터 기반 클라이언트 재생 구조가 현재도 유효한지
@@ -97,14 +98,19 @@
 
 ## 6. 새 문서에 흡수할 요소
 
-- `docs/ARCHITECTURE.md`의 R2 버킷 개념과 `clips`, `featured_clips`, `highlights`, `render_jobs` 스키마 설명.
+- `docs/archive/2026-04-10/ARCHITECTURE.md`의 R2 버킷 개념과 `clips`, `featured_clips`, `highlights`, `render_jobs` 스키마 설명.
   - 흡수 대상: `docs/media-pipeline.md`, `docs/legacy-video-architecture-review.md`
-- `docs/UPLOAD-ARCHITECTURE.md`의 presigned URL, direct upload fallback, multipart 제약, R2 키 체계 설명.
+- `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md`의 presigned URL, direct upload fallback, multipart 제약, R2 키 체계 설명.
   - 흡수 대상: `docs/media-pipeline.md`, `docs/legacy-video-architecture-review.md`
 - `docs/app-overview.md`의 업로드/재생/부모 업로드 경로 설명.
   - 흡수 대상: `docs/repo-audit.md`, 이후 갱신될 현재 상태 문서
 - `docs/implementation-gap.md`의 "현재 구현은 clip 메타데이터 직접 수정, 서버 저장 draft 없음"이라는 차이 기록.
   - 흡수 대상: `docs/media-pipeline.md`, Prompt C 판단 메모
+
+### 이번 라운드 흡수 완료 메모
+- `docs/media-pipeline.md`에 현재 R2 key 규칙(`originals/`, `thumbnails/`, `raw/`)과 presign/public URL 운영 규칙을 반영했다.
+- 같은 문서에 multipart 50MB 임계값, 5MB 최소 파트 크기, direct-upload fallback 유지 이유를 반영했다.
+- 따라서 `docs/archive/2026-04-10/ARCHITECTURE.md`, `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md`에서 core 판단에 필요한 기술 메모는 대부분 기준 문서로 옮겼다.
 
 ## 7. phase 2로 보류할 요소
 
@@ -120,10 +126,15 @@
 ## 8. 폐기 또는 아카이브할 요소
 
 - 일반 업로드 메인 구조를 `VideoSelector -> 태그/메모 -> 올리기` 또는 `SelectView -> DecorateView -> DoneView`로 설명하는 기존 문서 서술.
-- `docs/UPLOAD-ARCHITECTURE.md` 안의 "파일 선택 즉시 백그라운드 업로드가 일반 업로드의 기본"이라는 설명.
-- `docs/ARCHITECTURE.md` 안의 `highlight_url` 중심 설명과 실제 코드에 없는 단일 canonical 파이프라인 서술.
-- `docs/PROGRESS.md` 안의 구형 영상 위저드와 효과 토글 중심 완료 서술.
+- `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md` 안의 "파일 선택 즉시 백그라운드 업로드가 일반 업로드의 기본"이라는 설명.
+- `docs/archive/2026-04-10/ARCHITECTURE.md` 안의 `highlight_url` 중심 설명과 실제 코드에 없는 단일 canonical 파이프라인 서술.
+- `docs/archive/2026-04-10/PROGRESS.md` 안의 구형 영상 위저드와 효과 토글 중심 완료 서술.
 - 서버 렌더 파이프라인을 현재 제품의 유일한 기준 아키텍처처럼 읽히게 만드는 설명.
+
+### archive 판정
+- `docs/archive/2026-04-10/ARCHITECTURE.md`는 merge 후 archive 완료 상태다.
+- `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md`도 merge 후 archive 완료 상태다.
+- 두 문서는 역사 기록과 과거 제약 추적에는 가치가 있지만, 더 이상 직접 기준본으로 읽히면 안 된다.
 
 ## 최종 판정 요약
 - 현재 반드시 보존해야 하는 기존 핵심은 `R2 원본 저장`, `clip 메타데이터 기반 클라이언트 재생`, `주인공 타겟팅 메타데이터`, `프로필 연결 구조`다.

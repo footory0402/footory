@@ -28,6 +28,26 @@ export interface SingleClipPlaybackContract {
   teamName?: string | null;
 }
 
+export interface SingleClipPlaybackRow {
+  id: string;
+  video_url: string;
+  thumbnail_url?: string | null;
+  duration_seconds?: number | null;
+  duration_sec?: number | null;
+  trim_start?: number | null;
+  trim_end?: number | null;
+  highlight_start?: number | null;
+  highlight_end?: number | null;
+  spotlight_x?: number | null;
+  spotlight_y?: number | null;
+  freeze_at?: number | null;
+  slowmo_start?: number | null;
+  slowmo_end?: number | null;
+  slowmo_speed?: number | null;
+  bgm_id?: string | null;
+  effects?: PlaybackEffects | null;
+}
+
 export interface ResolvedSingleClipPlaybackWindow {
   trimStartSec: number;
   trimEndSec: number;
@@ -100,7 +120,7 @@ export function createSingleClipEditingDraft({
   spotlight,
   freezeAt,
   zoom = DEFAULT_FOCUS_ZOOM,
-  showProfileCard: _showProfileCard = true,
+  showProfileCard = true,
   showLowerThird = true,
 }: {
   clipId: string;
@@ -115,7 +135,6 @@ export function createSingleClipEditingDraft({
   showProfileCard?: boolean;
   showLowerThird?: boolean;
 }): SingleClipEditingDraft {
-  void _showProfileCard;
   const safeDuration = Math.max(roundToTenths(sourceDurationSec), 0.1);
   const normalizedTrim = normalizeRange(trimStart, trimEnd ?? safeDuration, 0, safeDuration);
   const normalizedHighlight = normalizeRange(
@@ -142,7 +161,7 @@ export function createSingleClipEditingDraft({
       trackingPoints: [],
     },
     overlay: {
-      showProfileCard: true,
+      showProfileCard,
       showLowerThird,
     },
     saveTarget: {
@@ -187,7 +206,7 @@ export function resolveSingleClipEditingDraft(draft: SingleClipEditingDraft): Si
     },
     overlay: {
       ...draft.overlay,
-      showProfileCard: true,
+      showProfileCard: draft.overlay.showProfileCard,
     },
   };
 }
@@ -273,6 +292,40 @@ export function resolveSingleClipPlaybackWindow(
     trimStartSec,
     trimEndSec,
     durationSec: Math.max(0, trimEndSec - trimStartSec),
+  };
+}
+
+export function resolveSingleClipPlayableDuration(clip: Pick<SingleClipPlaybackRow, "duration_seconds" | "duration_sec" | "trim_start" | "trim_end">) {
+  if (clip.trim_start != null && clip.trim_end != null && clip.trim_end >= clip.trim_start) {
+    return Math.max(0, clip.trim_end - clip.trim_start);
+  }
+
+  if (clip.duration_sec != null) return Math.max(0, clip.duration_sec);
+  return Math.max(0, clip.duration_seconds ?? 0);
+}
+
+export function buildSingleClipPlaybackContract(
+  clip: SingleClipPlaybackRow,
+  overrides: Omit<Partial<SingleClipPlaybackContract>, keyof SingleClipPlaybackContract> & Partial<SingleClipPlaybackContract> = {},
+): SingleClipPlaybackContract {
+  return {
+    id: clip.id,
+    videoUrl: clip.video_url,
+    thumbnailUrl: clip.thumbnail_url ?? null,
+    duration: resolveSingleClipPlayableDuration(clip),
+    trimStart: clip.trim_start ?? null,
+    trimEnd: clip.trim_end ?? null,
+    highlightStart: clip.highlight_start ?? null,
+    highlightEnd: clip.highlight_end ?? null,
+    spotlightX: clip.spotlight_x ?? null,
+    spotlightY: clip.spotlight_y ?? null,
+    freezeAt: clip.freeze_at ?? null,
+    slowmoStart: clip.slowmo_start ?? null,
+    slowmoEnd: clip.slowmo_end ?? null,
+    slowmoSpeed: clip.slowmo_speed ?? null,
+    bgmId: clip.bgm_id ?? null,
+    effects: clip.effects ?? null,
+    ...overrides,
   };
 }
 

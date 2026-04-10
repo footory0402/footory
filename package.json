@@ -4,6 +4,11 @@
   "private": true,
   "scripts": {
     "build": "node scripts/setup-r2-cors.mjs; next build",
+    "dev:ops": "npm --prefix ops-console run dev",
+    "build:ops": "npm --prefix ops-console run build",
+    "start:ops": "npm --prefix ops-console run start",
+    "lint:ops": "npm --prefix ops-console run lint",
+    "typecheck:ops": "npm --prefix ops-console run typecheck",
     "admin:create": "node --env-file=.env.local scripts/create-poc-admin.mjs",
     "dev": "next dev",
     "setup:cors": "node scripts/setup-r2-cors.mjs",

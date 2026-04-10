@@ -37,7 +37,7 @@ function OverlayPreviewGuide({
     <>
       {showProfileCard ? (
         <div className="pointer-events-none absolute left-[6%] top-[8%] z-20 rounded-full bg-black/60 px-3 py-1 text-[11px] font-semibold text-white/80">
-          재생 전 카드 표시
+          상단 카드
         </div>
       ) : null}
 
@@ -49,11 +49,11 @@ function OverlayPreviewGuide({
             </span>
             <div className="min-w-0">
               <p className="truncate text-[12px] font-semibold text-white">{playerData.name || "선수 정보"}</p>
-              <p className="text-[10px] text-white/60">아래 영역에만 보여요</p>
+              <p className="text-[10px] text-white/60">하단 안전 영역</p>
             </div>
           </div>
         ) : (
-          <p className="text-[11px] font-medium text-white/70">정보를 켜면 아래에만 보여요</p>
+          <p className="text-[11px] font-medium text-white/70">정보를 켜면 하단 안전 영역에 보여요</p>
         )}
       </div>
     </>
@@ -234,18 +234,18 @@ export default function SingleClipEditorPreview({
     : undefined;
   const helperText = useMemo(() => {
     if (focusPreviewVisible && spotlightPicking) {
-      return "선수를 한 번 눌러주세요.";
+      return "주인공을 한 번 눌러요.";
     }
     if (focusPreviewVisible && spotlight) {
       return `${draft.playback.zoom.toFixed(1)}x로 따라가요.`;
     }
     if (focusPreviewVisible) {
-      return "주인공을 고르면 확대돼요.";
+      return "주인공을 고르면 바로 확대돼요.";
     }
     if (overlayPreviewVisible) {
-      return "정보는 아래에만 보여요.";
+      return "정보는 하단 안전 영역에만 보여요.";
     }
-    return "필요한 구간만 바로 확인하세요.";
+    return "구간만 확인하고 다음으로 가세요.";
   }, [draft.playback.zoom, focusPreviewVisible, overlayPreviewVisible, spotlight, spotlightPicking]);
 
   return (

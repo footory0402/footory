@@ -52,6 +52,19 @@
 - direct upload fallback
 - 필요 시 multipart fallback
 
+### 현재 유지 중인 키 규칙
+- 원본 영상 키: `originals/{userId}/{clipId}.{ext}`
+- 썸네일 키: `thumbnails/{userId}/{clipId}.jpg`
+- render/raw 계열 키: `raw/{userId}/...`
+- 현재 업로드 API는 사용자 소유 prefix 밖의 키를 허용하지 않는다.
+- `highlights/` 같은 별도 결과물 prefix는 현재 core upload contract의 기본값이 아니다.
+
+### 현재 유지 중인 presign/public URL 규칙
+- 원본 업로드 presigned URL은 현재 1시간 기준으로 발급한다.
+- 썸네일 업로드 presigned URL은 현재 10분 기준으로 발급한다.
+- 공개 재생 URL은 R2 public URL 조합을 기준으로 만든다.
+- 모바일 브라우저 호환성을 위해 presigned PUT 서명에는 `ContentLength`를 포함하지 않는다.
+
 ## 3. 메타데이터 추출과 썸네일 준비
 - 업로드가 완료되면 영상 기본 메타데이터를 추출한다.
 - 메타데이터 추출은 clip 재생과 선택 편집의 기준이 된다.
@@ -128,6 +141,8 @@
 ### 업로드 실패
 - 같은 clip 저장 흐름 안에서 재시도 가능해야 한다.
 - presign 실패 시 direct-upload fallback 경로를 유지한다.
+- 현재 direct-upload fallback은 `originals/`, `thumbnails/`, `raw/` prefix를 허용한다.
+- 서버 프록시 경로는 폴백으로만 유지하고, 기본 경로는 브라우저에서 R2로 직접 올리는 방식이다.
 
 ### 메타데이터 또는 썸네일 준비 실패
 - 원본이 저장되어 있으면 백그라운드 재시도 큐에 넣을 수 있어야 한다.
@@ -140,6 +155,14 @@
 ### 사용자 중단
 - 업로드 완료 이후라면 최소한 clip 재생 진입은 가능해야 한다.
 - single clip draft와 reel draft는 최근 저장 상태를 복구할 수 있어야 한다.
+
+## 현재 운영 제약
+- multipart 경로는 살아 있지만 current core path는 아니다.
+- 현재 코드 기준 multipart 진입 임계값은 `50MB`다.
+- multipart 파트 크기는 `5MB` 미만으로 내리지 않는다. R2 최소 파트 크기 제약 때문이다.
+- Vercel 함수 하드캡 때문에 multipart complete 경로는 환경에 따라 불안정할 수 있으므로, 단일 presigned PUT과 direct-upload fallback을 계속 유지한다.
+- 업로드 요청은 Service Worker 간섭을 줄이기 위해 `cache: "no-store"` 우회 fetch를 사용한다.
+- 긴 업로드 구간에서는 브라우저가 지원할 때만 screen wake lock을 요청하고, 실패해도 업로드 자체를 막지는 않는다.
 
 ## 상태 모델
 - `uploading`
@@ -168,6 +191,7 @@
 - `/api/render/*` 메인 복귀
 - 별도 결과물 엔티티 분리 저장
 - clip 여러 개를 조합하는 고급 하이라이트 제작
+- `rendered_url`, `raw_key`, `render_jobs` 중심 결과물 파이프라인의 core 복귀
 
 ## 이번 단계에서 만들지 않을 것
 - 여러 출력 포맷을 한 번에 생성하는 복잡한 배치 렌더

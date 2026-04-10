@@ -1,13 +1,14 @@
 import { test, expect } from "@playwright/test";
 import { installMockVideoFlow } from "./video-test-helpers";
+import { loginAsPlayer } from "../setup/test-accounts";
 
 test.describe("영상 플레이어", () => {
   test("프로필 대표 영상에서 플레이어를 열 수 있다", async ({ page }) => {
-    const flow = await installMockVideoFlow(page.context(), {
+    await installMockVideoFlow(page.context(), {
       initialProjectStatus: "published",
     });
 
-    await page.goto(`/p/${flow.profileHandle}`);
+    await loginAsPlayer(page, "/profile");
 
     await expect(page.getByText("대표 영상")).toBeVisible();
     await page.getByText("FEATURED").click();
@@ -30,7 +31,7 @@ test.describe("영상 플레이어", () => {
       },
     });
 
-    await page.goto(`/p/${flow.profileHandle}`);
+    await loginAsPlayer(page, "/profile");
     await page.getByText("FEATURED").click();
 
     const video = page.locator("video").first();
@@ -53,5 +54,34 @@ test.describe("영상 플레이어", () => {
     expect(playbackWindow?.duration ?? 0).toBeGreaterThan(0);
     expect(flow.getFeatured()[0]?.clips.trim_start).toBe(1);
     expect(flow.getFeatured()[0]?.clips.spotlight_x).toBeCloseTo(0.48, 2);
+  });
+
+  test("프로필 릴 카드는 trim 기반 재생 길이를 표시하고 재생할 수 있다", async ({ page }) => {
+    await installMockVideoFlow(page.context(), {
+      initialProjectStatus: "published",
+      clipOverrides: {
+        trim_start: 1,
+        trim_end: 8,
+        duration_sec: 7,
+        spotlight_x: 0.48,
+        spotlight_y: 0.35,
+        freeze_at: 2.5,
+        effects: {
+          intro: true,
+          showLowerThird: true,
+          focusZoom: 2.2,
+          trackingMode: "fixed",
+          trackingPoints: [],
+        },
+      },
+    });
+
+    await loginAsPlayer(page, "/profile");
+
+    await expect(page.getByText("E2E Reel")).toBeVisible();
+    await expect(page.getByText("0:07")).toBeVisible();
+
+    await page.getByText("E2E Reel").click();
+    await expect(page.locator("video").first()).toBeVisible({ timeout: 10_000 });
   });
 });

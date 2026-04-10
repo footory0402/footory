@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/database";
 import { normalizeHighlightPublishState } from "@/lib/publish-state";
+import { buildSingleClipPlaybackContract, type SingleClipPlaybackRow } from "@/lib/single-clip-playback";
 import ReelShareClient from "./ReelShareClient";
 
 interface Props {
@@ -43,7 +45,7 @@ async function getReelData(id: string) {
   // 클립 데이터 (순서 보장)
   const { data: clips } = await supabase
     .from("clips")
-    .select("id, video_url, thumbnail_url, duration_seconds, memo, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, slowmo_start, slowmo_end, slowmo_speed, bgm_id, effects")
+    .select("id, video_url, thumbnail_url, duration_seconds, duration_sec, memo, highlight_start, highlight_end, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, slowmo_start, slowmo_end, slowmo_speed, bgm_id, effects")
     .in("id", reel.clip_ids);
 
   const clipsMap = new Map((clips ?? []).map((c) => [c.id, c]));
@@ -98,21 +100,11 @@ export default async function ReelSharePage({ params }: Props) {
   const { reel, profile, clips } = data;
 
   const playableClips = clips.map((c) => ({
-    id: c.id,
-    videoUrl: c.video_url,
-    thumbnailUrl: c.thumbnail_url ?? null,
+    ...buildSingleClipPlaybackContract({
+      ...c,
+      effects: (c.effects as { [key: string]: Json | undefined } | null) ?? null,
+    } as SingleClipPlaybackRow),
     memo: c.memo ?? null,
-    durationSeconds: c.duration_seconds ?? null,
-    spotlightX: c.spotlight_x ?? null,
-    spotlightY: c.spotlight_y ?? null,
-    freezeAt: c.freeze_at ?? null,
-    trimStart: c.trim_start ?? null,
-    trimEnd: c.trim_end ?? null,
-    slowmoStart: c.slowmo_start ?? null,
-    slowmoEnd: c.slowmo_end ?? null,
-    slowmoSpeed: c.slowmo_speed ?? null,
-    bgmId: c.bgm_id ?? null,
-    effects: c.effects as Record<string, unknown> | null,
     playerName: profile.name,
     playerPosition: profile.position ?? null,
     playerBirthYear: profile.birth_year ?? null,
@@ -163,7 +155,7 @@ export default async function ReelSharePage({ params }: Props) {
       </div>
 
       {/* 클라이언트 플레이어 */}
-      <ReelShareClient clips={playableClips} profileHandle={profile.handle} />
+      <ReelShareClient clips={playableClips} />
 
       {/* Footory 배지 */}
       <div className="flex items-center justify-center py-4">

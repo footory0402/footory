@@ -4,9 +4,12 @@ import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { useUploadStore } from "@/stores/upload-store";
 import { prepareR2BackgroundUpload } from "@/lib/upload-service";
-
-const MAX_SIZE = 200 * 1024 * 1024; // 200MB
-const MAX_DURATION = 300; // 300초 (5분)
+import UploadInlineError from "@/components/upload/UploadInlineError";
+import {
+  MAX_UPLOAD_VIDEO_DURATION,
+  MAX_UPLOAD_VIDEO_SIZE,
+  validateUploadVideoFile,
+} from "@/lib/upload-video-file";
 
 export default function VideoSelector() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,33 +68,9 @@ export default function VideoSelector() {
     setPreview(null);
     setDuration(0);
 
-    // iOS Safari에서 MOV 파일의 MIME type이 빈 문자열이거나
-    // application/octet-stream으로 보고될 수 있음
-    const isVideo =
-      selected.type.startsWith("video/") ||
-      selected.type === "application/octet-stream" ||
-      selected.type === "" ||
-      /\.(mp4|mov|m4v|webm|avi)$/i.test(selected.name);
-    if (!isVideo) {
-      setError("영상 파일이 아닌 것 같아요. MP4 또는 MOV 파일을 선택해주세요.");
-      return;
-    }
-
-    const sizeMB = (selected.size / 1024 / 1024).toFixed(0);
-    if (selected.size > MAX_SIZE) {
-      setError(
-        `영상이 ${sizeMB}MB예요. 200MB 이내의 영상을 선택해주세요.\n촬영 시 해상도를 1080p로 설정하면 용량을 줄일 수 있어요.`
-      );
-      return;
-    }
-
-    const dur = await getVideoDuration(selected);
-    if (dur > MAX_DURATION) {
-      const m = Math.floor(dur / 60);
-      const s = Math.round(dur % 60);
-      setError(
-        `영상이 ${m}분 ${s}초예요. 5분 이내의 영상을 선택해주세요.\n갤러리에서 영상을 잘라서 다시 선택해주세요.`
-      );
+    const { duration: dur, error: validationError } = await validateUploadVideoFile(selected);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -110,9 +89,9 @@ export default function VideoSelector() {
   };
 
   const sizeMB = file ? (file.size / 1024 / 1024).toFixed(1) : "0";
-  const sizePercent = file ? Math.min((file.size / MAX_SIZE) * 100, 100) : 0;
+  const sizePercent = file ? Math.min((file.size / MAX_UPLOAD_VIDEO_SIZE) * 100, 100) : 0;
   const durationPercent = duration
-    ? Math.min((duration / MAX_DURATION) * 100, 100)
+    ? Math.min((duration / MAX_UPLOAD_VIDEO_DURATION) * 100, 100)
     : 0;
 
   return (
@@ -259,36 +238,8 @@ export default function VideoSelector() {
       )}
 
       {error && (
-        <div className="rounded-xl bg-[#2a1f1f] px-4 py-3 ring-1 ring-[#ff6b6b]/20">
-          <p className="text-[13px] leading-relaxed text-[#ff8a8a] whitespace-pre-line">{error}</p>
-        </div>
+        <UploadInlineError message={error} />
       )}
     </div>
   );
-}
-
-function getVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve) => {
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.muted = true;
-    video.playsInline = true;
-
-    // 메타데이터 로딩 타임아웃 (10초)
-    const timeoutId = setTimeout(() => {
-      URL.revokeObjectURL(video.src);
-      resolve(0);
-    }, 10_000);
-
-    video.onloadedmetadata = () => {
-      clearTimeout(timeoutId);
-      URL.revokeObjectURL(video.src);
-      resolve(video.duration);
-    };
-    video.onerror = () => {
-      clearTimeout(timeoutId);
-      resolve(0);
-    };
-    video.src = URL.createObjectURL(file);
-  });
 }

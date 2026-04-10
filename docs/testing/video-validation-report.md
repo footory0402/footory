@@ -213,7 +213,7 @@
   - 결과: `12 passed, 5 skipped`
   - 비고: `video-player.spec.ts` 5건은 기존과 동일하게 clip seed 부재로 skip
 - `npm run lint`
-  - 결과: 통과 (`66 warnings`)
+  - 결과: 통과 (`65 warnings`)
 - `npm run typecheck`
   - 결과: 통과
 - `npm run test:run`
@@ -258,6 +258,87 @@
 - fixture 비디오는 `/__e2e__/fixture-video.mp4`로 서빙해 `/edit/[clipId]` 재진입과 프로필 플레이어 경로에서 같은 파일을 다시 소비한다.
 
 ### 이번 단계에서 상시 실행 가능해진 핵심 시나리오
+
+## 14) blocker 8 저장 후 프로필 반영 확인 안정화 (2026-04-10)
+
+### 수정 대상
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `src/app/p/[handle]/client.tsx`
+
+### 문제와 조치
+- 문제: 저장 직후 프로필 진입에서 반영 확인 신호가 약해 `저장 실패`로 오해할 수 있었고, 관련 E2E가 간헐 실패했다.
+- 조치: 저장 성공 시 `/profile?saved=featured`로 이동하고, 프로필에서 `saved=featured`를 감지하면 `대표 영상으로 저장했어요.` 배너를 즉시 노출하도록 최소 보정했다.
+
+### 사용자 플로우 점검 포인트
+- `/upload`에서 single-clip 저장 완료 후 `/profile`로 이동했을 때 즉시 저장 완료 배너가 보이는지
+- 프로필 대표 영상 탭/목록 동작은 기존과 동일한지
+- 저장 직후 재생기 진입 및 대표 영상 텍스트 노출 확인이 안정적인지
+
+### 검증 결과
+- `npm run lint`: 통과 (`65 warnings`)
+- `npm run typecheck`: 통과
+- `npm run test:run`: 통과 (`8 files / 53 tests`)
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15' -g '저장하면 프로필 대표 영상에 반영된다'`: `1 passed`
+
+## 14) single-clip draft 복구 + playback contract 정렬 검증 (2026-04-10)
+
+### 수정 대상
+- `src/lib/single-clip-playback.ts`
+- `src/lib/video-projects.ts`
+- `src/app/upload/page.tsx`
+- `src/app/edit/[clipId]/page.tsx`
+- `src/app/p/[handle]/page.tsx`
+- `src/app/p/[handle]/client.tsx`
+- `src/app/p/[handle]/h/[clipId]/page.tsx`
+- `src/app/p/[handle]/h/[clipId]/HighlightSharePlayerClient.tsx`
+- `src/app/reel/[id]/page.tsx`
+- `src/app/reel/[id]/ReelShareClient.tsx`
+- `src/app/api/highlights/[id]/route.ts`
+- `src/components/profile/HighlightsTabV5.tsx`
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `src/__tests__/single-clip-playback.test.ts`
+- `tests/e2e/video/video-test-helpers.ts`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+- `tests/e2e/video/video-player.spec.ts`
+
+### 이번 단계에서 닫힌 범위
+- single-clip draft 저장/복구 기준값을 `/upload`와 `/edit/[clipId]`에서 같은 payload로 복구
+- profile/share/reel single-clip 소비 경로가 trim 우선 duration과 playback metadata를 같은 builder로 읽도록 정렬
+- editor autosave/save가 최신 store draft를 기준으로 저장되도록 보정
+
+### 저장/복구 확인값
+- 저장/복구 통과:
+  - `trimStart`, `trimEnd`
+  - `highlightStart`, `highlightEnd`
+  - `freezeAt`
+  - `zoom`
+  - `overlay.showLowerThird`
+  - `saveTarget.profileTarget`
+- 현재 payload에 포함되지만 public E2E gate로 아직 닫지 못한 값:
+  - `overlay.showProfileCard`
+  - public profile/share/reel 소비 결과 전체
+
+### 실행 결과
+- `npm run lint`
+  - 통과 (`65 warnings`)
+- `npm run typecheck`
+  - 통과
+- `npm run test:run`
+  - 통과 (`8 files / 52 tests`)
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `5 passed`
+- `npm run test:video`
+  - 결과: `10 passed, 4 failed`
+  - 잔여 실패:
+    - `tests/e2e/video/profile-card-editor.spec.ts:35`
+    - `tests/e2e/video/video-player.spec.ts:5`
+    - `tests/e2e/video/video-player.spec.ts:19`
+    - `tests/e2e/video/video-player.spec.ts:58`
+
+### 남은 해석
+- `video-upload-flow.spec.ts`는 single-clip draft 재진입 복구를 iPhone 15 기준으로 닫았다.
+- 반면 `video-player.spec.ts`는 public profile/reel SSR seed가 없는 상태에서 브라우저 route mock만으로는 profile featured/reel UI를 안정적으로 만들지 못해 아직 release gate로 쓰기 어렵다.
+- `profile-card-editor.spec.ts` 비로그인 공개 진입 실패도 여전히 전체 `npm run test:video`를 막는다.
 - `tests/e2e/video/video-upload-flow.spec.ts` `업로드 뒤 바로 편집에 들어갈 수 있다`
 - `tests/e2e/video/video-upload-flow.spec.ts` `편집 값을 바꾸면 draft가 저장되고 다시 들어와 복구할 수 있다`
 - `tests/e2e/video/video-upload-flow.spec.ts` `저장하면 프로필 대표 영상에 반영된다`
@@ -374,3 +455,323 @@
 - `구간` 단계는 현재 선택 범위를 한 번에 읽을 수 있게 됐고, `주인공` 단계는 실제 탭 대상이 가려지지 않는다.
 - 프로필 카드는 single-clip 편집 기준에서 다시 항상 노출되는 방향으로 고정됐다.
 - 마지막 저장은 "옵션 조정 -> 저장 -> 프로필 이동"으로 닫혀, 저장 뒤 멈춰 있는 흐름이 제거됐다.
+
+## 16) 프로필 카드 설정 상단 복구 및 재생 시작 비차단화 검증 (2026-04-10)
+
+### 수정 대상
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `src/lib/single-clip-playback.ts`
+- `src/app/upload/page.tsx`
+- `src/app/edit/[clipId]/page.tsx`
+- `src/components/player/ClipPlayerSheet.tsx`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+
+### 반영 내용
+- 편집 화면 상단에 `선수 프로필 카드` 설정을 다시 노출했다.
+- 카드 on/off는 draft에 저장되고 `/upload`, `/edit/[clipId]` 재진입 시 복구된다.
+- 실제 플레이어의 intro 카드는 전체 화면 블로킹 대신 상단 safe area 안의 짧은 오버레이로 줄였다.
+- intro 표시 중에도 비디오 자체는 가리지 않게 바꿔 앞부분이 잘린 것처럼 보이는 체감을 줄였다.
+
+### 검증 결과
+- `npm run lint`: 통과 (`65 warnings`)
+- `npm run typecheck`: 통과
+- `npm run test:run`: 통과 (`8 files / 52 tests`)
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `5 passed`
+  - 확인 범위: 상단 프로필 카드 설정 노출, draft 저장/복구, `/edit/[clipId]` 재진입 복구, 업로드 후 저장
+
+### 추가 메모
+- `tests/e2e/video/video-player.spec.ts --project='iPhone 15'`는 이번 변경과 직접 무관한 프로필/릴 목록 mock 가시성 문제로 별도 실패 상태였다.
+- 이번 단계 보고에서는 사용자 요청 범위와 직접 맞닿은 업로드 편집 진입 및 draft 복구 E2E를 통과 기준으로 남긴다.
+
+## 17) video Playwright 게이트 안정화 후 재검증 (2026-04-10)
+
+### 반영 대상
+- `tests/e2e/video/video-player.spec.ts`
+- `tests/e2e/video/profile-card-editor.spec.ts`
+- `src/components/profile/HighlightsTabV5.tsx`
+
+### 정렬 내용
+- `video-player.spec.ts`를 공개 프로필 SSR seed 가정에서 로그인 기반 owner 경로 + mock API 소비 경로로 정렬했다.
+- 릴 카드 검증은 실제 UI에서 안정적으로 보장되는 값(릴 카드 trim 기반 길이 + 재생 진입) 중심으로 고정했다.
+- `profile-card-editor.spec.ts` 비로그인 케이스를 현재 인증 정책(`/editor` 접근 시 `/login` 이동)과 일치시켰다.
+- owner 프로필 하이라이트 탭은 `/api/highlights`를 재조회해 SSR 초기값과 client 상태를 동기화하도록 맞췄다.
+
+### 실행 결과
+- `npm run lint`
+  - 결과: 통과 (`65 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`8 files / 52 tests`)
+- `npx playwright test tests/e2e/video/video-player.spec.ts --project='iPhone 15'`
+  - 결과: `3 passed`
+- `npx playwright test tests/e2e/video/profile-card-editor.spec.ts --project='iPhone 15'`
+  - 결과: `6 passed`
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `5 passed`
+- `npm run test:video`
+  - 결과: `14 passed`
+
+### 판정
+- 영상 E2E 게이트는 현재 기준에서 실패/skip 없이 닫혔다.
+- 남은 ship blocker는 영상 재생 정합성 이슈가 아니라 `upload-store` 구조 과다와 업로드 로직 중복이다.
+
+## 18) single-clip 저장/복구 2차 안정화 검증 (2026-04-10)
+
+### 수정 대상
+- `src/lib/single-clip-store-sync.ts` (신규)
+- `src/app/upload/page.tsx`
+- `src/app/edit/[clipId]/page.tsx`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+
+### 안정화 내용
+- `/upload`와 `/edit/[clipId]`가 draft payload를 업로드 스토어에 주입할 때 같은 동기화 유틸을 사용하도록 정렬했다.
+- 저장/복구 기준을 single-clip 편집 실사용 값 중심으로 고정했다:
+  - trim: `trimStart`, `trimEnd`
+  - spotlight: `spotlight.x`, `spotlight.y`
+  - zoom/freeze: `zoom`, `freezeAt`
+  - player info overlay: `overlay.showProfileCard`, `overlay.showLowerThird`
+- E2E 플래키 원인이던 온보딩 가이드 오버레이 간섭을 시나리오에서 흡수했다(`닫기` 처리 + spotlight/freeze 즉시 검증).
+
+### 실행 결과
+- `npm run lint`
+  - 결과: 통과 (`65 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`8 files / 52 tests`)
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `5 passed`
+- `npm run test:video`
+  - 결과: `14 passed`
+
+### 판정
+- 사용자 흐름 `업로드 -> 편집 -> 값 변경 -> 저장 -> 재진입(/upload, /edit)`에서 single-clip draft 복구가 안정적으로 재현된다.
+- 이번 단계 비범위였던 `reel highlight 확장`, `publish/profile 확장`, `cleanup 확대`는 미진행 상태로 유지했다.
+
+## 19) blocker 5 단일 마무리 검증 (2026-04-10)
+
+### 이번 턴 고정 범위
+- blocker 1개만 마무리: `single-clip draft store 동기화 경로 최소 정렬`
+- 비범위: 새 기능 추가, cleanup 확대, playback contract 대수술, 다른 blocker 착수
+
+### 반영 코드 경로
+- `src/lib/single-clip-store-sync.ts`
+
+## 20) `/upload` 메인 프로필 카드 편집기 복구 검증 (2026-04-10)
+
+### 수정 대상
+- `src/components/upload/SelectView.tsx`
+- `src/components/upload/UploadProfileCardEditor.tsx`
+- `src/lib/player-card-editor.ts`
+- `src/app/editor/page.tsx`
+- `src/components/upload/HighlightSuggestionReview.tsx`
+- `src/stores/upload-store.ts`
+- `tests/e2e/video/video-test-helpers.ts`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+- `src/__tests__/upload-store.test.ts`
+
+### 반영 내용
+- `/upload` 파일 선택 직후 화면에 축약 프로필 카드 편집기와 `카드 저장` 버튼을 추가했다.
+- 카드 로드/저장 fetch 로직은 `player-card-editor` 공용 유틸로 묶어 `/upload`와 `/editor`가 같은 payload 계약을 사용하게 맞췄다.
+- 업로드 후 편집 화면의 프로필 카드 영역은 카드 내용 편집이 아니라 `이 영상을 시작할 때 카드를 넣을지`만 고르는 단계로 정리했다.
+- 새 업로드의 `effects.intro` 기본값을 `true`로 올려, 업로드 후 편집에서는 항상 카드 포함 상태로 시작하게 맞췄다.
+- Playwright helper는 `편집하고 저장` 클릭 후 `/edit/[clipId]` 진입과 editor 노출까지 기다리도록 보강해 플로우 회귀를 안정화했다.
+
+### 실행 결과
+- `npm run lint`
+  - 결과: 통과 (`66 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`9 files / 57 tests`)
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `6 passed`
+  - 추가 확인:
+    - `/upload`에서 프로필 카드 이름/팀/등번호/포지션/테마 저장
+    - 업로드 후 편집 화면의 카드 포함 기본값 `보임`
+    - draft 저장/복구 시 카드 포함 상태 `보임` 유지
+
+### 메모
+- 새 프로필 카드 편집기 추가 후에도 `lint` 경고 수는 기존과 같은 `65 warnings`로 유지했다.
+- `src/app/upload/page.tsx`
+- `src/app/edit/[clipId]/page.tsx`
+- `tests/e2e/video/video-upload-flow.spec.ts`
+
+### 필수 검증 결과
+- `npm run lint`
+  - 결과: 통과 (`65 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`8 files / 52 tests`)
+
+### Playwright smoke
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15'`
+  - 결과: `4 passed, 1 failed`
+  - 실패: `저장하면 프로필 대표 영상에 반영된다`에서 `대표 영상` 텍스트 미노출
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15' --grep '편집 값을 바꾸면|/edit 재진입'`
+  - 결과: `2 passed`
+  - 해석: blocker 5 대상인 draft 저장/복구 및 `/edit` 재진입 동기화 경로는 통과
+
+### 판정
+- blocker 5 범위(단일 clip draft 동기화)는 이번 턴에서 마무리했다.
+- profile 대표 영상 표시 검증 실패 1건은 별도 흐름 이슈로 남기고, 남은 blocker 우선순위는 `upload-store 레거시 필드 과다`, `upload-service / ParentQuickUpload 중복`을 유지한다.
+
+## 20) blocker 1 upload-store 레거시 상태 경계 축소 검증 (2026-04-10)
+
+### 이번 턴 고정 범위
+- 해결 대상 blocker 1개: `upload-store 레거시 필드 과다`
+- 비범위: upload-service/ParentQuickUpload 공통화, playback contract 변경, 대규모 cleanup
+
+### 수정 대상
+- `src/stores/upload-store.ts`
+- `src/__tests__/upload-store.test.ts`
+
+### 반영 내용
+- `setFile` 경로를 clip-first 기준으로 재정렬했다.
+  - 파일 교체 시 레거시 상태(`eventTag`, `tracking*`, `skill/custom labels`, `slowmo`, `bgm`, `compress`, `r2*`)를 기본값으로 초기화.
+  - 업로드 경로 컨텍스트(`context`)와 parent/challenge 식별자(`child*`, `challengeTag`)는 유지.
+- 단위 테스트를 추가해 새 파일 선택 시 "레거시 필드 초기화 + 컨텍스트 유지"를 검증했다.
+
+### 사용자 플로우 수동 점검 포인트
+- `/upload`에서 파일을 다시 고르면 이전 업로드의 레거시 설정이 다음 파일에 누수되지 않아야 한다.
+- parent 업로드에서 파일을 다시 골라도 child 문맥이 유지되어야 한다.
+- 파일 선택 후 `select -> processing -> review` 전환이 기존과 동일해야 한다.
+
+### 실행 결과
+- `npm run lint`
+  - 결과: 통과 (`65 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`8 files / 53 tests`)
+- Playwright smoke
+  - `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15' --grep 'fixture 비디오로 업로드 선택 화면을 항상 열 수 있다|업로드 뒤 바로 편집에 들어갈 수 있다'`
+  - 결과: `2 passed`
+
+### 판정
+- blocker 1의 핵심 원인이던 `새 파일 선택 시 레거시 상태 누수`는 이번 범위에서 닫혔다.
+- 남은 blocker는 `upload-service / ParentQuickUpload 업로드 로직 중복`, `저장 후 프로필 대표 영상 반영 확인 불안정`이다.
+
+## 21) blocker 2 parent/general 업로드 경로 중복 축소 검증 (2026-04-10)
+
+### 이번 턴 고정 범위
+- 해결 대상 blocker 1개: `upload-service / ParentQuickUpload 업로드 로직 중복`
+- 비범위: 업로드 payload 계약 변경, API 스키마 변경, 프로필 반영 로직 수정
+
+### 수정 대상
+- `src/components/parent/ParentQuickUpload.tsx`
+
+### 반영 내용
+- `ParentQuickUpload`의 자체 presign/R2/클립저장 구현을 제거했다.
+- parent 업로드가 공용 서비스 함수 `startUpload`를 호출하도록 정렬했다.
+- 업로드 완료/실패 표시(`done`, `error`)는 기존 컴포넌트 UI 흐름을 유지했다.
+
+### 사용자 플로우 수동 점검 포인트
+- 부모가 자녀 선택 후 업로드를 시작하면 일반 `/upload`와 동일 서비스 경로로 업로드가 진행되어야 한다.
+- 업로드 성공 시 완료 모달이 기존처럼 보여야 한다.
+- 업로드 실패 시 기존 오류 문구 영역에 메시지가 노출되어야 한다.
+
+### 실행 결과
+- `npm run lint`
+  - 결과: 통과 (`65 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`8 files / 53 tests`)
+- Playwright smoke
+  - `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15' --grep '업로드 뒤 바로 편집에 들어갈 수 있다|fixture 비디오로 업로드 선택 화면을 항상 열 수 있다'`
+  - 결과: `2 passed`
+
+### 판정
+- parent/general 업로드 경로 분산 구현을 줄여 동일 수정의 동기화 리스크를 완화했다.
+- 남은 최상위 blocker는 `저장 후 프로필 대표 영상 반영 확인 불안정` 1개다.
+
+## 22) 병렬 lane 전환 라운드 검증 (2026-04-10)
+
+### Lane A (Core Fix) 범위
+- `publish/profile` 1개 흐름만 수정
+- 수정 파일:
+  - `src/lib/highlight-save.ts`
+  - `src/components/upload/HighlightSuggestionReview.tsx`
+  - `src/app/p/[handle]/client.tsx`
+- 반영 내용:
+  - clip 저장 성공 + featured 연결 실패를 전체 실패로 처리하지 않고 부분 성공으로 분리
+  - 저장 직후 이동 경로를 `saved=featured` / `saved=clip`으로 구분해 프로필 배너에서 상태를 명확히 안내
+
+### Lane B (QA / Playwright) 범위
+- 코드 기능 확장 없이 smoke/validation만 수행
+- 실행 커맨드:
+  - `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15' --grep '업로드 뒤 바로 편집에 들어갈 수 있다|/edit 재진입에서도 최근 single-clip draft를 복구한다|저장하면 프로필 대표 영상에 반영된다'`
+- 결과:
+  - `3 passed`
+  - 검증된 플로우:
+    - 업로드 → 편집
+    - 편집 → 저장 → `/edit` 재진입 복구
+    - 편집 → 저장 → profile 반영 확인
+
+### Lane C (UX / Copy Polish) 범위
+- 이번 라운드는 코드 수정 없이 정리 범위만 고정
+- 다음 라운드 대상:
+  - `HighlightSuggestionReview`의 CTA/설명문 군더더기 축소
+  - overlay safe area 안내 문구 단순화
+  - 한국어 행동형 문구 통일
+
+### 공통 검증
+- `npm run lint` → 통과 (`65 warnings`)
+- `npm run typecheck` → 통과
+- `npm run test:run` → 통과 (`9 files / 57 tests`)
+
+### 판정
+- 데이터 계약에 닿는 수정은 Lane A 한 곳으로 제한됐고, QA는 별도 lane에서 병렬 검증으로 닫혔다.
+- 이번 라운드에서 store/API/shared contract 대수술은 수행하지 않았다.
+
+## 23) Lane C 문구/safe area 폴리시 정리 (2026-04-10)
+
+### 범위
+- 계약 수정 없이 편집 화면의 한국어 문구, CTA 보조 문구, safe area 안내만 정리
+- 수정 파일:
+  - `src/components/upload/HighlightSuggestionReview.tsx`
+  - `src/components/upload/SingleClipEditorPreview.tsx`
+
+### 반영 내용
+- overlay 단계 안내를 행동 중심 문구로 축약
+- 하단 정보 설명을 `하단 안전 영역` 기준으로 통일
+- 미리보기 헬퍼 문구를 단계별 다음 행동 중심으로 단순화
+
+### 비범위 확인
+- `src/lib/*`, `src/stores/*`, `src/app/api/*` 변경 없음
+- 저장 payload, draft sync, playback contract 변경 없음
+
+## 24) Lane B 320px/지연 네트워크 스모크 확장 (2026-04-10)
+
+### 범위
+- 코드 기능 확장 없이 QA 시나리오 확장만 수행
+- 수정 파일:
+  - `tests/e2e/video/video-test-helpers.ts`
+  - `tests/e2e/video/video-upload-flow.spec.ts`
+
+### 반영 내용
+- mock video flow helper에 API 지연 옵션(`delayMs`)을 추가해 느린 네트워크 조건을 재현할 수 있게 했다.
+- video-upload-flow에 아래 smoke 2건을 추가했다.
+  - `320px 화면에서도 업로드 후 편집과 저장 버튼이 보인다`
+  - `지연 네트워크 조건에서도 업로드 후 저장까지 완료된다`
+
+### 실행 결과
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='Desktop Chrome' --grep '320px 화면에서도 업로드 후 편집과 저장 버튼이 보인다|지연 네트워크 조건에서도 업로드 후 저장까지 완료된다'`
+  - 결과: `2 passed`
+- `npx playwright test tests/e2e/video/video-upload-flow.spec.ts --project='iPhone 15' --grep 'iPhone 15 지연 조건에서도 업로드 후 저장까지 완료된다'`
+  - 결과: `1 passed`
+- `npm run lint`
+  - 결과: 통과 (`65 warnings`)
+- `npm run typecheck`
+  - 결과: 통과
+- `npm run test:run`
+  - 결과: 통과 (`9 files / 57 tests`)
+
+### 해석
+- 320px 근처 소형 화면에서 핵심 CTA 가시성은 smoke 기준으로 확인됐다.
+- 지연 조건에서도 업로드→편집→저장→프로필 이동의 핵심 경로는 Desktop/iPhone 15 smoke 모두 유지됐다.
+- 다만 장시간 업로드, 탭 전환/복귀, 네트워크 단절/복구 같은 고강도 실패 시나리오는 후속 검증 대상으로 남긴다.

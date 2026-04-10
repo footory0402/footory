@@ -39,8 +39,8 @@
 ## Legacy/reference docs
 
 - 아래 문서는 참고용이다. canonical 문서와 충돌하면 canonical 문서를 우선한다.
-- docs/UPLOAD-ARCHITECTURE.md
-- docs/ARCHITECTURE.md
+- docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md
+- docs/archive/2026-04-10/ARCHITECTURE.md
 - docs/repo-audit.md
 - tests/e2e/video/*.spec.ts
 - tests/e2e/upload-wizard.spec.ts
@@ -58,6 +58,16 @@
 - 한 번에 한 사용자 플로우만 고친다.
 - 새 기능 추가보다 기존 핵심 플로우 복구를 우선한다.
 - 작업 후 관련 문서와 테스트를 함께 갱신한다.
+
+## 리뷰 체크리스트
+- 변경이 해결하는 사용자 문제를 한 문장으로 설명할 수 있어야 한다.
+- 변경 이유가 "있으면 좋아 보임"이 아니라 선수 포트폴리오 가치와 직접 연결돼야 한다.
+- 변경은 프로필, clip 포트폴리오, 태그 포트폴리오, 객관 지표, 팀 컨텍스트 중 하나 이상에 기여해야 한다.
+- `Evidence > Opinion`, `Team is context, not identity` 원칙을 깨면 안 된다.
+- 소셜 피드화, 주관 평가, 편집 앱화 방향으로 흐르면 보류한다.
+- 영상 UX는 "예쁜 편집 앱"보다 "짧은 영상 빠른 업로드와 바로 재생"을 우선해야 한다.
+- 죽은 코드, 근거 없는 TODO/FIXME/debug 코드, 불필요한 feature flag를 남기지 않는다.
+- UI/저장/재생 변경은 핵심 사용자 흐름 회귀와 검증 근거를 함께 남긴다.
 
 ## Definition of done
 
@@ -79,11 +89,13 @@
 - 죽은 코드, 실험 흔적, 버려진 경로를 지울 때는 한 번에 넓게 지우지 않는다.
 - 먼저 `현재 사용 중`, `실험 흔적`, `삭제 후보`, `보류`를 구분한 뒤 단계적으로 정리한다.
 - 영상 업로드, 편집, 렌더링, 공개 링크 재생은 서로 연결된 흐름이므로 개별 파일만 보고 삭제하지 않는다.
+- 현재 `src/`, `tests/` 기준 import와 라우트 진입이 모두 없을 때만 저위험 삭제 후보로 본다.
+- 같은 역할의 구현이 여러 개면 바로 하나를 지우기보다 호출 위치와 데이터 차이를 먼저 비교한다.
+- 병합은 `하나를 남기고 하나를 삭제`보다 `공통 유틸 추출`을 먼저 검토한다.
+- `/api/render/*`, `/edit/[clipId]`, `upload-store` 레거시 필드, single-clip playback contract처럼 결합이 큰 영역은 별도 근거표 없이 건드리지 않는다.
 
 ## 참고 문서
 - 제품/개발 설명: `README.md`, `CLAUDE.md`
 - 현재 구조 진단: `docs/app-overview.md`, `docs/repo-audit.md`
 - 정리 순서와 우선순위: `docs/repo-recovery-plan.md`
-
-
 

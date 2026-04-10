@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { prepareR2BackgroundUpload } from "@/lib/upload-service";
-
-const MAX_SIZE = 200 * 1024 * 1024; // 200MB
-const MAX_DURATION = 300; // 5분
+import UploadProfileCardEditor from "@/components/upload/UploadProfileCardEditor";
+import UploadInlineError from "@/components/upload/UploadInlineError";
+import { validateUploadVideoFile } from "@/lib/upload-video-file";
 
 interface SelectViewProps {
   onFileReady: () => void;
@@ -64,26 +64,9 @@ export default function SelectView({
 
     setError(null);
     setDuration(0);
-
-    const isVideo =
-      selected.type.startsWith("video/") ||
-      selected.type === "application/octet-stream" ||
-      selected.type === "" ||
-      /\.(mp4|mov|m4v|webm|avi)$/i.test(selected.name);
-    if (!isVideo) {
-      setError("영상 파일이 아닌 것 같아요. MP4 또는 MOV 파일을 선택해주세요.");
-      return;
-    }
-
-    if (selected.size > MAX_SIZE) {
-      const sizeMB = (selected.size / 1024 / 1024).toFixed(0);
-      setError(`영상이 ${sizeMB}MB예요. 200MB 이내로 선택해주세요.`);
-      return;
-    }
-
-    const dur = await getVideoDuration(selected);
-    if (dur > MAX_DURATION) {
-      setError(`영상이 ${Math.floor(dur / 60)}분이에요. 5분 이내로 선택해주세요.`);
+    const { duration: dur, error: validationError } = await validateUploadVideoFile(selected);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -136,14 +119,9 @@ export default function SelectView({
             <span className="text-[12px] text-text-3">MP4, MOV · 5분 이내 · 200MB 이내</span>
           </div>
         </button>
-
-        <p className="mt-4 text-center text-[12px] text-text-3">
-          선수 정보는 업로드 뒤에 넣어도 돼요.
-        </p>
-
         {error && (
-          <div className="mt-3 rounded-xl bg-[#2a1f1f] px-4 py-3 ring-1 ring-[#ff6b6b]/20">
-            <p className="text-[13px] leading-relaxed text-[#ff8a8a] whitespace-pre-line">{error}</p>
+          <div className="mt-3">
+            <UploadInlineError message={error} />
           </div>
         )}
 
@@ -302,6 +280,8 @@ export default function SelectView({
         </div>
       )}
 
+      <UploadProfileCardEditor key={store.childId ?? "self"} />
+
       {/* 다음 단계 버튼 */}
       <div className="px-4 pt-4">
         <button
@@ -329,28 +309,4 @@ export default function SelectView({
       />
     </div>
   );
-}
-
-function getVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve) => {
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.muted = true;
-    video.playsInline = true;
-    const timeoutId = setTimeout(() => {
-      URL.revokeObjectURL(video.src);
-      resolve(0);
-    }, 10_000);
-    video.onloadedmetadata = () => {
-      clearTimeout(timeoutId);
-      URL.revokeObjectURL(video.src);
-      resolve(video.duration);
-    };
-    video.onerror = () => {
-      clearTimeout(timeoutId);
-      URL.revokeObjectURL(video.src);
-      resolve(0);
-    };
-    video.src = URL.createObjectURL(file);
-  });
 }

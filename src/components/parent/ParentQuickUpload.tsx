@@ -3,17 +3,10 @@
 import { useState, useCallback } from "react";
 import type { LinkedChild } from "@/hooks/useParent";
 import { useUploadStore } from "@/stores/upload-store";
-import { getPublicVideoUrl } from "@/lib/r2-client";
-import { captureVideoThumbnail } from "@/lib/thumbnail";
-import {
-  requestUploadPresign,
-  uploadToPresignedWithDirectFallback,
-} from "@/lib/upload-network";
-import { buildParentUploadPayload } from "@/lib/upload-payload";
+import { startUpload as startManagedUpload } from "@/lib/upload-service";
 import VideoSelector from "@/components/upload/VideoSelector";
 import TagMemoForm from "@/components/upload/TagMemoForm";
 import Button from "@/components/ui/Button";
-import { getFileDuration } from "@/lib/video";
 
 interface ParentQuickUploadProps {
   child: LinkedChild;
@@ -34,80 +27,35 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
     store.setChildId(child.childId);
   });
 
-  const startUpload = useCallback(async () => {
+  const handleUpload = useCallback(async () => {
     if (!store.file || uploading) return;
 
     try {
       setUploading(true);
       setError(null);
-
-      // 1. Get presigned URL
-      const { url, key, clipId } = await requestUploadPresign({
-        contentType: "video/mp4",
-        fileName: store.file.name,
-        fileSize: store.file.size,
-      });
-      if (!clipId) throw new Error("Presign 응답에 clipId가 없습니다.");
-
-      // 2. Upload to R2
-      await uploadToPresignedWithDirectFallback({
-        url,
-        key,
-        file: store.file,
-        contentType: "video/mp4",
-      });
-
-      // 3. Capture thumbnail
-      const duration = store.file ? await getFileDuration(store.file) : 0;
-      let thumbnailUrl: string | null = null;
-
-      if (store.file) {
-        const thumbBlob = await captureVideoThumbnail(store.file);
-        if (thumbBlob) {
-          const thumbPresign = await requestUploadPresign({ type: "thumbnail", clipId })
-            .catch(() => null);
-          if (thumbPresign) {
-            await uploadToPresignedWithDirectFallback({
-              url: thumbPresign.url,
-              key: thumbPresign.key,
-              file: thumbBlob,
-              contentType: "image/jpeg",
-            });
-            thumbnailUrl = getPublicVideoUrl(thumbPresign.key);
-          }
-        }
+      const snapshot = useUploadStore.getState();
+      if (snapshot.status !== "idle" && snapshot.status !== "error") {
+        snapshot.setStatus("idle");
+        snapshot.setError(null);
       }
 
-      // 4. Save clip via parent upload API
-      const videoUrl = getPublicVideoUrl(key);
-      const clipRes = await fetch("/api/parent/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          buildParentUploadPayload({
-            childId: child.childId,
-            clipId,
-            videoUrl,
-            durationSeconds: duration || null,
-            fileSizeBytes: store.file?.size ?? null,
-            tags: store.tags,
-            thumbnailUrl,
-          }),
-        ),
-      });
-
-      if (!clipRes.ok) {
-        const { error: msg } = await clipRes.json();
-        throw new Error(msg || "클립 저장 실패");
+      await startManagedUpload();
+      const result = useUploadStore.getState();
+      if (result.status === "done") {
+        setDone(true);
+        return;
       }
-
-      setDone(true);
+      if (result.status === "error") {
+        setError(result.error || "업로드 실패");
+        return;
+      }
+      setError("업로드 상태를 확인하지 못했어요. 다시 시도해주세요.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "업로드 실패");
     } finally {
       setUploading(false);
     }
-  }, [store, child.childId, uploading]);
+  }, [store, uploading]);
 
   const handleFinish = () => {
     store.reset();
@@ -183,7 +131,7 @@ export default function ParentQuickUpload({ child, onClose, onComplete }: Parent
               <Button
                 variant="primary"
                 size="full"
-                onClick={startUpload}
+                onClick={handleUpload}
                 disabled={uploading || store.tags.length === 0}
               >
                 {uploading ? "업로드 중..." : "업로드"}

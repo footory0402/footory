@@ -29,8 +29,8 @@
 
 | 코드 | 현재 동작 | 어긋나는 문서 | 차이 |
 | --- | --- | --- | --- |
-| `src/app/upload/page.tsx` | 메인 업로드 흐름이 `select -> processing -> review`로 바뀌었다. `DecorateView`, `DoneView`는 메인 경로에서 빠졌다. | `docs/app-overview.md`, `docs/repo-audit.md`, `docs/subagents.md`, `CLAUDE.md` | 문서는 여전히 `SelectView -> DecorateView -> DoneView` 또는 2단계 꾸미기 위저드 기준으로 설명한다. |
-| `src/components/upload/SelectView.tsx` | 버튼 라벨을 바꿀 수 있고, 파일 선택 직후 백그라운드 업로드를 시작하지 않을 수도 있다. 현재 `/upload`에서는 `업로드 시작` 버튼을 누른 뒤 처리 단계로 넘어간다. | `docs/UPLOAD-ARCHITECTURE.md`, `docs/app-overview.md` | 기존 문서는 파일 선택 직후 곧바로 백그라운드 업로드가 시작된다고 설명한다. |
+| `src/app/upload/page.tsx` | 메인 업로드 흐름이 `select -> processing -> review`로 바뀌었다. `DecorateView`, `DoneView`는 메인 경로에서 빠졌다. | `docs/app-overview.md`, `docs/repo-audit.md`, `docs/archive/2026-04-10/subagents.md`, `CLAUDE.md` | 문서는 여전히 `SelectView -> DecorateView -> DoneView` 또는 2단계 꾸미기 위저드 기준으로 설명한다. |
+| `src/components/upload/SelectView.tsx` | 버튼 라벨을 바꿀 수 있고, 파일 선택 직후 백그라운드 업로드를 시작하지 않을 수도 있다. 현재 `/upload`에서는 `업로드 시작` 버튼을 누른 뒤 처리 단계로 넘어간다. | `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md`, `docs/app-overview.md` | archived 문서는 파일 선택 직후 곧바로 백그라운드 업로드가 시작된다고 설명한다. |
 | `src/components/upload/UploadProcessingView.tsx`, `src/components/upload/GlobalUploadIndicator.tsx` | `analyzing` 상태와 단계형 처리 화면이 추가됐다. | `docs/app-overview.md`, `docs/repo-audit.md` | 현재 문서에는 처리 화면과 기본 하이라이트 제안 생성 단계가 아직 반영되지 않았다. |
 | `src/components/upload/HighlightSuggestionReview.tsx`, `src/lib/highlight-suggestion.ts` | 업로드 직후 기본 컷 제안, 대표 컷 선택, 컷 순서 이동, 시작/끝 미세 조정, 저장 준비 UI가 생겼다. | `docs/testing/video-highlight-acceptance.md`, `docs/testing/playwright-scenarios.md`, `docs/repo-audit.md` | 세 문서의 "현재 구현에는 아직 없다"는 설명 일부가 더 이상 맞지 않는다. |
 | `src/lib/highlight-save.ts`, `src/app/api/clips/[id]/route.ts` | 저장 시 기존 `clips` 레코드에 `highlight_start`, `highlight_end`, `trim_start`, `trim_end`, `duration_sec`를 직접 반영하고, 필요하면 `featured_clips` 또는 `clip_tags`를 갱신한다. | `docs/media-pipeline.md`, `docs/video-upload-editing-spec.md` | 문서는 원본, 편집 프로젝트, 최종 결과물을 분리해 저장하는 방향인데 현재 구현은 기존 클립 메타데이터를 직접 수정한다. |
@@ -90,7 +90,7 @@
 - 연결이 약하다는 이유만으로 즉시 삭제할 단계는 아니다.
 
 ### 4. 기존 업로드 관련 테스트와 문서 흔적
-- `tests/e2e/upload-wizard.spec.ts`, `docs/UPLOAD-ARCHITECTURE.md`, `CLAUDE.md`는 일부 내용이 낡았지만 아직 참조 지점이 있다.
+- `tests/e2e/upload-wizard.spec.ts`, `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md`, `CLAUDE.md`는 일부 내용이 낡았지만 아직 참조 지점이 있다.
 - 먼저 현재 기준 문서를 잠그고, 그 다음에 현재 설명과 목표 설명을 나눠 정리해야 한다.
 
 ## 이번 단계 결론

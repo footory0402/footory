@@ -93,7 +93,7 @@ const getProfile = cache(async (handle: string) => {
     supabase
       .from("clips")
       .select(
-        "id, created_at, video_url, thumbnail_url, duration_seconds, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)"
+        "id, created_at, video_url, thumbnail_url, duration_seconds, duration_sec, highlight_start, highlight_end, effects, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, clip_tags(tag_name, is_top)"
       )
       .eq("owner_id", profile.id)
       .order("created_at", { ascending: false }),
@@ -122,13 +122,14 @@ const getProfile = cache(async (handle: string) => {
       .filter((clip) => ((clip.clip_tags as { tag_name: string }[] | undefined) ?? []).length > 0)
       .map((clip) => clip.id),
   );
-  const clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null; effects?: Record<string, boolean> | null; spotlight_x?: number | null; spotlight_y?: number | null; freeze_at?: number | null; trim_start?: number | null; trim_end?: number | null }> = {};
-  for (const c of (tagClipsData.data ?? []) as { id: string; video_url: string; thumbnail_url: string | null; duration_seconds: number | null; effects: Record<string, boolean> | null; spotlight_x: number | null; spotlight_y: number | null; freeze_at: number | null; trim_start: number | null; trim_end: number | null }[]) {
+  const clipsMap: Record<string, { video_url: string; thumbnail_url: string | null; duration_seconds: number | null; duration_sec?: number | null; effects?: Record<string, boolean> | null; spotlight_x?: number | null; spotlight_y?: number | null; freeze_at?: number | null; trim_start?: number | null; trim_end?: number | null }> = {};
+  for (const c of (tagClipsData.data ?? []) as { id: string; video_url: string; thumbnail_url: string | null; duration_seconds: number | null; duration_sec: number | null; effects: Record<string, boolean> | null; spotlight_x: number | null; spotlight_y: number | null; freeze_at: number | null; trim_start: number | null; trim_end: number | null }[]) {
     if (clipIds.has(c.id)) {
       clipsMap[c.id] = {
         video_url: c.video_url,
         thumbnail_url: c.thumbnail_url,
         duration_seconds: c.duration_seconds,
+        duration_sec: c.duration_sec ?? null,
         effects: c.effects ?? null,
         spotlight_x: c.spotlight_x ?? null,
         spotlight_y: c.spotlight_y ?? null,
@@ -155,12 +156,12 @@ const getProfile = cache(async (handle: string) => {
   const { data: reelClips } = reelClipIds.length > 0
     ? await supabase
         .from("clips")
-        .select("id, duration_seconds, trim_start, trim_end")
+        .select("id, duration_seconds, duration_sec, trim_start, trim_end")
         .in("id", reelClipIds)
-    : { data: [] as { id: string; duration_seconds: number | null; trim_start: number | null; trim_end: number | null }[] };
+    : { data: [] as { id: string; duration_seconds: number | null; duration_sec: number | null; trim_start: number | null; trim_end: number | null }[] };
   const reelClipDurationMap = new Map(
     (reelClips ?? []).map((clip) => {
-      const rawDuration = clip.duration_seconds ?? 0;
+      const rawDuration = clip.duration_sec ?? clip.duration_seconds ?? 0;
       const trimStart = clip.trim_start ?? 0;
       const trimEnd = clip.trim_end ?? rawDuration;
       return [clip.id, Math.max(0, trimEnd - trimStart)];

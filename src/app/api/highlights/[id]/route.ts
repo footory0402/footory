@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     // 클립 데이터 fetch
     const { data: clips } = await supabase
       .from("clips")
-      .select("id, video_url, thumbnail_url, duration_seconds, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, slowmo_start, slowmo_end, slowmo_speed, bgm_id, effects, memo")
+      .select("id, video_url, thumbnail_url, duration_seconds, duration_sec, highlight_start, highlight_end, spotlight_x, spotlight_y, freeze_at, trim_start, trim_end, slowmo_start, slowmo_end, slowmo_speed, bgm_id, effects, memo")
       .in("id", highlight.clip_ids);
 
     // clip_ids 순서대로 정렬

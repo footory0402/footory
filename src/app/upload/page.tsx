@@ -7,10 +7,11 @@ import { useRouter } from "next/navigation";
 import SelectView from "@/components/upload/SelectView";
 import UploadProcessingView from "@/components/upload/UploadProcessingView";
 import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
-import { createSingleClipEditingDraft, type SingleClipEditingDraft } from "@/lib/single-clip-playback";
+import { type SingleClipEditingDraft } from "@/lib/single-clip-playback";
 import { publishSingleClipDraft } from "@/lib/highlight-save";
 import { abortActiveUploadWork, startUpload } from "@/lib/upload-service";
 import { loadLatestSingleClipProject, markVideoProjectOpened, type SingleClipProjectResponse } from "@/lib/video-projects";
+import { applySingleClipDraftToUploadStore, createSingleClipDraftFromStoreSource } from "@/lib/single-clip-store-sync";
 
 export default function UploadPage() {
   const router = useRouter();
@@ -108,21 +109,15 @@ export default function UploadPage() {
       if (cancelled) return;
 
       const fresh = useUploadStore.getState();
-      const durationSec = fresh.duration ?? 0;
-      const clipId = fresh.clipId ?? crypto.randomUUID();
-      const draft = createSingleClipEditingDraft({
-        clipId,
-        sourceDurationSec: durationSec,
-        trimStart: fresh.trimStart,
-        trimEnd: fresh.trimEnd ?? durationSec,
-        spotlight: fresh.spotlightX != null && fresh.spotlightY != null
-          ? { x: fresh.spotlightX, y: fresh.spotlightY }
-          : null,
-        freezeAt: fresh.freezeAt,
-        zoom: fresh.effects.focusZoom,
-        showProfileCard: true,
-        showLowerThird: fresh.effects.showLowerThird,
-      });
+      if (!fresh.clipId) {
+        fresh.setClipId(crypto.randomUUID());
+      }
+      const draft = createSingleClipDraftFromStoreSource(useUploadStore.getState());
+      if (!draft) {
+        fresh.setStatus("error");
+        fresh.setError("편집 초안을 만들지 못했어요.");
+        return;
+      }
 
       fresh.setEditorDraft(draft);
       fresh.setStatus("idle");
@@ -173,30 +168,18 @@ export default function UploadPage() {
       lastSavedAt: recoverableDraft.project.updated_at,
     };
 
-    store.setClipId(recoverableDraft.clip.id);
-    store.setDuration(
+    const durationSec =
       recoverableDraft.clip.duration_sec ??
       recoverableDraft.clip.duration_seconds ??
-      recoverableDraft.project.payload.sourceDurationSec,
-    );
-    store.setTrimStart(restoredDraft.playback.trimStart);
-    store.setTrimEnd(restoredDraft.playback.trimEnd);
-    store.setSpotlight(
-      restoredDraft.playback.spotlight?.x ?? null,
-      restoredDraft.playback.spotlight?.y ?? null,
-    );
-    store.setFreezeAt(restoredDraft.playback.freezeAt);
-    store.setEffects({
-      intro: restoredDraft.overlay.showProfileCard,
-      showLowerThird: restoredDraft.overlay.showLowerThird,
-      focusZoom: restoredDraft.playback.zoom,
+      recoverableDraft.project.payload.sourceDurationSec;
+
+    applySingleClipDraftToUploadStore({
+      store,
+      draft: restoredDraft,
+      clipId: recoverableDraft.clip.id,
+      durationSec,
+      tags: recoverableDraft.clip.tags,
     });
-    store.setTags(recoverableDraft.clip.tags);
-    store.setEditorDraft(restoredDraft);
-    store.setStatus("idle");
-    store.setError(null);
-    store.setProgress(0);
-    store.setPhase("review");
     setVideoUrl(recoverableDraft.clip.video_url);
     setRecoverableDraft(null);
 
@@ -209,25 +192,12 @@ export default function UploadPage() {
 
   const handleSaveNow = useCallback(async () => {
     const state = useUploadStore.getState();
-    if (!state.clipId) return;
-
-    const activeDraft = state.editorDraft ?? createSingleClipEditingDraft({
-      clipId: state.clipId,
-      sourceDurationSec: state.duration ?? 0,
-      trimStart: state.trimStart,
-      trimEnd: state.trimEnd ?? state.duration ?? 0,
-      spotlight: state.spotlightX != null && state.spotlightY != null
-        ? { x: state.spotlightX, y: state.spotlightY }
-        : null,
-      freezeAt: state.freezeAt,
-      zoom: state.effects.focusZoom,
-      showProfileCard: true,
-      showLowerThird: state.effects.showLowerThird,
-    });
+    const activeDraft = state.editorDraft ?? createSingleClipDraftFromStoreSource(state);
+    if (!activeDraft || !activeDraft.clipId) return;
 
     await publishSingleClipDraft({
       draft: activeDraft,
-      clipId: state.clipId,
+      clipId: activeDraft.clipId,
       existingTags: state.tags,
     });
 

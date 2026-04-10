@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import ClipPlayerSheet, { type PlayableClip } from "@/components/player/ClipPlayerSheet";
+import { buildSingleClipPlaybackContract } from "@/lib/single-clip-playback";
 import TagEditSheet from "@/components/player/TagEditSheet";
 import { useFeaturedClips } from "@/hooks/useClips";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -57,6 +58,10 @@ interface HighlightsTabV5Props {
     clips?: {
       video_url: string;
       thumbnail_url?: string | null;
+      duration_seconds?: number | null;
+      duration_sec?: number | null;
+      highlight_start?: number | null;
+      highlight_end?: number | null;
       effects?: Record<string, boolean> | null;
       spotlight_x?: number | null;
       spotlight_y?: number | null;
@@ -120,7 +125,7 @@ export default function HighlightsTabV5({
   }, [fetchFeatured, readOnly]);
 
   useEffect(() => {
-    if (readOnly || initialReels) return;
+    if (readOnly) return;
     fetch("/api/highlights")
       .then((r) => r.json())
       .then((data) => setReels(data.highlights ?? []))
@@ -135,24 +140,14 @@ export default function HighlightsTabV5({
       const data = await res.json();
       const clips: PlayableClip[] = (data.clips ?? []).map((c: {
         id: string; video_url: string; thumbnail_url?: string | null;
+        duration_seconds?: number | null; duration_sec?: number | null;
+        highlight_start?: number | null; highlight_end?: number | null;
         spotlight_x?: number | null; spotlight_y?: number | null;
         freeze_at?: number | null; trim_start?: number | null; trim_end?: number | null;
         slowmo_start?: number | null; slowmo_end?: number | null; slowmo_speed?: number | null;
         bgm_id?: string | null; effects?: PlayableClip["effects"];
       }) => ({
-        id: c.id,
-        videoUrl: c.video_url,
-        thumbnailUrl: c.thumbnail_url,
-        spotlightX: c.spotlight_x,
-        spotlightY: c.spotlight_y,
-        freezeAt: c.freeze_at,
-        trimStart: c.trim_start,
-        trimEnd: c.trim_end,
-        slowmoStart: c.slowmo_start,
-        slowmoEnd: c.slowmo_end,
-        slowmoSpeed: c.slowmo_speed,
-        bgmId: c.bgm_id,
-        effects: c.effects,
+        ...buildSingleClipPlaybackContract(c),
         playerName: playerName ?? undefined,
         playerPosition: position ?? undefined,
         playerBirthYear: playerBirthYear ?? undefined,
@@ -277,21 +272,39 @@ export default function HighlightsTabV5({
   // Playable arrays
   const featuredPlayable: PlayableClip[] = featured
     .filter((f) => f.clips?.video_url)
-    .map((f) => ({
+    .map((f) => {
+      const featuredClip = f.clips as {
+        video_url: string;
+        thumbnail_url?: string | null;
+        duration_seconds?: number | null;
+        duration_sec?: number | null;
+        effects?: PlayableClip["effects"];
+        spotlight_x?: number | null;
+        spotlight_y?: number | null;
+        freeze_at?: number | null;
+        trim_start?: number | null;
+        trim_end?: number | null;
+      };
+
+      return ({
       id: f.clip_id,
-      videoUrl: f.clips!.video_url,
-      thumbnailUrl: f.clips?.thumbnail_url,
-      effects: f.clips?.effects ? (f.clips.effects as PlayableClip["effects"]) : null,
-      spotlightX: f.clips?.spotlight_x ?? null,
-      spotlightY: f.clips?.spotlight_y ?? null,
-      freezeAt: f.clips?.freeze_at ?? null,
-      trimStart: f.clips?.trim_start ?? null,
-      trimEnd: f.clips?.trim_end ?? null,
+      videoUrl: featuredClip.video_url,
+      thumbnailUrl: featuredClip.thumbnail_url,
+      duration: featuredClip.trim_start != null && featuredClip.trim_end != null
+        ? Math.max(0, featuredClip.trim_end - featuredClip.trim_start)
+        : featuredClip.duration_sec ?? featuredClip.duration_seconds ?? null,
+      effects: featuredClip.effects ?? null,
+      spotlightX: featuredClip.spotlight_x ?? null,
+      spotlightY: featuredClip.spotlight_y ?? null,
+      freezeAt: featuredClip.freeze_at ?? null,
+      trimStart: featuredClip.trim_start ?? null,
+      trimEnd: featuredClip.trim_end ?? null,
       playerName: playerName ?? undefined,
       playerPosition: position ?? undefined,
       playerBirthYear: playerBirthYear ?? undefined,
       teamName: playerTeamName ?? undefined,
-    }));
+    });
+    });
 
   const gridPlayable: PlayableClip[] = filteredClips
     .filter((c) => !!c.videoUrl)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import HeroSection from "@/components/profile/HeroSection";
 import ProfileTabBar, { type ProfileTabKey } from "@/components/profile/ProfileTabBar";
 import HighlightsTabV5 from "@/components/profile/HighlightsTabV5";
@@ -50,6 +50,9 @@ interface FeaturedClip {
     video_url: string;
     thumbnail_url: string | null;
     duration_seconds: number | null;
+    duration_sec?: number | null;
+    highlight_start?: number | null;
+    highlight_end?: number | null;
     effects?: Record<string, boolean> | null;
     spotlight_x?: number | null;
     spotlight_y?: number | null;
@@ -244,6 +247,10 @@ function mapSeasons(rows: Record<string, unknown>[]): Season[] {
 
 export default function PublicProfileClient({ profile: data }: { profile: PublicProfileData }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const savedState = searchParams.get("saved");
+  const justSavedFeatured = savedState === "featured";
+  const justSavedClipOnly = savedState === "clip";
   const [activeTab, setActiveTab] = useState<ProfileTabKey>(
     () => data.viewerAccess?.role === "scout" ? "records" : "highlights"
   );
@@ -372,6 +379,15 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   return (
     <ErrorBoundary>
     <div className="mx-auto max-w-[430px] pb-24">
+      {(justSavedFeatured || justSavedClipOnly) && (
+        <div className="mx-4 mb-3 rounded-xl border border-[rgba(212,168,83,0.28)] bg-[rgba(212,168,83,0.12)] px-4 py-3">
+          <p className="text-[12px] font-semibold text-[var(--color-accent)]">
+            {justSavedFeatured
+              ? "대표 영상으로 저장했어요."
+              : "영상은 저장했어요. 대표 영상 연결은 여기서 다시 할 수 있어요."}
+          </p>
+        </div>
+      )}
       {/* 뒤로가기 헤더 — 타인 프로필만 */}
       {!data.isOwnProfile && (
         <div className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 glass-nav">

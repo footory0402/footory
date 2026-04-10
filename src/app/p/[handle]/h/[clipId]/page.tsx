@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database";
+import { buildSingleClipPlaybackContract } from "@/lib/single-clip-playback";
 import HighlightSharePlayerClient from "./HighlightSharePlayerClient";
 
 interface Props {
@@ -30,7 +31,7 @@ async function getHighlightData(handle: string, clipId: string) {
       .single(),
     supabase
       .from("clips")
-      .select("id, video_url, thumbnail_url, duration_seconds, highlight_status, trim_start, trim_end, spotlight_x, spotlight_y, freeze_at, slowmo_start, slowmo_end, slowmo_speed, effects")
+      .select("id, video_url, thumbnail_url, duration_seconds, duration_sec, highlight_status, trim_start, trim_end, highlight_start, highlight_end, spotlight_x, spotlight_y, freeze_at, slowmo_start, slowmo_end, slowmo_speed, effects")
       .eq("id", clipId)
       .eq("owner_id", profile.id)
       .single(),
@@ -93,19 +94,10 @@ export default async function HighlightSharePage({ params }: Props) {
   const { profile, clip } = data;
   const tags = clip.clip_tags.map((t) => t.tag_name);
   const playableClip = {
-    id: clip.id,
-    videoUrl: clip.video_url,
-    thumbnailUrl: clip.thumbnail_url ?? null,
-    duration: clip.duration_seconds ?? null,
-    trimStart: clip.trim_start ?? null,
-    trimEnd: clip.trim_end ?? null,
-    spotlightX: clip.spotlight_x ?? null,
-    spotlightY: clip.spotlight_y ?? null,
-    freezeAt: clip.freeze_at ?? null,
-    slowmoStart: clip.slowmo_start ?? null,
-    slowmoEnd: clip.slowmo_end ?? null,
-    slowmoSpeed: clip.slowmo_speed ?? null,
-    effects: (clip.effects as { [key: string]: Json | undefined } | null) ?? null,
+    ...buildSingleClipPlaybackContract({
+      ...clip,
+      effects: (clip.effects as { [key: string]: Json | undefined } | null) ?? null,
+    }),
     playerName: profile.name,
     playerPosition: profile.position ?? null,
     playerBirthYear: profile.birth_year ?? null,

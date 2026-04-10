@@ -133,7 +133,7 @@
 
 | 문서/테스트 | 실제 코드 | 차이 |
 |---|---|---|
-| `docs/UPLOAD-ARCHITECTURE.md` | `src/lib/upload-service.ts` | 문서는 `MULTIPART_THRESHOLD`를 200MB로 설명하지만 실제 코드는 50MB다. |
+| `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md` | `src/lib/upload-service.ts` | archived 문서는 `MULTIPART_THRESHOLD`를 200MB로 설명하지만 실제 코드는 50MB다. |
 | `CLAUDE.md`의 `/editor/video` 설명 | `src/app/editor/video/page.tsx` | 문서는 하이라이트 에디터 경로로 설명하지만 실제 라우트는 `/upload` 리다이렉트다. |
 | `CLAUDE.md`의 `/upload/child/[id]` 설명 | `src/app/upload/child/[id]/page.tsx` | 문서는 부모용 자녀 업로드로 설명하지만 실제 코드는 자녀 프로필 편집 페이지다. |
 | `tests/e2e/video/video-upload-flow.spec.ts` | `src/app/upload/page.tsx`, `src/components/upload/DecorateView.tsx` | 테스트는 `꾸미기 -> 태그 -> 효과 -> 공유`의 구형 흐름과 코치마크를 기대하지만 현재 구현은 그 구조가 아니다. |

@@ -109,7 +109,7 @@ function ToggleRow({
 }
 
 export default function HighlightSuggestionReview({
-  draft,
+  draft: initialDraft,
   videoSrc,
   onReset,
 }: HighlightSuggestionReviewProps) {
@@ -120,16 +120,23 @@ export default function HighlightSuggestionReview({
   const setEditorDraft = useUploadStore((state) => state.setEditorDraft);
 
   const [activeTool, setActiveTool] = useState<EditorTool>("trim");
-  const [previewTime, setPreviewTime] = useState(draft.playback.trimStart);
+  const [previewTime, setPreviewTime] = useState(initialDraft.playback.trimStart);
   const [saveState, setSaveState] = useState<"idle" | "autosaving" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSummary, setSaveSummary] = useState<string | null>(null);
   const [draftSyncEnabled, setDraftSyncEnabled] = useState(true);
   const [draggingTrimHandle, setDraggingTrimHandle] = useState<"start" | "end" | null>(null);
   const [highlightEditorOverride, setHighlightEditorOverride] = useState<boolean | null>(null);
+  const [profileCardEnabled, setProfileCardEnabled] = useState(initialDraft.overlay.showProfileCard);
   const lastAutosaveKeyRef = useRef<string | null>(null);
   const trimBarRef = useRef<HTMLDivElement>(null);
   const { guideStep, dismissStep, skipAll } = useUploadGuide();
+  const [draft, setDraft] = useState(initialDraft);
+
+  useEffect(() => {
+    setDraft(initialDraft);
+  }, [initialDraft]);
+
   const safePreviewTime = Math.min(
     Math.max(previewTime, draft.playback.trimStart),
     draft.playback.trimEnd,
@@ -140,20 +147,12 @@ export default function HighlightSuggestionReview({
   const nextTool = toolIndex < TOOL_ORDER.length - 1 ? TOOL_ORDER[toolIndex + 1] : null;
 
   const commitDraft = useCallback((updater: (current: SingleClipEditingDraft) => SingleClipEditingDraft) => {
-    setEditorDraft(updateSingleClipEditingDraft(draft, updater));
+    const currentDraft = useUploadStore.getState().editorDraft ?? draft;
+    const nextDraft = updateSingleClipEditingDraft(currentDraft, updater);
+    setDraft(nextDraft);
+    setEditorDraft(nextDraft);
     setSaveError(null);
     setSaveSummary(null);
-  }, [draft, setEditorDraft]);
-
-  useEffect(() => {
-    if (draft.overlay.showProfileCard) return;
-    setEditorDraft(updateSingleClipEditingDraft(draft, (current) => ({
-      ...current,
-      overlay: {
-        ...current.overlay,
-        showProfileCard: true,
-      },
-    })));
   }, [draft, setEditorDraft]);
 
   const playerName = childName ?? profile?.name ?? "PLAYER";
@@ -206,6 +205,10 @@ export default function HighlightSuggestionReview({
       || draft.playback.highlightEnd !== draft.playback.trimEnd
     );
 
+  useEffect(() => {
+    setProfileCardEnabled(draft.overlay.showProfileCard);
+  }, [draft.overlay.showProfileCard]);
+
   const handleTrimDrag = useCallback((
     event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
     handle: "start" | "end",
@@ -243,33 +246,37 @@ export default function HighlightSuggestionReview({
   }, [commitDraft, draft.playback.trimEnd, draft.playback.trimStart, draft.sourceDurationSec]);
 
   const handleSave = async () => {
+    const currentDraft = useUploadStore.getState().editorDraft ?? draft;
+
     setSaveState("saving");
     setSaveError(null);
     setSaveSummary(null);
 
     try {
       const result = await publishSingleClipDraft({
-        draft,
-        clipId: draft.clipId,
+        draft: currentDraft,
+        clipId: currentDraft.clipId,
         existingTags: storeTags,
       });
 
       const latestDraft = useUploadStore.getState().editorDraft;
-      const projectId = latestDraft?.projectId ?? draft.projectId;
-      if (latestDraft && latestDraft.clipId === draft.clipId && projectId) {
+      const projectId = latestDraft?.projectId ?? currentDraft.projectId;
+      if (latestDraft && latestDraft.clipId === currentDraft.clipId && projectId) {
         setEditorDraft(markSingleClipDraftPersisted(latestDraft, {
           projectId,
           projectStatus: "published",
         }));
       }
       setSaveSummary(
-        result.publishTransition === "republished"
-          ? `${result.connectionLabel}에 다시 반영했어요.`
-          : `${result.connectionLabel}에 저장했어요.`,
+        result.featuredLinkFailed
+          ? "영상은 저장했어요. 대표 영상 연결은 프로필에서 다시 해주세요."
+          : result.publishTransition === "republished"
+            ? `${result.connectionLabel}에 다시 반영했어요.`
+            : `${result.connectionLabel}에 저장했어요.`,
       );
       useUploadStore.getState().reset();
       setSaveState("idle");
-      router.replace("/profile");
+      router.replace(result.featuredLinkFailed ? "/profile?saved=clip" : "/profile?saved=featured");
     } catch (error) {
       const message = error instanceof Error ? error.message : "저장에 실패했습니다.";
       setSaveState("error");
@@ -293,12 +300,26 @@ export default function HighlightSuggestionReview({
     const timeoutId = window.setTimeout(() => {
       void (async () => {
         try {
+          const currentDraft = useUploadStore.getState().editorDraft ?? draft;
+          const currentAutosaveKey = JSON.stringify({
+            projectId: currentDraft.projectId,
+            playback: currentDraft.playback,
+            overlay: currentDraft.overlay,
+            saveTarget: currentDraft.saveTarget,
+            lastEditedAt: currentDraft.lastEditedAt,
+          });
+
+          if (lastAutosaveKeyRef.current === currentAutosaveKey) {
+            setSaveState((current) => (current === "saving" ? current : "idle"));
+            return;
+          }
+
           setSaveState((current) => (current === "saving" ? current : "autosaving"));
-          const persistedDraft = await saveSingleClipDraft({ draft });
-          lastAutosaveKeyRef.current = autosaveKey;
+          const persistedDraft = await saveSingleClipDraft({ draft: currentDraft });
+          lastAutosaveKeyRef.current = currentAutosaveKey;
 
           const latestDraft = useUploadStore.getState().editorDraft;
-          if (latestDraft && latestDraft.clipId === draft.clipId && persistedDraft.projectId) {
+          if (latestDraft && latestDraft.clipId === currentDraft.clipId && persistedDraft.projectId) {
             setEditorDraft({
               ...latestDraft,
               projectId: persistedDraft.projectId,
@@ -355,6 +376,42 @@ export default function HighlightSuggestionReview({
                 : draft.lastSavedAt
                   ? "임시 저장됨"
                   : "편집 중"}
+          </div>
+        </div>
+
+        <div className="relative z-10 px-4 pb-3">
+          <div className="rounded-3xl border border-[#d8b36a]/18 bg-[#d8b36a]/[0.08] p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[13px] font-semibold text-text-1">영상에 선수 프로필 카드 넣기</p>
+                <p className="mt-1 text-[12px] leading-5 text-text-2">
+                  업로드에서 저장한 카드를 영상 시작에 잠깐 보여줘요.
+                </p>
+              </div>
+              <button
+                type="button"
+                data-testid="single-clip-profile-card-toggle"
+                aria-pressed={profileCardEnabled}
+                onClick={() => {
+                  const next = !profileCardEnabled;
+                  setProfileCardEnabled(next);
+                  commitDraft((current) => ({
+                    ...current,
+                    overlay: {
+                      ...current.overlay,
+                      showProfileCard: next,
+                    },
+                  }));
+                }}
+                className={`relative z-10 shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold ${
+                  profileCardEnabled
+                    ? "bg-[#d8b36a] text-[#09090b]"
+                    : "bg-white/[0.08] text-text-2"
+                }`}
+              >
+                {profileCardEnabled ? "보임" : "숨김"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -689,22 +746,12 @@ export default function HighlightSuggestionReview({
             <div data-testid="single-clip-overlay-panel" className="space-y-4">
               <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
                 <p className="text-[13px] font-semibold text-[#f6d69a]">정보는 작게만 보여주면 돼요.</p>
-                <p className="mt-1 text-[12px] leading-5 text-text-2">필요 없으면 끄고 저장해도 됩니다.</p>
-              </div>
-
-              <div className="rounded-3xl border border-[#d8b36a]/20 bg-[#d8b36a]/10 p-4">
-                <p className="text-[14px] font-semibold text-text-1">재생 전 프로필 카드</p>
-                <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  이 카드는 항상 먼저 보여줄게요. 선수 소개 첫인상은 유지합니다.
-                </p>
-                <span className="mt-3 inline-flex rounded-full bg-[#d8b36a] px-3 py-1.5 text-[11px] font-bold text-[#09090b]">
-                  항상 켜짐
-                </span>
+                <p className="mt-1 text-[12px] leading-5 text-text-2">필요 없으면 끄고 바로 저장하세요.</p>
               </div>
 
               <ToggleRow
                 title="재생 중 하단 정보"
-                description="재생 중 아래 안전 영역에만 이름 정보를 붙여요."
+                description="재생 중 하단 안전 영역에만 보여줘요."
                 checked={draft.overlay.showLowerThird}
                 onChange={(checked) => commitDraft((current) => ({
                   ...current,
@@ -715,8 +762,12 @@ export default function HighlightSuggestionReview({
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
                 <p className="text-[13px] font-semibold text-text-1">현재 표시</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-[#d8b36a]/15 px-3 py-2 text-[12px] font-semibold text-[#f6d69a]">
-                    재생 전 카드 항상 켜짐
+                  <span className={`rounded-full px-3 py-2 text-[12px] font-semibold ${
+                    profileCardEnabled
+                      ? "bg-[#d8b36a]/15 text-[#f6d69a]"
+                      : "bg-white/[0.05] text-text-3"
+                  }`}>
+                    선수 카드 {profileCardEnabled ? "보임" : "숨김"}
                   </span>
                   <span className={`rounded-full px-3 py-2 text-[12px] font-semibold ${
                     draft.overlay.showLowerThird

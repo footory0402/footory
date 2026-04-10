@@ -372,7 +372,7 @@ CREATE POLICY "팀 수정" ON teams FOR UPDATE USING (
 
 ## 4. 영상 파이프라인 (Cloudflare R2)
 
-> ⚠️ **실제 구현은 초기 기획과 다름.** 상세 내용은 `docs/UPLOAD-ARCHITECTURE.md` 참고.
+> ⚠️ **실제 구현은 초기 기획과 다름.** 상세 내용은 `docs/archive/2026-04-10/UPLOAD-ARCHITECTURE.md` 참고.
 
 ### 4.1 업로드 플로우 (실제 구현 — v2.2)
 

@@ -18,6 +18,7 @@ interface PublishSingleClipDraftParams {
 interface PublishSingleClipDraftResult {
   connectionLabel: string;
   publishTransition: "published" | "republished";
+  featuredLinkFailed?: boolean;
 }
 
 async function readJsonSafe(response: Response) {
@@ -101,7 +102,11 @@ export async function publishSingleClipDraft({
       const body = await readJsonSafe(featuredRes);
       const message = String(body.error ?? "대표 후보 연결에 실패했습니다.");
       if (!message.includes("이미 Featured")) {
-        throw new Error(message);
+        return {
+          connectionLabel: "클립",
+          publishTransition: "published",
+          featuredLinkFailed: true,
+        };
       }
 
       return {
