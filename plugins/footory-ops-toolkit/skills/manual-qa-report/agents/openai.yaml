@@ -1,0 +1,7 @@
+interface:
+  display_name: "Manual QA Report"
+  short_description: "Footory manual QA workflow for UX and copy"
+  default_prompt: "Use $manual-qa-report to review the current Footory editing flow and summarize UX issues."
+
+policy:
+  allow_implicit_invocation: false

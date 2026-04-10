@@ -18,29 +18,44 @@ export interface PlayerCardResponse {
   profile?: PlayerCardProfile | null;
 }
 
-let cachedPlayerCard: PlayerCardResponse | null = null;
-let inflightPlayerCard: Promise<PlayerCardResponse | null> | null = null;
+const DEFAULT_PLAYER_CARD_CACHE_KEY = "__default__";
 
-export function getCachedPlayerCard(): PlayerCardResponse | null {
-  return cachedPlayerCard;
+const cachedPlayerCards = new Map<string, PlayerCardResponse | null>();
+const inflightPlayerCards = new Map<string, Promise<PlayerCardResponse | null>>();
+
+function getPlayerCardCacheKey(profileId?: string | null) {
+  return profileId?.trim() || DEFAULT_PLAYER_CARD_CACHE_KEY;
 }
 
-export async function preloadPlayerCard(): Promise<PlayerCardResponse | null> {
-  if (cachedPlayerCard) return cachedPlayerCard;
-  if (inflightPlayerCard) return inflightPlayerCard;
+function getPlayerCardRequestUrl(profileId?: string | null) {
+  return profileId ? `/api/player-card?profileId=${encodeURIComponent(profileId)}` : "/api/player-card";
+}
 
-  inflightPlayerCard = fetch("/api/player-card")
+export function getCachedPlayerCard(profileId?: string | null): PlayerCardResponse | null {
+  return cachedPlayerCards.get(getPlayerCardCacheKey(profileId)) ?? null;
+}
+
+export async function preloadPlayerCard(profileId?: string | null): Promise<PlayerCardResponse | null> {
+  const cacheKey = getPlayerCardCacheKey(profileId);
+  const cached = cachedPlayerCards.get(cacheKey);
+  if (cached) return cached;
+
+  const inflight = inflightPlayerCards.get(cacheKey);
+  if (inflight) return inflight;
+
+  const request = fetch(getPlayerCardRequestUrl(profileId), { cache: "no-store" })
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
-      cachedPlayerCard = data;
+      cachedPlayerCards.set(cacheKey, data);
       return data;
     })
     .catch(() => null)
     .finally(() => {
-      inflightPlayerCard = null;
+      inflightPlayerCards.delete(cacheKey);
     });
 
-  return inflightPlayerCard;
+  inflightPlayerCards.set(cacheKey, request);
+  return request;
 }
 
 export function buildHudPlayerData(
@@ -56,8 +71,8 @@ export function buildHudPlayerData(
     position: cd.position || "ST",
     club:
       cd.club === "직접 입력"
-        ? cd.customClubName || response.card.club_name || ""
-        : cd.club || "",
+        ? cd.customClubName || cd.teamName || response.card.club_name || ""
+        : cd.club || cd.teamName || response.card.club_name || "",
     age: cd.age || "",
     birthDate: cd.birthDate || "",
     height: cd.height || "",

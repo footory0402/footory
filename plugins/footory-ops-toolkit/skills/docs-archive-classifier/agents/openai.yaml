@@ -1,0 +1,7 @@
+interface:
+  display_name: "Docs Archive Classifier"
+  short_description: "Footory docs classification and archive workflow"
+  default_prompt: "Use $docs-archive-classifier to sort the current Footory docs into keep, merge, and archive candidates."
+
+policy:
+  allow_implicit_invocation: false

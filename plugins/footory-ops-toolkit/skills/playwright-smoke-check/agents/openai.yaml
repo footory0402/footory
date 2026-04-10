@@ -1,0 +1,7 @@
+interface:
+  display_name: "Playwright Smoke Check"
+  short_description: "Footory smoke check workflow for key video flows"
+  default_prompt: "Use $playwright-smoke-check to validate the current Footory upload and edit smoke path."
+
+policy:
+  allow_implicit_invocation: false

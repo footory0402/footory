@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
+import IntroCard from "@/components/video/hud/IntroCard";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import { DEFAULT_HUD_CONFIG } from "@/components/video/hud/types";
 import dynamic from "next/dynamic";
@@ -9,11 +10,12 @@ import { useBackClose } from "@/hooks/useBackClose";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import ClipActionsSheet from "@/components/player/ClipActionsSheet";
 import { clampPan } from "@/lib/spotlight-math";
-import { resolveFocusZoom } from "@/lib/focus-zoom";
+import { DEFAULT_FREEZE_HOLD_MS, resolveFocusZoom } from "@/lib/focus-zoom";
 import type { PlaybackEffects } from "@/lib/playback-focus";
 import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
 import {
   resolveSingleClipPlaybackWindow,
+  resolveSingleClipFreezePoint,
   type SingleClipPlaybackContract,
 } from "@/lib/single-clip-playback";
 import {
@@ -23,7 +25,6 @@ import {
   preloadPlayerCard,
 } from "@/lib/player-card-client";
 
-const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
 const HudOverlay = dynamic(() => import("@/components/video/hud/HudOverlay"), { ssr: false });
 
 function getVideoErrorMessage(code: number): { message: string; retryable: boolean } {
@@ -59,8 +60,8 @@ export default function ClipPlayerSheet({
   onHighlightEdit,
 }: ClipPlayerSheetProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
-  const INTRO_DURATION_MS = 1400;
-  const FREEZE_HOLD_MS = 1500;
+  const INTRO_DURATION_MS = 2000;
+  const FREEZE_HOLD_MS = DEFAULT_FREEZE_HOLD_MS;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localClips, setLocalClips] = useState(clipsProp);
   const [index, setIndex] = useState(initialIndex);
@@ -103,10 +104,13 @@ export default function ClipPlayerSheet({
   const effects = clip?.effects ?? null;
   const focusZoom = resolveFocusZoom(effects?.focusZoom);
   const touchHandled = useRef(false);
-  const spotlight =
-    clip?.spotlightX != null && clip?.spotlightY != null
-      ? { x: clip.spotlightX, y: clip.spotlightY }
-      : null;
+  const spotlight = useMemo(
+    () =>
+      clip?.spotlightX != null && clip?.spotlightY != null
+        ? { x: clip.spotlightX, y: clip.spotlightY }
+        : null,
+    [clip?.spotlightX, clip?.spotlightY],
+  );
   const trackingPoints = useMemo(
     () => sanitizeTrackingPoints(effects?.trackingPoints),
     [effects?.trackingPoints],
@@ -127,7 +131,8 @@ export default function ClipPlayerSheet({
   const [introData, setIntroData] = useState<HudPlayerData | null>(null);
   const introShownRef = useRef<Set<string>>(new Set());
   const introEnabledRef = useRef(false);
-  const [introReady, setIntroReady] = useState(true);
+  const introTimerRef = useRef<number | null>(null);
+  const [introReady, setIntroReady] = useState(() => clipsProp[initialIndex]?.effects?.intro !== true);
   // 영상 실제 해상도 (letterbox 보정에 사용)
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
   const {
@@ -182,10 +187,17 @@ export default function ClipPlayerSheet({
   }, []);
 
   const playIntro = useCallback((clipId: string) => {
+    if (introTimerRef.current) {
+      clearTimeout(introTimerRef.current);
+      introTimerRef.current = null;
+    }
     introShownRef.current.add(clipId);
+    setIntroReady(false);
     setShowIntro(true);
-    window.setTimeout(() => {
+    introTimerRef.current = window.setTimeout(() => {
+      introTimerRef.current = null;
       setShowIntro(false);
+      setIntroReady(true);
     }, INTRO_DURATION_MS);
   }, []);
 
@@ -194,17 +206,18 @@ export default function ClipPlayerSheet({
     let cancelled = false;
     const currentClip = clipsProp[initialIndex];
     const canShowIntro = currentClip?.effects?.intro === true;
-    const cached = getCachedPlayerCard();
+    const currentProfileId = currentClip?.profileId ?? null;
+    const cached = getCachedPlayerCard(currentProfileId);
     const fallbackIntro = buildFallbackHudPlayerData(currentClip ?? {});
 
-    if (fallbackIntro) setIntroData(fallbackIntro);
+    if (fallbackIntro) {
+      setIntroData(fallbackIntro);
+    }
 
     if (canShowIntro && cached?.card) {
       const cachedData = buildHudPlayerData(cached);
       if (cachedData && currentClip) {
         setIntroData(cachedData);
-        introEnabledRef.current = true;
-        playIntro(currentClip.id);
       }
     }
 
@@ -215,12 +228,14 @@ export default function ClipPlayerSheet({
         }, INTRO_BLOCK_TIMEOUT_MS)
       : null;
 
-    preloadPlayerCard()
+    preloadPlayerCard(currentProfileId)
       .then((res) => {
         if (cancelled || !res) return;
 
         const hudData = buildHudPlayerData(res);
-        if (hudData) setIntroData(hudData);
+        if (hudData) {
+          setIntroData(hudData);
+        }
       })
       .finally(() => {
         if (unblockTimer) window.clearTimeout(unblockTimer);
@@ -269,15 +284,20 @@ export default function ClipPlayerSheet({
     setIsFreezing(false);
     setIsFocusMode(hasFocusTarget);
     setVideoNativeSize(null);
+    setShowIntro(false);
+    setIntroReady(true);
     if (freezeTimerRef.current) { clearTimeout(freezeTimerRef.current); freezeTimerRef.current = null; }
     scheduleHide();
 
-    // Show intro for subsequent clips (introData already loaded)
-    if (introEnabledRef.current && clip?.effects?.intro === true && introData && clip && !introShownRef.current.has(clip.id)) {
-      playIntro(clip.id);
+    // 클립 전환 직후에는 fallback 데이터만 준비해 두고, 실제 시작은 loadedmetadata 이후에 맞춘다.
+    if (clip?.effects?.intro === true && clip && !introShownRef.current.has(clip.id)) {
+      const fallbackIntro = buildFallbackHudPlayerData(clip);
+      if (fallbackIntro) {
+        setIntroData(fallbackIntro);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFocusTarget, index, introData, playIntro, clip]);
+  }, [hasFocusTarget, index, playIntro, clip]);
 
   const scheduleHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -311,10 +331,11 @@ export default function ClipPlayerSheet({
       setCurrentTime(elapsed);
       setDuration(durationSec);
       setProgress(durationSec > 0 ? elapsed / durationSec : 0);
+      const { freezeAtSec } = resolveSingleClipFreezePoint(currentClip ?? {}, v.duration);
 
       // Freeze frame detection
       if (
-        currentClip?.freezeAt != null &&
+        freezeAtSec != null &&
         hasPlaybackFocus(
           currentClip.spotlightX != null && currentClip.spotlightY != null
             ? { x: currentClip.spotlightX, y: currentClip.spotlightY }
@@ -324,7 +345,7 @@ export default function ClipPlayerSheet({
         ) &&
         !freezeFiredRef.current.has(currentClip.id) &&
         !v.paused &&
-        v.currentTime >= currentClip.freezeAt
+        v.currentTime >= freezeAtSec
       ) {
         const freezeSpotlight = resolvePlaybackSpotlight({
           spotlight: currentClip.spotlightX != null && currentClip.spotlightY != null
@@ -332,7 +353,7 @@ export default function ClipPlayerSheet({
             : null,
           trackingMode: currentClip.effects?.trackingMode,
           trackingPoints: sanitizeTrackingPoints(currentClip.effects?.trackingPoints),
-          time: currentClip.freezeAt,
+          time: freezeAtSec,
         });
         if (!freezeSpotlight) return;
 
@@ -383,6 +404,12 @@ export default function ClipPlayerSheet({
       if (v.videoWidth && v.videoHeight) {
         setVideoNativeSize({ w: v.videoWidth, h: v.videoHeight });
       }
+      if (currentClip?.effects?.intro === true && !introShownRef.current.has(currentClip.id)) {
+        const fallbackIntro = buildFallbackHudPlayerData(currentClip);
+        introEnabledRef.current = true;
+        setIntroData((prev) => prev ?? fallbackIntro);
+        playIntro(currentClip.id);
+      }
     };
     const onError = () => {
       const code = v.error?.code ?? 0;
@@ -416,12 +443,32 @@ export default function ClipPlayerSheet({
       v.removeEventListener("canplay", onCanPlay);
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
     };
-  }, [scheduleHide, index, animateZoomTo]);
+  }, [scheduleHide, index, animateZoomTo, clips, playIntro]);
 
   useEffect(() => {
     if (!clip || !activeSpotlight || !hasFocusTarget || !isFocusMode || isFreezing) return;
     syncZoomTo(activeSpotlight.x, activeSpotlight.y, focusZoom);
   }, [activeSpotlight, clip, focusZoom, hasFocusTarget, isFocusMode, isFreezing, syncZoomTo]);
+
+  const restartPlayback = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const currentClip = clips[index];
+    const { trimStartSec } = resolveSingleClipPlaybackWindow(
+      currentClip ?? { duration: null, trimStart: null, trimEnd: null },
+    );
+    if (currentClip?.id) {
+      freezeFiredRef.current.delete(currentClip.id);
+    }
+    v.currentTime = trimStartSec;
+    setEnded(false);
+    setProgress(0);
+    setCurrentTime(0);
+    v.play().catch(() => {});
+    setPaused(false);
+    setShowControls(true);
+    scheduleHide();
+  }, [clips, index, scheduleHide]);
 
   const handleTap = useCallback(() => {
     const v = videoRef.current;
@@ -430,23 +477,12 @@ export default function ClipPlayerSheet({
     if (isFreezing) return;
     // 영상 끝난 상태 → 처음부터 다시 재생
     if (ended) {
-      const currentClip = clips[index];
-      const { trimStartSec } = resolveSingleClipPlaybackWindow(
-        currentClip ?? { duration: null, trimStart: null, trimEnd: null },
-      );
-      v.currentTime = trimStartSec;
-      setEnded(false);
-      setProgress(0);
-      setCurrentTime(0);
-      v.play().catch(() => {});
-      setPaused(false);
-      setShowControls(true);
-      scheduleHide();
+      restartPlayback();
       return;
     }
     if (v.paused) { v.play().catch(() => {}); setPaused(false); setShowControls(true); scheduleHide(); }
     else { v.pause(); setPaused(true); setShowControls(true); }
-  }, [scheduleHide, isFreezing, ended, clips, index]);
+  }, [scheduleHide, isFreezing, ended, restartPlayback]);
 
   const handleRetry = useCallback(() => {
     const v = videoRef.current;
@@ -486,6 +522,7 @@ export default function ClipPlayerSheet({
 
   useEffect(() => () => {
     if (freezeTimerRef.current) clearTimeout(freezeTimerRef.current);
+    if (introTimerRef.current) clearTimeout(introTimerRef.current);
   }, []);
 
   const getTouchDist = (e: React.TouchEvent) => {
@@ -659,7 +696,6 @@ export default function ClipPlayerSheet({
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
   if (!clip?.videoUrl) return null;
-
   // 스와이프 다운 닫기 판정 (첫 클립에서 아래로 스와이프)
   const isDismissSwipe = swiping && swipeY > 0 && !hasPrev;
   const dismissProgress = isDismissSwipe ? Math.min(swipeY / 300, 1) : 0;
@@ -717,59 +753,10 @@ export default function ClipPlayerSheet({
       {/* ── 인트로 카드 오버레이 ── */}
       {showIntro && introData && (
         <div
-          className="pointer-events-none absolute left-4 right-4 z-[60]"
-          style={{
-            top: "calc(env(safe-area-inset-top, 16px) + 60px)",
-            animation: "fullscreen-player-fade-in 0.35s ease-out",
-          }}
+          className="pointer-events-none absolute inset-0 z-[60] bg-black"
+          style={{ animation: "fullscreen-player-fade-in 0.35s ease-out" }}
         >
-          <div className="mx-auto w-full max-w-[360px]">
-            <div
-              className="rounded-[28px] border px-4 py-4 backdrop-blur-xl"
-              style={{
-                background: `linear-gradient(135deg, rgba(7,7,9,0.92) 0%, rgba(18,18,22,0.84) 58%, ${introData.accentColor}22 100%)`,
-                border: "1px solid rgba(255,255,255,0.08)",
-                boxShadow: `0 18px 40px rgba(0,0,0,0.34), 0 0 24px ${introData.accentColor}14`,
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-[66px] w-[66px] shrink-0 items-center justify-center overflow-hidden rounded-2xl"
-                  style={{ border: `1px solid ${introData.accentColor}33`, background: "rgba(255,255,255,0.05)" }}
-                >
-                  {introData.photoUrl && !introData.photoUrl.startsWith("blob:") ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={introData.photoUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="8" r="4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
-                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#09090b]"
-                      style={{ background: introData.accentColor }}
-                    >
-                      {introData.position || "PLAYER"}
-                    </span>
-                    <span className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42">
-                      {introData.club}
-                    </span>
-                  </div>
-                  <p className="mt-2 truncate text-[18px] font-bold text-white">{introData.name}</p>
-                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/68">
-                    {introData.number ? <span>등번호 {introData.number}</span> : null}
-                    {introData.birthDate ? <span>{introData.birthDate}년생</span> : null}
-                    {introData.height ? <span>{introData.height}cm</span> : null}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <IntroCard data={introData} />
         </div>
       )}
 
@@ -820,7 +807,7 @@ export default function ClipPlayerSheet({
               teamName: clip.teamName,
             }}
             effects={effects}
-            hideNametag={!!introData}
+            hideNametag={false}
             freezeMode={isFreezing}
             zoomLevel={zoom}
           />
@@ -837,6 +824,7 @@ export default function ClipPlayerSheet({
             data={introData!}
             config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
             mode="docked"
+            compact={false}
           />
         </div>
       )}
@@ -899,16 +887,32 @@ export default function ClipPlayerSheet({
       {/* ── 일시정지/재시작 오버레이 (프리즈 중에는 숨김) ── */}
       {paused && !isFreezing && (
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm ring-2 ring-white/10">
-            {ended ? (
+          {ended ? (
+            <button
+              type="button"
+              aria-label="다시 보기"
+              className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm ring-2 ring-white/10"
+              onClick={(event) => {
+                event.stopPropagation();
+                restartPlayback();
+              }}
+              onTouchStart={(event) => {
+                event.stopPropagation();
+              }}
+              onTouchEnd={(event) => {
+                event.stopPropagation();
+              }}
+            >
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="1 4 1 10 7 10"/>
                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
               </svg>
-            ) : (
+            </button>
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm ring-2 ring-white/10">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import VideoOverlay from "@/components/video/VideoOverlay";
+import IntroCard from "@/components/video/hud/IntroCard";
 import { DEFAULT_HUD_CONFIG, type HudPlayerData } from "@/components/video/hud/types";
-import { resolveFocusZoom } from "@/lib/focus-zoom";
+import { DEFAULT_FREEZE_HOLD_MS, resolveFocusZoom } from "@/lib/focus-zoom";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
 import {
   resolveSingleClipPlaybackWindow,
+  resolveSingleClipFreezePoint,
   type SingleClipPlaybackContract,
 } from "@/lib/single-clip-playback";
 import {
@@ -18,7 +20,6 @@ import {
   preloadPlayerCard,
 } from "@/lib/player-card-client";
 
-const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
 const HudOverlay = dynamic(() => import("@/components/video/hud/HudOverlay"), { ssr: false });
 
 interface HighlightShareClip extends SingleClipPlaybackContract {
@@ -41,10 +42,12 @@ export default function HighlightSharePlayerClient({
 }: HighlightSharePlayerClientProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
   const INTRO_DURATION_MS = 2000;
-  const FREEZE_HOLD_MS = 1500;
+  const FREEZE_HOLD_MS = DEFAULT_FREEZE_HOLD_MS;
   const videoRef = useRef<HTMLVideoElement>(null);
   const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const freezeFiredRef = useRef(false);
+  const introTimerRef = useRef<number | null>(null);
+  const introPlayedRef = useRef(false);
 
   const [paused, setPaused] = useState(false);
   const [ended, setEnded] = useState(false);
@@ -56,7 +59,7 @@ export default function HighlightSharePlayerClient({
   const [duration, setDuration] = useState(clip.duration ?? 0);
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
   const [showIntro, setShowIntro] = useState(false);
-  const [introReady, setIntroReady] = useState(true);
+  const [introReady, setIntroReady] = useState(clip.effects?.intro !== true);
   const [introData, setIntroData] = useState<HudPlayerData | null>(null);
   const focusZoom = resolveFocusZoom(clip.effects?.focusZoom);
   const spotlight = useMemo(
@@ -100,9 +103,16 @@ export default function HighlightSharePlayerClient({
   }, [cancelZoomAnimation]);
 
   const playIntro = useCallback(() => {
+    if (introPlayedRef.current) return;
+    if (introTimerRef.current) {
+      clearTimeout(introTimerRef.current);
+      introTimerRef.current = null;
+    }
+    introPlayedRef.current = true;
     setShowIntro(true);
     setIntroReady(false);
-    window.setTimeout(() => {
+    introTimerRef.current = window.setTimeout(() => {
+      introTimerRef.current = null;
       setShowIntro(false);
       setIntroReady(true);
       videoRef.current?.play().catch(() => {});
@@ -110,9 +120,20 @@ export default function HighlightSharePlayerClient({
   }, []);
 
   useEffect(() => {
+    const fallbackIntro = buildFallbackHudPlayerData(clip);
+    introPlayedRef.current = false;
+    setShowIntro(false);
+    setIntroReady(clip.effects?.intro !== true);
+    if (clip.effects?.intro === true && fallbackIntro) {
+      setIntroData(fallbackIntro);
+      playIntro();
+    }
+  }, [clip, playIntro]);
+
+  useEffect(() => {
     let cancelled = false;
     const fallbackIntro = buildFallbackHudPlayerData(clip);
-    const cached = getCachedPlayerCard();
+    const cached = getCachedPlayerCard(clip.profileId);
     const shouldShowIntro = clip.effects?.intro === true;
 
     if (fallbackIntro) setIntroData(fallbackIntro);
@@ -132,7 +153,7 @@ export default function HighlightSharePlayerClient({
         }, INTRO_BLOCK_TIMEOUT_MS)
       : null;
 
-    preloadPlayerCard()
+    preloadPlayerCard(clip.profileId)
       .then((res) => {
         if (cancelled) return;
         const hudData = buildHudPlayerData(res) ?? fallbackIntro;
@@ -147,6 +168,12 @@ export default function HighlightSharePlayerClient({
       if (unblockTimer) window.clearTimeout(unblockTimer);
     };
   }, [clip, playIntro]);
+
+  useEffect(() => () => {
+    if (introTimerRef.current) {
+      clearTimeout(introTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (introReady && !showIntro) {
@@ -173,6 +200,7 @@ export default function HighlightSharePlayerClient({
 
     const handleTimeUpdate = () => {
       const { trimStartSec, trimEndSec } = resolveSingleClipPlaybackWindow(clip, video.duration);
+      const { freezeAtSec } = resolveSingleClipFreezePoint(clip, video.duration);
       const elapsed = Math.max(0, video.currentTime - trimStartSec);
       setCurrentTime(elapsed);
 
@@ -184,17 +212,17 @@ export default function HighlightSharePlayerClient({
       }
 
       if (
-        clip.freezeAt != null &&
+        freezeAtSec != null &&
         hasFocusTarget &&
         !freezeFiredRef.current &&
         !video.paused &&
-        video.currentTime >= clip.freezeAt
+        video.currentTime >= freezeAtSec
       ) {
         const freezeSpotlight = resolvePlaybackSpotlight({
           spotlight,
           trackingMode: clip.effects?.trackingMode,
           trackingPoints,
-          time: clip.freezeAt,
+          time: freezeAtSec,
         });
         if (!freezeSpotlight) return;
 
@@ -320,10 +348,13 @@ export default function HighlightSharePlayerClient({
   }, [clip, duration]);
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
+  const isPortraitVideo = videoNativeSize ? videoNativeSize.h > videoNativeSize.w : false;
+  const playerMaxHeight = hasHud
+    ? (isPortraitVideo ? "58vh" : "68vh")
+    : "75vh";
   const videoTransform = zoom > 1
     ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
     : undefined;
-
   return (
     <div className="w-full">
       <div
@@ -332,7 +363,7 @@ export default function HighlightSharePlayerClient({
           borderRadius: 16,
           background: "#0D0D10",
           aspectRatio: videoNativeSize ? `${videoNativeSize.w} / ${videoNativeSize.h}` : "9 / 16",
-          maxHeight: "75vh",
+          maxHeight: playerMaxHeight,
         }}
       >
         {clip.thumbnailUrl && (
@@ -347,12 +378,6 @@ export default function HighlightSharePlayerClient({
             }}
           />
         )}
-
-        {showIntro && introData ? (
-          <div className="absolute inset-0 z-20 bg-black">
-            <IntroCard data={introData} />
-          </div>
-        ) : null}
 
         <video
           ref={videoRef}
@@ -432,16 +457,24 @@ export default function HighlightSharePlayerClient({
           </div>
         )}
 
-        {hasHud ? (
-          <div className="absolute inset-x-0 bottom-0 z-[19] pointer-events-none">
-            <HudOverlay
-              data={introData!}
-              config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
-              mode="docked"
-            />
+        {showIntro && introData ? (
+          <div className="absolute inset-0 z-[60] bg-black">
+            <IntroCard data={introData} />
           </div>
         ) : null}
+
       </div>
+
+      {hasHud ? (
+        <div className="mt-2 overflow-hidden rounded-[14px] border border-white/[0.07]">
+          <HudOverlay
+            data={introData!}
+            config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
+            mode="docked"
+            compact={false}
+          />
+        </div>
+      ) : null}
 
       <div
         className="mt-3 w-full"

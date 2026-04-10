@@ -1,0 +1,32 @@
+{
+  "name": "footory-ops-toolkit",
+  "version": "0.1.0",
+  "description": "Local Footory operations toolkit for reusable QA and documentation workflows.",
+  "author": {
+    "name": "Footory",
+    "email": "local@footory.dev",
+    "url": "https://footory.local"
+  },
+  "homepage": "https://footory.local/ops-console",
+  "repository": "https://footory.local/repo",
+  "license": "UNLICENSED",
+  "keywords": ["footory", "ops", "qa", "docs"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Footory Ops Toolkit",
+    "shortDescription": "Footory local QA and documentation workflows",
+    "longDescription": "Bundles Footory-specific reusable skills for smoke checks, manual QA reporting, and docs archive classification.",
+    "developerName": "Footory",
+    "category": "Productivity",
+    "capabilities": ["Local", "Write", "Docs", "QA"],
+    "websiteURL": "https://footory.local/ops-console",
+    "privacyPolicyURL": "https://footory.local/privacy",
+    "termsOfServiceURL": "https://footory.local/terms",
+    "defaultPrompt": [
+      "Run the Footory smoke check for upload and edit.",
+      "Summarize manual QA issues for the current flow.",
+      "Classify docs into current and archive candidates."
+    ],
+    "brandColor": "#4ECB8D"
+  }
+}

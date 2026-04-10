@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
+import IntroCard from "@/components/video/hud/IntroCard";
 import type { HudPlayerData } from "@/components/video/hud/types";
-import { resolveFocusZoom } from "@/lib/focus-zoom";
+import { DEFAULT_FREEZE_HOLD_MS, resolveFocusZoom } from "@/lib/focus-zoom";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import type { PlaybackEffects } from "@/lib/playback-focus";
 import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
@@ -14,8 +15,6 @@ import {
 } from "@/lib/player-card-client";
 
 const VideoOverlay = dynamic(() => import("@/components/video/VideoOverlay"), { ssr: false });
-const IntroCard = dynamic(() => import("@/components/video/hud/IntroCard"), { ssr: false });
-
 interface ReelClip {
   id: string;
   videoUrl: string;
@@ -38,7 +37,7 @@ interface ReelPreviewPlayerProps {
 export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
   const INTRO_DURATION_MS = 2000;
-  const FREEZE_HOLD_MS = 1500;
+  const FREEZE_HOLD_MS = DEFAULT_FREEZE_HOLD_MS;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [index, setIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);

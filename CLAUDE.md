@@ -1,13 +1,16 @@
 # FOOTORY — 유스 축구 선수 프로필 플랫폼
 
 ## 응답 언어
+
 **항상 한글로 응답할 것.** 코드 주석/변수명은 영어, 대화와 설명은 한글.
 
 ## 프로젝트 개요
+
 유소년 축구 선수 영상 하이라이트·스킬 포트폴리오 모바일 웹앱.
 사용자: player · parent · scout. 다크 테마 전용 (피치 블랙 + 골드).
 
 ## 기술 스택
+
 - **프레임워크**: Next.js 16.1.6 (App Router, TypeScript 5, React 19)
 - **스타일**: Tailwind CSS v4 — `globals.css`의 `@theme inline` 블록 (tailwind.config.ts 없음)
 - **컴포넌트**: shadcn/ui (base-nova, CSS variables)
@@ -18,13 +21,17 @@
 - **영상처리**: FFmpeg WASM (클라이언트사이드 압축)
 
 ## 테스트 필수 규칙
+
 **기능 수정/추가 후 반드시 브라우저에서 실제 테스트할 것.**
+
+- 사용자 앱 검증은 항상 모바일 뷰포트를 먼저 통과시킨 뒤 데스크톱을 보조 확인으로만 본다.
 - Playwright 또는 agent-browser로 해당 기능의 전체 플로우 확인
 - 스크린샷 캡처하여 UI 정상 렌더링 확인
 - API 응답 확인 (evaluate로 fetch 테스트)
 - 테스트 미완료 시 배포 금지
 
 ## 코딩 규칙
+
 1. 모든 컴포넌트 `.tsx` — TypeScript 필수
 2. 스타일은 Tailwind + CSS 변수 (`globals.css`) — 인라인 style 금지
 3. 라우트 보호: `src/proxy.ts` (middleware.ts 아님 — Next.js 16 명칭 변경)
@@ -37,7 +44,9 @@
 10. 컴포넌트가 크거나 조건부 로딩이 필요한 경우 `next/dynamic`으로 lazy load — 프로젝트 전반에 걸쳐 사용 중 (static import 대신 dynamic import가 기본 패턴)
 
 ## 디자인 핵심
+
 색상 source of truth는 `src/app/globals.css`의 CSS 변수:
+
 - `--color-bg`: 최하단 배경 (#070709)
 - `--color-card`: 카드 배경 (#1C1C22)
 - `--color-card-alt`: 카드 대비 (#24242A)
@@ -45,6 +54,7 @@
 - `--color-text-1/2/3`: 텍스트 계층
 
 컴포넌트 패턴:
+
 - `card-elevated` = bg-card + var(--card-shadow) + rounded-12
 - `glass-nav` = backdrop-blur + 반투명 (헤더/바텀탭)
 - Border: `rgba(255,255,255,0.08)`
@@ -54,11 +64,11 @@
 
 `src/components/layout/BottomTab.tsx` 참조.
 
-| 역할 | 탭 1 | 탭 2 | 탭 3 (가운데 액션) | 탭 4 | 탭 5 |
-|------|------|------|-----------------|------|------|
-| player | 🏠 홈 `/` | 🏆 MVP `/mvp` | ➕ 업로드 `/upload` | 🔍 탐색 `/discover` | 👤 프로필 `/profile` |
-| parent | 🏠 홈 `/` | 🏆 MVP `/mvp` | ➕ 업로드 `/upload` | 🔍 탐색 `/discover` | ⚙️ 설정 `/profile/settings` |
-| scout  | 🏠 홈 `/` | 🏆 MVP `/mvp` | 📋 관심목록 `/profile/watchlist` | 🔍 탐색 `/discover` | 👤 프로필 `/profile` |
+| 역할   | 탭 1      | 탭 2          | 탭 3 (가운데 액션)               | 탭 4                | 탭 5                        |
+| ------ | --------- | ------------- | -------------------------------- | ------------------- | --------------------------- |
+| player | 🏠 홈 `/` | 🏆 MVP `/mvp` | ➕ 업로드 `/upload`              | 🔍 탐색 `/discover` | 👤 프로필 `/profile`        |
+| parent | 🏠 홈 `/` | 🏆 MVP `/mvp` | ➕ 업로드 `/upload`              | 🔍 탐색 `/discover` | ⚙️ 설정 `/profile/settings` |
+| scout  | 🏠 홈 `/` | 🏆 MVP `/mvp` | 📋 관심목록 `/profile/watchlist` | 🔍 탐색 `/discover` | 👤 프로필 `/profile`        |
 
 ## 전체 라우트 맵
 
@@ -94,6 +104,7 @@
 ```
 
 ## 환경 변수 (`.env.local`)
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -133,18 +144,21 @@ R2_PUBLIC_URL=
 ## 핵심 기능 3: 영상 업로드
 
 ### 플로우 (2단계 위저드)
+
 1. **Select**: 파일 선택 → 트림 → 유효성 검사 (200MB / 5분)
 2. **Decorate**: 이펙트(slo-mo/freeze/captions) + 스포트라이트 좌표 + 스킬 태그
 3. R2 presigned URL로 직접 업로드 (FFmpeg WASM 압축 5MB 이상 시)
 4. 클립 메타데이터 DB 저장 → 업로드 완료
 
 ### 핵심 파일
+
 - `src/app/upload/page.tsx` — 업로드 페이지
 - `src/lib/upload-service.ts` — **최상단 주석 반드시 읽을 것** (Vercel 10초 하드캡, 상수 변경 금지)
 - `src/stores/upload-store.ts` — Zustand 업로드 상태
 - `src/app/api/upload/presign/route.ts` — R2 presigned URL
 
 ### ffmpeg.wasm 주의사항
+
 - SharedArrayBuffer 필요 → `/editor`, `/upload` 경로에 COOP/COEP 헤더 (next.config.ts)
 - 인트로 카드 합성: `src/lib/intro-composer.ts` → `src/lib/card-renderer.ts` (dynamic import chain)
 
@@ -153,6 +167,7 @@ R2_PUBLIC_URL=
 ## 핵심 기능 4: 영상 플레이어
 
 ### ClipPlayerSheet (`src/components/player/ClipPlayerSheet.tsx`)
+
 - 전체화면 세로 스와이프로 클립 전환
 - **영상 꾸미기 모두 런타임**: freeze frame, spotlight ring, HUD 오버레이 — 영상 파일 무수정
 - 인트로 카드: 재생 전 3초 선수 정보 (`player_cards` 테이블)

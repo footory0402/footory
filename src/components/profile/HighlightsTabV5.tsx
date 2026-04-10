@@ -41,6 +41,7 @@ interface Reel {
 }
 
 interface HighlightsTabV5Props {
+  profileId?: string | null;
   tagClips: Record<string, TagClip[]>;
   untaggedClips?: TagClip[];
   tagClipsLoading?: boolean;
@@ -79,6 +80,7 @@ function formatDuration(seconds: number): string {
 }
 
 export default function HighlightsTabV5({
+  profileId,
   tagClips,
   untaggedClips = [],
   tagClipsLoading,
@@ -288,6 +290,7 @@ export default function HighlightsTabV5({
 
       return ({
       id: f.clip_id,
+      profileId,
       videoUrl: featuredClip.video_url,
       thumbnailUrl: featuredClip.thumbnail_url,
       duration: featuredClip.trim_start != null && featuredClip.trim_end != null
@@ -310,6 +313,7 @@ export default function HighlightsTabV5({
     .filter((c) => !!c.videoUrl)
     .map((c) => ({
       id: c.id,
+      profileId,
       videoUrl: c.videoUrl,
       thumbnailUrl: c.thumbnailUrl,
       duration: c.duration,

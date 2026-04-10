@@ -1,0 +1,20 @@
+{
+  "name": "footory-local-marketplace",
+  "interface": {
+    "displayName": "Footory Local Plugins"
+  },
+  "plugins": [
+    {
+      "name": "footory-ops-toolkit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/footory-ops-toolkit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -265,6 +265,16 @@ export default function UploadPage() {
           </div>
         </div>
 
+        <div className="px-4 pb-4">
+          <button
+            type="button"
+            onClick={() => router.push("/editor")}
+            className="w-full rounded-2xl border border-[#d8b36a]/20 bg-[#d8b36a]/10 px-4 py-3.5 text-[14px] font-semibold text-text-1 active:scale-[0.99]"
+          >
+            선수 프로필 편집
+          </button>
+        </div>
+
         <SelectView
           ctaLabel="영상 올리기"
           startBackgroundUploadOnReady={false}

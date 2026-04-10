@@ -98,6 +98,7 @@ export default async function HighlightSharePage({ params }: Props) {
       ...clip,
       effects: (clip.effects as { [key: string]: Json | undefined } | null) ?? null,
     }),
+    profileId: profile.id,
     playerName: profile.name,
     playerPosition: profile.position ?? null,
     playerBirthYear: profile.birth_year ?? null,

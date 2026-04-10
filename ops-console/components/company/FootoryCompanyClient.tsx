@@ -1,15 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
+  ArrowRight,
+  BookOpenText,
   BriefcaseBusiness,
+  Bot,
+  ChevronRight,
   Copy,
   FilePenLine,
   FolderOpen,
-  Info,
   LoaderCircle,
+  MoreHorizontal,
+  Package,
   Plus,
+  RefreshCw,
   Save,
   ShieldCheck,
   Terminal,
@@ -22,16 +29,69 @@ import {
   operatingRules,
   type FootoryAgent,
 } from "@/lib/company/ops";
+import type { AutomationCatalog } from "@/lib/company/automation";
 import type {
   ActivityLog,
+  CompanyAlert,
   CheckRun,
   CompanyOverview,
   CompanyState,
   CompanyTask,
   ManagedDocRecord,
 } from "@/lib/company/state";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type PanelKey = "overview" | "tasks" | "agents" | "docs";
+type AutomationView = "agents" | "skills" | "plugins";
 type TaskDraft = CompanyTask;
 
 type PanelDefinition = {
@@ -46,60 +106,159 @@ const panels: PanelDefinition[] = [
   {
     id: "overview",
     label: "현황",
-    caption: "지금 상태와 점검",
+    caption: "핵심 상태",
     icon: Activity,
-    guide: "긴급 경보, 최근 검증, 현재 변경량을 먼저 보는 화면이다.",
+    guide: "긴급 경보와 최근 검증 결과를 먼저 확인한다.",
   },
   {
     id: "tasks",
     label: "업무",
-    caption: "누구에게 무엇을 맡길지",
+    caption: "작업 지시",
     icon: BriefcaseBusiness,
-    guide: "업무를 만들고, 담당 agent와 완료 기준을 정리하는 화면이다.",
+    guide: "담당자, 목표, 완료 기준을 빠르게 정리한다.",
   },
   {
     id: "agents",
-    label: "담당자",
-    caption: "agent 역할과 금지선",
+    label: "자동화",
+    caption: "agent·skill·plugin",
     icon: ShieldCheck,
-    guide: "agent가 맡을 일과 맡지 않을 일을 관리하는 화면이다.",
+    guide: "role agent, workflow skill, local plugin 묶음을 함께 확인한다.",
   },
   {
     id: "docs",
     label: "문서",
-    caption: "지침서와 운영 문서",
+    caption: "지침 편집",
     icon: FilePenLine,
-    guide: "canonical 문서의 owner, 목적, 본문을 관리하는 화면이다.",
+    guide: "owner와 목적을 기준으로 canonical 문서를 편집한다.",
   },
 ];
 
 const panelHowTo: Record<PanelKey, string[]> = {
   overview: [
-    "긴급 경보와 최근 검증부터 본다.",
-    "필요하면 lint, typecheck, test:run 중 하나를 실행한다.",
-    "상세 목록은 아래 접힘 영역에서만 확인한다.",
+    "긴급 경보와 최근 검증부터 확인한다.",
+    "필요하면 lint, typecheck, test:run을 바로 실행한다.",
+    "상세 상태는 하단 보조 영역에서 확인한다.",
   ],
   tasks: [
-    "왼쪽 목록에서 업무를 선택한다.",
-    "가운데 폼에 목표, 관련 파일, 완료 기준을 적는다.",
-    "저장 후 brief를 복사해 agent에게 바로 전달한다.",
+    "업무를 고르거나 새 업무를 생성한다.",
+    "목표와 완료 기준을 짧고 명확하게 작성한다.",
+    "brief를 복사해 agent에게 전달한다.",
   ],
   agents: [
-    "왼쪽에서 agent를 고른다.",
-    "이 agent가 맡을 일과 금지할 일을 짧게 정리한다.",
-    "변경 후 저장해 지시 기준을 잠근다.",
+    "agent에서 역할 경계와 예시 요청을 확인한다.",
+    "skill에서 반복 workflow와 default prompt를 복사한다.",
+    "plugin에서 실제 manifest, marketplace, 터미널 명령을 확인한다.",
   ],
   docs: [
-    "왼쪽에서 수정할 문서를 고른다.",
-    "owner와 목적을 먼저 확인한다.",
-    "본문은 필요한 경우에만 수정하고 바로 저장한다.",
+    "owner 필터로 대상 문서를 좁힌다.",
+    "메타(제목/목적/owner)를 먼저 저장한다.",
+    "본문은 필요한 범위만 수정하고 저장한다.",
+  ],
+};
+
+type GuideSection = {
+  title: string;
+  description: string;
+  items: string[];
+};
+
+const operatorGuideSections: GuideSection[] = [
+  {
+    title: "운영실을 여는 순서",
+    description: "처음에는 모든 걸 동시에 보지 말고 아래 순서로만 움직인다.",
+    items: [
+      "현황에서 긴급 경보, 최근 검증, dirty 파일을 먼저 본다.",
+      "업무에서 이번에 처리할 플로우 하나만 골라 담당자와 완료 기준을 잠근다.",
+      "자동화에서 이 일을 어떤 agent와 skill 기준으로 다룰지 확인한다.",
+      "문서에서 필요한 canonical 문서만 열어 메타와 본문을 수정한다.",
+      "검증은 현황 패널의 lint, typecheck, test:run부터 돌리고 결과를 확인한다.",
+    ],
+  },
+  {
+    title: "자동화 라우팅 기준",
+    description: "agent는 책임 경계, skill은 반복 workflow, plugin은 그 묶음이다.",
+    items: [
+      "구현은 Core Video Editor를 쓴다.",
+      "검증은 Video QA Runner를 쓴다.",
+      "문구와 사용성은 UX Copy Reviewer를 쓴다.",
+      "single-clip contract 보호는 Playback Contract Guardian을 쓴다.",
+      "정리와 문서 archive는 Repo Cleanup Refactorer를 쓴다.",
+      "반복 QA smoke는 skill을 우선 쓰고, 필요 시 agent 검토를 붙인다.",
+    ],
+  },
+  {
+    title: "자주 하는 실수",
+    description: "운영실에서 가장 흔하게 꼬이는 부분만 미리 막는다.",
+    items: [
+      "업무 하나에 여러 사용자 플로우를 같이 넣지 않는다.",
+      "agent를 기능별로 잘게 쪼개지 않는다. 역할 경계가 우선이다.",
+      "문서 owner를 편집 담당자로 오해하지 않는다. owner는 판단 책임 주체다.",
+      "문서보다 실제 코드가 우선이며, 차이는 문서에 따로 남긴다.",
+      "실행하지 않은 검증은 통과 처리하지 않는다.",
+    ],
+  },
+];
+
+const fieldGuideSections: Record<PanelKey, GuideSection[]> = {
+  overview: [
+    {
+      title: "현황에서 보는 것",
+      description: "먼저 볼 것은 숫자 자체보다 지금 바로 판단해야 할 이상 신호다.",
+      items: [
+        "긴급 경보: 지금 바로 확인할 위험이 있는지 본다.",
+        "최근 검증: 마지막 lint, typecheck, test:run 상태를 확인한다.",
+        "외부 인프라 사용량: 읽기 전용 참고 정보로만 본다.",
+        "dirty 파일: 현재 워킹트리 변경 범위를 빠르게 훑는다.",
+      ],
+    },
+  ],
+  tasks: [
+    {
+      title: "업무 항목을 이렇게 쓴다",
+      description: "업무는 해결책 설명이 아니라 이번에 닫을 문제 단위로 적는다.",
+      items: [
+        "업무 제목: 문제를 식별할 이름만 적는다.",
+        "담당 agent: 최종 판단 책임을 질 담당자 하나만 고른다.",
+        "목표: 완료되면 무엇이 달라지는지 1~2문장으로 적는다.",
+        "관련 파일/경로: 지금 바로 열 파일만 남긴다.",
+        "근거 문서: 실제로 읽을 canonical 문서만 넣는다.",
+        "하지 말 것: 범위 확장이나 위험한 접근을 적는다.",
+        "완료 기준: 끝났다고 볼 조건만 적는다.",
+        "검증: 실제 실행할 명령만 적는다.",
+      ],
+    },
+  ],
+  agents: [
+    {
+      title: "자동화 항목을 이렇게 본다",
+      description: "agent는 책임, skill은 절차, plugin은 배포 묶음으로 나눠 본다.",
+      items: [
+        "agent: 언제 쓰는지, 무엇을 하지 않는지, 예시 요청을 본다.",
+        "skill: 언제 반복 실행하는지, 어떤 출력이 나와야 하는지 본다.",
+        "plugin: manifest 경로, marketplace, bundled skill 목록을 본다.",
+        "복사 버튼은 root와 ops-console 어디서든 같은 자산을 쓰게 하는 진입점이다.",
+      ],
+    },
+  ],
+  docs: [
+    {
+      title: "문서 항목을 이렇게 쓴다",
+      description: "문서 편집은 긴 설명보다 owner와 목적을 명확히 잡는 게 우선이다.",
+      items: [
+        "문서 제목: 목록에서 바로 찾을 이름으로 적는다.",
+        "카테고리: core, video, ux, qa, ops 중 하나만 쓴다.",
+        "owner agent: 이 문서의 판단 책임 주체를 고른다.",
+        "문서 목적: 왜 존재하는지 한 줄로 적는다.",
+        "문서 본문: 필요한 범위만 수정하고 구현과 맞지 않으면 차이를 기록한다.",
+      ],
+    },
   ],
 };
 
 const statusLabel: Record<CompanyTask["status"], string> = {
   queued: "대기",
-  in_progress: "진행 중",
-  review: "검토 중",
+  in_progress: "진행",
+  review: "검토",
   blocked: "막힘",
   done: "완료",
 };
@@ -114,24 +273,45 @@ const priorityLabel: Record<CompanyTask["priority"], string> = {
 const categoryLabel: Record<ManagedDocRecord["category"], string> = {
   core: "핵심",
   video: "영상",
-  ux: "사용성",
+  ux: "UX",
   qa: "검증",
   ops: "운영",
 };
 
-const statusTone: Record<CompanyTask["status"], string> = {
-  queued: "var(--text-dim)",
-  in_progress: "var(--gold-strong)",
-  review: "var(--cyan)",
-  blocked: "var(--red)",
-  done: "var(--green)",
+const statusColorClass: Record<CompanyTask["status"], string> = {
+  queued: "text-[var(--ops-ink-faint)]",
+  in_progress: "text-[var(--ops-accent)]",
+  review: "text-[#60a5fa]",
+  blocked: "text-[#f87171]",
+  done: "text-[#34d399]",
 };
 
-const checkTone: Record<CheckRun["status"], string> = {
-  idle: "var(--text-dim)",
-  running: "var(--gold-strong)",
-  passed: "var(--green)",
-  failed: "var(--red)",
+const checkColorClass: Record<CheckRun["status"], string> = {
+  idle: "text-[var(--ops-ink-faint)]",
+  running: "text-[#38bdf8]",
+  passed: "text-[#34d399]",
+  failed: "text-[#f87171]",
+};
+
+const alertBadgeClass: Record<CompanyAlert["kind"], string> = {
+  dirty: "border-amber-700/50 bg-amber-950/40 text-amber-300",
+  blocker: "border-red-700/50 bg-red-950/40 text-red-300",
+  release: "border-orange-700/50 bg-orange-950/40 text-orange-300",
+  validation: "border-sky-700/50 bg-sky-950/40 text-sky-300",
+};
+
+const alertCardClass: Record<CompanyAlert["kind"], string> = {
+  dirty: "border-amber-900/60 bg-[#1d1610] hover:border-amber-700/70 hover:bg-[#261c12]",
+  blocker: "border-red-900/60 bg-[#1d1013] hover:border-red-700/70 hover:bg-[#241115]",
+  release: "border-orange-900/60 bg-[#1d1510] hover:border-orange-700/70 hover:bg-[#241911]",
+  validation: "border-sky-900/60 bg-[#101821] hover:border-sky-700/70 hover:bg-[#111d28]",
+};
+
+const infraStatusClass: Record<CompanyOverview["infraUsage"]["services"][number]["status"], string> = {
+  ok: "border-emerald-700/50 bg-emerald-950/40 text-emerald-300",
+  partial: "border-amber-700/50 bg-amber-950/40 text-amber-300",
+  missing: "border-slate-700/50 bg-slate-950/40 text-slate-300",
+  error: "border-red-700/50 bg-red-950/40 text-red-300",
 };
 
 const activityTypeLabel: Record<ActivityLog["type"], string> = {
@@ -139,6 +319,29 @@ const activityTypeLabel: Record<ActivityLog["type"], string> = {
   agent: "agent",
   doc: "문서",
   check: "검증",
+};
+
+const statusStripeClass: Record<CompanyTask["status"], string> = {
+  queued: "bg-[var(--ops-ink-faint)]/50",
+  in_progress: "bg-[var(--ops-accent)]",
+  review: "bg-[#60a5fa]",
+  blocked: "bg-[#f87171]",
+  done: "bg-[#34d399]",
+};
+
+const categoryStripe: Record<ManagedDocRecord["category"], string> = {
+  core: "bg-[var(--ops-accent)]",
+  video: "bg-[#60a5fa]",
+  ux: "bg-[#a78bfa]",
+  qa: "bg-[#fb923c]",
+  ops: "bg-[var(--ops-ink-muted)]",
+};
+
+const activityTypeStripe: Record<ActivityLog["type"], string> = {
+  task: "bg-[#60a5fa]",
+  agent: "bg-[var(--ops-accent)]",
+  doc: "bg-[#a78bfa]",
+  check: "bg-[#fb923c]",
 };
 
 function emptyTask(agentId: string): TaskDraft {
@@ -180,6 +383,13 @@ function formatTime(value: string | null | undefined) {
   })}`;
 }
 
+function pickInfraMetric(
+  service: CompanyOverview["infraUsage"]["services"][number] | undefined,
+  label: string
+) {
+  return service?.metrics.find((metric) => metric.label === label)?.value ?? "-";
+}
+
 async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const response = await fetch(input, init);
   const data = await response.json();
@@ -187,49 +397,6 @@ async function fetchJson<T>(input: RequestInfo, init?: RequestInit): Promise<T> 
     throw new Error(typeof data?.error === "string" ? data.error : "요청에 실패했다.");
   }
   return data as T;
-}
-
-function HoverGuide({ text }: { text: string }) {
-  return (
-    <span className="ops-guide" tabIndex={0} aria-label={text}>
-      <Info className="h-3.5 w-3.5" />
-      <span className="ops-guide-bubble">{text}</span>
-    </span>
-  );
-}
-
-function SectionHeader({
-  title,
-  description,
-  guide,
-  action,
-}: {
-  title: string;
-  description: string;
-  guide: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="ops-section-head">
-      <div>
-        <div className="ops-title-row">
-          <h2 className="ops-section-title">{title}</h2>
-          <HoverGuide text={guide} />
-        </div>
-        <p className="ops-section-copy">{description}</p>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-function FieldLabel({ title, guide }: { title: string; guide: string }) {
-  return (
-    <div className="ops-field-label">
-      <span>{title}</span>
-      <HoverGuide text={guide} />
-    </div>
-  );
 }
 
 function buildTaskFromAgentExample(
@@ -248,26 +415,160 @@ function buildTaskFromAgentExample(
     constraints: [...agent.redFlags],
     doneCriteria: lines(example.done || ""),
     verification: lines(example.verification || "npm run lint\nnpm run typecheck\nnpm run test:run"),
-    note: `${agent.name} 기본 지침과 예시 기준으로 생성한 업무 초안`,
+    note: `${agent.name} 기준 예시를 업무 초안으로 변환`,
     updatedAt: new Date().toISOString(),
   };
 }
 
-function emptyAgentExample(index: number): FootoryAgent["examples"][number] {
+function buildDirtyTaskDraft(alert: CompanyAlert, agentId: string): TaskDraft {
+  const paths = alert.detailLines
+    .map((line) => line.replace(/^[^ ]+\s+/, "").trim())
+    .filter(Boolean);
+
   return {
-    label: `예시 ${index}`,
-    goal: "",
-    paths: "",
-    done: "",
-    verification: "npm run lint\nnpm run typecheck\nnpm run test:run",
+    id: "",
+    title: `dirty 파일 정리 ${paths.length}건`,
+    agentId,
+    status: "queued",
+    priority: "high",
+    goal: "현재 워킹트리 변경을 분류하고, 이번 작업 범위와 보류 대상을 명확히 정리한다.",
+    paths,
+    docs: ["AGENTS.md", "docs/repo-recovery-plan.md"],
+    constraints: [
+      "사용자 변경을 임의로 되돌리지 않는다.",
+      "범위가 다른 파일을 한 번에 묶어 정리하지 않는다.",
+      "실제 호출 근거 없이 삭제나 병합을 진행하지 않는다.",
+    ],
+    doneCriteria: [
+      "현재 변경 파일의 역할을 설명할 수 있다.",
+      "이번에 수정할 파일과 보류 파일이 분리되어 있다.",
+      "필요한 검증 명령이 명시되어 있다.",
+    ],
+    verification: ["npm run lint", "npm run typecheck", "npm run test:run"],
+    note: alert.detailLines.join("\n"),
+    updatedAt: new Date().toISOString(),
   };
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function SectionHeading({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h3 className="font-display text-xl leading-none tracking-wide text-[var(--ops-ink)]">{title}</h3>
+        {description ? <p className="mt-2 text-sm text-[var(--ops-ink-muted)]">{description}</p> : null}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function FieldBlock({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--ops-accent)]">{label}</span>
+        <span className="text-[10px] text-[var(--ops-ink-faint)]">{hint}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function GuideCard({ section }: { section: GuideSection }) {
+  return (
+    <Card className="bg-[var(--ops-surface-soft)]">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">{section.title}</CardTitle>
+        <CardDescription>{section.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-2">
+          {section.items.map((item, index) => (
+            <div key={item} className="flex items-start gap-2.5 rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2">
+              <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--ops-accent-soft)] text-[10px] font-bold tabular-nums text-[var(--ops-accent)]">
+                {index + 1}
+              </span>
+              <span className="text-xs leading-relaxed text-[var(--ops-ink-muted)]">{item}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  accent = "var(--ops-accent)",
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+  accent?: string;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-[var(--ops-line-strong)] bg-[var(--ops-surface-soft)] p-4">
+      <div className="ops-metric-line" style={{ background: accent }} />
+      <div className="mb-2 flex items-center justify-between gap-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ops-ink-faint)]">{label}</p>
+        {Icon ? <Icon className="size-3.5 shrink-0 text-[var(--ops-ink-faint)]" /> : null}
+      </div>
+      <p className="font-display text-3xl leading-none tracking-tight" style={{ color: accent }}>{value}</p>
+    </div>
+  );
+}
+
+function ActivityItem({ entry }: { entry: ActivityLog }) {
+  return (
+    <article className="relative overflow-hidden rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-soft)] p-3 pl-4">
+      <div className={cn("absolute inset-y-0 left-0 w-0.5", activityTypeStripe[entry.type])} />
+      <div className="flex items-center justify-between gap-2">
+        <Badge variant="secondary">{activityTypeLabel[entry.type]}</Badge>
+        <span className="text-xs text-[var(--ops-ink-faint)]">{formatTime(entry.createdAt)}</span>
+      </div>
+      <p className="mt-2 text-sm font-semibold text-[var(--ops-ink)]">{entry.title}</p>
+      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-[var(--ops-ink-muted)]">{entry.detail}</p>
+      {entry.docPath ? <p className="mt-1 text-xs text-[var(--ops-ink-faint)]">{entry.docPath}</p> : null}
+    </article>
+  );
 }
 
 export default function FootoryCompanyClient() {
   const [panel, setPanel] = useState<PanelKey>("overview");
   const [overview, setOverview] = useState<CompanyOverview | null>(null);
   const [state, setState] = useState<CompanyState | null>(null);
+  const [automation, setAutomation] = useState<AutomationCatalog | null>(null);
+  const [automationView, setAutomationView] = useState<AutomationView>("agents");
   const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [selectedSkillId, setSelectedSkillId] = useState("");
+  const [selectedPluginId, setSelectedPluginId] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState("");
   const [selectedDocPath, setSelectedDocPath] = useState("");
   const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
@@ -276,16 +577,33 @@ export default function FootoryCompanyClient() {
   const [docContent, setDocContent] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshingOverview, setRefreshingOverview] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [runningCheck, setRunningCheck] = useState<CheckRun["script"] | null>(null);
   const [docOwnerFilter, setDocOwnerFilter] = useState("all");
 
   const selectedPanel = panels.find((item) => item.id === panel) ?? panels[0];
+  const selectedFieldGuides = fieldGuideSections[panel];
 
   const selectedAgent = useMemo(
     () => state?.agents.find((agent) => agent.id === selectedAgentId) ?? null,
     [selectedAgentId, state?.agents]
+  );
+
+  const selectedRegistryAgent = useMemo(
+    () => automation?.agents.find((agent) => agent.id === selectedAgentId) ?? null,
+    [automation?.agents, selectedAgentId]
+  );
+
+  const selectedSkill = useMemo(
+    () => automation?.skills.find((skill) => skill.id === selectedSkillId) ?? null,
+    [automation?.skills, selectedSkillId]
+  );
+
+  const selectedPlugin = useMemo(
+    () => automation?.plugins.find((plugin) => plugin.id === selectedPluginId) ?? null,
+    [automation?.plugins, selectedPluginId]
   );
 
   const selectedTask = useMemo(
@@ -309,11 +627,6 @@ export default function FootoryCompanyClient() {
     });
   }, [state, taskDraft]);
 
-  const activeAgentExample = useMemo(
-    () => agentDraft?.examples?.[0] ?? null,
-    [agentDraft]
-  );
-
   const filteredDocs = useMemo(
     () => (state?.docRegistry ?? []).filter((doc) => docOwnerFilter === "all" || doc.ownerAgentId === docOwnerFilter),
     [docOwnerFilter, state?.docRegistry]
@@ -329,24 +642,33 @@ export default function FootoryCompanyClient() {
     [state?.activity, agentDraft?.id]
   );
 
-  const recentActivity = useMemo(
-    () => (state?.activity ?? []).slice(0, 6),
-    [state?.activity]
-  );
+  const recentActivity = useMemo(() => (state?.activity ?? []).slice(0, 6), [state?.activity]);
 
-  const loadOverview = useCallback(async () => {
-    setLoading(true);
+  const loadOverview = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (silent) {
+      setRefreshingOverview(true);
+    } else {
+      setLoading(true);
+    }
     try {
-      const data = await fetchJson<{ overview: CompanyOverview; state: CompanyState }>("/api/company/overview");
+      const data = await fetchJson<{ overview: CompanyOverview; state: CompanyState; automation: AutomationCatalog }>("/api/company/overview");
       setOverview(data.overview);
       setState(data.state);
+      setAutomation(data.automation);
       setSelectedAgentId((current) => current || data.state.agents[0]?.id || "");
+      setSelectedSkillId((current) => current || data.automation.skills[0]?.id || "");
+      setSelectedPluginId((current) => current || data.automation.plugins[0]?.id || "");
       setSelectedTaskId((current) => current || data.state.tasks[0]?.id || "");
       setSelectedDocPath((current) => current || data.state.docRegistry[0]?.path || "");
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "운영 상태를 불러오지 못했다.");
     } finally {
-      setLoading(false);
+      if (silent) {
+        setRefreshingOverview(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -365,13 +687,28 @@ export default function FootoryCompanyClient() {
       setTaskDraft({ ...selectedTask });
       return;
     }
-    setTaskDraft(emptyTask(selectedAgentId || state.agents[0]?.id || ""));
+    setTaskDraft((current) => {
+      if (
+        current &&
+        !selectedTask &&
+        current.id === "" &&
+        (current.title ||
+          current.goal ||
+          current.paths.length > 0 ||
+          current.docs.length > 0 ||
+          current.constraints.length > 0 ||
+          current.doneCriteria.length > 0 ||
+          current.note)
+      ) {
+        return current;
+      }
+      return emptyTask(selectedAgentId || state.agents[0]?.id || "");
+    });
   }, [selectedAgentId, selectedTask, state]);
 
   useEffect(() => {
     if (!selectedDoc) return;
     setDocDraft({ ...selectedDoc });
-
     const loadDoc = async () => {
       try {
         const data = await fetchJson<{ path: string; title: string; content: string }>(
@@ -382,7 +719,6 @@ export default function FootoryCompanyClient() {
         setFeedback(error instanceof Error ? error.message : "문서를 불러오지 못했다.");
       }
     };
-
     void loadDoc();
   }, [selectedDoc]);
 
@@ -403,7 +739,7 @@ export default function FootoryCompanyClient() {
         body: JSON.stringify({ type: "saveTask", task: taskDraft }),
       });
       setFeedback("업무를 저장했다.");
-      await loadOverview();
+      await loadOverview({ silent: true });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "업무 저장에 실패했다.");
     } finally {
@@ -422,27 +758,9 @@ export default function FootoryCompanyClient() {
       });
       setSelectedTaskId("");
       setFeedback("업무를 삭제했다.");
-      await loadOverview();
+      await loadOverview({ silent: true });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "업무 삭제에 실패했다.");
-    } finally {
-      setSaving(null);
-    }
-  };
-
-  const saveAgent = async () => {
-    if (!agentDraft) return;
-    setSaving("agent");
-    try {
-      await fetchJson("/api/company/state", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "saveAgent", agent: agentDraft }),
-      });
-      setFeedback("담당자 기준을 저장했다.");
-      await loadOverview();
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "담당자 저장에 실패했다.");
     } finally {
       setSaving(null);
     }
@@ -458,7 +776,7 @@ export default function FootoryCompanyClient() {
         body: JSON.stringify({ type: "saveDocMeta", doc: docDraft }),
       });
       setFeedback("문서 메타를 저장했다.");
-      await loadOverview();
+      await loadOverview({ silent: true });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "문서 메타 저장에 실패했다.");
     } finally {
@@ -476,7 +794,7 @@ export default function FootoryCompanyClient() {
         body: JSON.stringify({ path: docDraft.path, content: docContent }),
       });
       setFeedback("문서 본문을 저장했다.");
-      await loadOverview();
+      await loadOverview({ silent: true });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "문서 본문 저장에 실패했다.");
     } finally {
@@ -493,7 +811,7 @@ export default function FootoryCompanyClient() {
         body: JSON.stringify({ script }),
       });
       setFeedback(`${script} 결과를 업데이트했다.`);
-      await loadOverview();
+      await loadOverview({ silent: true });
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "검증 실행에 실패했다.");
     } finally {
@@ -513,42 +831,13 @@ export default function FootoryCompanyClient() {
     }
   };
 
-  const updateAgentExample = (
-    index: number,
-    key: keyof FootoryAgent["examples"][number],
-    value: string
-  ) => {
-    if (!agentDraft) return;
-    const nextExamples = agentDraft.examples.map((example, exampleIndex) =>
-      exampleIndex === index ? { ...example, [key]: value } : example
-    );
-    setAgentDraft({ ...agentDraft, examples: nextExamples });
-  };
-
-  const addAgentExample = () => {
-    if (!agentDraft) return;
-    setAgentDraft({
-      ...agentDraft,
-      examples: [...agentDraft.examples, emptyAgentExample(agentDraft.examples.length + 1)],
-    });
-    setFeedback(`${agentDraft.name} 예시 칸을 추가했다.`);
-  };
-
-  const removeAgentExample = (index: number) => {
-    if (!agentDraft || agentDraft.examples.length === 1) return;
-    setAgentDraft({
-      ...agentDraft,
-      examples: agentDraft.examples.filter((_, exampleIndex) => exampleIndex !== index),
-    });
-    setFeedback(`${agentDraft.name} 예시 ${index + 1}을 제거했다.`);
-  };
-
-  const loadAgentExampleIntoTask = (example: FootoryAgent["examples"][number]) => {
-    if (!agentDraft) return;
-    setTaskDraft(buildTaskFromAgentExample(agentDraft, example));
-    setSelectedTaskId("");
-    setPanel("tasks");
-    setFeedback(`${agentDraft.name} 예시를 업무 작성 화면으로 가져왔다.`);
+  const copyText = async (value: string, message: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setFeedback(message);
+    } catch {
+      setFeedback("복사에 실패했다.");
+    }
   };
 
   const openDoc = (docPath: string) => {
@@ -557,952 +846,1644 @@ export default function FootoryCompanyClient() {
       setFeedback("이 문서는 현재 문서 편집 목록에 등록되어 있지 않다.");
       return;
     }
-
     setDocOwnerFilter("all");
     setSelectedDocPath(docPath);
     setPanel("docs");
     setFeedback(`${docPath} 문서를 열었다.`);
   };
 
-  const agentGuideBrief = activeAgentExample && agentDraft
-    ? buildAgentBrief(agentDraft, {
-        goal: activeAgentExample.goal,
-        paths: activeAgentExample.paths,
-        done: activeAgentExample.done,
-        verification: activeAgentExample.verification,
-      })
-    : "";
+  const openAlert = (alert: CompanyAlert) => {
+    if (alert.kind === "dirty") {
+      const ownerId =
+        state?.agents.find((agent) => agent.id === "chief-of-staff")?.id ??
+        state?.agents[0]?.id ??
+        selectedAgentId;
+      if (!ownerId) {
+        setFeedback("업무 담당자를 찾지 못했다.");
+        return;
+      }
+      setTaskDraft(buildDirtyTaskDraft(alert, ownerId));
+      setSelectedTaskId("");
+      setPanel("tasks");
+      setFeedback(`dirty 파일 기준 업무 초안을 열었다. ${alert.nextStep}`);
+      return;
+    }
+
+    if (alert.sourcePath) {
+      openDoc(alert.sourcePath);
+      setFeedback(`${alert.sourcePath} 문서를 열었다. ${alert.nextStep}`);
+    }
+  };
 
   const inProgressCount = state?.tasks.filter((task) => task.status === "in_progress").length ?? 0;
-  const blockedCount = state?.tasks.filter((task) => task.status === "blocked").length ?? 0;
   const recentCheck = overview?.checks[0] ?? null;
-  const primaryAlerts = overview?.alerts.slice(0, 3) ?? [];
+  const primaryAlerts = overview?.alerts ?? [];
   const focusDocs = overview?.focusDocs.slice(0, 4) ?? [];
   const dirtyFiles = overview?.git.files ?? [];
+  const infraUsage = overview?.infraUsage.services ?? [];
+  const vercelUsage = infraUsage.find((service) => service.id === "vercel");
+  const r2Usage = infraUsage.find((service) => service.id === "r2");
+  const supabaseUsage = infraUsage.find((service) => service.id === "supabase");
+  const infraIssueCount = infraUsage.filter((service) => service.status !== "ok").length;
+  const usageSnapshots = [
+    {
+      label: "Vercel",
+      value: pickInfraMetric(vercelUsage, "최근 배포 목록"),
+      detail: `${pickInfraMetric(vercelUsage, "실패 배포")} 실패`,
+      tone: vercelUsage?.status ?? "missing",
+    },
+    {
+      label: "R2",
+      value: pickInfraMetric(r2Usage, "저장 용량"),
+      detail: `${pickInfraMetric(r2Usage, "오브젝트")} 오브젝트`,
+      tone: r2Usage?.status ?? "missing",
+    },
+    {
+      label: "Supabase",
+      value: pickInfraMetric(supabaseUsage, "합계 row"),
+      detail: `${pickInfraMetric(supabaseUsage, "스토리지 버킷")} 버킷`,
+      tone: supabaseUsage?.status ?? "missing",
+    },
+  ] as const;
 
-  if (loading || !state || !overview || !taskDraft || !agentDraft || !docDraft) {
+  if (loading || !state || !overview || !automation || !taskDraft || !agentDraft || !docDraft) {
     return (
-      <div className="ops-shell">
-        <div className="ops-loading ops-panel-strong">
-          <LoaderCircle className="h-5 w-5 animate-spin" />
-          <span>운영 화면을 불러오는 중이다.</span>
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--ops-line-strong)] bg-[var(--ops-surface)] px-6 py-4 shadow-[var(--ops-shadow-card)]">
+          <LoaderCircle className="size-5 animate-spin text-[var(--ops-accent)]" />
+          <p className="font-display text-sm tracking-wide text-[var(--ops-ink-muted)]">운영 화면을 불러오는 중이다</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="ops-shell">
-      <header className="ops-hero ops-panel-strong">
-        <div className="ops-hero-copy">
-          <div className="ops-kicker">local only ops console</div>
-          <h1 className="ops-display ops-hero-title">Footory 관리자 운영실</h1>
-          <p className="ops-hero-text">
-            상위 Footory 저장소와 직접 연결된 로컬 전용 콘솔이다. 무엇을 해야 하는지 먼저 보이고, 설명은 필요할 때만 hover로 확인한다.
-          </p>
-          <div className="ops-hero-tags" aria-label="운영 콘솔 핵심 특성">
-            <span className="ops-hero-tag">로컬 접속만 허용</span>
-            <span className="ops-hero-tag">루트 문서 직접 편집</span>
-            <span className="ops-hero-tag">ops-state.json 상태 저장</span>
-          </div>
-        </div>
-        <div className="ops-hero-stats">
-          <div className="ops-stat-card">
-            <span>진행 중 업무</span>
-            <strong>{inProgressCount}</strong>
-          </div>
-          <div className="ops-stat-card">
-            <span>막힌 업무</span>
-            <strong>{blockedCount}</strong>
-          </div>
-          <div className="ops-stat-card">
-            <span>긴급 경보</span>
-            <strong>{overview.alerts.length}</strong>
-          </div>
-          <div className="ops-stat-card">
-            <span>최근 점검</span>
-            <strong>{recentCheck?.script ?? "없음"}</strong>
-          </div>
-        </div>
-      </header>
-
-      {feedback ? <div className="ops-feedback">{feedback}</div> : null}
-
-      <div className="ops-layout">
-        <aside className="ops-sidebar ops-panel">
-          <div className="ops-sidebar-section">
-            <div className="ops-title-row">
-              <h2 className="ops-sidebar-title">메뉴</h2>
-              <HoverGuide text="먼저 할 일을 찾고 싶으면 현황, 지시를 만들려면 업무를 누르면 된다." />
+    <div className="relative mx-auto min-h-screen w-full max-w-[1480px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+      <motion.header
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl border border-[var(--ops-line-strong)] bg-[linear-gradient(135deg,rgba(78,203,141,0.06)_0%,rgba(16,24,39,0.95)_50%,rgba(14,22,40,0.95)_100%)] px-5 py-5 shadow-[var(--ops-shadow-float)] backdrop-blur-md sm:px-7 sm:py-6"
+      >
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="border border-[var(--ops-accent)]/30 bg-[var(--ops-accent-soft)] text-[var(--ops-accent)]" variant="secondary">
+                local only
+              </Badge>
+              <Badge className="border border-[var(--ops-line-strong)] bg-[var(--ops-surface-soft)] text-[var(--ops-ink-muted)]" variant="secondary">
+                ops-state.json 연동
+              </Badge>
+              <Badge className="border border-[var(--ops-line-strong)] bg-[var(--ops-surface-soft)] text-[var(--ops-ink-muted)]" variant="secondary">
+                루트 문서 직접 편집
+              </Badge>
+              <Badge className="border border-[var(--ops-line-strong)] bg-[var(--ops-surface-soft)] text-[var(--ops-ink-muted)]" variant="secondary">
+                루트 agent·skill·plugin 연동
+              </Badge>
             </div>
-            <div className="ops-nav-list">
-              {panels.map((item) => {
-                const Icon = item.icon;
-                const active = panel === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`ops-nav-card ${active ? "is-active" : ""}`}
-                    onClick={() => setPanel(item.id)}
-                  >
-                    <div className="ops-nav-main">
-                      <Icon className="h-4 w-4" />
-                      <div>
-                        <div className="ops-nav-label">{item.label}</div>
-                        <div className="ops-nav-caption">{item.caption}</div>
-                      </div>
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.22em] text-[var(--ops-accent)] uppercase">Footory Operations Console</p>
+              <h1 className="mt-2 font-display text-4xl leading-none tracking-tight text-[var(--ops-ink)] sm:text-5xl">
+                관리자 운영실
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--ops-ink-muted)] sm:text-[15px]">
+                상위 Footory 저장소를 로컬에서 직접 관리하는 콘솔이다. 핵심 상태를 먼저 보여주고, 업무 지시와 문서 정리를 같은
+                흐름으로 연결한다. 이제 root의 agent, skill, plugin 자산도 같은 화면에서 확인할 수 있다.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button className="bg-[var(--ops-accent)] text-[#04130a] hover:bg-[#62d998]">
+                    <BookOpenText className="size-4" />
+                    운영실 시작 가이드
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:max-w-xl">
+                  <SheetHeader>
+                    <SheetTitle>운영실 시작 가이드</SheetTitle>
+                    <SheetDescription>처음 여는 관리자도 어디부터 봐야 하는지 바로 이해할 수 있게 정리했다.</SheetDescription>
+                  </SheetHeader>
+                  <ScrollArea className="mt-5 h-[calc(100vh-120px)] pr-4">
+                    <div className="grid gap-4 pb-6">
+                      {operatorGuideSections.map((section) => (
+                        <GuideCard key={section.title} section={section} />
+                      ))}
+                      <Card className="bg-[var(--ops-surface-soft)]">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">지금 보고 있는 패널 가이드</CardTitle>
+                          <CardDescription>{selectedPanel.label} 패널에서 먼저 할 일</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-2">
+                            {panelHowTo[panel].map((step, index) => (
+                              <div key={step} className="flex items-start gap-2.5 rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2">
+                                <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--ops-accent-soft)] text-[10px] font-bold tabular-nums text-[var(--ops-accent)]">
+                                  {index + 1}
+                                </span>
+                                <span className="text-[13px] leading-relaxed text-[var(--ops-ink-muted)]">{step}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                      {selectedFieldGuides.map((section) => (
+                        <GuideCard key={`${panel}-${section.title}`} section={section} />
+                      ))}
                     </div>
-                    <HoverGuide text={item.guide} />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="ops-sidebar-section ops-soft-block">
-            <div className="ops-title-row">
-              <h3 className="ops-sidebar-title">지금 선택</h3>
-              <HoverGuide text="현재 열려 있는 화면과 편집 대상을 보여준다." />
-            </div>
-            <ul className="ops-plain-list">
-              <li>화면: {selectedPanel.label}</li>
-              <li>업무: {taskDraft.title || "새 업무"}</li>
-              <li>담당자: {agentDraft.name}</li>
-              <li>문서: {docDraft.title}</li>
-            </ul>
-          </div>
-
-          <div className="ops-sidebar-section ops-soft-block">
-            <div className="ops-title-row">
-              <h3 className="ops-sidebar-title">운영 원칙</h3>
-              <HoverGuide text="관리자가 판단할 때 절대 잊지 말아야 하는 기준이다." />
-            </div>
-            <ul className="ops-rule-list">
-              {companyCharter.map((item) => (
-                <li key={item.title}>
-                  <strong>{item.title}</strong>
-                  <span>{item.body}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-
-        <main className="ops-main ops-panel-strong">
-          {panel === "overview" ? (
-            <div className="ops-stack">
-              <SectionHeader
-                title="지금 먼저 볼 것"
-                description="긴급 경보와 최근 검증만 먼저 보이게 압축했다. 나머지는 접어서 본다."
-                guide="운영자가 가장 먼저 확인해야 하는 정보만 위로 올린 영역이다."
-              />
-
-              <section className="ops-panel-block ops-local-board">
-                <div className="ops-card-head">
-                  <span>로컬 연결</span>
-                  <HoverGuide text="이 콘솔은 로컬 localhost에서만 열리며, 상위 Footory 저장소와 상태 파일을 직접 읽고 쓴다." />
-                </div>
-                <div className="ops-local-grid">
-                  <div className="ops-local-card">
-                    <strong>접속 범위</strong>
-                    <p>{overview.workspace.allowedHosts.join(", ")}</p>
+                  </ScrollArea>
+                </SheetContent>
+              </Sheet>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="secondary" className="border-[var(--ops-line-strong)] bg-[var(--ops-surface-soft)] text-[var(--ops-ink)] hover:bg-[var(--ops-surface-muted)]">
+                    빠른 문서 열기
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:max-w-md">
+                  <SheetHeader>
+                    <SheetTitle>오늘 바로 볼 문서</SheetTitle>
+                    <SheetDescription>운영 중 자주 다시 여는 문서를 빠르게 열 수 있다.</SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-5 grid gap-2">
+                    {focusDocs.map((doc) => (
+                      <Button
+                        key={doc.path}
+                        variant="outline"
+                        className="h-auto justify-start py-3 text-left"
+                        onClick={() => openDoc(doc.path)}
+                      >
+                        <div>
+                          <p className="font-semibold">{doc.title}</p>
+                          <p className="text-xs text-[var(--ops-ink-faint)]">{doc.path}</p>
+                        </div>
+                      </Button>
+                    ))}
                   </div>
-                  <div className="ops-local-card">
-                    <strong>콘솔 앱 위치</strong>
-                    <code>{overview.workspace.consolePath}</code>
-                  </div>
-                  <div className="ops-local-card">
-                    <strong>운영 대상 저장소</strong>
-                    <code>{overview.workspace.repoPath}</code>
-                  </div>
-                  <div className="ops-local-card">
-                    <strong>상태 파일</strong>
-                    <code>{overview.workspace.stateFilePath}</code>
-                  </div>
-                </div>
-              </section>
-
-              <div className="ops-alert-grid">
-                <section className="ops-focus-card ops-warm-card">
-                  <div className="ops-card-head">
-                    <span>긴급 경보</span>
-                    <HoverGuide text="blocker, release, validation 문서에서 추린 현재 핵심 메시지다." />
-                  </div>
-                  {primaryAlerts.length > 0 ? (
-                    <ul className="ops-alert-list">
-                      {primaryAlerts.map((alert) => (
-                        <li key={alert}>
-                          <TriangleAlert className="h-4 w-4" />
-                          <span>{alert}</span>
+                </SheetContent>
+              </Sheet>
+              <Drawer>
+                <DrawerTrigger asChild>
+                  <Button variant="ghost" className="text-white hover:bg-white/15 hover:text-white lg:hidden">
+                    현재 패널 가이드
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent>
+                  <DrawerHeader>
+                    <DrawerTitle>패널 가이드</DrawerTitle>
+                    <DrawerDescription>{selectedPanel.label} 화면에서 먼저 할 일</DrawerDescription>
+                  </DrawerHeader>
+                  <div className="grid gap-4 px-4 pb-4">
+                    <ol className="grid gap-2 text-sm text-[var(--ops-ink-muted)]">
+                      {panelHowTo[panel].map((step) => (
+                        <li key={step} className="rounded-xl bg-[var(--ops-surface-muted)] px-3 py-2">
+                          {step}
                         </li>
                       ))}
-                    </ul>
-                  ) : (
-                    <p className="ops-muted">지금 바로 뜬 긴급 경보는 없다.</p>
-                  )}
-                </section>
-
-                <section className="ops-focus-card">
-                  <div className="ops-card-head">
-                    <span>최근 검증</span>
-                    <HoverGuide text="가장 마지막에 실행한 lint, typecheck, test 결과를 보여준다." />
-                  </div>
-                  {recentCheck ? (
-                    <div className="ops-check-summary">
-                      <strong style={{ color: checkTone[recentCheck.status] }}>{recentCheck.summary}</strong>
-                      <span>{recentCheck.script}</span>
-                      <small>{formatTime(recentCheck.finishedAt ?? recentCheck.startedAt)}</small>
-                    </div>
-                  ) : (
-                    <p className="ops-muted">아직 실행된 검증이 없다.</p>
-                  )}
-                </section>
-
-                <section className="ops-focus-card">
-                  <div className="ops-card-head">
-                    <span>지금 볼 문서</span>
-                    <HoverGuide text="운영 중 자주 다시 열어야 하는 문서를 우선 순위로 보여준다." />
-                  </div>
-                  <ul className="ops-mini-docs">
-                    {focusDocs.map((doc) => (
-                      <li key={doc.path}>
-                        <button type="button" className="ops-doc-link" onClick={() => openDoc(doc.path)}>
-                          <strong>{doc.title}</strong>
-                          <span>{doc.path}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              </div>
-
-              <section className="ops-panel-block">
-                <SectionHeader
-                  title="점검 실행"
-                  description="루트 Footory 저장소 기준으로 바로 검증을 돌린다."
-                  guide="관리자 앱 자체가 아니라 운영 대상인 Footory 저장소에 대해 검증을 실행한다."
-                />
-                <div className="ops-action-row">
-                  {(["lint", "typecheck", "test:run"] as CheckRun["script"][]).map((script) => (
-                    <button
-                      key={script}
-                      type="button"
-                      className="ops-action-card"
-                      onClick={() => void runCheck(script)}
-                      disabled={runningCheck === script}
-                    >
-                      {runningCheck === script ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Terminal className="h-4 w-4" />}
-                      <div>
-                        <strong>{script}</strong>
-                        <span>클릭하면 바로 실행</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <details className="ops-disclosure">
-                <summary>상세 현황 보기</summary>
-                <div className="ops-disclosure-body">
-                  <div className="ops-detail-grid">
-                    {overview.resources.map((resource) => (
-                      <div key={resource.label} className="ops-detail-card">
-                        <span>{resource.label}</span>
-                        <strong>{resource.count}</strong>
-                        <small>{resource.detail}</small>
-                      </div>
+                    </ol>
+                    {selectedFieldGuides.map((section) => (
+                      <GuideCard key={`drawer-${panel}-${section.title}`} section={section} />
                     ))}
                   </div>
-                  <div className="ops-dirty-list">
-                    {dirtyFiles.map((file) => (
-                      <div key={`${file.status}-${file.path}`} className="ops-dirty-row">
-                        <span>{file.status}</span>
-                        <code>{file.path}</code>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </details>
+                </DrawerContent>
+              </Drawer>
             </div>
-          ) : null}
+          </div>
 
-          {panel === "tasks" ? (
-            <div className="ops-editor-layout">
-              <section className="ops-list-column">
-                <SectionHeader
-                  title="업무 목록"
-                  description="먼저 existing 업무를 고르거나 새 업무를 만든다."
-                  guide="왼쪽은 빠른 선택용이다. 길게 읽는 설명은 숨기고 제목, 상태, 담당자만 보여준다."
-                  action={
-                    <button
-                      type="button"
-                      className="ops-secondary-button"
-                      onClick={() => {
-                        setSelectedTaskId("");
-                        setTaskDraft(emptyTask(selectedAgentId || state.agents[0]?.id || ""));
-                      }}
-                    >
-                      새 업무
-                    </button>
-                  }
-                />
-                <div className="ops-list-stack">
-                  {state.tasks.map((task) => (
-                    <button
-                      key={task.id}
-                      type="button"
-                      className={`ops-list-card ${selectedTaskId === task.id ? "is-active" : ""}`}
-                      onClick={() => setSelectedTaskId(task.id)}
-                    >
-                      <div className="ops-list-top">
-                        <strong>{task.title}</strong>
-                        <span style={{ color: statusTone[task.status] }}>{statusLabel[task.status]}</span>
-                      </div>
-                      <div className="ops-list-meta">
-                        <span>{priorityLabel[task.priority]}</span>
-                        <span>{state.agents.find((agent) => agent.id === task.agentId)?.name ?? task.agentId}</span>
-                      </div>
-                    </button>
-                  ))}
+          <div className="grid grid-cols-2 gap-3">
+            <MetricCard
+              label="진행 중 업무"
+              value={inProgressCount}
+              icon={Activity}
+              accent="#60a5fa"
+            />
+            <MetricCard
+              label="인프라 이슈"
+              value={infraIssueCount}
+              icon={TriangleAlert}
+              accent={infraIssueCount > 0 ? "#f87171" : "var(--ops-ink-muted)"}
+            />
+            <MetricCard
+              label="긴급 경보"
+              value={overview.alerts.length}
+              icon={TriangleAlert}
+              accent={overview.alerts.length > 0 ? "#fb923c" : "var(--ops-ink-muted)"}
+            />
+            <MetricCard
+              label="최근 점검"
+              value={recentCheck?.script ?? "없음"}
+              icon={Terminal}
+              accent={
+                recentCheck?.status === "passed"
+                  ? "#34d399"
+                  : recentCheck?.status === "failed"
+                    ? "#f87171"
+                    : "var(--ops-accent)"
+              }
+            />
+          </div>
+        </div>
+      </motion.header>
+
+      <AnimatePresence initial={false}>
+        {feedback ? (
+          <motion.div
+            key={feedback}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="mt-4 rounded-xl border border-[var(--ops-accent)]/25 bg-[var(--ops-accent-soft)] px-4 py-3 text-sm text-[var(--ops-accent)]"
+          >
+            {feedback}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <Tabs value={panel} onValueChange={(value) => setPanel(value as PanelKey)} className="mt-4">
+        <TabsList className="h-auto w-full overflow-x-auto p-1.5">
+          {panels.map((item) => {
+            const Icon = item.icon;
+            return (
+              <TabsTrigger key={item.id} value={item.id} className="min-w-[100px] h-auto flex-col gap-0.5 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Icon className="size-3.5" />
+                  <span className="font-semibold">{item.label}</span>
                 </div>
-              </section>
+                <span className="ops-tab-caption text-[10px] leading-none">{item.caption}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
-              <section className="ops-form-column">
-                <SectionHeader
-                  title="업무 작성"
-                  description="누구에게 무엇을 맡기는지 짧고 명확하게 적는다."
-                  guide="업무 제목, 목표, 관련 파일, 완료 기준만 좋아도 대부분의 지시가 충분히 명확해진다."
-                  action={
-                    <button type="button" className="ops-secondary-button" onClick={() => void copyBrief()}>
-                      <Copy className="h-4 w-4" />
-                      {copied ? "복사됨" : "brief 복사"}
-                    </button>
-                  }
-                />
-
-                <div className="ops-form-grid two-up">
-                  <label>
-                    <FieldLabel title="업무 제목" guide="한 줄로 알아볼 수 있게 적는다." />
-                    <input
-                      className="ops-input"
-                      value={taskDraft.title}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="담당 agent" guide="이 업무를 먼저 읽고 판단할 주체를 고른다." />
-                    <select
-                      className="ops-input"
-                      value={taskDraft.agentId}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, agentId: event.target.value })}
-                    >
-                      {state.agents.map((agent) => (
-                        <option key={agent.id} value={agent.id}>{agent.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <FieldLabel title="상태" guide="대기, 진행 중, 검토 중, 막힘, 완료 중 하나를 고른다." />
-                    <select
-                      className="ops-input"
-                      value={taskDraft.status}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value as CompanyTask["status"] })}
-                    >
-                      {Object.entries(statusLabel).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <FieldLabel title="우선순위" guide="일정과 리스크 기준으로 urgency를 정한다." />
-                    <select
-                      className="ops-input"
-                      value={taskDraft.priority}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value as CompanyTask["priority"] })}
-                    >
-                      {Object.entries(priorityLabel).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                <div className="ops-form-stack">
-                  <label>
-                    <FieldLabel title="목표" guide="이 업무가 끝났을 때 어떤 상태여야 하는지 한두 문장으로 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={taskDraft.goal}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, goal: event.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="관련 파일/경로" guide="agent가 바로 열어야 할 파일만 줄바꿈으로 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={4}
-                      value={multiline(taskDraft.paths)}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, paths: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="근거 문서" guide="판단 기준이 되는 canonical 문서를 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={multiline(taskDraft.docs)}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, docs: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="하지 말 것" guide="범위 확장, 금지 방향, 위험한 수정 등을 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={multiline(taskDraft.constraints)}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, constraints: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="완료 기준" guide="완료 판정에 필요한 결과를 줄바꿈으로 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={multiline(taskDraft.doneCriteria)}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, doneCriteria: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="검증" guide="반드시 실행해야 하는 명령을 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={multiline(taskDraft.verification)}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, verification: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="운영 메모" guide="배경 메모가 필요할 때만 짧게 남긴다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={2}
-                      value={taskDraft.note}
-                      onChange={(event) => setTaskDraft({ ...taskDraft, note: event.target.value })}
-                    />
-                  </label>
-                </div>
-
-                <div className="ops-action-row">
-                  <button type="button" className="ops-primary-button" onClick={() => void saveTask()} disabled={saving === "task"}>
-                    {saving === "task" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    업무 저장
-                  </button>
-                  <button
-                    type="button"
-                    className="ops-danger-button"
-                    onClick={() => void deleteTask()}
-                    disabled={!taskDraft.id || saving === "delete-task"}
-                  >
-                    {saving === "delete-task" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    삭제
-                  </button>
-                </div>
-
-                <section className="ops-brief-box">
-                  <div className="ops-card-head">
-                    <span>전달용 brief</span>
-                    <HoverGuide text="복사해서 바로 agent에게 붙여 넣는 용도다." />
+        <div className="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
+          <aside className="space-y-4 lg:self-start">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>현재 선택</CardTitle>
+                <CardDescription>편집 대상과 패널 상태를 한 번에 본다.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-1.5">
+                {([
+                  { label: "패널", value: selectedPanel.label, icon: selectedPanel.icon },
+                  { label: "업무", value: taskDraft.title || "새 업무", icon: BriefcaseBusiness },
+                  { label: "담당자", value: agentDraft.name, icon: ShieldCheck },
+                  { label: "문서", value: docDraft.title, icon: FilePenLine },
+                ] as Array<{ label: string; value: string; icon: React.ComponentType<{ className?: string }> }>).map(({ label, value, icon: RowIcon }) => (
+                  <div key={label} className="flex items-center justify-between gap-2 rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2.5">
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <RowIcon className="size-3 text-[var(--ops-accent)]/60" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--ops-ink-faint)]">{label}</span>
+                    </div>
+                    <span className="max-w-[130px] truncate text-right text-[13px] font-semibold text-[var(--ops-ink)]">{value}</span>
                   </div>
-                  <pre>{activeBrief}</pre>
-                </section>
+                ))}
+              </CardContent>
+            </Card>
 
-                <section className="ops-soft-block ops-history-panel">
-                  <div className="ops-card-head">
-                    <span>업무 히스토리</span>
-                    <HoverGuide text="이 업무 카드에 대해 최근에 저장, 수정, 삭제된 흐름을 시간순으로 보여준다." />
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>운영 원칙</CardTitle>
+                <CardDescription>판단 기준이 흐려지지 않게 고정한다.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {companyCharter.map((item) => (
+                  <div key={item.title} className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-soft)] p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--ops-accent)]">{item.title}</p>
+                    <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-[var(--ops-ink-muted)]">{item.body}</p>
                   </div>
-                  {taskDraft.id && selectedTaskLogs.length > 0 ? (
-                    <div className="ops-history-list">
-                      {selectedTaskLogs.map((entry) => (
-                        <article key={entry.id} className="ops-history-card">
-                          <div className="ops-history-top">
-                            <span className="ops-history-kind">{activityTypeLabel[entry.type]}</span>
-                            <small>{formatTime(entry.createdAt)}</small>
-                          </div>
-                          <strong>{entry.title}</strong>
-                          <p>{entry.detail}</p>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="ops-muted">아직 이 업무에 쌓인 히스토리가 없다.</p>
-                  )}
-                </section>
-              </section>
-            </div>
-          ) : null}
+                ))}
+              </CardContent>
+            </Card>
+          </aside>
 
-          {panel === "agents" ? (
-            <div className="ops-editor-layout">
-              <section className="ops-list-column">
-                <SectionHeader
-                  title="담당자 목록"
-                  description="누가 어떤 판단을 맡는지 빠르게 고른다."
-                  guide="역할이 겹치지 않게 owner를 분명히 유지하는 것이 목적이다."
-                />
-                <div className="ops-list-stack">
-                  {state.agents.map((agent) => (
-                    <button
-                      key={agent.id}
-                      type="button"
-                      className={`ops-list-card ${selectedAgentId === agent.id ? "is-active" : ""}`}
-                      onClick={() => setSelectedAgentId(agent.id)}
-                    >
-                      <div className="ops-list-top">
-                        <strong>{agent.name}</strong>
-                        <span>{agent.department}</span>
-                      </div>
-                      <div className="ops-list-meta">
-                        <span>{agent.title}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className="ops-form-column">
-                <SectionHeader
-                  title="담당자 기준"
-                  description="이 agent를 언제 부르고, 어떻게 지시하고, 어떤 기준으로 막을지 한 화면에서 관리한다."
-                  guide="역할 설명만이 아니라 실제 사용 예시와 지시 템플릿까지 함께 관리해야 처음 보는 관리자도 바로 쓸 수 있다."
-                  action={
-                    <div className="ops-inline-actions">
-                      <button type="button" className="ops-secondary-button" onClick={addAgentExample}>
-                        <Plus className="h-4 w-4" />
-                        예시 추가
-                      </button>
-                      <button type="button" className="ops-primary-button" onClick={() => void saveAgent()} disabled={saving === "agent"}>
-                        {saving === "agent" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        저장
-                      </button>
-                    </div>
-                  }
-                />
-
-                <div className="ops-form-stack">
-                  <section className="ops-soft-block ops-agent-guide">
-                    <div className="ops-card-head">
-                      <span>이 agent를 이렇게 쓴다</span>
-                      <HoverGuide text="언제 호출하는지, 먼저 무엇을 적어야 하는지, 어떤 문서를 같이 줘야 하는지 정리한 영역이다." />
-                    </div>
-                    <div className="ops-guide-grid">
-                      <div className="ops-guide-card">
-                        <strong>언제 부르나</strong>
-                        <p>{agentDraft.summary}</p>
-                      </div>
-                      <div className="ops-guide-card">
-                        <strong>먼저 맡기기 좋은 일</strong>
-                        <ul className="ops-plain-list compact">
-                          {agentDraft.nextMoves.map((item) => (
-                            <li key={item}>{item}</li>
+          <main className="min-w-0 isolate">
+            <TabsContent value="overview" className="mt-0 space-y-4">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <Card className="overflow-hidden border-[var(--ops-line-strong)] bg-[linear-gradient(135deg,rgba(78,203,141,0.08)_0%,rgba(10,15,28,0.98)_100%)]">
+                  <CardHeader>
+                    <SectionHeading
+                      title="처음이면 여기부터"
+                      description="운영실은 현황 확인, 업무 잠금, 담당자 brief, 문서 수정, 검증 확인 순서로 쓰면 된다."
+                      action={
+                        <Sheet>
+                          <SheetTrigger asChild>
+                            <Button size="sm" className="bg-[var(--ops-accent)] text-[#04130a] hover:bg-[#62d998]">
+                              <BookOpenText className="size-4" />
+                              전체 가이드
+                            </Button>
+                          </SheetTrigger>
+                          <SheetContent side="right" className="w-full sm:max-w-xl">
+                            <SheetHeader>
+                              <SheetTitle>운영실 시작 가이드</SheetTitle>
+                              <SheetDescription>관리자 운영실을 처음 열 때 필요한 순서와 항목 설명을 모아뒀다.</SheetDescription>
+                            </SheetHeader>
+                            <ScrollArea className="mt-5 h-[calc(100vh-120px)] pr-4">
+                              <div className="grid gap-4 pb-6">
+                                {operatorGuideSections.map((section) => (
+                                  <GuideCard key={`overview-${section.title}`} section={section} />
+                                ))}
+                              </div>
+                            </ScrollArea>
+                          </SheetContent>
+                        </Sheet>
+                      }
+                    />
+                  </CardHeader>
+                  <CardContent className="grid gap-3 md:grid-cols-2">
+                    {operatorGuideSections.slice(0, 2).map((section) => (
+                      <div key={section.title} className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-sm">
+                        <p className="text-sm font-semibold text-[var(--ops-ink)]">{section.title}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-[var(--ops-ink-muted)]">{section.description}</p>
+                        <div className="mt-3 grid gap-2">
+                          {section.items.slice(0, 3).map((item, index) => (
+                            <div key={item} className="flex items-start gap-2 text-xs leading-relaxed text-[var(--ops-ink-muted)]">
+                              <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--ops-accent-soft)] text-[10px] font-bold text-[var(--ops-accent)]">
+                                {index + 1}
+                              </span>
+                              <span>{item}</span>
+                            </div>
                           ))}
-                        </ul>
-                      </div>
-                      <div className="ops-guide-card">
-                        <strong>같이 줘야 할 문서</strong>
-                        <ul className="ops-plain-list compact ops-doc-link-list">
-                          {agentDraft.sourceDocs.map((item) => (
-                            <li key={item}>
-                              <button type="button" className="ops-doc-link inline" onClick={() => openDoc(item)}>
-                                <span>{item}</span>
-                                <FolderOpen className="h-3.5 w-3.5" />
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </section>
-
-                  <label>
-                    <FieldLabel title="한 줄 설명" guide="관리자가 이 agent를 언제 불러야 하는지 바로 이해되게 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={2}
-                      value={agentDraft.summary}
-                      onChange={(event) => setAgentDraft({ ...agentDraft, summary: event.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="이 agent가 하는 일" guide="맡겨도 되는 업무를 줄바꿈으로 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={4}
-                      value={multiline(agentDraft.canDo)}
-                      onChange={(event) => setAgentDraft({ ...agentDraft, canDo: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="이 agent가 하지 않는 일" guide="경계가 모호해지지 않게 금지선을 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={4}
-                      value={multiline(agentDraft.wontDo)}
-                      onChange={(event) => setAgentDraft({ ...agentDraft, wontDo: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="다음에 맡기기 좋은 일" guide="관리자가 다음 요청을 어떤 agent에 줄지 판단하는 힌트다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={multiline(agentDraft.nextMoves)}
-                      onChange={(event) => setAgentDraft({ ...agentDraft, nextMoves: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="red flag" guide="이 agent가 경고해야 하는 위험 신호다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={multiline(agentDraft.redFlags)}
-                      onChange={(event) => setAgentDraft({ ...agentDraft, redFlags: lines(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="근거 문서" guide="이 agent가 먼저 읽어야 할 기준 문서를 적는다." />
-                    <textarea
-                      className="ops-input ops-textarea"
-                      rows={3}
-                      value={multiline(agentDraft.sourceDocs)}
-                      onChange={(event) => setAgentDraft({ ...agentDraft, sourceDocs: lines(event.target.value) })}
-                    />
-                  </label>
-
-                  {agentDraft.examples.map((example, index) => (
-                    <section key={`${agentDraft.id}-example-${index}`} className="ops-soft-block ops-agent-example">
-                      <div className="ops-card-head">
-                        <span>사용 예시 {index + 1}</span>
-                        <div className="ops-inline-actions">
-                          <button
-                            type="button"
-                            className="ops-danger-button"
-                            onClick={() => removeAgentExample(index)}
-                            disabled={agentDraft.examples.length === 1}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            예시 삭제
-                          </button>
-                          <button
-                            type="button"
-                            className="ops-secondary-button"
-                            onClick={() => loadAgentExampleIntoTask(example)}
-                          >
-                            업무로 가져오기
-                          </button>
                         </div>
                       </div>
+                    ))}
+                  </CardContent>
+                </Card>
 
-                      <div className="ops-form-stack">
-                        <label>
-                          <FieldLabel title="예시 제목" guide="관리자가 예시를 구분하기 쉬운 짧은 이름을 적는다." />
-                          <input
-                            className="ops-input"
-                            value={example.label}
-                            onChange={(event) => updateAgentExample(index, "label", event.target.value)}
-                          />
-                        </label>
-                        <label>
-                          <FieldLabel title="예시 목표" guide="이 agent에게 맡길 실제 요청 한 문장을 적는다." />
-                          <textarea
-                            className="ops-input ops-textarea"
-                            rows={2}
-                            value={example.goal}
-                            onChange={(event) => updateAgentExample(index, "goal", event.target.value)}
-                          />
-                        </label>
-                        <label>
-                          <FieldLabel title="예시 파일/경로" guide="실제로 같이 넘길 파일이나 경로를 줄바꿈으로 적는다." />
-                          <textarea
-                            className="ops-input ops-textarea"
-                            rows={3}
-                            value={example.paths}
-                            onChange={(event) => updateAgentExample(index, "paths", event.target.value)}
-                          />
-                        </label>
-                        <label>
-                          <FieldLabel title="예시 완료 기준" guide="agent가 끝냈다고 볼 조건을 적는다." />
-                          <textarea
-                            className="ops-input ops-textarea"
-                            rows={3}
-                            value={example.done}
-                            onChange={(event) => updateAgentExample(index, "done", event.target.value)}
-                          />
-                        </label>
-                        <label>
-                          <FieldLabel title="예시 검증" guide="이 요청에서 함께 요구할 검증 명령을 적는다." />
-                          <textarea
-                            className="ops-input ops-textarea"
-                            rows={2}
-                            value={example.verification}
-                            onChange={(event) => updateAgentExample(index, "verification", event.target.value)}
-                          />
-                        </label>
-                      </div>
-                    </section>
-                  ))}
+                {selectedFieldGuides.map((section) => (
+                  <GuideCard key={`overview-field-${section.title}`} section={section} />
+                ))}
+              </div>
 
-                  <section className="ops-brief-box">
-                    <div className="ops-card-head">
-                      <span>agent 지시문 미리보기</span>
-                      <HoverGuide text="현재 example 1 기준으로 이 agent에게 바로 보낼 수 있는 지시문 형태를 보여준다." />
-                    </div>
-                    <pre>{agentGuideBrief}</pre>
-                  </section>
-
-                  <section className="ops-soft-block ops-history-panel">
-                    <div className="ops-card-head">
-                      <span>최근 처리 로그</span>
-                      <HoverGuide text="이 agent와 연결된 업무 저장, 문서 저장, 검증 실행 기록을 최근 순으로 보여준다." />
-                    </div>
-                    {selectedAgentLogs.length > 0 ? (
-                      <div className="ops-history-list">
-                        {selectedAgentLogs.map((entry) => (
-                          <article key={entry.id} className="ops-history-card">
-                            <div className="ops-history-top">
-                              <span className="ops-history-kind">{activityTypeLabel[entry.type]}</span>
-                              <small>{formatTime(entry.createdAt)}</small>
-                            </div>
-                            <strong>{entry.title}</strong>
-                            <p>{entry.detail}</p>
-                            {entry.docPath ? <code>{entry.docPath}</code> : null}
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="ops-muted">아직 이 agent에 연결된 로그가 없다.</p>
-                    )}
-                  </section>
-                </div>
-              </section>
-            </div>
-          ) : null}
-
-          {panel === "docs" ? (
-            <div className="ops-editor-layout">
-              <section className="ops-list-column">
-                <SectionHeader
-                  title="문서 목록"
-                  description="먼저 owner와 목적을 확인할 문서를 고른다."
-                  guide="문서는 제목보다 owner와 목적이 중요하다. 왜 존재하는지 먼저 보여준다."
-                  action={
-                    <select
-                      className="ops-input ops-filter-select"
-                      value={docOwnerFilter}
-                      onChange={(event) => setDocOwnerFilter(event.target.value)}
-                    >
-                      <option value="all">모든 owner</option>
-                      {state.agents.map((agent) => (
-                        <option key={agent.id} value={agent.id}>{agent.name}</option>
-                      ))}
-                    </select>
-                  }
-                />
-                <div className="ops-list-stack">
-                  {filteredDocs.map((doc) => (
-                    <button
-                      key={doc.path}
-                      type="button"
-                      className={`ops-list-card ${selectedDocPath === doc.path ? "is-active" : ""}`}
-                      onClick={() => setSelectedDocPath(doc.path)}
-                    >
-                      <div className="ops-list-top">
-                        <strong>{doc.title}</strong>
-                        <span>{categoryLabel[doc.category]}</span>
-                      </div>
-                      <div className="ops-list-meta">
-                        <span>{doc.purpose}</span>
-                        <span>{state.agents.find((agent) => agent.id === doc.ownerAgentId)?.name ?? doc.ownerAgentId}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className="ops-form-column">
-                <SectionHeader
-                  title="문서 편집"
-                  description="메타 정보와 본문을 한 자리에서 수정한다."
-                  guide="문서 방향을 바꾸는 것이 아니라 owner, 목적, 본문을 현재 구현 기준에 맞게 유지하는 용도다."
-                />
-
-                <div className="ops-form-grid two-up">
-                  <label>
-                    <FieldLabel title="문서 제목" guide="목록에서 바로 찾을 수 있는 이름이어야 한다." />
-                    <input
-                      className="ops-input"
-                      value={docDraft.title}
-                      onChange={(event) => setDocDraft({ ...docDraft, title: event.target.value })}
-                    />
-                  </label>
-                  <label>
-                    <FieldLabel title="카테고리" guide="핵심, 영상, 사용성, 검증, 운영 중 하나를 고른다." />
-                    <select
-                      className="ops-input"
-                      value={docDraft.category}
-                      onChange={(event) => setDocDraft({ ...docDraft, category: event.target.value as ManagedDocRecord["category"] })}
-                    >
-                      {Object.entries(categoryLabel).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <FieldLabel title="owner agent" guide="이 문서를 먼저 책임질 agent를 정한다." />
-                    <select
-                      className="ops-input"
-                      value={docDraft.ownerAgentId}
-                      onChange={(event) => setDocDraft({ ...docDraft, ownerAgentId: event.target.value })}
-                    >
-                      {state.agents.map((agent) => (
-                        <option key={agent.id} value={agent.id}>{agent.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    <FieldLabel title="문서 목적" guide="왜 이 문서가 필요한지 짧게 적는다." />
-                    <input
-                      className="ops-input"
-                      value={docDraft.purpose}
-                      onChange={(event) => setDocDraft({ ...docDraft, purpose: event.target.value })}
-                    />
-                  </label>
-                </div>
-
-                <div className="ops-inline-note">현재 편집 대상: {docDraft.path}</div>
-
-                <div className="ops-action-row">
-                  <button type="button" className="ops-secondary-button" onClick={() => void saveDocMeta()} disabled={saving === "doc-meta"}>
-                    {saving === "doc-meta" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    메타 저장
-                  </button>
-                </div>
-
-                <label>
-                  <FieldLabel title="문서 본문" guide="필요한 경우에만 수정한다. 저장하면 바로 루트 저장소 문서가 갱신된다." />
-                  <textarea
-                    className="ops-input ops-textarea ops-doc-editor"
-                    rows={22}
-                    value={docContent}
-                    onChange={(event) => setDocContent(event.target.value)}
+              <Card className="bg-[var(--ops-surface-soft)]">
+                <CardHeader>
+                  <SectionHeading
+                    title="로컬 자동화 자산"
+                    description="root 저장소의 실제 agent, skill, plugin 자산을 읽어서 보여준다."
+                    action={
+                      <Button size="sm" variant="secondary" onClick={() => setPanel("agents")}>
+                        <Bot className="size-4" />
+                        자동화 열기
+                      </Button>
+                    }
                   />
-                </label>
-
-                <div className="ops-action-row">
-                  <button type="button" className="ops-primary-button" onClick={() => void saveDocContent()} disabled={saving === "doc-content"}>
-                    {saving === "doc-content" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    본문 저장
-                  </button>
-                </div>
-              </section>
-            </div>
-          ) : null}
-        </main>
-
-        <aside className="ops-guide-rail ops-panel">
-          <section className="ops-rail-block">
-            <div className="ops-title-row">
-              <h2 className="ops-sidebar-title">사용 가이드</h2>
-              <HoverGuide text="처음 보는 관리자도 순서대로 따라오게 하는 짧은 안내다." />
-            </div>
-            <ol className="ops-step-list">
-              {panelHowTo[panel].map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="ops-rail-block ops-soft-block">
-            <div className="ops-title-row">
-              <h2 className="ops-sidebar-title">항상 지킬 것</h2>
-              <HoverGuide text="화면을 단순화해도 이 기준은 바뀌지 않는다." />
-            </div>
-            <ul className="ops-plain-list compact">
-              {operatingRules.slice(0, 4).map((rule) => (
-                <li key={rule}>{rule}</li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="ops-rail-block ops-soft-block">
-            <div className="ops-title-row">
-              <h2 className="ops-sidebar-title">최근 검증 로그</h2>
-              <HoverGuide text="가장 최근에 실행한 검증 결과만 먼저 보여준다." />
-            </div>
-            {overview.checks.length > 0 ? (
-              <div className="ops-check-list">
-                {overview.checks.slice(0, 4).map((check) => (
-                  <div key={check.id} className="ops-check-card">
-                    <div className="ops-list-top">
-                      <strong>{check.script}</strong>
-                      <span style={{ color: checkTone[check.status] }}>{check.summary}</span>
+                </CardHeader>
+                <CardContent className="grid gap-3 md:grid-cols-3">
+                  {[
+                    { label: "agent", value: overview.automation.agentCount, detail: overview.automation.registryPath },
+                    { label: "skill", value: overview.automation.skillCount, detail: overview.automation.marketplacePath },
+                    { label: "plugin", value: overview.automation.pluginCount, detail: overview.automation.pluginRoot },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ops-ink-faint)]">{item.label}</p>
+                      <p className="mt-3 font-display text-3xl leading-none text-[var(--ops-accent)]">{item.value}</p>
+                      <p className="mt-3 break-all font-mono text-[11px] leading-relaxed text-[var(--ops-ink-faint)]">{item.detail}</p>
                     </div>
-                    <small>{formatTime(check.finishedAt ?? check.startedAt)}</small>
-                    <code>{check.output}</code>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <SectionHeading
+                    title="핵심 상태"
+                    description="개발 관리자 기준으로 사용량, 배포 상태, 검증 상태를 먼저 본다."
+                    action={
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="border-[var(--ops-line-strong)] bg-[var(--ops-surface-soft)]"
+                        onClick={() => void loadOverview({ silent: true })}
+                        disabled={refreshingOverview}
+                      >
+                        <RefreshCw className={cn("size-4", refreshingOverview && "animate-spin")} />
+                        새로고침
+                      </Button>
+                    }
+                  />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-2xl border border-[var(--ops-line-strong)] bg-[linear-gradient(135deg,#11251c_0%,#0b1323_42%,#0f172a_100%)] p-4 shadow-[var(--ops-shadow-soft)]">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--ops-accent)]">Infra Usage</p>
+                        <h4 className="mt-2 font-display text-2xl tracking-wide text-[var(--ops-ink)]">지금 바로 판단할 사용량</h4>
+                        <p className="mt-2 text-sm text-[var(--ops-ink-muted)]">
+                          읽기 전용 조회 · {formatTime(overview.infraUsage.fetchedAt)} · 문제 서비스 {infraIssueCount}개
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-right">
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--ops-ink-faint)]">최근 배포</p>
+                        <p className="mt-1 text-sm font-semibold text-[var(--ops-ink)]">{pickInfraMetric(vercelUsage, "최근 배포")}</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                      {usageSnapshots.map((snapshot) => (
+                        <div
+                          key={snapshot.label}
+                          className="rounded-2xl border border-white/10 bg-[#121a28] p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-semibold text-[var(--ops-ink)]">{snapshot.label}</p>
+                            <Badge variant="outline" className={cn("text-[10px]", infraStatusClass[snapshot.tone])}>
+                              {snapshot.tone === "ok" ? "정상" : snapshot.tone === "partial" ? "부분" : snapshot.tone === "error" ? "오류" : "누락"}
+                            </Badge>
+                          </div>
+                          <p className="mt-4 font-display text-3xl leading-none tracking-tight text-white">{snapshot.value}</p>
+                          <p className="mt-2 text-xs text-[var(--ops-ink-muted)]">{snapshot.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Card className="bg-[var(--ops-surface-soft)]">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <CardTitle className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--ops-ink-faint)]">긴급 경보</CardTitle>
+                          <CardDescription className="mt-1">Blocker는 지금 배포를 막는 문제다. 항목 안의 `의미`와 `눌러서 할 일`을 보고 바로 문서 편집이나 업무 초안으로 이동한다.</CardDescription>
+                        </div>
+                        {primaryAlerts.length > 0 ? (
+                          <Badge variant="outline" className="border-red-700/50 bg-red-950/40 text-red-400 tabular-nums">
+                            {primaryAlerts.length}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {primaryAlerts.length > 0 ? (
+                        <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                          {primaryAlerts.map((alert) => (
+                            <button
+                              key={alert.id}
+                              type="button"
+                              onClick={() => openAlert(alert)}
+                              className={cn(
+                                "grid w-full gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ops-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ops-surface-soft)]",
+                                alertCardClass[alert.kind]
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex min-w-0 items-start gap-3">
+                                  <TriangleAlert className="mt-0.5 size-4 shrink-0 text-red-400" />
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Badge variant="outline" className={cn("text-[10px]", alertBadgeClass[alert.kind])}>
+                                        {alert.label}
+                                      </Badge>
+                                      <span className="text-[11px] text-[var(--ops-ink-faint)]">{alert.sourceLabel}</span>
+                                    </div>
+                                    <p className="mt-2 whitespace-normal break-words text-sm leading-relaxed text-[var(--ops-ink)]">
+                                      {alert.summary}
+                                    </p>
+                                    <div className="mt-3 grid gap-2">
+                                      <div className="rounded-lg border border-white/8 bg-black/15 px-3 py-2">
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ops-ink-faint)]">의미</p>
+                                        <p className="mt-1 text-xs leading-relaxed text-[var(--ops-ink-muted)]">{alert.meaning}</p>
+                                      </div>
+                                      <div className="rounded-lg border border-white/8 bg-black/15 px-3 py-2">
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ops-ink-faint)]">눌러서 할 일</p>
+                                        <p className="mt-1 text-xs leading-relaxed text-[var(--ops-ink-muted)]">{alert.nextStep}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--ops-accent)]">
+                                  {alert.actionLabel}
+                                  <ArrowRight className="size-3.5" />
+                                </span>
+                              </div>
+                              {alert.kind === "dirty" && alert.detailLines.length > 0 ? (
+                                <div className="grid gap-1 rounded-lg border border-white/6 bg-[#0d1420] px-3 py-2">
+                                  {alert.detailLines.slice(0, 3).map((line) => (
+                                    <p key={`${alert.id}-${line}`} className="text-xs leading-relaxed text-[var(--ops-ink-muted)]">
+                                      {line}
+                                    </p>
+                                  ))}
+                                  {alert.detailLines.length > 3 ? (
+                                    <p className="text-[11px] text-[var(--ops-ink-faint)]">
+                                      외 {alert.detailLines.length - 3}개 더 있음
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-lg bg-[var(--ops-accent-soft)] px-3 py-2">
+                          <span className="text-xs text-[var(--ops-accent)]">경보 없음</span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {/* 최근 검증 */}
+                    <Card className="bg-[var(--ops-surface-soft)]">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--ops-ink-faint)]">최근 검증</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {recentCheck ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <code className="rounded bg-[var(--ops-surface-muted)] px-1.5 py-0.5 font-mono text-xs text-[var(--ops-ink)]">
+                                {recentCheck.script}
+                              </code>
+                              <Badge
+                                variant="secondary"
+                                className={cn("text-xs", checkColorClass[recentCheck.status])}
+                              >
+                                {recentCheck.summary}
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-[var(--ops-ink-faint)]">
+                              {formatTime(recentCheck.finishedAt ?? recentCheck.startedAt)}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-[var(--ops-ink-muted)]">아직 실행된 검증이 없다.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* 점검 실행 */}
+                    <Card className="bg-[var(--ops-surface-soft)]">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--ops-ink-faint)]">점검 실행</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-2">
+                        {(["lint", "typecheck", "test:run"] as CheckRun["script"][]).map((script) => (
+                          <Button
+                            key={script}
+                            variant="secondary"
+                            className="justify-start font-mono text-xs"
+                            onClick={() => void runCheck(script)}
+                            disabled={runningCheck === script}
+                          >
+                            {runningCheck === script ? (
+                              <LoaderCircle className="size-3.5 animate-spin" />
+                            ) : (
+                              <Terminal className="size-3.5" />
+                            )}
+                            {script}
+                          </Button>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card className="bg-[var(--ops-surface-soft)]">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">외부 인프라 사용량</CardTitle>
+                      <CardDescription>서비스별로 필요한 수치만 빠르게 확인한다.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-3 md:grid-cols-3">
+                      {infraUsage.map((service) => (
+                        <div
+                          key={service.id}
+                          className="rounded-2xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-4"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold text-[var(--ops-ink)]">{service.label}</p>
+                              <p className="mt-1 text-[11px] text-[var(--ops-ink-faint)]">{service.summary}</p>
+                            </div>
+                            <Badge variant="outline" className={cn("text-[10px]", infraStatusClass[service.status])}>
+                              {service.status}
+                            </Badge>
+                          </div>
+                          <div className="mt-4 grid gap-2">
+                            {service.metrics.length > 0 ? (
+                              service.metrics.map((metric) => (
+                                <div
+                                  key={`${service.id}-${metric.label}`}
+                                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-soft)] px-3 py-2"
+                                >
+                                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--ops-ink-faint)]">{metric.label}</span>
+                                  <span className="text-sm font-bold text-[var(--ops-ink)]">{metric.value}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-xs text-[var(--ops-ink-faint)]">조회 가능한 수치가 없다.</p>
+                            )}
+                          </div>
+                          {service.notes.length > 0 ? (
+                            <div className="mt-2 space-y-1">
+                              {service.notes.slice(0, 2).map((note) => (
+                                <p key={`${service.id}-${note}`} className="text-[11px] leading-relaxed text-[var(--ops-ink-faint)]">
+                                  {note}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <Card className="bg-[var(--ops-surface-soft)]">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">상세 현황</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {overview.resources.map((resource) => (
+                            <div
+                              key={resource.label}
+                              className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] px-3 py-2"
+                            >
+                              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">{resource.label}</p>
+                              <p className="font-display text-2xl leading-none text-[var(--ops-accent)]">{resource.count}</p>
+                              <p className="mt-1 line-clamp-2 text-xs text-[var(--ops-ink-muted)]">{resource.detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <ScrollArea className="h-36 rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-2">
+                          <div className="grid gap-1">
+                            {dirtyFiles.length > 0 ? (
+                              dirtyFiles.map((file) => {
+                                const isNew = file.status.includes("?");
+                                const isDeleted = file.status === "D";
+                                const isModified = file.status === "M" || file.status === " M";
+                                return (
+                                  <div
+                                    key={`${file.status}-${file.path}`}
+                                    className="flex items-center gap-2 rounded-lg bg-[var(--ops-surface-soft)] px-2 py-1.5"
+                                  >
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "shrink-0 font-mono text-[10px] px-1.5 py-0",
+                                        isNew && "border-blue-700/50 bg-blue-950/40 text-blue-400",
+                                        isDeleted && "border-red-700/50 bg-red-950/40 text-red-400",
+                                        isModified && "border-amber-700/50 bg-amber-950/40 text-amber-400",
+                                        !isNew && !isDeleted && !isModified && "text-[var(--ops-ink-muted)]"
+                                      )}
+                                    >
+                                      {file.status.trim()}
+                                    </Badge>
+                                    <span className="min-w-0 truncate font-mono text-xs text-[var(--ops-ink)]">{file.path}</span>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="px-2 py-3 text-xs text-[var(--ops-ink-muted)]">변경된 파일이 없다.</p>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-[var(--ops-surface-soft)]">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">로컬 연결 정보</CardTitle>
+                        <CardDescription>개발 관리자 기준으로 필요할 때만 아래에서 확인한다.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid gap-3 sm:grid-cols-2">
+                        {[
+                          { label: "접속 허용", value: overview.workspace.allowedHosts.join(", "), mono: false },
+                          { label: "콘솔 위치", value: overview.workspace.consolePath, mono: true },
+                          { label: "운영 저장소", value: overview.workspace.repoPath, mono: true },
+                          { label: "상태 파일", value: overview.workspace.stateFilePath, mono: true },
+                        ].map(({ label, value, mono }) => (
+                          <div key={label} className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--ops-ink-faint)]">{label}</p>
+                            <p className={cn("mt-2 break-all text-[13px] leading-relaxed text-[var(--ops-ink)]", mono && "font-mono text-xs")}>{value}</p>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="mt-0 space-y-4">
+              {selectedFieldGuides.map((section) => (
+                <GuideCard key={`tasks-${section.title}`} section={section} />
+              ))}
+              <Card>
+                <CardHeader>
+                  <SectionHeading
+                    title="업무 작성"
+                    description="목록에서 선택하고, 목표와 완료 기준을 명확하게 저장한다."
+                    action={
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => void copyBrief()}>
+                          <Copy className="size-4" />
+                          {copied ? "복사됨" : "brief 복사"}
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" title="업무 액션 더보기">
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>업무 액션</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedTaskId("");
+                                setTaskDraft(emptyTask(selectedAgentId || state.agents[0]?.id || ""));
+                              }}
+                            >
+                              <Plus className="size-4" />
+                              새 업무
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    }
+                  />
+                </CardHeader>
+                <CardContent className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+                  <Card className="bg-[var(--ops-surface-soft)]">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">업무 목록</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[520px] pr-2">
+                        <div className="grid gap-2">
+                          {state.tasks.map((task) => (
+                            <button
+                              key={task.id}
+                              type="button"
+                              className={cn(
+                                "group relative cursor-pointer overflow-hidden rounded-xl border px-3 py-2.5 pl-4 text-left transition-all",
+                                selectedTaskId === task.id
+                                  ? "border-[var(--ops-accent)] bg-[var(--ops-accent-soft)] ring-1 ring-[var(--ops-accent)]/30"
+                                  : "border-[var(--ops-line)] bg-[var(--ops-surface-muted)] hover:border-[var(--ops-line-strong)] hover:bg-[var(--ops-surface-soft)]"
+                              )}
+                              onClick={() => setSelectedTaskId(task.id)}
+                            >
+                              <div className={cn("absolute inset-y-0 left-0 w-0.5", statusStripeClass[task.status])} />
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="truncate text-sm font-semibold text-[var(--ops-ink)]">{task.title}</p>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <Badge
+                                    variant="secondary"
+                                    className={cn("text-[10px] px-1.5 py-0", statusColorClass[task.status])}
+                                  >
+                                    {statusLabel[task.status]}
+                                  </Badge>
+                                  <ChevronRight className="size-3.5 text-[var(--ops-ink-faint)] opacity-0 transition-opacity group-hover:opacity-100" />
+                                </div>
+                              </div>
+                              <p className="mt-1 truncate text-xs text-[var(--ops-ink-faint)]">
+                                <span className="font-medium">{priorityLabel[task.priority]}</span>
+                                {" · "}
+                                {state.agents.find((agent) => agent.id === task.agentId)?.name ?? task.agentId}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <FieldBlock label="업무 제목" hint="한 줄로 식별 가능해야 한다.">
+                        <Input value={taskDraft.title} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} />
+                      </FieldBlock>
+                      <FieldBlock label="담당 agent" hint="이 업무를 주로 판단할 주체를 지정한다.">
+                        <Select value={taskDraft.agentId} onValueChange={(value) => setTaskDraft({ ...taskDraft, agentId: value })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {state.agents.map((agent) => (
+                              <SelectItem key={agent.id} value={agent.id}>
+                                {agent.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FieldBlock>
+                      <FieldBlock label="상태" hint="대기/진행/검토/막힘/완료">
+                        <Select
+                          value={taskDraft.status}
+                          onValueChange={(value) => setTaskDraft({ ...taskDraft, status: value as CompanyTask["status"] })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(statusLabel).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FieldBlock>
+                      <FieldBlock label="우선순위" hint="일정과 영향 기준으로 고른다.">
+                        <Select
+                          value={taskDraft.priority}
+                          onValueChange={(value) =>
+                            setTaskDraft({ ...taskDraft, priority: value as CompanyTask["priority"] })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(priorityLabel).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FieldBlock>
+                    </div>
+
+                    <FieldBlock label="목표" hint="완료 시점 상태를 1~2문장으로 작성한다.">
+                      <Textarea rows={3} value={taskDraft.goal} onChange={(event) => setTaskDraft({ ...taskDraft, goal: event.target.value })} />
+                    </FieldBlock>
+                    <FieldBlock label="관련 파일/경로" hint="agent가 바로 열 파일만 줄바꿈으로 입력한다.">
+                      <Textarea
+                        rows={4}
+                        value={multiline(taskDraft.paths)}
+                        onChange={(event) => setTaskDraft({ ...taskDraft, paths: lines(event.target.value) })}
+                      />
+                    </FieldBlock>
+                    <FieldBlock label="근거 문서" hint="판단 기준 문서만 유지한다.">
+                      <Textarea
+                        rows={3}
+                        value={multiline(taskDraft.docs)}
+                        onChange={(event) => setTaskDraft({ ...taskDraft, docs: lines(event.target.value) })}
+                      />
+                    </FieldBlock>
+                    <FieldBlock label="하지 말 것" hint="범위 확장 금지나 위험한 접근을 지정한다.">
+                      <Textarea
+                        rows={3}
+                        value={multiline(taskDraft.constraints)}
+                        onChange={(event) => setTaskDraft({ ...taskDraft, constraints: lines(event.target.value) })}
+                      />
+                    </FieldBlock>
+                    <FieldBlock label="완료 기준" hint="완료 판정을 줄 단위로 고정한다.">
+                      <Textarea
+                        rows={3}
+                        value={multiline(taskDraft.doneCriteria)}
+                        onChange={(event) => setTaskDraft({ ...taskDraft, doneCriteria: lines(event.target.value) })}
+                      />
+                    </FieldBlock>
+                    <FieldBlock label="검증 명령" hint="반드시 실행할 명령만 입력한다.">
+                      <Textarea
+                        rows={3}
+                        value={multiline(taskDraft.verification)}
+                        onChange={(event) => setTaskDraft({ ...taskDraft, verification: lines(event.target.value) })}
+                      />
+                    </FieldBlock>
+                    <FieldBlock label="운영 메모" hint="배경이 필요할 때만 짧게 기록한다.">
+                      <Textarea rows={2} value={taskDraft.note} onChange={(event) => setTaskDraft({ ...taskDraft, note: event.target.value })} />
+                    </FieldBlock>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={() => void saveTask()} disabled={saving === "task"}>
+                        {saving === "task" ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+                        업무 저장
+                      </Button>
+
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="destructive" disabled={!taskDraft.id || saving === "delete-task"}>
+                            <Trash2 className="size-4" />
+                            삭제
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>업무를 삭제할까?</DialogTitle>
+                            <DialogDescription>
+                              삭제하면 업무 목록에서 제거된다. 필요하면 먼저 메모나 brief를 복사해 둔다.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <DialogClose asChild>
+                              <Button variant="secondary">취소</Button>
+                            </DialogClose>
+                            <Button variant="destructive" onClick={() => void deleteTask()} disabled={saving === "delete-task"}>
+                              {saving === "delete-task" ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                              삭제 확정
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+
+                    <Card className="bg-[var(--ops-surface-soft)]">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">전달용 brief</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3 text-xs leading-relaxed text-[var(--ops-ink)]">
+                          {activeBrief || "brief 내용이 아직 없다."}
+                        </pre>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-[var(--ops-surface-soft)]">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">업무 히스토리</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {taskDraft.id && selectedTaskLogs.length > 0 ? (
+                          <div className="grid gap-2">
+                            {selectedTaskLogs.map((entry) => (
+                              <ActivityItem key={entry.id} entry={entry} />
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-[var(--ops-ink-muted)]">아직 이 업무에 쌓인 히스토리가 없다.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="agents" className="mt-0 space-y-4">
+              {selectedFieldGuides.map((section) => (
+                <GuideCard key={`agents-${section.title}`} section={section} />
+              ))}
+              <Card>
+                <CardHeader>
+                  <SectionHeading
+                    title="자동화 자산"
+                    description="role agent, workflow skill, local plugin 묶음을 root 저장소 실제 파일 기준으로 본다."
+                  />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Tabs value={automationView} onValueChange={(value) => setAutomationView(value as AutomationView)}>
+                    <TabsList className="h-auto w-full p-1.5">
+                      <TabsTrigger value="agents" className="gap-1.5">
+                        <ShieldCheck className="size-3.5" />
+                        agent
+                      </TabsTrigger>
+                      <TabsTrigger value="skills" className="gap-1.5">
+                        <Terminal className="size-3.5" />
+                        skill
+                      </TabsTrigger>
+                      <TabsTrigger value="plugins" className="gap-1.5">
+                        <Package className="size-3.5" />
+                        plugin
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="agents" className="mt-4 grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+                      <Card className="bg-[var(--ops-surface-soft)]">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">agent 목록</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ScrollArea className="h-[560px] pr-2">
+                            <div className="grid gap-2">
+                              {automation.agents.map((agent) => (
+                                <button
+                                  key={agent.id}
+                                  type="button"
+                                  onClick={() => setSelectedAgentId(agent.id)}
+                                  className={cn(
+                                    "group cursor-pointer grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
+                                    selectedAgentId === agent.id
+                                      ? "border-[var(--ops-accent)] bg-[var(--ops-accent-soft)] ring-1 ring-[var(--ops-accent)]/30"
+                                      : "border-[var(--ops-line)] bg-[var(--ops-surface-muted)] hover:border-[var(--ops-line-strong)] hover:bg-[var(--ops-surface-soft)]"
+                                  )}
+                                >
+                                  <Avatar className="size-8">
+                                    <AvatarFallback className="text-xs">{initials(agent.name)}</AvatarFallback>
+                                  </Avatar>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold text-[var(--ops-ink)]">{agent.name}</p>
+                                    <p className="truncate text-xs text-[var(--ops-ink-faint)]">
+                                      <span>{agent.tier === "core" ? "권장" : "선택"}</span>
+                                      <span className="mx-1 opacity-40">·</span>
+                                      <span>{agent.title}</span>
+                                    </p>
+                                  </div>
+                                  <ChevronRight className="size-3.5 text-[var(--ops-ink-faint)] opacity-0 transition-opacity group-hover:opacity-100" />
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </CardContent>
+                      </Card>
+
+                      <div className="space-y-4">
+                        {selectedRegistryAgent ? (
+                          <>
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <SectionHeading
+                                  title={selectedRegistryAgent.name}
+                                  description={selectedRegistryAgent.summary}
+                                  action={
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => void copyText(`npm run ops:agent -- ${selectedRegistryAgent.id}`, "root agent 명령을 복사했다.")}
+                                      >
+                                        <Copy className="size-4" />
+                                        root 명령
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => void copyText(`npm --prefix ops-console run automation:agent -- ${selectedRegistryAgent.id}`, "ops-console agent 명령을 복사했다.")}
+                                      >
+                                        <Copy className="size-4" />
+                                        ops 명령
+                                      </Button>
+                                    </div>
+                                  }
+                                />
+                              </CardHeader>
+                              <CardContent className="grid gap-3 md:grid-cols-3">
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">구분</p>
+                                  <p className="mt-2 text-sm font-semibold text-[var(--ops-ink)]">{selectedRegistryAgent.tier === "core" ? "권장 agent" : "선택 agent"}</p>
+                                </div>
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">prompt 파일</p>
+                                  <p className="mt-2 break-all font-mono text-xs text-[var(--ops-ink)]">{selectedRegistryAgent.promptPath}</p>
+                                </div>
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">업무 초안</p>
+                                  <Button size="sm" variant="ghost" className="mt-2 px-0" onClick={() => setPanel("tasks")}>
+                                    업무 탭으로 이동
+                                    <ArrowRight className="size-3.5" />
+                                  </Button>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Card className="bg-[var(--ops-surface-soft)]">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base">이 agent가 맡는 일</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-2">
+                                  {selectedRegistryAgent.responsibilities.map((item) => (
+                                    <div key={item} className="rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2 text-sm text-[var(--ops-ink)]">
+                                      {item}
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+
+                              <Card className="bg-[var(--ops-surface-soft)]">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base">하지 않는 일</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-2">
+                                  {selectedRegistryAgent.mustNot.map((item) => (
+                                    <div key={item} className="rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2 text-sm text-[var(--ops-ink)]">
+                                      {item}
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base">먼저 읽을 문서</CardTitle>
+                              </CardHeader>
+                              <CardContent className="grid gap-2 md:grid-cols-2">
+                                {selectedRegistryAgent.mustRead.map((item) => (
+                                  <Button
+                                    key={item}
+                                    variant="secondary"
+                                    className="h-auto min-w-0 justify-start px-3 py-2 text-left"
+                                    onClick={() => openDoc(item)}
+                                  >
+                                    <FolderOpen className="size-3.5 shrink-0" />
+                                    <span className="min-w-0 break-all text-xs">{item}</span>
+                                  </Button>
+                                ))}
+                              </CardContent>
+                            </Card>
+
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base">복붙해서 쓰는 요청 예시</CardTitle>
+                              </CardHeader>
+                              <CardContent className="grid gap-3">
+                                {selectedRegistryAgent.typicalPrompts.map((prompt) => (
+                                  <div key={prompt} className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                    <p className="text-sm leading-relaxed text-[var(--ops-ink)]">{prompt}</p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      <Button size="sm" variant="secondary" onClick={() => void copyText(prompt, "agent 예시 요청을 복사했다.")}>
+                                        <Copy className="size-4" />
+                                        예시 복사
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={() => {
+                                          if (!selectedAgent) return;
+                                          const example = selectedAgent.examples[0];
+                                          setTaskDraft(buildTaskFromAgentExample(selectedAgent, example));
+                                          setSelectedTaskId("");
+                                          setPanel("tasks");
+                                          setFeedback(`${selectedRegistryAgent.name} 기준 업무 초안을 열었다.`);
+                                        }}
+                                      >
+                                        업무 초안으로 열기
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </CardContent>
+                            </Card>
+
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base">최근 처리 로그</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                {selectedAgentLogs.length > 0 ? (
+                                  <div className="grid gap-2">
+                                    {selectedAgentLogs.map((entry) => (
+                                      <ActivityItem key={entry.id} entry={entry} />
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-[var(--ops-ink-muted)]">아직 이 agent에 연결된 로그가 없다.</p>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </>
+                        ) : null}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="skills" className="mt-4 grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+                      <Card className="bg-[var(--ops-surface-soft)]">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">skill 목록</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ScrollArea className="h-[520px] pr-2">
+                            <div className="grid gap-2">
+                              {automation.skills.map((skill) => (
+                                <button
+                                  key={skill.id}
+                                  type="button"
+                                  onClick={() => setSelectedSkillId(skill.id)}
+                                  className={cn(
+                                    "group rounded-xl border px-3 py-2.5 text-left transition-all",
+                                    selectedSkillId === skill.id
+                                      ? "border-[var(--ops-accent)] bg-[var(--ops-accent-soft)] ring-1 ring-[var(--ops-accent)]/30"
+                                      : "border-[var(--ops-line)] bg-[var(--ops-surface-muted)] hover:border-[var(--ops-line-strong)] hover:bg-[var(--ops-surface-soft)]"
+                                  )}
+                                >
+                                  <p className="text-sm font-semibold text-[var(--ops-ink)]">{skill.name}</p>
+                                  <p className="mt-1 text-xs text-[var(--ops-ink-faint)]">{skill.pluginId}</p>
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </CardContent>
+                      </Card>
+
+                      <div className="space-y-4">
+                        {selectedSkill ? (
+                          <>
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <SectionHeading
+                                  title={selectedSkill.name}
+                                  description={selectedSkill.summary}
+                                  action={
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Button size="sm" variant="secondary" onClick={() => void copyText(selectedSkill.defaultPrompt, "skill default prompt를 복사했다.")}>
+                                        <Copy className="size-4" />
+                                        prompt 복사
+                                      </Button>
+                                      <Button size="sm" variant="secondary" onClick={() => void copyText(`npm run ops:skill -- ${selectedSkill.id}`, "root skill 명령을 복사했다.")}>
+                                        <Copy className="size-4" />
+                                        root 명령
+                                      </Button>
+                                    </div>
+                                  }
+                                />
+                              </CardHeader>
+                              <CardContent className="grid gap-3 md:grid-cols-2">
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">skill 파일</p>
+                                  <p className="mt-2 break-all font-mono text-xs text-[var(--ops-ink)]">{selectedSkill.skillPath}</p>
+                                </div>
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">default prompt</p>
+                                  <p className="mt-2 text-sm leading-relaxed text-[var(--ops-ink)]">{selectedSkill.defaultPrompt}</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <Card className="bg-[var(--ops-surface-soft)]">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base">언제 쓰나</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-2">
+                                  {selectedSkill.whenToUse.map((item) => (
+                                    <div key={item} className="rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2 text-sm text-[var(--ops-ink)]">
+                                      {item}
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+
+                              <Card className="bg-[var(--ops-surface-soft)]">
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base">기대 출력</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-2">
+                                  {selectedSkill.outputs.map((item) => (
+                                    <div key={item} className="rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2 text-sm text-[var(--ops-ink)]">
+                                      {item}
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+                            </div>
+
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base">ops-console에서 쓰는 명령</CardTitle>
+                              </CardHeader>
+                              <CardContent className="grid gap-2">
+                                {[
+                                  `npm run ops:skill -- ${selectedSkill.id}`,
+                                  `npm --prefix ops-console run automation:skill -- ${selectedSkill.id}`,
+                                ].map((command) => (
+                                  <button
+                                    key={command}
+                                    type="button"
+                                    onClick={() => void copyText(command, "skill 명령을 복사했다.")}
+                                    className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] px-3 py-2 text-left font-mono text-xs text-[var(--ops-ink)]"
+                                  >
+                                    {command}
+                                  </button>
+                                ))}
+                              </CardContent>
+                            </Card>
+                          </>
+                        ) : null}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="plugins" className="mt-4 grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+                      <Card className="bg-[var(--ops-surface-soft)]">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">plugin 목록</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-2">
+                            {automation.plugins.map((plugin) => (
+                              <button
+                                key={plugin.id}
+                                type="button"
+                                onClick={() => setSelectedPluginId(plugin.id)}
+                                className={cn(
+                                  "rounded-xl border px-3 py-2.5 text-left transition-all",
+                                  selectedPluginId === plugin.id
+                                    ? "border-[var(--ops-accent)] bg-[var(--ops-accent-soft)] ring-1 ring-[var(--ops-accent)]/30"
+                                    : "border-[var(--ops-line)] bg-[var(--ops-surface-muted)] hover:border-[var(--ops-line-strong)] hover:bg-[var(--ops-surface-soft)]"
+                                )}
+                              >
+                                <p className="text-sm font-semibold text-[var(--ops-ink)]">{plugin.displayName}</p>
+                                <p className="mt-1 text-xs text-[var(--ops-ink-faint)]">{plugin.id}</p>
+                              </button>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <div className="space-y-4">
+                        {selectedPlugin ? (
+                          <>
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <SectionHeading
+                                  title={selectedPlugin.displayName}
+                                  description={selectedPlugin.summary}
+                                  action={
+                                    <Button size="sm" variant="secondary" onClick={() => void copyText(`npm run ops:plugin -- ${selectedPlugin.id}`, "plugin 명령을 복사했다.")}>
+                                      <Copy className="size-4" />
+                                      manifest 명령
+                                    </Button>
+                                  }
+                                />
+                              </CardHeader>
+                              <CardContent className="grid gap-3 md:grid-cols-3">
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">manifest</p>
+                                  <p className="mt-2 break-all font-mono text-xs text-[var(--ops-ink)]">{selectedPlugin.pluginPath}</p>
+                                </div>
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">marketplace</p>
+                                  <p className="mt-2 break-all font-mono text-xs text-[var(--ops-ink)]">{selectedPlugin.marketplacePath}</p>
+                                </div>
+                                <div className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ops-ink-faint)]">registry</p>
+                                  <p className="mt-2 break-all font-mono text-xs text-[var(--ops-ink)]">{selectedPlugin.agentRegistryPath}</p>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base">포함된 skill</CardTitle>
+                              </CardHeader>
+                              <CardContent className="grid gap-2">
+                                {selectedPlugin.skillIds.map((skillId) => {
+                                  const skill = automation.skills.find((item) => item.id === skillId);
+                                  return (
+                                    <button
+                                      key={skillId}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedSkillId(skillId);
+                                        setAutomationView("skills");
+                                      }}
+                                      className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] px-3 py-2 text-left"
+                                    >
+                                      <p className="text-sm font-semibold text-[var(--ops-ink)]">{skill?.name ?? skillId}</p>
+                                      <p className="mt-1 text-xs text-[var(--ops-ink-faint)]">{skill?.summary ?? skillId}</p>
+                                    </button>
+                                  );
+                                })}
+                              </CardContent>
+                            </Card>
+
+                            <Card className="bg-[var(--ops-surface-soft)]">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base">빠른 명령</CardTitle>
+                              </CardHeader>
+                              <CardContent className="grid gap-2">
+                                {selectedPlugin.commands.map((command) => (
+                                  <button
+                                    key={command}
+                                    type="button"
+                                    onClick={() => void copyText(command, "plugin 빠른 명령을 복사했다.")}
+                                    className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] px-3 py-2 text-left font-mono text-xs text-[var(--ops-ink)]"
+                                  >
+                                    {command}
+                                  </button>
+                                ))}
+                              </CardContent>
+                            </Card>
+                          </>
+                        ) : null}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="docs" className="mt-0 space-y-4">
+              {selectedFieldGuides.map((section) => (
+                <GuideCard key={`docs-${section.title}`} section={section} />
+              ))}
+              <Card>
+                <CardHeader>
+                  <SectionHeading
+                    title="문서 편집"
+                    description="owner 필터로 문서를 좁히고 메타와 본문을 같은 화면에서 수정한다."
+                    action={
+                      <Select value={docOwnerFilter} onValueChange={(value) => setDocOwnerFilter(value)}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">모든 owner</SelectItem>
+                          {state.agents.map((agent) => (
+                            <SelectItem key={agent.id} value={agent.id}>
+                              {agent.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    }
+                  />
+                </CardHeader>
+                <CardContent className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+                  <Card className="bg-[var(--ops-surface-soft)]">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">문서 목록</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[560px] pr-2">
+                        <div className="grid gap-2">
+                          {filteredDocs.map((doc) => (
+                            <button
+                              key={doc.path}
+                              type="button"
+                              onClick={() => setSelectedDocPath(doc.path)}
+                              className={cn(
+                                "group relative cursor-pointer overflow-hidden rounded-xl border px-3 py-2.5 pl-4 text-left transition-all",
+                                selectedDocPath === doc.path
+                                  ? "border-[var(--ops-accent)] bg-[var(--ops-accent-soft)] ring-1 ring-[var(--ops-accent)]/30"
+                                  : "border-[var(--ops-line)] bg-[var(--ops-surface-muted)] hover:border-[var(--ops-line-strong)] hover:bg-[var(--ops-surface-soft)]"
+                              )}
+                            >
+                              <div className={cn("absolute inset-y-0 left-0 w-0.5", categoryStripe[doc.category])} />
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="truncate text-sm font-semibold text-[var(--ops-ink)]">{doc.title}</p>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <Badge variant="outline" className="text-[10px] px-1.5">{categoryLabel[doc.category]}</Badge>
+                                  <ChevronRight className="size-3.5 text-[var(--ops-ink-faint)] opacity-0 transition-opacity group-hover:opacity-100" />
+                                </div>
+                              </div>
+                              <p className="mt-1 line-clamp-2 text-xs text-[var(--ops-ink-faint)]">{doc.purpose}</p>
+                            </button>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  <div className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <FieldBlock label="문서 제목" hint="목록에서 바로 찾을 이름">
+                        <Input value={docDraft.title} onChange={(event) => setDocDraft({ ...docDraft, title: event.target.value })} />
+                      </FieldBlock>
+                      <FieldBlock label="카테고리" hint="핵심/영상/UX/검증/운영">
+                        <Select
+                          value={docDraft.category}
+                          onValueChange={(value) =>
+                            setDocDraft({ ...docDraft, category: value as ManagedDocRecord["category"] })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(categoryLabel).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FieldBlock>
+                      <FieldBlock label="owner agent" hint="문서 책임 주체">
+                        <Select
+                          value={docDraft.ownerAgentId}
+                          onValueChange={(value) => setDocDraft({ ...docDraft, ownerAgentId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {state.agents.map((agent) => (
+                              <SelectItem key={agent.id} value={agent.id}>
+                                {agent.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FieldBlock>
+                      <FieldBlock label="문서 목적" hint="존재 이유를 짧게">
+                        <Input value={docDraft.purpose} onChange={(event) => setDocDraft({ ...docDraft, purpose: event.target.value })} />
+                      </FieldBlock>
+                    </div>
+
+                    <Card className="bg-[var(--ops-surface-soft)]">
+                      <CardContent className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                        <p className="min-w-0 flex-1 break-all text-sm text-[var(--ops-ink-muted)]">
+                          현재 편집 대상: <span className="font-semibold text-[var(--ops-ink)]">{docDraft.path}</span>
+                        </p>
+                        <Button variant="secondary" onClick={() => void saveDocMeta()} disabled={saving === "doc-meta"}>
+                          {saving === "doc-meta" ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+                          메타 저장
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <FieldBlock label="문서 본문" hint="저장 시 루트 저장소 문서를 직접 업데이트한다.">
+                      <Textarea
+                        rows={24}
+                        className="font-mono text-xs leading-relaxed"
+                        value={docContent}
+                        onChange={(event) => setDocContent(event.target.value)}
+                      />
+                    </FieldBlock>
+
+                    <div className="flex justify-end">
+                      <Button onClick={() => void saveDocContent()} disabled={saving === "doc-content"}>
+                        {saving === "doc-content" ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+                        본문 저장
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </main>
+
+          <aside className="hidden space-y-4 lg:block lg:self-start">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>사용 가이드</CardTitle>
+                <CardDescription>{selectedPanel.guide}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ol className="grid gap-2">
+                  {panelHowTo[panel].map((step, index) => (
+                    <li key={step} className="flex items-start gap-2.5 rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2">
+                      <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-[var(--ops-accent-soft)] text-[10px] font-bold tabular-nums text-[var(--ops-accent)]">
+                        {index + 1}
+                      </span>
+                      <span className="text-[13px] leading-relaxed text-[var(--ops-ink-muted)]">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
+
+            {selectedFieldGuides.map((section) => (
+              <GuideCard key={`aside-${panel}-${section.title}`} section={section} />
+            ))}
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>항상 지킬 것</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2">
+                {operatingRules.slice(0, 4).map((rule, index) => (
+                  <div key={rule} className="flex items-start gap-2.5 rounded-lg bg-[var(--ops-surface-muted)] px-3 py-2">
+                    <span className="mt-0.5 shrink-0 text-[10px] font-bold tabular-nums text-[var(--ops-accent)]/60">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="text-[13px] leading-relaxed text-[var(--ops-ink-muted)]">{rule}</span>
                   </div>
                 ))}
-              </div>
-            ) : (
-              <p className="ops-muted">아직 실행된 검증이 없다.</p>
-            )}
-          </section>
+              </CardContent>
+            </Card>
 
-          <section className="ops-rail-block ops-soft-block">
-            <div className="ops-title-row">
-              <h2 className="ops-sidebar-title">최근 운영 로그</h2>
-              <HoverGuide text="업무 저장, agent 수정, 문서 저장, 검증 실행을 최근 순으로 짧게 보여준다." />
-            </div>
-            {recentActivity.length > 0 ? (
-              <div className="ops-history-list compact">
-                {recentActivity.map((entry) => (
-                  <article key={entry.id} className="ops-history-card compact">
-                    <div className="ops-history-top">
-                      <span className="ops-history-kind">{activityTypeLabel[entry.type]}</span>
-                      <small>{formatTime(entry.createdAt)}</small>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>최근 검증 로그</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {overview.checks.length > 0 ? (
+                  <div className="grid gap-2">
+                    {overview.checks.slice(0, 4).map((check) => (
+                      <div key={check.id} className="rounded-xl border border-[var(--ops-line)] bg-[var(--ops-surface-muted)] p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <code className="rounded bg-[var(--ops-surface-soft)] px-1.5 py-0.5 font-mono text-xs text-[var(--ops-ink)]">
+                            {check.script}
+                          </code>
+                          <Badge
+                            variant="secondary"
+                            className={cn("text-[10px]", checkColorClass[check.status])}
+                          >
+                            {check.summary}
+                          </Badge>
+                        </div>
+                        <p className="mt-1.5 text-[10px] text-[var(--ops-ink-faint)]">{formatTime(check.finishedAt ?? check.startedAt)}</p>
+                        <p className="mt-1.5 line-clamp-2 text-xs text-[var(--ops-ink-muted)]">{check.output}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-[var(--ops-ink-muted)]">아직 실행된 검증이 없다.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>최근 운영 로그</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentActivity.length > 0 ? (
+                  <ScrollArea className="h-[300px] pr-2">
+                    <div className="grid gap-2">
+                      {recentActivity.map((entry) => (
+                        <ActivityItem key={entry.id} entry={entry} />
+                      ))}
                     </div>
-                    <strong>{entry.title}</strong>
-                    <p>{entry.detail}</p>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="ops-muted">아직 쌓인 운영 로그가 없다.</p>
-            )}
-          </section>
-
-          <section className="ops-rail-block ops-soft-block">
-            <div className="ops-title-row">
-              <h2 className="ops-sidebar-title">오늘 바로 볼 것</h2>
-              <HoverGuide text="운영 중 자주 다시 여는 문서를 빠르게 모아둔 영역이다." />
-            </div>
-            <div className="ops-mini-docs">
-              {focusDocs.map((doc) => (
-                <button
-                  key={doc.path}
-                  type="button"
-                  className="ops-mini-doc-card ops-doc-link"
-                  onClick={() => openDoc(doc.path)}
-                >
-                  <strong>{doc.title}</strong>
-                  <span>{doc.path}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </aside>
-      </div>
+                  </ScrollArea>
+                ) : (
+                  <p className="text-sm text-[var(--ops-ink-muted)]">아직 쌓인 운영 로그가 없다.</p>
+                )}
+              </CardContent>
+            </Card>
+          </aside>
+        </div>
+      </Tabs>
     </div>
   );
 }

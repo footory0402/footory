@@ -6,6 +6,7 @@ import type { SpotlightCoord } from "@/lib/spotlight-math";
 
 export interface SingleClipPlaybackContract {
   id: string;
+  profileId?: string | null;
   videoUrl: string;
   thumbnailUrl?: string | null;
   tag?: string;
@@ -52,6 +53,11 @@ export interface ResolvedSingleClipPlaybackWindow {
   trimStartSec: number;
   trimEndSec: number;
   durationSec: number;
+}
+
+export interface ResolvedSingleClipFreezePoint {
+  freezeAtSec: number | null;
+  isAdjustedFromImmediate: boolean;
 }
 
 export interface DraftSingleClipPlaybackContract {
@@ -292,6 +298,42 @@ export function resolveSingleClipPlaybackWindow(
     trimStartSec,
     trimEndSec,
     durationSec: Math.max(0, trimEndSec - trimStartSec),
+  };
+}
+
+export function resolveSingleClipFreezePoint(
+  clip: Pick<SingleClipPlaybackContract, "duration" | "trimStart" | "trimEnd" | "freezeAt">,
+  fallbackDurationSec?: number | null,
+): ResolvedSingleClipFreezePoint {
+  const { trimStartSec, trimEndSec, durationSec } = resolveSingleClipPlaybackWindow(clip, fallbackDurationSec);
+  if (clip.freezeAt == null || !Number.isFinite(clip.freezeAt)) {
+    return { freezeAtSec: null, isAdjustedFromImmediate: false };
+  }
+
+  const clampedFreezeAt = clampNumber(Number(clip.freezeAt), trimStartSec, trimEndSec);
+  if (durationSec <= 0.6) {
+    return {
+      freezeAtSec: clampedFreezeAt,
+      isAdjustedFromImmediate: false,
+    };
+  }
+
+  const immediateThreshold = trimStartSec + 0.05;
+  if (clampedFreezeAt > immediateThreshold) {
+    return {
+      freezeAtSec: clampedFreezeAt,
+      isAdjustedFromImmediate: false,
+    };
+  }
+
+  const bufferedFreezeAt = Math.min(
+    trimEndSec - 0.2,
+    trimStartSec + (durationSec >= 1.2 ? 0.8 : Math.max(durationSec * 0.5, 0.2)),
+  );
+
+  return {
+    freezeAtSec: roundToTenths(Math.max(trimStartSec, bufferedFreezeAt)),
+    isAdjustedFromImmediate: true,
   };
 }
 

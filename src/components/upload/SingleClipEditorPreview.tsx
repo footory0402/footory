@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
+import IntroCard from "@/components/video/hud/IntroCard";
 import type { HudPlayerData } from "@/components/video/hud/types";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import { screenToVideo } from "@/lib/spotlight-math";
@@ -15,8 +16,11 @@ interface SingleClipEditorPreviewProps {
   spotlightPicking: boolean;
   focusPreviewVisible: boolean;
   overlayPreviewVisible: boolean;
+  onFocusTargetReady?: (element: HTMLDivElement | null) => void;
+  onZoomControlsReady?: (element: HTMLDivElement | null) => void;
   onPreviewTimeChange: (time: number) => void;
   onSpotlightChange: (spotlight: { x: number; y: number } | null) => void;
+  onZoomChange: (zoom: number) => void;
 }
 
 function formatTime(seconds: number) {
@@ -48,12 +52,16 @@ function OverlayPreviewGuide({
               {playerData.position || "선수"}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[12px] font-semibold text-white">{playerData.name || "선수 정보"}</p>
+              <p className="truncate text-[12px] font-semibold text-white">
+                {playerData.name || "선수 정보"}
+              </p>
               <p className="text-[10px] text-white/60">하단 안전 영역</p>
             </div>
           </div>
         ) : (
-          <p className="text-[11px] font-medium text-white/70">정보를 켜면 하단 안전 영역에 보여요</p>
+          <p className="text-[11px] font-medium text-white/70">
+            정보를 켜면 하단 안전 영역에 보여요
+          </p>
         )}
       </div>
     </>
@@ -68,27 +76,30 @@ export default function SingleClipEditorPreview({
   spotlightPicking,
   focusPreviewVisible,
   overlayPreviewVisible,
+  onFocusTargetReady,
+  onZoomControlsReady,
   onPreviewTimeChange,
   onSpotlightChange,
+  onZoomChange,
 }: SingleClipEditorPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pinchStateRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const lastPinchZoomRef = useRef(draft.playback.zoom);
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
 
   const spotlight = draft.playback.spotlight;
-  const freezeActive = draft.playback.freezeAt != null
-    && Math.abs(draft.playback.freezeAt - previewTime) <= 0.35;
+  const freezeActive =
+    draft.playback.freezeAt != null && Math.abs(draft.playback.freezeAt - previewTime) <= 0.35;
+  const introPreviewVisible =
+    draft.overlay.showProfileCard &&
+    !!playerData &&
+    Math.abs(previewTime - draft.playback.trimStart) <= 0.6;
 
-  const {
-    adjustedSpotlight,
-    pan,
-    resetTransform,
-    syncZoomTo,
-    zoom,
-  } = useSpotlightZoom({
+  const { adjustedSpotlight, pan, resetTransform, syncZoomTo, zoom } = useSpotlightZoom({
     videoRef,
     videoNativeSize,
     spotlight,
@@ -154,7 +165,10 @@ export default function SingleClipEditorPreview({
     const video = videoRef.current;
     if (!video) return;
 
-    if (video.currentTime < draft.playback.trimStart || video.currentTime > draft.playback.trimEnd) {
+    if (
+      video.currentTime < draft.playback.trimStart ||
+      video.currentTime > draft.playback.trimEnd
+    ) {
       video.currentTime = draft.playback.trimStart;
       onPreviewTimeChange(draft.playback.trimStart);
     }
@@ -168,6 +182,11 @@ export default function SingleClipEditorPreview({
 
     resetTransform();
   }, [draft.playback.zoom, resetTransform, spotlight, syncZoomTo]);
+
+  useEffect(() => {
+    onFocusTargetReady?.(videoNativeSize ? containerRef.current : null);
+    return () => onFocusTargetReady?.(null);
+  }, [onFocusTargetReady, videoNativeSize]);
 
   useEffect(() => {
     if (!spotlightPicking) return;
@@ -186,7 +205,10 @@ export default function SingleClipEditorPreview({
     }
 
     if (video.paused) {
-      if (video.currentTime < draft.playback.trimStart || video.currentTime >= draft.playback.trimEnd) {
+      if (
+        video.currentTime < draft.playback.trimStart ||
+        video.currentTime >= draft.playback.trimEnd
+      ) {
         video.currentTime = draft.playback.trimStart;
       }
       video.play().catch(() => {});
@@ -196,48 +218,106 @@ export default function SingleClipEditorPreview({
     video.pause();
   }, [draft.playback.trimEnd, draft.playback.trimStart, ended]);
 
-  const handleTap = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (!spotlightPicking) {
-      togglePlayback();
-      return;
-    }
+  const handleTap = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!spotlightPicking) {
+        togglePlayback();
+        return;
+      }
 
-    const container = containerRef.current;
-    const video = videoRef.current;
-    if (!container || !video || !videoNativeSize) return;
+      const container = containerRef.current;
+      const video = videoRef.current;
+      if (!container || !video || !videoNativeSize) return;
 
-    const spot = screenToVideo(
-      event.clientX,
-      event.clientY,
-      container.getBoundingClientRect(),
-      {
-        containerW: container.clientWidth,
-        containerH: container.clientHeight,
-        videoW: videoNativeSize.w,
-        videoH: videoNativeSize.h,
-      },
-      zoom,
+      const spot = screenToVideo(
+        event.clientX,
+        event.clientY,
+        container.getBoundingClientRect(),
+        {
+          containerW: container.clientWidth,
+          containerH: container.clientHeight,
+          videoW: videoNativeSize.w,
+          videoH: videoNativeSize.h,
+        },
+        zoom,
+        pan
+      );
+
+      if (!spot) return;
+      video.pause();
+      onPreviewTimeChange(video.currentTime);
+      onSpotlightChange(spot);
+    },
+    [
+      onPreviewTimeChange,
+      onSpotlightChange,
       pan,
-    );
+      spotlightPicking,
+      togglePlayback,
+      videoNativeSize,
+      zoom,
+    ]
+  );
 
-    if (!spot) return;
-    video.pause();
-    onPreviewTimeChange(video.currentTime);
-    onSpotlightChange(spot);
-  }, [onPreviewTimeChange, onSpotlightChange, pan, spotlightPicking, togglePlayback, videoNativeSize, zoom]);
+  const applyZoom = useCallback(
+    (nextZoom: number) => {
+      const rounded = Number(Math.min(3.2, Math.max(1, nextZoom)).toFixed(1));
+      if (Math.abs(rounded - draft.playback.zoom) < 0.05) return;
+      onZoomChange(rounded);
+    },
+    [draft.playback.zoom, onZoomChange]
+  );
+
+  const handleTouchStart = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      if (!focusPreviewVisible || !spotlight || event.touches.length !== 2) {
+        pinchStateRef.current = null;
+        return;
+      }
+
+      const [first, second] = [event.touches[0], event.touches[1]];
+      pinchStateRef.current = {
+        distance: Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY),
+        zoom: draft.playback.zoom,
+      };
+      lastPinchZoomRef.current = draft.playback.zoom;
+    },
+    [draft.playback.zoom, focusPreviewVisible, spotlight]
+  );
+
+  const handleTouchMove = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const pinchState = pinchStateRef.current;
+      if (!pinchState || event.touches.length !== 2) return;
+
+      event.preventDefault();
+      const [first, second] = [event.touches[0], event.touches[1]];
+      const distance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+      const ratio = pinchState.distance > 0 ? distance / pinchState.distance : 1;
+      const nextZoom = Number(Math.min(3.2, Math.max(1, pinchState.zoom * ratio)).toFixed(1));
+      if (Math.abs(nextZoom - lastPinchZoomRef.current) < 0.1) return;
+      lastPinchZoomRef.current = nextZoom;
+      onZoomChange(nextZoom);
+    },
+    [onZoomChange]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    pinchStateRef.current = null;
+  }, []);
 
   const seekMin = draft.playback.trimStart;
   const seekMax = draft.playback.trimEnd;
   const seekValue = Math.min(Math.max(previewTime, seekMin), seekMax);
-  const videoTransform = zoom > 1
-    ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})`
-    : undefined;
+  const videoTransform = zoom > 1 ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})` : undefined;
   const helperText = useMemo(() => {
     if (focusPreviewVisible && spotlightPicking) {
-      return "주인공을 한 번 눌러요.";
+      return spotlight
+        ? "다른 선수를 누르면 바로 바뀌어요."
+        : "주인공을 한 번 누르면 바로 가깝게 보여줘요.";
     }
     if (focusPreviewVisible && spotlight) {
-      return `${draft.playback.zoom.toFixed(1)}x로 따라가요.`;
+      return `${draft.playback.zoom.toFixed(1)}x로 주인공을 더 잘 보이게 해요.`;
     }
     if (focusPreviewVisible) {
       return "주인공을 고르면 바로 확대돼요.";
@@ -246,18 +326,31 @@ export default function SingleClipEditorPreview({
       return "정보는 하단 안전 영역에만 보여요.";
     }
     return "구간만 확인하고 다음으로 가세요.";
-  }, [draft.playback.zoom, focusPreviewVisible, overlayPreviewVisible, spotlight, spotlightPicking]);
+  }, [
+    draft.playback.zoom,
+    focusPreviewVisible,
+    overlayPreviewVisible,
+    spotlight,
+    spotlightPicking,
+  ]);
 
   return (
     <div className="overflow-hidden rounded-[28px] border border-white/[0.06] bg-[#0b0b0f]">
       <div
-        ref={containerRef}
+        ref={(element) => {
+          containerRef.current = element;
+        }}
+        data-testid="single-clip-focus-target"
         className="relative w-full overflow-hidden bg-black"
         style={{
           aspectRatio: videoNativeSize ? `${videoNativeSize.w} / ${videoNativeSize.h}` : "16 / 9",
           maxHeight: "64dvh",
+          touchAction: focusPreviewVisible && spotlight ? "none" : "auto",
         }}
         onClick={handleTap}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <video
           ref={videoRef}
@@ -270,8 +363,17 @@ export default function SingleClipEditorPreview({
             objectFit: "contain",
             transform: videoTransform,
             transformOrigin: "center center",
+            opacity: introPreviewVisible ? 0.12 : 1,
+            pointerEvents: "none",
+            transition: "opacity 0.2s ease",
           }}
         />
+
+        {introPreviewVisible && playerData ? (
+          <div className="pointer-events-none absolute inset-0 z-[18]">
+            <IntroCard data={playerData} />
+          </div>
+        ) : null}
 
         {focusPreviewVisible && playerData?.name && adjustedSpotlight ? (
           <div
@@ -290,7 +392,21 @@ export default function SingleClipEditorPreview({
               hideNametag
               freezeMode={freezeActive}
               zoomLevel={zoom}
+              showWhileZoom
             />
+          </div>
+        ) : null}
+
+        {focusPreviewVisible ? (
+          <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-wrap gap-2">
+            <span className="rounded-full border border-white/10 bg-black/45 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-sm">
+              {spotlight ? "주인공 선택됨" : "선수를 한 번 눌러주세요"}
+            </span>
+            {spotlight ? (
+              <span className="rounded-full border border-[#d8b36a]/30 bg-[#d8b36a]/12 px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a] backdrop-blur-sm">
+                재생도 {draft.playback.zoom.toFixed(1)}x
+              </span>
+            ) : null}
           </div>
         ) : null}
 
@@ -312,7 +428,16 @@ export default function SingleClipEditorPreview({
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
               {ended ? (
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <polyline points="1 4 1 10 7 10" />
                   <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
                 </svg>
@@ -342,6 +467,54 @@ export default function SingleClipEditorPreview({
             구간 {formatTime(draft.playback.trimStart)} - {formatTime(draft.playback.trimEnd)}
           </div>
         </div>
+
+        {focusPreviewVisible ? (
+          <div
+            ref={onZoomControlsReady}
+            data-testid="single-clip-zoom-controls"
+            className="mt-4 flex items-center justify-between gap-3 rounded-[20px] border border-white/[0.06] bg-white/[0.03] px-3 py-3"
+          >
+            <div>
+              <p className="text-[12px] font-semibold text-text-1">
+                {spotlight ? "재생할 때도 이 구도로 보여요" : "먼저 선수를 한 번 눌러주세요"}
+              </p>
+              <p className="mt-1 text-[11px] leading-5 text-text-3">
+                {spotlight
+                  ? "두 손가락으로 확대하거나 버튼으로 가까이 조정할 수 있어요."
+                  : "주인공을 고르면 자동으로 가까이 보여줘요."}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                aria-label="확대 줄이기"
+                disabled={!spotlight || draft.playback.zoom <= 1}
+                onClick={() => applyZoom(draft.playback.zoom - 0.2)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/85 disabled:opacity-30"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                aria-label="확대 초기화"
+                disabled={!spotlight}
+                onClick={() => applyZoom(1)}
+                className="min-w-[56px] rounded-full border border-[#d8b36a]/20 bg-[#d8b36a]/10 px-3 py-2 text-[12px] font-bold text-[#f6d69a] disabled:opacity-30"
+              >
+                {draft.playback.zoom.toFixed(1)}x
+              </button>
+              <button
+                type="button"
+                aria-label="확대 늘리기"
+                disabled={!spotlight}
+                onClick={() => applyZoom(draft.playback.zoom + 0.2)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-white/85 disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-4">
           <input

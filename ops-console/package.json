@@ -6,6 +6,10 @@
     "dev": "node ../node_modules/next/dist/bin/next dev -p 3301",
     "build": "node ../node_modules/next/dist/bin/next build",
     "start": "node ../node_modules/next/dist/bin/next start -p 3301",
+    "automation:list": "node ../scripts/list-automation.mjs",
+    "automation:agent": "node ../scripts/use-automation.mjs agent",
+    "automation:skill": "node ../scripts/use-automation.mjs skill",
+    "automation:plugin": "node ../scripts/use-automation.mjs plugin",
     "lint": "node ../node_modules/eslint/bin/eslint.js app components lib next.config.ts --ext .ts,.tsx",
     "typecheck": "node ../node_modules/typescript/bin/tsc --noEmit"
   }

@@ -3,13 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useUploadStore } from "@/stores/upload-store";
 import { prepareR2BackgroundUpload } from "@/lib/upload-service";
-import UploadProfileCardEditor from "@/components/upload/UploadProfileCardEditor";
 import UploadInlineError from "@/components/upload/UploadInlineError";
 import { validateUploadVideoFile } from "@/lib/upload-video-file";
 
 interface SelectViewProps {
-  onFileReady: () => void;
-  ctaLabel?: string;
+  onFileReady?: () => void;
+  ctaLabel?: string | null;
   startBackgroundUploadOnReady?: boolean;
 }
 
@@ -21,16 +20,10 @@ export default function SelectView({
   const store = useUploadStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const trimBarRef = useRef<HTMLDivElement>(null);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
-
-  // Trim (local state synced to store)
-  const [trimStart, setTrimStart] = useState(0);
-  const [trimEnd, setTrimEnd] = useState(0);
-  const [draggingHandle, setDraggingHandle] = useState<"start" | "end" | null>(null);
 
   // 파일 선택 시 비디오 URL 생성
   useEffect(() => {
@@ -47,8 +40,10 @@ export default function SelectView({
     tempVideo.onloadedmetadata = () => {
       const dur = Math.round(tempVideo.duration);
       setDuration(dur);
-      setTrimEnd(dur);
-      useUploadStore.getState().setDuration(dur);
+      const uploadStore = useUploadStore.getState();
+      uploadStore.setDuration(dur);
+      uploadStore.setTrimStart(0);
+      uploadStore.setTrimEnd(dur);
     };
 
     tempVideo.onerror = () => {};
@@ -75,29 +70,7 @@ export default function SelectView({
 
   }, []);
 
-  const handleTrimDrag = useCallback((e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, type: "start" | "end") => {
-    const bar = trimBarRef.current;
-    if (!bar || !duration) return;
-    const rect = bar.getBoundingClientRect();
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const time = Math.round(ratio * duration);
-    if (type === "start") {
-      const clamped = Math.min(time, trimEnd - 1);
-      setTrimStart(clamped);
-      useUploadStore.getState().setTrimStart(clamped);
-    } else {
-      const clamped = Math.max(time, trimStart + 1);
-      setTrimEnd(clamped);
-      useUploadStore.getState().setTrimEnd(clamped);
-    }
-    if (videoRef.current) {
-      videoRef.current.currentTime = type === "start" ? Math.min(time, trimEnd - 1) : Math.max(time, trimStart + 1);
-    }
-  }, [duration, trimStart, trimEnd]);
-
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const trimmedDuration = trimEnd - trimStart;
 
   // 파일 미선택 상태
   if (!store.file) {
@@ -173,132 +146,41 @@ export default function SelectView({
         </button>
       </div>
 
-      {/* 트림 바 (2초 이상 영상만) */}
-      {duration > 2 && (
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[12px] font-semibold text-text-2">원하면 구간을 다듬어요</span>
-            <span className="text-[11px] font-stat text-accent">
-              {fmt(trimmedDuration)} 선택됨
+      <div className="px-4 pt-4">
+        <div className="rounded-[24px] border border-white/[0.06] bg-card px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[14px] font-semibold text-text-1">먼저 올리고, 필요한 것만 편집해요</p>
+              <p className="mt-1 text-[12px] leading-5 text-text-3">
+                업로드가 끝나면 주인공 찾기와 확대 재생부터 바로 확인할 수 있어요.
+              </p>
+            </div>
+            <span className="rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent">
+              {fmt(duration)}
             </span>
           </div>
-
-          <div className="flex items-center justify-center gap-3 mb-3 rounded-xl bg-card px-4 py-2.5">
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] text-text-3">시작</span>
-              <span className={`text-[16px] font-stat tabular-nums ${draggingHandle === "start" ? "text-accent" : "text-text-1"}`}>
-                {fmt(trimStart)}
-              </span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-3">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] text-text-3">끝</span>
-              <span className={`text-[16px] font-stat tabular-nums ${draggingHandle === "end" ? "text-accent" : "text-text-1"}`}>
-                {fmt(trimEnd)}
-              </span>
-            </div>
-            <div className="h-6 w-px bg-white/[0.08]" />
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] text-text-3">길이</span>
-              <span className="text-[16px] font-stat tabular-nums text-accent">
-                {fmt(trimmedDuration)}
-              </span>
-            </div>
-          </div>
-
-          <div
-            ref={trimBarRef}
-            className="relative h-10 rounded-lg bg-white/[0.04] overflow-hidden cursor-pointer"
-            onMouseDown={(e) => {
-              const rect = trimBarRef.current!.getBoundingClientRect();
-              const x = (e.clientX - rect.left) / rect.width;
-              const time = x * duration;
-              const type = Math.abs(time - trimStart) < Math.abs(time - trimEnd) ? "start" : "end";
-              setDraggingHandle(type);
-              handleTrimDrag(e, type);
-
-              const onMove = (ev: MouseEvent) => handleTrimDrag(ev as unknown as React.MouseEvent<HTMLDivElement>, type);
-              const onUp = () => { setDraggingHandle(null); document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
-              document.addEventListener("mousemove", onMove);
-              document.addEventListener("mouseup", onUp);
-            }}
-            onTouchStart={(e) => {
-              const rect = trimBarRef.current!.getBoundingClientRect();
-              const x = (e.touches[0].clientX - rect.left) / rect.width;
-              const time = x * duration;
-              const type = Math.abs(time - trimStart) < Math.abs(time - trimEnd) ? "start" : "end";
-              setDraggingHandle(type);
-              handleTrimDrag(e, type);
-
-              const onMove = (ev: TouchEvent) => handleTrimDrag(ev as unknown as React.TouchEvent<HTMLDivElement>, type);
-              const onUp = () => { setDraggingHandle(null); document.removeEventListener("touchmove", onMove); document.removeEventListener("touchend", onUp); };
-              document.addEventListener("touchmove", onMove);
-              document.addEventListener("touchend", onUp);
-            }}
-          >
-            <div
-              className="absolute inset-y-0 bg-accent/20"
-              style={{
-                left: `${(trimStart / duration) * 100}%`,
-                width: `${((trimEnd - trimStart) / duration) * 100}%`,
-              }}
-            />
-            <div
-              className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center"
-              style={{ left: `calc(${(trimStart / duration) * 100}% - 22px)`, width: 44, height: 44 }}
-            >
-              <div className={`w-4 h-7 rounded-sm flex items-center justify-center ${draggingHandle === "start" ? "bg-accent" : "bg-accent/80"}`}>
-                <div className="w-0.5 h-3 bg-bg rounded-full" />
-              </div>
-            </div>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center"
-              style={{ left: `calc(${(trimEnd / duration) * 100}% - 22px)`, width: 44, height: 44 }}
-            >
-              <div className={`w-4 h-7 rounded-sm flex items-center justify-center ${draggingHandle === "end" ? "bg-accent" : "bg-accent/80"}`}>
-                <div className="w-0.5 h-3 bg-bg rounded-full" />
-              </div>
-            </div>
-          </div>
-
-          <div className="relative flex justify-between mt-1 px-0.5">
-            {Array.from({ length: Math.min(Math.max(3, Math.ceil(duration / 30) + 1), 7) }, (_, i, arr = Array.from({ length: Math.min(Math.max(3, Math.ceil(duration / 30) + 1), 7) })) => {
-              const t = (i / (arr.length - 1)) * duration;
-              return (
-                <span key={i} className="text-[9px] font-stat text-text-3/60 tabular-nums">
-                  {fmt(Math.round(t))}
-                </span>
-              );
-            })}
-          </div>
-
-          {duration === trimmedDuration && (
-            <p className="mt-1.5 text-[10px] text-text-3">그대로 두고 넘어가도 돼요</p>
-          )}
         </div>
-      )}
-
-      <UploadProfileCardEditor key={store.childId ?? "self"} />
+      </div>
 
       {/* 다음 단계 버튼 */}
-      <div className="px-4 pt-4">
-        <button
-          type="button"
-          onClick={() => {
-            onFileReady();
-            if (startBackgroundUploadOnReady) {
-              setTimeout(() => {
-                prepareR2BackgroundUpload();
-              }, 0);
-            }
-          }}
-          className="w-full rounded-xl bg-accent py-3.5 text-[15px] font-bold text-bg transition-opacity active:scale-[0.99]"
-        >
-          {ctaLabel}
-        </button>
-      </div>
+      {ctaLabel && onFileReady ? (
+        <div className="px-4 pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              onFileReady();
+              if (startBackgroundUploadOnReady) {
+                setTimeout(() => {
+                  prepareR2BackgroundUpload();
+                }, 0);
+              }
+            }}
+            className="w-full rounded-xl bg-accent py-3.5 text-[15px] font-bold text-bg transition-opacity active:scale-[0.99]"
+          >
+            {ctaLabel}
+          </button>
+        </div>
+      ) : null}
 
       <input
         ref={inputRef}

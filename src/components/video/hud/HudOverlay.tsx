@@ -7,6 +7,7 @@ interface HudOverlayProps {
   config: HudConfig;
   /** "overlay" = 기존 absolute inset-0 방식, "docked" = 하단 고정 바만 렌더 (부모가 위치 제어) */
   mode?: "overlay" | "docked";
+  compact?: boolean;
 }
 
 /**
@@ -16,7 +17,7 @@ interface HudOverlayProps {
  * 하단 1행: 선수 사진 + 이름/등번호 + 포지션 뱃지
  * 하단 2행: 구단 | 생년월일 | 키/몸무게 | 주발
  */
-export default function HudOverlay({ data, config, mode = "overlay" }: HudOverlayProps) {
+export default function HudOverlay({ data, config, mode = "overlay", compact = false }: HudOverlayProps) {
   const posShort =
     data.positionShort ?? data.position?.slice(0, 2).toUpperCase() ?? "FW";
   const heightWeight = [
@@ -35,6 +36,59 @@ export default function HudOverlay({ data, config, mode = "overlay" }: HudOverla
 
   // docked 모드: 바 콘텐츠만 렌더 (부모가 위치 제어)
   if (mode === "docked") {
+    if (compact) {
+      return (
+        <div className="pointer-events-none">
+          <div
+            className="h-[2px]"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${data.accentColor}aa, ${data.accentColor}, ${data.accentColor}aa, transparent)`,
+            }}
+          />
+          <div
+            className="backdrop-blur-md px-3.5 py-2.5"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(10,10,12,0.82), rgba(10,10,12,0.9))",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${data.mainColor}66, ${data.mainColor}22)`,
+                  border: `1.5px solid ${data.accentColor}44`,
+                }}
+              >
+                {data.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={data.photoUrl} alt="" className="h-full w-full rounded-lg object-cover" />
+                ) : (
+                  <span className="text-[11px] font-bold text-white/50">{posShort}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-bold text-white">{data.name || "PLAYER"}</div>
+                <div className="truncate text-[10px] text-white/45">{data.clubFull ?? data.club}</div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div
+                  className="text-[22px] font-black leading-none"
+                  style={{
+                    color: data.accentColor,
+                    fontFamily: "var(--font-stat, 'Oswald', sans-serif)",
+                  }}
+                >
+                  {data.number}
+                </div>
+                <div className="mt-1 text-[10px] font-semibold text-white/75">{posShort}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="pointer-events-none">
         {/* 골드 액센트 라인 */}

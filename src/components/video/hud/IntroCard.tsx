@@ -12,12 +12,15 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
 
   return (
     <div
-      className="relative flex h-full w-full overflow-hidden"
-      style={{
-        background: `linear-gradient(135deg, ${data.mainColor}dd 0%, #0a0a0a 40%, #111 100%)`,
-        fontFamily: "var(--font-body)",
-      }}
+      className="flex h-full w-full items-center justify-center overflow-hidden bg-black"
+      style={{ fontFamily: "var(--font-body)" }}
     >
+      <div
+        className="relative aspect-video w-full max-h-full overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${data.mainColor}dd 0%, #0a0a0a 40%, #111 100%)`,
+        }}
+      >
       {/* Stadium background SVG */}
       <div className="absolute inset-0 opacity-15">
         <svg width="100%" height="100%" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice">
@@ -116,7 +119,6 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
                   {item.label}
                 </div>
                 <div className="text-[clamp(8px,1.2vw,14px)] font-bold tracking-wide">
-                  {/* 값의 마지막 2글자에 accent 컬러 */}
                   <span className="text-white">{item.value.slice(0, -2)}</span>
                   <span style={{ color: data.accentColor }}>{item.value.slice(-2)}</span>
                 </div>
@@ -156,6 +158,7 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
         className="absolute inset-x-0 bottom-0 h-[3px]"
         style={{ background: `linear-gradient(90deg, ${data.mainColor}, ${data.accentColor}, ${data.mainColor})` }}
       />
+      </div>
     </div>
   );
 }

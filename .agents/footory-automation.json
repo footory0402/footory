@@ -1,0 +1,293 @@
+{
+  "updatedAt": "2026-04-10",
+  "agents": [
+    {
+      "id": "core-video-editor",
+      "name": "Core Video Editor",
+      "title": "single-clip 편집 구현 담당",
+      "tier": "core",
+      "summary": "영상 업로드 이후 편집, 저장, 복구, overlay 안전 구역 같은 코어 구현을 맡는다.",
+      "responsibilities": [
+        "single-clip 편집 기능 구현",
+        "업로드 후 편집 진입 플로우 유지",
+        "trim, spotlight, zoom, lower third, player card 편집 UI 정리",
+        "draft 저장과 복구 구현"
+      ],
+      "mustRead": [
+        "AGENTS.md",
+        "docs/video-ux-principles.md",
+        "docs/video-edit-flow.md",
+        "docs/video-copy-guidelines.md",
+        "docs/video-product-decisions.md",
+        "docs/video-upload-editing-spec.md",
+        "docs/media-pipeline.md"
+      ],
+      "mustNot": [
+        "share/reel/profile playback contract 대수술",
+        "검증 없는 대규모 리팩터링",
+        "영어 사용자 문구 추가",
+        "UX 원칙 임의 변경"
+      ],
+      "typicalPrompts": [
+        "core-video-editor로 single-clip 편집 화면에서 spotlight와 zoom UX만 단순화해. 다른 구조는 건드리지 마.",
+        "core-video-editor로 저장 후 재진입 시 draft 복구만 복원해. publish나 profile 연결은 건드리지 마."
+      ],
+      "promptPath": ".agents/agents/core-video-editor.md"
+    },
+    {
+      "id": "video-qa-runner",
+      "name": "Video QA Runner",
+      "title": "Playwright와 검증 리포트 담당",
+      "tier": "core",
+      "summary": "업로드, 편집, 저장, 재진입, publish 흐름을 실제 사용자 관점으로 검증한다.",
+      "responsibilities": [
+        "P0, P1 Playwright 시나리오 실행",
+        "업로드, 편집, 저장, 재진입, publish 흐름 검증",
+        "video-validation-report.md 갱신",
+        "실패 플로우 재현과 재현 경로 정리"
+      ],
+      "mustRead": [
+        "docs/testing/video-highlight-acceptance.md",
+        "docs/testing/playwright-scenarios.md",
+        "docs/testing/video-validation-report.md",
+        "docs/release-readiness.md",
+        "docs/ship-blockers.md"
+      ],
+      "mustNot": [
+        "제품 구조 직접 변경",
+        "store나 API 계약 임의 수정",
+        "새 기능 제안으로 범위 확장"
+      ],
+      "typicalPrompts": [
+        "video-qa-runner로 업로드→편집 진입, 편집→저장→재진입, 편집→publish→profile 3개 P0 시나리오만 검증해.",
+        "video-qa-runner로 blocker 수정 직후 필요한 Playwright smoke만 실행하고 문서 근거를 남겨."
+      ],
+      "promptPath": ".agents/agents/video-qa-runner.md"
+    },
+    {
+      "id": "ux-copy-reviewer",
+      "name": "UX Copy Reviewer",
+      "title": "한국어 문구와 사용성 검토 담당",
+      "tier": "core",
+      "summary": "한 화면 핵심 행동, 한국어 카피, overlay 가시성, 단순한 편집 흐름을 검토한다.",
+      "responsibilities": [
+        "영어 문구를 쉬운 한국어로 교체 제안",
+        "CTA 명확성 검토",
+        "한 화면 행동 수와 흐름 복잡도 점검",
+        "overlay와 lower third가 영상을 가리지 않는지 검토"
+      ],
+      "mustRead": [
+        "docs/video-ux-principles.md",
+        "docs/video-edit-flow.md",
+        "docs/video-copy-guidelines.md"
+      ],
+      "mustNot": [
+        "저장이나 API 구조 수정",
+        "상태관리 리팩터링",
+        "새 기능 추가"
+      ],
+      "typicalPrompts": [
+        "ux-copy-reviewer로 업로드 후 편집 화면을 보고, 무엇을 해야 하는지 모호한 지점과 영어 문구를 모두 찾아 한국어로 제안해.",
+        "ux-copy-reviewer로 overlay가 영상을 가리는 지점만 검토해."
+      ],
+      "promptPath": ".agents/agents/ux-copy-reviewer.md"
+    },
+    {
+      "id": "playback-contract-guardian",
+      "name": "Playback Contract Guardian",
+      "title": "single-clip playback contract 보호 담당",
+      "tier": "core",
+      "summary": "upload, editor, share, reel, profile에서 single-clip playback 필드 일관성을 감시한다.",
+      "responsibilities": [
+        "trim_start, trim_end, highlight_start, highlight_end 소비 경로 점검",
+        "spotlight_x, spotlight_y, freeze_at 소비 경로 점검",
+        "effects.trackingMode, effects.trackingPoints 일관성 확인",
+        "overlay와 profile metadata 계약 검토"
+      ],
+      "mustRead": [
+        "docs/video-product-decisions.md",
+        "docs/video-upload-editing-spec.md",
+        "docs/media-pipeline.md",
+        "docs/implementation-gap.md",
+        "docs/legacy-video-architecture-review.md"
+      ],
+      "mustNot": [
+        "UI polish 작업",
+        "copy 수정",
+        "unrelated cleanup"
+      ],
+      "typicalPrompts": [
+        "playback-contract-guardian로 이번 변경이 clip playback contract를 깨는지 검토만 해. 코드 수정은 하지 마.",
+        "playback-contract-guardian로 editor route 복원 로직 변경이 share/profile 재생 계약에 미치는 영향만 봐."
+      ],
+      "promptPath": ".agents/agents/playback-contract-guardian.md"
+    },
+    {
+      "id": "repo-cleanup-refactorer",
+      "name": "Repo Cleanup Refactorer",
+      "title": "안전한 정리 작업 담당",
+      "tier": "core",
+      "summary": "영상 핵심 계약을 건드리지 않는 범위의 dead code, 중복 UI, 문서 아카이브 정리를 맡는다.",
+      "responsibilities": [
+        "안 쓰는 파일 삭제 후보 정리",
+        "snapshot과 임시 md 정리",
+        "단순 중복 UI 통합",
+        "archive 계획에 따른 문서 분류 반영"
+      ],
+      "mustRead": [
+        "docs/deletion-candidates.md",
+        "docs/docs-classification.md",
+        "docs/archive-plan.md",
+        "docs/repo-recovery-plan.md"
+      ],
+      "mustNot": [
+        "upload-store 수정",
+        "upload-service 수정",
+        "/api/clips/[id] 수정",
+        "share, reel, profile playback contract 수정",
+        "저장과 복구 로직 수정"
+      ],
+      "typicalPrompts": [
+        "repo-cleanup-refactorer로 영상 핵심 플로우를 건드리지 않는 범위에서 dead code와 중복 UI만 정리해.",
+        "repo-cleanup-refactorer로 archive 대상 문서만 분류하고 삭제는 하지 마."
+      ],
+      "promptPath": ".agents/agents/repo-cleanup-refactorer.md"
+    },
+    {
+      "id": "profile-publish-integrator",
+      "name": "Profile Publish Integrator",
+      "title": "publish와 프로필 연결 담당",
+      "tier": "optional",
+      "summary": "single clip 또는 reel 결과물을 프로필 자산과 featured 연결까지 이어 주는 선택 agent다.",
+      "responsibilities": [
+        "single clip publish 연결",
+        "featured 연결 점검",
+        "tag portfolio 연결 점검",
+        "player info overlay와 실제 프로필 정보 정합성 검토"
+      ],
+      "mustRead": [
+        "AGENTS.md",
+        "docs/product-dna.md",
+        "docs/feature-scope.md",
+        "docs/video-product-decisions.md",
+        "docs/app-overview.md"
+      ],
+      "mustNot": [
+        "저장과 복구가 불안정한 상태에서 publish 흐름 확장",
+        "피드형 공유 기능 확장",
+        "팀 중심 구조 개편"
+      ],
+      "typicalPrompts": [
+        "profile-publish-integrator로 저장이 끝난 single clip이 프로필 featured까지 자연스럽게 연결되는지 검토해.",
+        "profile-publish-integrator로 player info overlay와 프로필 정보 mismatch만 정리해."
+      ],
+      "promptPath": ".agents/agents/profile-publish-integrator.md"
+    },
+    {
+      "id": "reel-highlight-composer",
+      "name": "Reel Highlight Composer",
+      "title": "multi-clip reel 상위 흐름 담당",
+      "tier": "optional",
+      "summary": "single-clip 저장과 publish가 안정된 뒤 여러 clip을 묶는 reel highlight 상위 흐름을 맡는다.",
+      "responsibilities": [
+        "clip 선택과 순서 변경",
+        "preview 구성",
+        "draft 저장",
+        "featured 연결 후보화"
+      ],
+      "mustRead": [
+        "AGENTS.md",
+        "docs/feature-scope.md",
+        "docs/video-product-decisions.md",
+        "docs/video-upload-editing-spec.md",
+        "docs/media-pipeline.md"
+      ],
+      "mustNot": [
+        "single-clip 안정화 전에 reel을 core flow로 승격",
+        "과한 편집 앱형 UI 추가",
+        "export 중심 구조 선행"
+      ],
+      "typicalPrompts": [
+        "reel-highlight-composer로 multi-clip reel draft 저장 구조 초안만 검토해. single-clip flow는 건드리지 마.",
+        "reel-highlight-composer로 clip 선택과 순서 변경 UX만 최소 구조로 제안해."
+      ],
+      "promptPath": ".agents/agents/reel-highlight-composer.md"
+    }
+  ],
+  "skills": [
+    {
+      "id": "playwright-smoke-check",
+      "name": "Playwright Smoke Check",
+      "pluginId": "footory-ops-toolkit",
+      "summary": "P0, P1 영상 핵심 흐름을 짧게 검증하고 리포트 반영까지 묶는 반복 workflow다.",
+      "skillPath": "plugins/footory-ops-toolkit/skills/playwright-smoke-check/SKILL.md",
+      "whenToUse": [
+        "blocker 수정 직후 빠른 회귀 확인",
+        "배포 전 upload, edit, publish 최소 smoke",
+        "video-qa-runner가 반복 검증을 수행할 때"
+      ],
+      "outputs": [
+        "실행할 Playwright 명령",
+        "실패 시 재현 경로 메모",
+        "video-validation-report 업데이트 포인트"
+      ],
+      "defaultPrompt": "Use $playwright-smoke-check to validate the current upload, edit, save, and publish smoke path for Footory."
+    },
+    {
+      "id": "manual-qa-report",
+      "name": "Manual QA Report",
+      "pluginId": "footory-ops-toolkit",
+      "summary": "수동 QA 체크리스트 기준으로 UX 문제를 정리하고 검증 문서 업데이트까지 안내한다.",
+      "skillPath": "plugins/footory-ops-toolkit/skills/manual-qa-report/SKILL.md",
+      "whenToUse": [
+        "브라우저에서 직접 눌러보며 UX 점검할 때",
+        "문구, CTA, overlay 가시성 점검할 때",
+        "manual QA 결과를 문서에 남길 때"
+      ],
+      "outputs": [
+        "체크 순서",
+        "발견 이슈 정리 포맷",
+        "문서 업데이트 대상"
+      ],
+      "defaultPrompt": "Use $manual-qa-report to inspect the current Footory flow manually and summarize issues in the QA report format."
+    },
+    {
+      "id": "docs-archive-classifier",
+      "name": "Docs Archive Classifier",
+      "pluginId": "footory-ops-toolkit",
+      "summary": "문서를 current, canonical, reference, archive 관점으로 분류하고 archive 후보를 정리한다.",
+      "skillPath": "plugins/footory-ops-toolkit/skills/docs-archive-classifier/SKILL.md",
+      "whenToUse": [
+        "문서 분류와 archive 계획을 정리할 때",
+        "repo-cleanup-refactorer가 문서 정리를 수행할 때",
+        "현재 계획 문서와 과거 로그를 분리할 때"
+      ],
+      "outputs": [
+        "문서 분류 결과",
+        "archive 후보와 보류 이유",
+        "관련 canonical 문서 업데이트 포인트"
+      ],
+      "defaultPrompt": "Use $docs-archive-classifier to sort Footory docs into current, canonical, reference, and archive candidates."
+    }
+  ],
+  "plugins": [
+    {
+      "id": "footory-ops-toolkit",
+      "displayName": "Footory Ops Toolkit",
+      "summary": "Footory 운영용 반복 workflow skill을 묶은 로컬 plugin이다.",
+      "pluginPath": "plugins/footory-ops-toolkit/.codex-plugin/plugin.json",
+      "marketplacePath": ".agents/plugins/marketplace.json",
+      "skillIds": [
+        "playwright-smoke-check",
+        "manual-qa-report",
+        "docs-archive-classifier"
+      ],
+      "agentRegistryPath": ".agents/footory-automation.json",
+      "commands": [
+        "npm run ops:automation:list",
+        "npm run ops:agent -- core-video-editor",
+        "npm run ops:skill -- playwright-smoke-check"
+      ]
+    }
+  ]
+}

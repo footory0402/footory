@@ -532,6 +532,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         {activeTab === "highlights" && (
           <HighlightsTabV5
             readOnly={!data.isOwnProfile}
+            profileId={profile.id}
             tagClips={tagClips}
             untaggedClips={localUntaggedClips}
             initialFeatured={localFeatured}

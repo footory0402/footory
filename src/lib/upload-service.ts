@@ -1097,7 +1097,7 @@ export async function startUpload() {
     const duration = store.duration ?? await getFileDuration(store.file!).catch(() => 0);
 
     // 클립 먼저 저장 (썸네일 없이 — 피드에서 video_url로 대체 표시)
-    const highlightEnd = Math.min(duration || 30, 30);
+    const fullRangeEnd = store.trimEnd ?? duration ?? 30;
     const isParentUpload = store.context === "parent" && store.childId;
     const apiUrl = isParentUpload ? "/api/parent/upload" : "/api/clips";
     const body = isParentUpload
@@ -1121,7 +1121,7 @@ export async function startUpload() {
           trimStart: store.trimStart,
           trimEnd: store.trimEnd,
           highlightStart: store.trimStart,
-          highlightEnd,
+          highlightEnd: fullRangeEnd,
           spotlightX: store.spotlightX,
           spotlightY: store.spotlightY,
           freezeAt: store.freezeAt,
@@ -1266,7 +1266,7 @@ export async function startRenderUpload(compressedFile?: File) {
       tags: resolvedTags,
       thumbnail_url: null,
       highlight_start: clientTrimmed ? 0 : store.trimStart,
-      highlight_end: clientTrimmed ? Math.min(duration || 30, 30) : (store.trimEnd ?? Math.min(duration || 30, 30)),
+      highlight_end: clientTrimmed ? (duration || 30) : (store.trimEnd ?? duration ?? 30),
       skill_labels: store.skillLabels,
       custom_labels: store.customLabels,
       trim_start: clientTrimmed ? 0 : store.trimStart,
