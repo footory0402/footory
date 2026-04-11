@@ -1,5 +1,5 @@
 export const DEFAULT_FOCUS_ZOOM = 1.8;
-export const DEFAULT_FREEZE_HOLD_MS = 1000;
+export const DEFAULT_FREEZE_HOLD_MS = 1800;
 
 export const FOCUS_ZOOM_PRESETS = [
   { label: "넓게 보기", description: "1.4x", value: 1.4 },

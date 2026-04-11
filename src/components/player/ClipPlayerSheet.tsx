@@ -23,6 +23,7 @@ import {
   getCachedPlayerCard,
   preloadPlayerCard,
 } from "@/lib/player-card-client";
+import { INTRO_SEQUENCE_DURATION_MS } from "@/lib/intro-playback";
 
 const HudOverlay = dynamic(() => import("@/components/video/hud/HudOverlay"), { ssr: false });
 
@@ -59,7 +60,7 @@ export default function ClipPlayerSheet({
   onHighlightEdit,
 }: ClipPlayerSheetProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
-  const INTRO_DURATION_MS = 2000;
+  const INTRO_DURATION_MS = INTRO_SEQUENCE_DURATION_MS;
   const FREEZE_HOLD_MS = DEFAULT_FREEZE_HOLD_MS;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [localClips, setLocalClips] = useState(clipsProp);
@@ -198,7 +199,7 @@ export default function ClipPlayerSheet({
       setShowIntro(false);
       setIntroReady(true);
     }, INTRO_DURATION_MS);
-  }, []);
+  }, [INTRO_DURATION_MS]);
 
   // Load intro card data — 느리면 이번 세션에서는 재생을 막지 않음
   useEffect(() => {
@@ -442,7 +443,7 @@ export default function ClipPlayerSheet({
       v.removeEventListener("canplay", onCanPlay);
       if (viewTimerRef.current) { clearTimeout(viewTimerRef.current); viewTimerRef.current = null; }
     };
-  }, [scheduleHide, index, animateZoomTo, clips, playIntro]);
+  }, [FREEZE_HOLD_MS, scheduleHide, index, animateZoomTo, clips, playIntro]);
 
   useEffect(() => {
     if (!clip || !activeSpotlight || !hasFocusTarget || !isFocusMode || isFreezing) return;
@@ -681,9 +682,11 @@ export default function ClipPlayerSheet({
   // 스와이프 다운 닫기 판정 (첫 클립에서 아래로 스와이프)
   const isDismissSwipe = swiping && swipeY > 0 && !hasPrev;
   const dismissProgress = isDismissSwipe ? Math.min(swipeY / 300, 1) : 0;
+  const isPortraitVideo = videoNativeSize ? videoNativeSize.h > videoNativeSize.w : false;
+  const hudCompact = isPortraitVideo;
 
   // HUD 하단 고정 바 높이 (골드라인 2px + 1행 ~62px + 2행 ~39px = ~103px, 여유분 포함)
-  const HUD_BAR_HEIGHT = 112;
+  const HUD_BAR_HEIGHT = hudCompact ? 74 : 112;
   // seekbar + 시간 표시 높이 (h-11=44px + 시간22px + 패딩약9px)
   const SEEKBAR_HEIGHT = 75;
   const hasHud = !!introData && introReady && !showIntro && effects?.showLowerThird !== false;
@@ -738,7 +741,7 @@ export default function ClipPlayerSheet({
           className="pointer-events-none absolute inset-0 z-[60] bg-black"
           style={{ animation: "fullscreen-player-fade-in 0.35s ease-out" }}
         >
-          <IntroCard data={introData} />
+          <IntroCard data={introData} animate />
         </div>
       )}
 
@@ -806,7 +809,7 @@ export default function ClipPlayerSheet({
             data={introData!}
             config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
             mode="docked"
-            compact={false}
+            compact={hudCompact}
           />
         </div>
       )}

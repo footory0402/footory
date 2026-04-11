@@ -9,6 +9,7 @@ import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import { screenToVideo } from "@/lib/spotlight-math";
 import type { SingleClipEditingDraft } from "@/lib/single-clip-playback";
 import { resolveUiVideoAspectRatio } from "@/lib/video-layout";
+import { INTRO_SEQUENCE_DURATION_MS, shouldPlayIntroBeforeVideo } from "@/lib/intro-playback";
 
 interface SingleClipEditorPreviewProps {
   videoSrc: string;
@@ -90,19 +91,22 @@ export default function SingleClipEditorPreview({
   const containerRef = useRef<HTMLDivElement>(null);
   const pinchStateRef = useRef<{ distance: number; zoom: number } | null>(null);
   const lastPinchZoomRef = useRef(draft.playback.zoom);
+  const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const introPlayedRef = useRef(false);
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
 
   const spotlight = draft.playback.spotlight;
   const freezeActive =
     draft.playback.freezeAt != null && Math.abs(draft.playback.freezeAt - previewTime) <= 0.35;
-  const introPreviewVisible =
-    overlayPreviewVisible &&
-    draft.overlay.showProfileCard &&
-    !!playerData &&
-    Math.abs(previewTime - draft.playback.trimStart) <= 0.6;
+  const shouldGateIntroPlayback = shouldPlayIntroBeforeVideo({
+    introEnabled: draft.overlay.showProfileCard && !!playerData,
+    currentTimeSec: previewTime,
+    trimStartSec: draft.playback.trimStart,
+  });
 
   const { adjustedSpotlight, pan, resetTransform, syncZoomTo, zoom } = useSpotlightZoom({
     videoRef,
@@ -167,6 +171,35 @@ export default function SingleClipEditorPreview({
   }, [previewTime]);
 
   useEffect(() => {
+    if (introTimerRef.current) {
+      clearTimeout(introTimerRef.current);
+      introTimerRef.current = null;
+    }
+
+    if (!draft.overlay.showProfileCard || !playerData) {
+      introPlayedRef.current = true;
+      setShowIntro(false);
+      return;
+    }
+
+    if (shouldGateIntroPlayback && !isPlaying) {
+      introPlayedRef.current = false;
+      setShowIntro(false);
+      return;
+    }
+
+    introPlayedRef.current = true;
+    setShowIntro(false);
+  }, [
+    draft.overlay.showProfileCard,
+    draft.playback.trimStart,
+    isPlaying,
+    playerData,
+    shouldGateIntroPlayback,
+    videoSrc,
+  ]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
@@ -200,13 +233,22 @@ export default function SingleClipEditorPreview({
     video.pause();
   }, [spotlightPicking]);
 
+  useEffect(() => {
+    return () => {
+      if (introTimerRef.current) {
+        clearTimeout(introTimerRef.current);
+      }
+    };
+  }, []);
+
   const togglePlayback = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || showIntro) return;
 
     if (ended) {
       video.currentTime = draft.playback.trimStart;
       setEnded(false);
+      introPlayedRef.current = false;
     }
 
     if (video.paused) {
@@ -216,12 +258,29 @@ export default function SingleClipEditorPreview({
       ) {
         video.currentTime = draft.playback.trimStart;
       }
+      if (
+        !introPlayedRef.current &&
+        shouldPlayIntroBeforeVideo({
+          introEnabled: draft.overlay.showProfileCard && !!playerData,
+          currentTimeSec: video.currentTime,
+          trimStartSec: draft.playback.trimStart,
+        })
+      ) {
+        setShowIntro(true);
+        introTimerRef.current = setTimeout(() => {
+          introTimerRef.current = null;
+          introPlayedRef.current = true;
+          setShowIntro(false);
+          video.play().catch(() => {});
+        }, INTRO_SEQUENCE_DURATION_MS);
+        return;
+      }
       video.play().catch(() => {});
       return;
     }
 
     video.pause();
-  }, [draft.playback.trimEnd, draft.playback.trimStart, ended]);
+  }, [draft.overlay.showProfileCard, draft.playback.trimEnd, draft.playback.trimStart, ended, playerData, showIntro]);
 
   const handleTap = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -376,15 +435,15 @@ export default function SingleClipEditorPreview({
             objectFit: "contain",
             transform: videoTransform,
             transformOrigin: "center center",
-            opacity: introPreviewVisible ? 0.12 : 1,
+            opacity: showIntro ? 0.08 : 1,
             pointerEvents: "none",
             transition: "opacity 0.2s ease",
           }}
         />
 
-        {introPreviewVisible && playerData ? (
+        {showIntro && playerData ? (
           <div className="pointer-events-none absolute inset-0 z-[18]">
-            <IntroCard data={playerData} />
+            <IntroCard data={playerData} animate />
           </div>
         ) : null}
 

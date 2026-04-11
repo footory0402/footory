@@ -44,6 +44,47 @@
 - 남은 위험은 작은 화면 회귀 강도, 느린 네트워크/복귀 조합 검증, 로컬 preview와 원격 재생 자산 검증 분리, featured 저장의 완전 원자성 미보장이다.
 - 문서 쪽에서는 `docs/repo-recovery-plan.md`가 실행 계획, 로그, 참고 설명을 한 파일에 모두 누적해 탐색 비용이 너무 커졌다.
 
+## 프로필 첫 화면 대표 영상 우선 노출 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `src/app/p/[handle]/client.tsx`, `src/components/profile/HighlightsTabV5.tsx`, `src/hooks/useClips.ts`, 관련 프로필 테스트
+- 변경 이유: 프로필 화면에서 대표 영상이 늦게 보이고, 스카우터/학부모/선수에 따라 기본 탭이 달라 첫 화면 전달력이 흔들린다. 현재 제품 기준은 역할 차이보다 선수 포트폴리오와 clip evidence를 먼저 보여주는 쪽이 우선이다.
+- 변경 범위:
+  - 프로필 첫 진입 기본 탭을 역할과 무관하게 `highlights`로 통일한다.
+  - 서버가 이미 내려준 `featured`/`reels` 초기 데이터를 클라이언트 첫 렌더에서 즉시 사용하고, 소유자 화면의 후행 재조회가 첫 화면을 늦추지 않게 정리한다.
+  - 대표 영상 카드의 상단 썸네일은 모바일 첫 화면 우선 자산으로 취급해 우선 로드한다.
+  - 기존 프로필 데이터 계약과 대표 영상/클립 재생 계약은 유지한다.
+- 비범위:
+  - 프로필 전체 탭 구조 재설계
+  - 기록/커리어 API 분할 같은 대규모 서버 리팩터
+  - 스카우터/학부모 전용 새 프로필 UI 추가
+
+## 업로드·프로필 재생 회귀 점검 배치 (2026-04-11)
+
+- 대상: `src/app/upload/page.tsx`, `src/providers/ProfileProvider.tsx`, `src/app/login/page.tsx`, `src/app/edit/[clipId]/page.tsx`, `src/lib/highlight-save.ts`, `src/lib/single-clip-playback.ts`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/app/p/[handle]/page.tsx`, `src/components/profile/HighlightsTabV5.tsx`, 관련 unit/E2E
+- 변경 이유: 모바일 기준으로 업로드 메인 진입 시 `로딩 중...` 노출이 길고, 로그인 캐시 복원/뒤로가기 시 이전 세션 흔적이 남는 제보가 있으며, 홈/프로필 재생과 편집 저장 결과가 서로 다르거나 저장 직후 프로필 재생이 실패하는 회귀가 보고됐다.
+- 변경 범위:
+  - `/upload` 진입 시 세션/프로필 복원 경로를 실제 인증 상태 기준으로 줄여 불필요한 블로킹 로딩을 줄인다.
+  - 모바일에서 이전 로그인 세션이 남아 보이는 경로를 실제 `bfcache`/Supabase 세션 복원 흐름 기준으로 점검하고, 저위험 범위에서 정리한다.
+  - `/edit/[clipId]`가 기존 clip playback 메타데이터를 편집 draft로 복원하는 경로를 점검해 `spotlight`, `freeze`, `effects` 불일치를 막는다.
+  - 편집 저장 이후 프로필 Featured/클립 재생이 같은 playback contract를 보도록 서버 조회와 클라이언트 소비를 맞춘다.
+  - 편집 저장 체감 속도는 autosave/publish 직렬화와 중복 저장 여부를 줄이는 범위에서만 개선한다.
+- 비범위:
+  - render-worker나 `/api/render/*`를 core flow로 복귀시키지 않는다.
+  - 멀티클립 릴 편집, 새 영상 UX, 소셜/피드 동작은 이번 배치 범위에 넣지 않는다.
+  - 업로드/편집 플로우 전체 재설계는 하지 않고, 현재 사용자 제보 재현과 회귀 복구에만 집중한다.
+
+## 모바일 로그인 잔존 세션 화면 정리 배치 (2026-04-11)
+
+- 대상: `src/lib/auth.ts`, `src/app/login/page.tsx`, `src/components/auth/KakaoLoginButton.tsx`, 관련 unit/E2E
+- 변경 이유: 모바일에서 로그아웃 후 다시 로그인할 때 브라우저 `bfcache` 복원이나 OAuth provider 세션 재사용으로 이전 계정 기준 로그인 화면이 남아 보이는 제보가 있다.
+- 변경 범위:
+  - 로그아웃 직후 첫 재로그인에서만 OAuth provider 재인증을 강제할 수 있게 공통 auth 유틸을 정리한다.
+  - `/login` 진입 및 `pageshow` 복원 시 로컬 Supabase 세션 흔적과 로그인 폼 상태를 다시 비워, 이전 계정 UI가 남지 않게 한다.
+  - 모바일 기준 뒤로가기/복귀 경로를 최소 E2E로 고정한다.
+- 비범위:
+  - Kakao provider 설정 전체 재설계나 신규 인증 수단 추가
+  - 로그인 화면의 전면 UI 개편
+
 ## 문서 정책 변경 배치 (2026-04-11)
 
 - 대상: `AGENTS.md`, `docs/video-ux-principles.md`, `docs/video-upload-editing-spec.md`, `docs/video-edit-flow.md`
@@ -72,6 +113,18 @@
 - 변경 범위: 확대 재생을 `주인공 강조 안의 고정 확대`로 고정하고, 추적형 확대/다중 포인트 편집/재생 중 수동 패닝을 기본 경험에서 제외한다.
 - 비범위: 선수 자동 추적, 키프레임 팬/줌 편집, 구간별 확대 저장, `effects.trackingPoints` 기반 사용자 편집 기능 복귀
 
+## 선수 타겟팅·인트로 타임라인 정렬 배치 (2026-04-11)
+
+- 대상: `example/test_test_player.mp4`, `src/components/upload/SingleClipEditorPreview.tsx`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/player/ClipPlayerSheet.tsx`, `src/app/p/[handle]/h/[clipId]/HighlightSharePlayerClient.tsx`, `src/components/video/hud/IntroCard.tsx`, `src/components/video/VideoOverlay.tsx`, 관련 mobile video E2E
+- 변경 이유: 사용자 기준 레퍼런스인 `example/test_test_player.mp4`는 `프로필 카드 요소 순차 등장 완료 -> 본영상 시작 -> 선수 타겟 freeze 강조` 타임라인으로 보이는데, 현재 구현은 `2초 고정 인트로`와 `freeze`가 분리되어 있어 편집 미리보기, 프로필 재생, 공유 재생에서 같은 인상을 주지 못한다.
+- 변경 범위:
+  - `showProfileCard/effects.intro`가 켜진 경우 인트로 카드 완료 시점 이후에만 본영상이 시작되도록 타임라인을 재정의한다.
+  - 선수 타겟팅 freeze 연출은 메인 클립 플레이어, 공유 플레이어, 편집 미리보기에서 같은 기준 시간과 같은 오버레이 규칙으로 소비되게 정리한다.
+  - 편집 화면의 `선수 프로필 카드`와 `주인공 선택` 미리보기가 실제 저장 후 재생과 같은 순서로 보이게 맞춘다.
+- 비범위:
+  - 새 데이터 필드 추가, 자동 선수 인식, 추적형 키프레임 편집, render/export phase 2 복귀
+  - 프로필 카드의 시각 테마 전면 교체나 장식성 모션 확대
+
 ## 모바일 카드 에디터 압축 배치 (2026-04-11)
 
 - 대상: `src/app/editor/page.tsx`, `src/components/editor/CardPreview.tsx`, `src/components/editor/EditorForm.tsx`, `tests/e2e/video/profile-card-editor.spec.ts`
@@ -79,6 +132,13 @@
 - 변경 범위: 카드 미리보기 버튼 제거, 상단 카드/사진 레이아웃 모바일 우선 정렬, 선수 정보 필드를 글자수 기반 가변 폭으로 재배치해 높이를 줄인다.
 - 검증 범위: `npm run lint`, `npm run typecheck`, `npm run test:run`, `npx playwright test tests/e2e/video/profile-card-editor.spec.ts --project='iPhone 15'`
 - 비범위: 카드 데이터 계약, 저장 API, 영상 편집(`single-clip editor`) 로직은 변경하지 않는다.
+
+## 프로필 클립 다중 삭제 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `src/app/p/[handle]/client.tsx`, `src/components/profile/HighlightsTabV5.tsx`, `src/app/api/clips/[id]/route.ts`, `src/app/api/clips/bulk-delete/route.ts`, 관련 테스트
+- 변경 이유: 프로필 `전체 클립`에서 여러 영상을 삭제할 때 `개별 선택 -> 개별 확인`을 반복해야 해 모바일 탭 수와 맥락 전환이 너무 많다.
+- 변경 범위: `편집` 모드를 다중 선택 삭제 모드로 재정의하고, 선택 개수 요약 기반 1회 확인 시트와 배치 삭제 API를 추가한다.
+- 비범위: 릴 다중 삭제, 보관함/복구 기능, 스와이프 삭제, 업로드/편집 플로우 변경
 
 ## 카드 편집 화면 사용자 재배치 배치 (2026-04-11)
 

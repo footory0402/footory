@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-guard";
 import { SKILL_TAGS } from "@/lib/constants";
 import type { Json } from "@/lib/supabase/database";
+import { buildClipFeedMetadata } from "@/lib/clip-feed-metadata";
 
 const VALID_TAGS = SKILL_TAGS.map((t) => t.dbName);
 
@@ -158,21 +159,8 @@ export async function POST(req: NextRequest) {
       type: "highlight" as const,
       reference_id: clip.id,
       metadata: {
-        video_url: clip.video_url,
-        thumbnail_url: clip.thumbnail_url,
-        duration: clip.duration_seconds,
-        tags: validTags,
         uploaded_by_parent: true,
-        spotlight_x: clip.spotlight_x ?? null,
-        spotlight_y: clip.spotlight_y ?? null,
-        freeze_at: clip.freeze_at ?? null,
-        trim_start: clip.trim_start ?? null,
-        trim_end: clip.trim_end ?? null,
-        slowmo_start: clip.slowmo_start ?? null,
-        slowmo_end: clip.slowmo_end ?? null,
-        slowmo_speed: clip.slowmo_speed ?? null,
-        bgm_id: clip.bgm_id ?? null,
-        effects: clip.effects ?? null,
+        ...buildClipFeedMetadata(clip, validTags),
       },
     });
 

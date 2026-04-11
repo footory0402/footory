@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 import ClipPlayerSheet, { type PlayableClip } from "@/components/player/ClipPlayerSheet";
 import { buildSingleClipPlaybackContract } from "@/lib/single-clip-playback";
 import TagEditSheet from "@/components/player/TagEditSheet";
-import { useFeaturedClips } from "@/hooks/useClips";
+import { useFeaturedClips, type FeaturedClip } from "@/hooks/useClips";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { getSkillTagsForPosition } from "@/lib/constants";
 import { toast } from "sonner";
@@ -49,7 +49,7 @@ interface HighlightsTabV5Props {
   playerName?: string | null;
   playerBirthYear?: number | null;
   playerTeamName?: string | null;
-  onDeleteClip?: (clipId: string) => Promise<boolean>;
+  onDeleteClips?: (clipIds: string[]) => Promise<boolean>;
   onEditTags?: (clipId: string, tags: string[]) => Promise<boolean>;
   onShare?: (clipId: string) => void;
   readOnly?: boolean;
@@ -88,19 +88,20 @@ export default function HighlightsTabV5({
   playerName,
   playerBirthYear,
   playerTeamName,
-  onDeleteClip,
+  onDeleteClips,
   onEditTags,
   onShare,
   readOnly,
   initialReels,
   initialFeatured,
 }: HighlightsTabV5Props) {
+  const ssrFeatured = initialFeatured ?? [];
   const {
     featured: hookFeatured,
     fetchFeatured,
     addFeatured,
     removeFeatured,
-  } = useFeaturedClips();
+  } = useFeaturedClips(ssrFeatured as FeaturedClip[]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [activeTag, setActiveTag] = useState("전체");
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
@@ -109,7 +110,8 @@ export default function HighlightsTabV5({
   >(null);
   const [editingClipId, setEditingClipId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [deletingClipId, setDeletingClipId] = useState<string | null>(null);
+  const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // 릴 상태
@@ -122,12 +124,12 @@ export default function HighlightsTabV5({
   const [isDeletingReel, setIsDeletingReel] = useState(false);
 
   useEffect(() => {
-    if (readOnly) return;
+    if (readOnly || ssrFeatured.length > 0) return;
     fetchFeatured();
-  }, [fetchFeatured, readOnly]);
+  }, [fetchFeatured, readOnly, ssrFeatured.length]);
 
   useEffect(() => {
-    if (readOnly) return;
+    if (readOnly || initialReels) return;
     fetch("/api/highlights")
       .then((r) => r.json())
       .then((data) => setReels(data.highlights ?? []))
@@ -257,6 +259,49 @@ export default function HighlightsTabV5({
     if (Number.isNaN(aTime) || Number.isNaN(bTime)) return 0;
     return bTime - aTime;
   });
+  const selectedClipIdSet = new Set(selectedClipIds);
+
+  useEffect(() => {
+    const validClipIds = new Set(dedupedClips.map((clip) => clip.id));
+    setSelectedClipIds((prev) => {
+      const next = prev.filter((clipId) => validClipIds.has(clipId));
+      return next.length === prev.length && next.every((clipId, index) => clipId === prev[index])
+        ? prev
+        : next;
+    });
+  }, [dedupedClips]);
+
+  const toggleEditMode = useCallback(() => {
+    setEditMode((prev) => {
+      if (prev) {
+        setSelectedClipIds([]);
+        setDeleteConfirmOpen(false);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const toggleClipSelection = useCallback((clipId: string) => {
+    setSelectedClipIds((prev) =>
+      prev.includes(clipId)
+        ? prev.filter((id) => id !== clipId)
+        : [...prev, clipId]
+    );
+  }, []);
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (!onDeleteClips || selectedClipIds.length === 0) return;
+
+    setIsDeleting(true);
+    const ok = await onDeleteClips(selectedClipIds);
+    setIsDeleting(false);
+
+    if (ok) {
+      setSelectedClipIds([]);
+      setDeleteConfirmOpen(false);
+      setEditMode(false);
+    }
+  }, [onDeleteClips, selectedClipIds]);
 
   // Filter by active tag
   const filteredClips =
@@ -383,94 +428,133 @@ export default function HighlightsTabV5({
 
         {/* ── Section header ── */}
         {hasClips && (
-        <div className="mt-5 mb-[10px] flex items-center justify-between">
-          <div className="flex items-center gap-[6px]">
-            <div
-              style={{
-                width: 3,
-                height: 14,
-                borderRadius: 2,
-                background: "var(--color-accent)",
-              }}
-            />
-            <span
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: 14,
-                fontWeight: 700,
-                color: "var(--color-text-1)",
-              }}
-            >
-              전체 클립
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-stat)",
-                fontSize: 11,
-                color: "var(--color-text-3)",
-                background: "rgba(255,255,255,0.04)",
-                borderRadius: 8,
-                padding: "1px 7px",
-              }}
-            >
-              {dedupedClips.length}
-            </span>
-          </div>
-          {!readOnly && (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/upload"
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  background: "rgba(212,168,83,0.08)",
-                  border: "1px solid rgba(212,168,83,0.2)",
-                  color: "var(--color-accent)",
-                  fontSize: 10,
-                  fontFamily: "var(--font-body)",
-                  fontWeight: 500,
-                }}
-              >
-                + 영상 추가
-              </Link>
-              {dedupedClips.length >= 2 && (
-                <Link
-                  href="/reel/create"
+          <>
+            <div className="mt-5 mb-[10px] flex items-center justify-between">
+              <div className="flex items-center gap-[6px]">
+                <div
                   style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
+                    width: 3,
+                    height: 14,
+                    borderRadius: 2,
+                    background: "var(--color-accent)",
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "var(--color-text-1)",
+                  }}
+                >
+                  전체 클립
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-stat)",
+                    fontSize: 11,
+                    color: "var(--color-text-3)",
                     background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "var(--color-text-2)",
-                    fontSize: 10,
-                    fontFamily: "var(--font-body)",
-                    fontWeight: 500,
+                    borderRadius: 8,
+                    padding: "1px 7px",
                   }}
                 >
-                  🎬 릴 만들기
-                </Link>
-              )}
-              {dedupedClips.length > 0 && (
-                <button
-                  onClick={() => setEditMode((v) => !v)}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    background: editMode ? "rgba(212,168,83,0.08)" : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${editMode ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.08)"}`,
-                    color: editMode ? "var(--color-accent)" : "var(--color-text-3)",
-                    fontSize: 10,
-                    fontFamily: "var(--font-body)",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                  }}
-                >
-                  {editMode ? "완료" : "편집"}
-                </button>
+                  {dedupedClips.length}
+                </span>
+              </div>
+              {!readOnly && (
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/upload"
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      background: "rgba(212,168,83,0.08)",
+                      border: "1px solid rgba(212,168,83,0.2)",
+                      color: "var(--color-accent)",
+                      fontSize: 10,
+                      fontFamily: "var(--font-body)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    + 영상 추가
+                  </Link>
+                  {dedupedClips.length >= 2 && (
+                    <Link
+                      href="/reel/create"
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 6,
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: "var(--color-text-2)",
+                        fontSize: 10,
+                        fontFamily: "var(--font-body)",
+                        fontWeight: 500,
+                      }}
+                    >
+                      🎬 릴 만들기
+                    </Link>
+                  )}
+                  {dedupedClips.length > 0 && (
+                    <>
+                      {editMode && (
+                        <button
+                          onClick={() => setDeleteConfirmOpen(true)}
+                          disabled={selectedClipIds.length === 0 || isDeleting}
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 6,
+                            background: selectedClipIds.length > 0 ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.03)",
+                            border: `1px solid ${selectedClipIds.length > 0 ? "rgba(239,68,68,0.28)" : "rgba(255,255,255,0.08)"}`,
+                            color: selectedClipIds.length > 0 ? "rgb(248,113,113)" : "var(--color-text-3)",
+                            fontSize: 10,
+                            fontFamily: "var(--font-body)",
+                            fontWeight: 600,
+                            cursor: selectedClipIds.length > 0 ? "pointer" : "not-allowed",
+                            opacity: selectedClipIds.length > 0 ? 1 : 0.55,
+                          }}
+                          aria-label={selectedClipIds.length > 0 ? `선택한 영상 ${selectedClipIds.length}개 삭제` : "삭제할 영상을 먼저 선택해 주세요"}
+                        >
+                          삭제 {selectedClipIds.length > 0 ? `(${selectedClipIds.length})` : ""}
+                        </button>
+                      )}
+                      <button
+                        onClick={toggleEditMode}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          background: editMode ? "rgba(212,168,83,0.08)" : "rgba(255,255,255,0.04)",
+                          border: `1px solid ${editMode ? "rgba(212,168,83,0.2)" : "rgba(255,255,255,0.08)"}`,
+                          color: editMode ? "var(--color-accent)" : "var(--color-text-3)",
+                          fontSize: 10,
+                          fontFamily: "var(--font-body)",
+                          fontWeight: 500,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {editMode ? "완료" : "편집"}
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
+            {editMode && (
+              <p
+                style={{
+                  marginTop: 6,
+                  fontSize: 11,
+                  color: "var(--color-text-3)",
+                  fontFamily: "var(--font-body)",
+                }}
+              >
+                {selectedClipIds.length > 0
+                  ? `${selectedClipIds.length}개 선택됨`
+                  : "삭제할 영상을 골라주세요"}
+              </p>
+            )}
+          </>
         )}
 
         {/* ── Tag filter pills ── */}
@@ -588,9 +672,10 @@ export default function HighlightsTabV5({
                     : undefined
                 }
                 isEditMode={editMode}
-                onDeleteInEditMode={
-                  editMode && onDeleteClip
-                    ? () => setDeletingClipId(clip.id)
+                isSelected={selectedClipIdSet.has(clip.id)}
+                onToggleSelect={
+                  editMode && onDeleteClips
+                    ? () => toggleClipSelection(clip.id)
                     : undefined
                 }
               />
@@ -707,7 +792,11 @@ export default function HighlightsTabV5({
                 setPlayingIndex(null);
                 setPlayingSource(null);
               }}
-              onDelete={readOnly ? undefined : onDeleteClip}
+              onDelete={
+                !readOnly && onDeleteClips
+                  ? async (clipId) => onDeleteClips([clipId])
+                  : undefined
+              }
               onEditTags={
                 !readOnly && onEditTags
                   ? (clipId) => {
@@ -747,12 +836,12 @@ export default function HighlightsTabV5({
         )}
 
         {/* Delete confirm bottom sheet (edit mode) */}
-        {deletingClipId && (
+        {deleteConfirmOpen && (
           <>
             <div
               className="fixed inset-0 z-40"
               style={{ background: "rgba(0,0,0,0.5)" }}
-              onClick={() => { if (!isDeleting) setDeletingClipId(null); }}
+              onClick={() => { if (!isDeleting) setDeleteConfirmOpen(false); }}
             />
             <div
               className="fixed bottom-0 left-1/2 z-50 w-full max-w-[430px]"
@@ -779,21 +868,14 @@ export default function HighlightsTabV5({
                   </svg>
                 </div>
                 <p style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-1)", fontFamily: "var(--font-body)", marginBottom: 6 }}>
-                  클립을 삭제할까요?
+                  선택한 영상을 삭제할까요?
                 </p>
                 <p style={{ fontSize: 12, color: "var(--color-text-3)", fontFamily: "var(--font-body)", marginBottom: 24 }}>
-                  이 작업은 되돌릴 수 없어요.
+                  {selectedClipIds.length}개 영상을 삭제해요. 이 작업은 되돌릴 수 없어요.
                 </p>
                 <button
                   disabled={isDeleting}
-                  onClick={async () => {
-                    if (!onDeleteClip || !deletingClipId) return;
-                    setIsDeleting(true);
-                    const ok = await onDeleteClip(deletingClipId);
-                    setIsDeleting(false);
-                    setDeletingClipId(null);
-                    if (ok) setEditMode(false);
-                  }}
+                  onClick={handleDeleteSelected}
                   className="mb-3 flex w-full items-center justify-center"
                   style={{
                     height: 48,
@@ -815,7 +897,7 @@ export default function HighlightsTabV5({
                 </button>
                 <button
                   disabled={isDeleting}
-                  onClick={() => setDeletingClipId(null)}
+                  onClick={() => setDeleteConfirmOpen(false)}
                   style={{
                     width: "100%",
                     height: 44,
@@ -895,6 +977,15 @@ function FeaturedCard({
       <div
         className="relative cursor-pointer overflow-hidden"
         onClick={onPlay}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onPlay();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="대표 영상 재생"
         style={{
           borderRadius: 16,
           border: "1px solid rgba(212,168,83,0.2)",
@@ -924,6 +1015,7 @@ function FeaturedCard({
               src={thumbUrl}
               alt="대표 영상"
               fill
+              priority
               sizes="(max-width: 430px) calc(100vw - 2rem), 398px"
               className="object-cover"
             />
@@ -966,7 +1058,7 @@ function FeaturedCard({
               letterSpacing: "0.08em",
             }}
           >
-            ⭐ FEATURED
+            ⭐ 대표
           </div>
 
           {/* Duration (top-right) */}
@@ -1260,19 +1352,27 @@ function ClipCard({
   onPlay,
   onEditTags,
   isEditMode,
-  onDeleteInEditMode,
+  isSelected,
+  onToggleSelect,
 }: {
   clip: TagClip & { tagLabel?: string; tagEmoji?: string };
   index: number;
   onPlay: () => void;
   onEditTags?: () => void;
   isEditMode?: boolean;
-  onDeleteInEditMode?: () => void;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   return (
     <div
       className="relative cursor-pointer overflow-hidden"
-      onClick={isEditMode ? onDeleteInEditMode : onPlay}
+      onClick={isEditMode ? onToggleSelect : onPlay}
+      role="button"
+      aria-label={
+        isEditMode
+          ? `${isSelected ? "선택 해제" : "선택"} ${formatDuration(Math.round(clip.duration))} 영상`
+          : `${formatDuration(Math.round(clip.duration))} 영상 재생`
+      }
       style={{ aspectRatio: "1/1", background: "#111" }}
     >
       {/* Background / Thumbnail */}
@@ -1323,22 +1423,33 @@ function ClipCard({
         {formatDuration(Math.round(clip.duration))}
       </div>
 
-      {/* Edit mode delete badge (top-left) */}
+      {/* Edit mode select badge (top-left) */}
       {isEditMode && (
         <div
           className="absolute left-[4px] top-[4px] z-10 flex items-center justify-center"
           style={{
-            width: 20,
-            height: 20,
+            width: 22,
+            height: 22,
             borderRadius: "50%",
-            background: "rgb(239,68,68)",
-            border: "1.5px solid rgba(0,0,0,0.4)",
+            background: isSelected ? "var(--color-accent)" : "rgba(0,0,0,0.55)",
+            border: `1.5px solid ${isSelected ? "rgba(212,168,83,0.45)" : "rgba(255,255,255,0.24)"}`,
             boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
           }}
         >
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          {isSelected ? (
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          ) : (
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.8)",
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -1346,7 +1457,7 @@ function ClipCard({
       {isEditMode && (
         <div
           className="absolute inset-0"
-          style={{ background: "rgba(0,0,0,0.25)" }}
+          style={{ background: isSelected ? "rgba(212,168,83,0.12)" : "rgba(0,0,0,0.28)" }}
         />
       )}
 

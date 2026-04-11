@@ -108,7 +108,7 @@ export function useClips() {
   return { clips, loading, error, fetchClips, deleteClip, updateClip };
 }
 
-interface FeaturedClip {
+export interface FeaturedClip {
   id: string;
   clip_id: string;
   sort_order: number;
@@ -128,8 +128,8 @@ interface FeaturedClip {
   };
 }
 
-export function useFeaturedClips() {
-  const [featured, setFeatured] = useState<FeaturedClip[]>([]);
+export function useFeaturedClips(initialFeatured: FeaturedClip[] = []) {
+  const [featured, setFeatured] = useState<FeaturedClip[]>(initialFeatured);
   const [loading, setLoading] = useState(false);
 
   const fetchFeatured = useCallback(async () => {
@@ -164,6 +164,10 @@ export function useFeaturedClips() {
     if (res.ok) await fetchFeatured();
     return res.ok;
   }, [fetchFeatured]);
+
+  useEffect(() => {
+    setFeatured(initialFeatured);
+  }, [initialFeatured]);
 
   return { featured, loading, fetchFeatured, addFeatured, removeFeatured };
 }

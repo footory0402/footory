@@ -1,27 +1,61 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import KakaoLoginButton from "@/components/auth/KakaoLoginButton";
 import EmailLoginForm from "@/components/auth/EmailLoginForm";
+import { createClient } from "@/lib/supabase/client";
+import { clearAuthBrowserState } from "@/lib/auth";
 
 function LoginContent() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/";
   const [showContent, setShowContent] = useState(false);
+  const [formResetKey, setFormResetKey] = useState(0);
 
-  useEffect(() => {
-    // Clear stale Supabase session from localStorage to prevent auth errors
+  const resetLoginSurface = useCallback(async () => {
+    const supabase = createClient();
+
     try {
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith("sb-")) localStorage.removeItem(key);
-      });
+      await supabase.auth.signOut({ scope: "local" });
     } catch {}
 
-    const timer = setTimeout(() => setShowContent(true), 100);
-    return () => clearTimeout(timer);
+    try {
+      clearAuthBrowserState();
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const refreshLoginSurface = async () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      setShowContent(false);
+      await resetLoginSurface();
+      if (cancelled) return;
+      setFormResetKey((prev) => prev + 1);
+      timer = setTimeout(() => setShowContent(true), 100);
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      void refreshLoginSurface();
+    };
+
+    void refreshLoginSurface();
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pageshow", handlePageShow);
+      if (timer) clearTimeout(timer);
+    };
+  }, [resetLoginSurface]);
 
   const signupHref = next !== "/" ? `/signup?next=${encodeURIComponent(next)}` : "/signup";
 
@@ -66,7 +100,7 @@ function LoginContent() {
       >
         {/* Social login */}
         <div className="flex flex-col gap-3">
-          <KakaoLoginButton next={next} />
+          <KakaoLoginButton key={`kakao-${formResetKey}`} next={next} />
         </div>
 
         {/* Divider */}
@@ -77,7 +111,7 @@ function LoginContent() {
         </div>
 
         {/* Email login */}
-        <EmailLoginForm next={next} />
+        <EmailLoginForm key={formResetKey} next={next} />
 
         {/* Links */}
         <div className="mt-4 flex items-center justify-center gap-3 text-xs text-text-3">

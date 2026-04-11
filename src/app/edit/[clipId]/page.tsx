@@ -115,17 +115,7 @@ export default function ClipEditPage() {
             } satisfies SingleClipEditingDraft
           : null;
 
-        let clip: EditableClip | null = latestProject?.clip
-          ? {
-              ...latestProject.clip,
-              highlight_start: null,
-              highlight_end: null,
-              spotlight_x: null,
-              spotlight_y: null,
-              freeze_at: null,
-              effects: null,
-            }
-          : null;
+        let clip: EditableClip | null = latestProject?.clip ?? null;
 
         if (!clip) {
           const response = await fetch(`/api/clips/${clipId}`);

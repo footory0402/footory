@@ -51,6 +51,7 @@ export default defineConfig({
     "**/e2e/cross-role.spec.ts",
     "**/e2e/mobile.spec.ts",
     "**/e2e/ui.spec.ts",
+    "**/e2e/09-profile.spec.ts",
     "**/visual/*.spec.ts",
     "**/e2e/upload-wizard.spec.ts",
     "**/e2e/video/*.spec.ts",

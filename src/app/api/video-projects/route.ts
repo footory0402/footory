@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       const [{ data: clip }, { data: tags }] = await Promise.all([
         supabase
           .from("clips")
-          .select("id, video_url, duration_seconds, duration_sec, trim_start, trim_end")
+          .select("id, video_url, thumbnail_url, duration_seconds, duration_sec, trim_start, trim_end, highlight_start, highlight_end, spotlight_x, spotlight_y, freeze_at, effects")
           .eq("id", project.clip_id)
           .single(),
         supabase

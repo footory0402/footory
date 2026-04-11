@@ -251,9 +251,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const savedState = searchParams.get("saved");
   const justSavedFeatured = savedState === "featured";
   const justSavedClipOnly = savedState === "clip";
-  const [activeTab, setActiveTab] = useState<ProfileTabKey>(
-    () => data.viewerAccess?.role === "scout" ? "records" : "highlights"
-  );
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>("highlights");
   const [shareOpen, setShareOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
@@ -553,30 +551,38 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
               } catch { /* cancelled */ }
             }}
             {...(data.isOwnProfile ? {
-              onDeleteClip: async (clipId: string) => {
+              onDeleteClips: async (clipIds: string[]) => {
+                const uniqueClipIds = Array.from(new Set(clipIds));
+                if (uniqueClipIds.length === 0) return false;
+
                 const prevTagClips = localTagClips;
                 const prevUntaggedClips = localUntaggedClips;
                 const prevFeatured = localFeatured;
+                const clipIdSet = new Set(uniqueClipIds);
 
                 setLocalTagClips((prev) =>
                   Object.fromEntries(
                     Object.entries(prev)
-                      .map(([tagId, clips]) => [tagId, clips.filter((clip) => clip.id !== clipId)])
+                      .map(([tagId, clips]) => [tagId, clips.filter((clip) => !clipIdSet.has(clip.id))])
                       .filter(([, clips]) => clips.length > 0)
                   )
                 );
-                setLocalUntaggedClips((prev) => prev.filter((clip) => clip.id !== clipId));
-                setLocalFeatured((prev) => prev.filter((item) => item.clip_id !== clipId));
+                setLocalUntaggedClips((prev) => prev.filter((clip) => !clipIdSet.has(clip.id)));
+                setLocalFeatured((prev) => prev.filter((item) => !clipIdSet.has(item.clip_id)));
 
-                const res = await fetch(`/api/clips/${clipId}`, { method: "DELETE" });
+                const res = await fetch("/api/clips/bulk-delete", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ clipIds: uniqueClipIds }),
+                });
                 if (res.ok) {
-                  toast.success("영상이 삭제되었습니다.");
+                  toast.success(`영상 ${uniqueClipIds.length}개를 삭제했습니다.`);
                   router.refresh();
                 } else {
                   setLocalTagClips(prevTagClips);
                   setLocalUntaggedClips(prevUntaggedClips);
                   setLocalFeatured(prevFeatured);
-                  toast.error("영상 삭제에 실패했습니다.");
+                  toast.error("영상 삭제에 실패했습니다. 다시 해볼게요.");
                 }
                 return res.ok;
               },

@@ -1,7 +1,49 @@
 import { createClient } from "@/lib/supabase/client";
 
+const POST_LOGOUT_REAUTH_KEY = "footory-post-logout-reauth";
+
 function getAuthRedirectUrl(path = "/auth/callback") {
   return `${window.location.origin}${path}`;
+}
+
+function getBrowserStorage() {
+  if (typeof window === "undefined") return null;
+  return {
+    local: window.localStorage,
+    session: window.sessionStorage,
+  };
+}
+
+export function markPostLogoutReauth() {
+  const storage = getBrowserStorage();
+  if (!storage) return;
+  storage.session.setItem(POST_LOGOUT_REAUTH_KEY, "1");
+}
+
+export function consumePostLogoutReauth() {
+  const storage = getBrowserStorage();
+  if (!storage) return false;
+  const shouldReauth = storage.session.getItem(POST_LOGOUT_REAUTH_KEY) === "1";
+  storage.session.removeItem(POST_LOGOUT_REAUTH_KEY);
+  return shouldReauth;
+}
+
+export function clearAuthBrowserState() {
+  const storage = getBrowserStorage();
+  if (!storage) return;
+
+  const preservedLogoutFlag = storage.session.getItem(POST_LOGOUT_REAUTH_KEY);
+
+  Object.keys(storage.local).forEach((key) => {
+    if (key.startsWith("sb-")) storage.local.removeItem(key);
+  });
+  Object.keys(storage.session).forEach((key) => {
+    if (key.startsWith("sb-")) storage.session.removeItem(key);
+  });
+
+  if (preservedLogoutFlag) {
+    storage.session.setItem(POST_LOGOUT_REAUTH_KEY, preservedLogoutFlag);
+  }
 }
 
 export async function signInWithKakao(next?: string) {
@@ -9,9 +51,10 @@ export async function signInWithKakao(next?: string) {
   const redirectTo = next
     ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
     : getAuthRedirectUrl();
+  const queryParams = consumePostLogoutReauth() ? { prompt: "login" } : undefined;
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "kakao",
-    options: { redirectTo },
+    options: { redirectTo, queryParams },
   });
   if (error) throw error;
 }
@@ -70,8 +113,10 @@ export async function updatePassword(newPassword: string) {
 
 export async function signOut() {
   const supabase = createClient();
+  markPostLogoutReauth();
   // signOut can fail if refresh token is already invalid — ignore the error
   await supabase.auth.signOut().catch(() => {});
+  clearAuthBrowserState();
   // Replace history to prevent back-button returning to authenticated pages
   window.location.replace("/login");
 }

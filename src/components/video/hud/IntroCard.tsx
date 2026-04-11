@@ -2,11 +2,46 @@
 
 import type { HudPlayerData } from "./types";
 
+function buildIntroMotionStyle({
+  animate,
+  delayMs,
+  durationMs,
+  fromTransform,
+}: {
+  animate: boolean;
+  delayMs: number;
+  durationMs: number;
+  fromTransform: string;
+}) {
+  if (!animate) {
+    return {
+      opacity: 1,
+      transform: "translate3d(0, 0, 0) scale(1)",
+    } as const;
+  }
+
+  return {
+    opacity: 0,
+    transform: fromTransform,
+    animationName: "footory-intro-reveal",
+    animationDuration: `${durationMs}ms`,
+    animationDelay: `${delayMs}ms`,
+    animationTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+    animationFillMode: "forwards",
+  } as const;
+}
+
 /**
  * 인트로 카드 — 16:9 풀스크린 (1920×1080)
  * 구단 컬러 배경 + 경기장 SVG + 선수 사진 + 이름/등번호
  */
-export default function IntroCard({ data }: { data: HudPlayerData }) {
+export default function IntroCard({
+  data,
+  animate = false,
+}: {
+  data: HudPlayerData;
+  animate?: boolean;
+}) {
   const clubDisplay = data.club.replace(/\s*U\d+/, "").toUpperCase();
   const clubFull = data.clubFull ?? data.club;
 
@@ -21,6 +56,18 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
           background: `linear-gradient(135deg, ${data.mainColor}dd 0%, #0a0a0a 40%, #111 100%)`,
         }}
       >
+      <style>{`
+        @keyframes footory-intro-reveal {
+          0% {
+            opacity: 0;
+            transform: var(--intro-from-transform, translate3d(0, 0, 0) scale(1));
+          }
+          100% {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+        }
+      `}</style>
       {/* Stadium background SVG */}
       <div className="absolute inset-0 opacity-15">
         <svg width="100%" height="100%" viewBox="0 0 960 540" preserveAspectRatio="xMidYMid slice">
@@ -49,7 +96,18 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
       />
 
       {/* Club name — top right */}
-      <div className="absolute right-[3%] top-[5%] z-10 text-right">
+      <div
+        className="absolute right-[3%] top-[5%] z-10 text-right"
+        style={{
+          ...buildIntroMotionStyle({
+            animate,
+            delayMs: 80,
+            durationMs: 480,
+            fromTransform: "translate3d(0, -18px, 0)",
+          }),
+          ["--intro-from-transform" as string]: "translate3d(0, -18px, 0)",
+        }}
+      >
         <div
           className="text-[clamp(14px,2.2vw,24px)] font-black tracking-widest text-white/90"
         >
@@ -61,7 +119,18 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
       </div>
 
       {/* Left: Player photo (cutout style, 40%) */}
-      <div className="absolute bottom-0 left-0 z-10 flex h-full w-[40%] items-end justify-center">
+      <div
+        className="absolute bottom-0 left-0 z-10 flex h-full w-[40%] items-end justify-center"
+        style={{
+          ...buildIntroMotionStyle({
+            animate,
+            delayMs: 180,
+            durationMs: 640,
+            fromTransform: "translate3d(-52px, 0, 0) scale(0.96)",
+          }),
+          ["--intro-from-transform" as string]: "translate3d(-52px, 0, 0) scale(0.96)",
+        }}
+      >
         <div
           className="flex h-[85%] w-[80%] items-end justify-center rounded-t-lg"
           style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08))" }}
@@ -86,7 +155,18 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
       {/* Right: Name + Number + Info (60%) */}
       <div className="relative z-10 ml-[40%] flex flex-1 flex-col justify-center py-[8%] pr-[5%] pl-[2%]">
         {/* Name + Number */}
-        <div className="flex items-baseline gap-[3%]">
+        <div
+          className="flex items-baseline gap-[3%]"
+          style={{
+            ...buildIntroMotionStyle({
+              animate,
+              delayMs: 860,
+              durationMs: 520,
+              fromTransform: "translate3d(28px, 0, 0)",
+            }),
+            ["--intro-from-transform" as string]: "translate3d(28px, 0, 0)",
+          }}
+        >
           <span
             className="font-[var(--font-stat)] text-[clamp(28px,7vw,80px)] font-black uppercase leading-none tracking-wide text-white"
             style={{ textShadow: `2px 2px 20px ${data.accentColor}66` }}
@@ -101,7 +181,18 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
         </div>
 
         {/* Info strip: NATIONALITY | CLUB | POSITION */}
-        <div className="mt-[4%] flex items-center gap-0">
+        <div
+          className="mt-[4%] flex items-center gap-0"
+          style={{
+            ...buildIntroMotionStyle({
+              animate,
+              delayMs: 1500,
+              durationMs: 520,
+              fromTransform: "translate3d(0, 20px, 0)",
+            }),
+            ["--intro-from-transform" as string]: "translate3d(0, 20px, 0)",
+          }}
+        >
           {[
             { label: "NATIONALITY", value: data.nationality || "KOREA" },
             { label: "CLUB", value: clubFull },
@@ -133,6 +224,13 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
           style={{
             fontFamily: "'Caveat', 'Rajdhani', cursive",
             color: "rgba(255,255,255,0.7)",
+            ...buildIntroMotionStyle({
+              animate,
+              delayMs: 2180,
+              durationMs: 560,
+              fromTransform: "translate3d(22px, 0, 0)",
+            }),
+            ["--intro-from-transform" as string]: "translate3d(22px, 0, 0)",
           }}
         >
           {data.name}
@@ -148,6 +246,13 @@ export default function IntroCard({ data }: { data: HudPlayerData }) {
           background: `linear-gradient(135deg, ${data.mainColor}, ${data.accentColor})`,
           border: "2px solid rgba(255,255,255,0.15)",
           fontSize: "clamp(8px,1.2vw,14px)",
+          ...buildIntroMotionStyle({
+            animate,
+            delayMs: 2760,
+            durationMs: 440,
+            fromTransform: "translate3d(0, 16px, 0) scale(0.9)",
+          }),
+          ["--intro-from-transform" as string]: "translate3d(0, 16px, 0) scale(0.9)",
         }}
       >
         {clubDisplay.substring(0, 4)}

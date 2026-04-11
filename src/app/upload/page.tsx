@@ -207,12 +207,12 @@ export default function UploadPage() {
       existingTags: state.tags,
     });
 
+    const destination = role === "parent" && childHandle
+      ? `/p/${childHandle}`
+      : "/profile";
+
     state.reset();
-    if (role === "parent" && childHandle) {
-      router.push(`/p/${childHandle}`);
-      return;
-    }
-    router.push("/profile");
+    window.location.replace(destination);
   }, [childHandle, role, router]);
 
   /* ── Guard: 로딩 중 ── */

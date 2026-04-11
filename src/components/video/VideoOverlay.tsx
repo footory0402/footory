@@ -76,6 +76,7 @@ export default function VideoOverlay({
               : "opacity 0.18s ease-out, visibility 0s 0.18s",
           }}
         >
+          <FocusIsolation freezeMode={!!freezeMode} active={markerVisible} />
           {resolvedStyle === "soft_ring" ? <SoftRing freezeMode={!!freezeMode} /> : null}
           {resolvedStyle === "double_ring" ? <DoubleRing freezeMode={!!freezeMode} /> : null}
           {resolvedStyle === "bracket_light" ? <BracketLight freezeMode={!!freezeMode} /> : null}
@@ -89,6 +90,7 @@ export default function VideoOverlay({
               alignItems: "center",
             }}
             >
+            {freezeMode ? <FreezeChevron /> : null}
             {!hideNametag && freezeMode && player.name ? (
               <FreezeNameIndicator name={player.name} effects={effects} />
             ) : null}
@@ -98,6 +100,29 @@ export default function VideoOverlay({
         </div>
       )}
     </div>
+  );
+}
+
+function FocusIsolation({ freezeMode, active }: { freezeMode: boolean; active: boolean }) {
+  if (!active) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        width: freezeMode ? 240 : 196,
+        height: freezeMode ? 240 : 196,
+        borderRadius: "50%",
+        transform: "translate(-50%, -50%)",
+        background: freezeMode
+          ? "radial-gradient(circle, rgba(255,244,214,0.18) 0%, rgba(212,168,83,0.14) 24%, rgba(212,168,83,0.06) 40%, rgba(0,0,0,0.32) 66%, rgba(0,0,0,0) 82%)"
+          : "radial-gradient(circle, rgba(255,244,214,0.1) 0%, rgba(212,168,83,0.08) 24%, rgba(0,0,0,0.18) 58%, rgba(0,0,0,0) 80%)",
+        mixBlendMode: "screen",
+        filter: freezeMode
+          ? "drop-shadow(0 0 28px rgba(212,168,83,0.22))"
+          : "drop-shadow(0 0 18px rgba(212,168,83,0.14))",
+      }}
+    />
   );
 }
 
@@ -112,7 +137,7 @@ function FreezeNameIndicator({
     <div
       style={{
         position: "absolute",
-        bottom: "calc(100% + 20px)",
+        bottom: "calc(100% + 30px)",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -123,7 +148,7 @@ function FreezeNameIndicator({
     >
       <div
         style={{
-          maxWidth: 180,
+          maxWidth: 220,
           overflow: "hidden",
           textOverflow: "ellipsis",
           background: effects?.eafc
@@ -131,15 +156,15 @@ function FreezeNameIndicator({
             : "rgba(12,12,14,0.94)",
           border: "1px solid rgba(227,188,104,0.74)",
           borderRadius: 999,
-          padding: "5px 12px",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.42)",
+          padding: "6px 14px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.48)",
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
         }}
       >
         <span
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 800,
             letterSpacing: "0.02em",
             color: "#FFF7E2",
@@ -153,11 +178,11 @@ function FreezeNameIndicator({
         style={{
           width: 0,
           height: 0,
-          borderLeft: "8px solid transparent",
-          borderRight: "8px solid transparent",
-          borderTop: "14px solid rgba(227,188,104,0.96)",
-          filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.32))",
-          marginTop: 4,
+          borderLeft: "9px solid transparent",
+          borderRight: "9px solid transparent",
+          borderTop: "16px solid rgba(227,188,104,0.98)",
+          filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.34))",
+          marginTop: 5,
         }}
       />
     </div>
@@ -168,14 +193,14 @@ function CenterMarker({ freezeMode }: { freezeMode: boolean }) {
   return (
     <div
       style={{
-        width: freezeMode ? 52 : 46,
-        height: freezeMode ? 52 : 46,
+        width: freezeMode ? 58 : 48,
+        height: freezeMode ? 58 : 48,
         borderRadius: "50%",
         border: freezeMode
-          ? "1.5px solid rgba(255,235,189,0.9)"
+          ? "1.5px solid rgba(255,235,189,0.96)"
           : "1.5px solid rgba(255,235,189,0.72)",
         boxShadow: freezeMode
-          ? "0 0 0 6px rgba(212,168,83,0.12), 0 0 22px rgba(212,168,83,0.28)"
+          ? "0 0 0 8px rgba(212,168,83,0.14), 0 0 28px rgba(212,168,83,0.34)"
           : "0 0 0 4px rgba(212,168,83,0.08), 0 0 14px rgba(212,168,83,0.18)",
         background: "rgba(255,246,221,0.05)",
         display: "flex",
@@ -187,13 +212,45 @@ function CenterMarker({ freezeMode }: { freezeMode: boolean }) {
     >
       <div
         style={{
-          width: freezeMode ? 10 : 8,
-          height: freezeMode ? 10 : 8,
+          width: freezeMode ? 12 : 8,
+          height: freezeMode ? 12 : 8,
           borderRadius: "50%",
           background: "#F8E7BD",
-          boxShadow: "0 0 10px rgba(255,235,189,0.45)",
+          boxShadow: "0 0 14px rgba(255,235,189,0.5)",
         }}
       />
+    </div>
+  );
+}
+
+function FreezeChevron() {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: "calc(100% + 74px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.3))",
+      }}
+    >
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div
+          key={index}
+          style={{
+            width: 0,
+            height: 0,
+            borderLeft: "11px solid transparent",
+            borderRight: "11px solid transparent",
+            borderTop: "18px solid rgba(255,228,168,0.98)",
+            opacity: index === 0 ? 1 : 0.72,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -262,11 +319,11 @@ function DoubleRing({ freezeMode }: { freezeMode: boolean }) {
 }
 
 function BracketLight({ freezeMode }: { freezeMode: boolean }) {
-  const bracketRadius = freezeMode ? 78 : 64;
+  const bracketRadius = freezeMode ? 92 : 72;
   const segments = [
     { top: -bracketRadius / 2, left: -bracketRadius / 2, rotate: 0 },
-    { top: -bracketRadius / 2, left: bracketRadius / 2 - 22, rotate: 90 },
-    { top: bracketRadius / 2 - 22, left: bracketRadius / 2 - 22, rotate: 180 },
+    { top: -bracketRadius / 2, left: bracketRadius / 2 - 28, rotate: 90 },
+    { top: bracketRadius / 2 - 28, left: bracketRadius / 2 - 28, rotate: 180 },
     { top: bracketRadius / 2 - 22, left: -bracketRadius / 2, rotate: 270 },
   ];
 
@@ -275,15 +332,15 @@ function BracketLight({ freezeMode }: { freezeMode: boolean }) {
       <div
         style={{
           position: "absolute",
-          width: freezeMode ? 118 : 96,
-          height: freezeMode ? 118 : 96,
+          width: freezeMode ? 138 : 110,
+          height: freezeMode ? 138 : 110,
           borderRadius: "50%",
           transform: "translate(-50%, -50%)",
           background: freezeMode
-            ? "radial-gradient(circle, rgba(255,241,208,0.24) 0%, rgba(212,168,83,0.12) 40%, rgba(0,0,0,0) 80%)"
+            ? "radial-gradient(circle, rgba(255,241,208,0.28) 0%, rgba(212,168,83,0.16) 38%, rgba(0,0,0,0) 80%)"
             : "radial-gradient(circle, rgba(255,241,208,0.18) 0%, rgba(212,168,83,0.08) 40%, rgba(0,0,0,0) 78%)",
           filter: freezeMode
-            ? "drop-shadow(0 0 18px rgba(212,168,83,0.24))"
+            ? "drop-shadow(0 0 24px rgba(212,168,83,0.28))"
             : "drop-shadow(0 0 12px rgba(212,168,83,0.18))",
         }}
       />
@@ -294,16 +351,21 @@ function BracketLight({ freezeMode }: { freezeMode: boolean }) {
             position: "absolute",
             top: `calc(50% + ${segment.top}px)`,
             left: `calc(50% + ${segment.left}px)`,
-            width: 22,
-            height: 22,
+            width: freezeMode ? 28 : 24,
+            height: freezeMode ? 28 : 24,
             transform: `rotate(${segment.rotate}deg)`,
           }}
         >
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <svg
+            width={freezeMode ? 28 : 24}
+            height={freezeMode ? 28 : 24}
+            viewBox="0 0 28 28"
+            fill="none"
+          >
             <path
-              d="M2 20 L2 2 L20 2"
-              stroke="rgba(255,235,189,0.88)"
-              strokeWidth="1.8"
+              d="M2.5 25.5 L2.5 2.5 L25.5 2.5"
+              stroke={freezeMode ? "rgba(255,235,189,0.98)" : "rgba(255,235,189,0.88)"}
+              strokeWidth={freezeMode ? "2.4" : "2"}
               strokeLinecap="round"
               strokeLinejoin="round"
             />

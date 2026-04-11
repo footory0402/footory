@@ -20,6 +20,7 @@ import {
   getCachedPlayerCard,
   preloadPlayerCard,
 } from "@/lib/player-card-client";
+import { INTRO_SEQUENCE_DURATION_MS } from "@/lib/intro-playback";
 
 const HudOverlay = dynamic(() => import("@/components/video/hud/HudOverlay"), { ssr: false });
 
@@ -42,7 +43,7 @@ export default function HighlightSharePlayerClient({
   clip,
 }: HighlightSharePlayerClientProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
-  const INTRO_DURATION_MS = 2000;
+  const INTRO_DURATION_MS = INTRO_SEQUENCE_DURATION_MS;
   const FREEZE_HOLD_MS = DEFAULT_FREEZE_HOLD_MS;
   const videoRef = useRef<HTMLVideoElement>(null);
   const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,7 +119,7 @@ export default function HighlightSharePlayerClient({
       setIntroReady(true);
       videoRef.current?.play().catch(() => {});
     }, INTRO_DURATION_MS);
-  }, []);
+  }, [INTRO_DURATION_MS]);
 
   useEffect(() => {
     const fallbackIntro = buildFallbackHudPlayerData(clip);
@@ -274,7 +275,7 @@ export default function HighlightSharePlayerClient({
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("canplay", handleCanPlay);
     };
-  }, [clip, introData, introReady, isFreezing, animateZoomTo, focusZoom, hasFocusTarget, playIntro, spotlight, trackingPoints]);
+  }, [FREEZE_HOLD_MS, clip, introData, introReady, isFreezing, animateZoomTo, focusZoom, hasFocusTarget, playIntro, spotlight, trackingPoints]);
 
   useEffect(() => {
     if (!activeSpotlight || !hasFocusTarget || !isFocusMode || isFreezing) return;
@@ -350,6 +351,7 @@ export default function HighlightSharePlayerClient({
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
   const isPortraitVideo = videoNativeSize ? videoNativeSize.h > videoNativeSize.w : false;
+  const hudCompact = isPortraitVideo;
   const uiAspectRatio = resolveUiVideoAspectRatio(videoNativeSize);
   const playerMaxHeight = hasHud
     ? (isPortraitVideo ? "58vh" : "68vh")
@@ -462,7 +464,7 @@ export default function HighlightSharePlayerClient({
 
         {showIntro && introData ? (
           <div className="absolute inset-0 z-[60] bg-black">
-            <IntroCard data={introData} />
+            <IntroCard data={introData} animate />
           </div>
         ) : null}
 
@@ -474,7 +476,7 @@ export default function HighlightSharePlayerClient({
             data={introData!}
             config={{ ...DEFAULT_HUD_CONFIG, goalCount: 0 }}
             mode="docked"
-            compact={false}
+            compact={hudCompact}
           />
         </div>
       ) : null}

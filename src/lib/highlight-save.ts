@@ -77,26 +77,28 @@ export async function publishSingleClipDraft({
     throw new Error(String(body.error ?? "클립 저장에 실패했습니다."));
   }
 
-  try {
-    await saveVideoProject<SingleClipEditingDraft>({
-      projectId: draft.projectId,
-      kind: "single_clip",
-      status: "published",
-      clipId,
-      payload: draft,
-    });
-  } catch (error) {
-    if (!(error instanceof VideoProjectStorageUnavailableError)) {
-      throw error;
-    }
-  }
-
   if (draft.saveTarget.profileTarget === "featured_candidate") {
-    const featuredRes = await fetch("/api/featured", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clip_id: clipId }),
-    });
+    const [projectSaveResult, featuredRes] = await Promise.all([
+      saveVideoProject<SingleClipEditingDraft>({
+        projectId: draft.projectId,
+        kind: "single_clip",
+        status: "published",
+        clipId,
+        payload: draft,
+      }).catch((error) => {
+        if (error instanceof VideoProjectStorageUnavailableError) {
+          return null;
+        }
+        throw error;
+      }),
+      fetch("/api/featured", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clip_id: clipId }),
+      }),
+    ]);
+
+    void projectSaveResult;
 
     if (!featuredRes.ok) {
       const body = await readJsonSafe(featuredRes);
@@ -119,6 +121,20 @@ export async function publishSingleClipDraft({
       connectionLabel: "프로필 Featured",
       publishTransition: "published",
     };
+  }
+
+  try {
+    await saveVideoProject<SingleClipEditingDraft>({
+      projectId: draft.projectId,
+      kind: "single_clip",
+      status: "published",
+      clipId,
+      payload: draft,
+    });
+  } catch (error) {
+    if (!(error instanceof VideoProjectStorageUnavailableError)) {
+      throw error;
+    }
   }
 
   const alreadyTagged = draft.saveTarget.portfolioTagName != null

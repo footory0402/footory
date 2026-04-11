@@ -30,10 +30,21 @@ export interface SingleClipProjectResponse {
   clip: {
     id: string;
     video_url: string;
+    thumbnail_url: string | null;
     duration_seconds: number | null;
     duration_sec: number | null;
     trim_start: number | null;
     trim_end: number | null;
+    highlight_start: number | null;
+    highlight_end: number | null;
+    spotlight_x: number | null;
+    spotlight_y: number | null;
+    freeze_at: number | null;
+    effects?: {
+      intro?: boolean;
+      showLowerThird?: boolean;
+      focusZoom?: number;
+    } | null;
     tags: string[];
   } | null;
 }

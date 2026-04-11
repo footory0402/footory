@@ -13,6 +13,7 @@ import {
   getCachedPlayerCard,
   preloadPlayerCard,
 } from "@/lib/player-card-client";
+import { INTRO_SEQUENCE_DURATION_MS } from "@/lib/intro-playback";
 
 const VideoOverlay = dynamic(() => import("@/components/video/VideoOverlay"), { ssr: false });
 interface ReelClip {
@@ -36,7 +37,7 @@ interface ReelPreviewPlayerProps {
 
 export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerProps) {
   const INTRO_BLOCK_TIMEOUT_MS = 250;
-  const INTRO_DURATION_MS = 2000;
+  const INTRO_DURATION_MS = INTRO_SEQUENCE_DURATION_MS;
   const FREEZE_HOLD_MS = DEFAULT_FREEZE_HOLD_MS;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [index, setIndex] = useState(0);
@@ -98,7 +99,7 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
       setIntroReady(true);
       videoRef.current?.play().catch(() => {});
     }, INTRO_DURATION_MS);
-  }, []);
+  }, [INTRO_DURATION_MS]);
 
   // 인트로 카드 로딩 — 마운트 시 1회
   useEffect(() => {
@@ -237,7 +238,7 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
     return () => {
       v.removeEventListener("timeupdate", onTime);
     };
-  }, [index, clip, goNext, passedDuration, totalDuration, animateZoomTo, focusZoom, hasFocusTarget, spotlight, trackingPoints]);
+  }, [FREEZE_HOLD_MS, index, clip, goNext, passedDuration, totalDuration, animateZoomTo, focusZoom, hasFocusTarget, spotlight, trackingPoints]);
 
   useEffect(() => {
     if (!activeSpotlight || !hasFocusTarget || isFreezing) return;
@@ -262,7 +263,7 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
       {/* 인트로 카드 오버레이 */}
       {showIntro && introData && (
         <div className="absolute inset-0 z-30">
-          <IntroCard data={introData} />
+          <IntroCard data={introData} animate />
         </div>
       )}
 
@@ -318,6 +319,7 @@ export default function ReelPreviewPlayer({ clips, onClose }: ReelPreviewPlayerP
               hideNametag
               freezeMode={isFreezing}
               zoomLevel={zoom}
+              showWhileZoom
             />
           </div>
         )}

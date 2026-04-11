@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Profile } from "@/lib/types";
 import type { Position } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
 
 interface ProfileApiResponse {
   id: string;
@@ -81,6 +82,9 @@ const ProfileContext = createContext<ProfileContextValue>({
   hasFetched: false,
 });
 
+let cachedProfile: Profile | null = null;
+let cachedProfileUserId: string | null = null;
+
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +105,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Failed to fetch profile");
       }
       const data: ProfileApiResponse = await res.json();
-      setProfile(toProfile(data));
+      const nextProfile = toProfile(data);
+      cachedProfile = nextProfile;
+      cachedProfileUserId = nextProfile.id;
+      setProfile(nextProfile);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -115,21 +122,76 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
     fetchedRef.current = true; // auto-fetch 방지
-    setProfile(toProfile(data as unknown as ProfileApiResponse));
+    const nextProfile = toProfile(data as unknown as ProfileApiResponse);
+    cachedProfile = nextProfile;
+    cachedProfileUserId = nextProfile.id;
+    setProfile(nextProfile);
     setLoading(false);
     setError(null);
   }, []);
 
   useEffect(() => {
     if (hydratedRef.current || fetchedRef.current) return;
+    let cancelled = false;
+    const supabase = createClient();
 
-    // ProfileHydrator가 있는 경로는 같은 mount cycle에서 먼저 hydrate되게 둔다.
-    const timer = window.setTimeout(() => {
-      if (hydratedRef.current || fetchedRef.current) return;
+    void (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (cancelled || hydratedRef.current || fetchedRef.current) return;
+
+      const sessionUserId = session?.user?.id ?? null;
+      if (!sessionUserId) {
+        cachedProfile = null;
+        cachedProfileUserId = null;
+        fetchedRef.current = true;
+        setProfile(null);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
+      if (cachedProfile && cachedProfileUserId === sessionUserId) {
+        fetchedRef.current = true;
+        setProfile(cachedProfile);
+        setLoading(false);
+        setError(null);
+        void fetchProfile();
+        return;
+      }
+
       void fetchProfile();
-    }, 0);
+    })();
 
-    return () => window.clearTimeout(timer);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionUserId = session?.user?.id ?? null;
+      if (!sessionUserId) {
+        cachedProfile = null;
+        cachedProfileUserId = null;
+        hydratedRef.current = false;
+        fetchedRef.current = true;
+        setProfile(null);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
+      if (cachedProfileUserId && cachedProfileUserId !== sessionUserId) {
+        cachedProfile = null;
+        cachedProfileUserId = null;
+        hydratedRef.current = false;
+        fetchedRef.current = false;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const value = useMemo(

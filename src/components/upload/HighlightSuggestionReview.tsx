@@ -325,13 +325,17 @@ export default function HighlightSuggestionReview({
             ? `${result.connectionLabel}에 다시 반영했어요.`
             : `${result.connectionLabel}에 저장했어요.`
       );
+      const destination = context === "parent" && childHandle
+        ? `/p/${childHandle}`
+        : result.featuredLinkFailed ? "/profile?saved=clip" : "/profile?saved=featured";
+
       useUploadStore.getState().reset();
       setSaveState("idle");
       if (context === "parent" && childHandle) {
-        router.replace(`/p/${childHandle}`);
+        window.location.replace(destination);
         return;
       }
-      router.replace(result.featuredLinkFailed ? "/profile?saved=clip" : "/profile?saved=featured");
+      window.location.replace(destination);
     } catch (error) {
       const message = error instanceof Error ? error.message : "저장에 실패했습니다.";
       setSaveState("error");
