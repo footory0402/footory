@@ -5,9 +5,7 @@ import { useEffect, useRef, useState } from "react";
 interface GuideHighlightOverlayProps {
   targetElement: HTMLElement | null;
   title: string;
-  description: string;
-  primaryLabel?: string;
-  onPrimary?: () => void;
+  description?: string;
   onSkip: () => void;
   onDisable: () => void;
   placement?: "top" | "bottom";
@@ -25,8 +23,6 @@ export default function GuideHighlightOverlay({
   targetElement,
   title,
   description,
-  primaryLabel,
-  onPrimary,
   onSkip,
   onDisable,
   placement = "bottom",
@@ -78,12 +74,12 @@ export default function GuideHighlightOverlay({
     const observer = new ResizeObserver(updateCardHeight);
     observer.observe(cardRef.current);
     return () => observer.disconnect();
-  }, [title, description, primaryLabel]);
+  }, [title, description]);
 
   if (!rect) return null;
 
   const cardWidth =
-    viewport.width > 0 ? Math.min(viewport.width < 640 ? 252 : 320, viewport.width - 24) : 252;
+    viewport.width > 0 ? Math.min(viewport.width < 640 ? 228 : 280, viewport.width - 24) : 228;
 
   const preferredLeft =
     align === "start"
@@ -122,24 +118,23 @@ export default function GuideHighlightOverlay({
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[140]">
-      <div className="absolute inset-0 bg-[rgba(4,6,10,0.58)]" />
       <div
         data-testid="upload-guide-highlight"
-        className="pointer-events-none absolute rounded-[28px] border border-[#f1d79a] shadow-[0_0_0_9999px_rgba(4,6,10,0.58)]"
+        className="pointer-events-none absolute rounded-[24px] border border-[#f1d79a]/85"
         style={{
           top: rect.top,
           left: rect.left,
           width: rect.width,
           height: rect.height,
           boxShadow:
-            "0 0 0 9999px rgba(4,6,10,0.58), 0 0 0 1px rgba(241,215,154,0.72), 0 0 22px rgba(216,179,106,0.2)",
+            "0 0 0 9999px rgba(4,6,10,0.32), 0 0 0 1px rgba(241,215,154,0.72), 0 0 18px rgba(216,179,106,0.16)",
         }}
       />
 
       <div
         ref={cardRef}
         data-testid="upload-guide-card"
-        className="pointer-events-auto absolute rounded-[24px] border border-[#d8b36a]/22 bg-[#12131a]/96 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.34)] backdrop-blur-xl"
+        className="pointer-events-auto absolute rounded-[20px] border border-[#d8b36a]/18 bg-[#12131a]/94 p-3 shadow-[0_14px_28px_rgba(0,0,0,0.28)] backdrop-blur-xl"
         style={{
           top: cardTop,
           left: cardLeft,
@@ -147,7 +142,7 @@ export default function GuideHighlightOverlay({
         }}
       >
         <div
-          className="absolute h-3 w-3 rotate-45 border-[#d8b36a]/22 bg-[#12131a]/96"
+          className="absolute h-3 w-3 rotate-45 border-[#d8b36a]/18 bg-[#12131a]/94"
           style={{
             left: arrowLeft,
             ...(actualPlacement === "top"
@@ -157,39 +152,29 @@ export default function GuideHighlightOverlay({
         />
 
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#d8b36a]">
-              빠른 안내
-            </p>
-            <h2 className="mt-2 text-[15px] font-bold text-white">{title}</h2>
-            <p className="mt-2 text-[12px] leading-5 text-white/70">{description}</p>
+          <div className="min-w-0">
+            <h2 className="text-[13px] font-semibold leading-5 text-white">{title}</h2>
+            {description ? (
+              <p className="mt-1.5 text-[11px] leading-4 text-white/62">{description}</p>
+            ) : null}
           </div>
           <button
             type="button"
             onClick={onSkip}
             className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-white/72"
           >
-            건너뛰기
+            닫기
           </button>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="mt-3 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onDisable}
-            className="text-[12px] font-semibold text-white/48"
+            className="text-[11px] font-semibold text-white/48"
           >
             다시 보지 않기
           </button>
-          {primaryLabel && onPrimary ? (
-            <button
-              type="button"
-              onClick={onPrimary}
-              className="rounded-full bg-[#d8b36a] px-4 py-2 text-[12px] font-bold text-[#09090b]"
-            >
-              {primaryLabel}
-            </button>
-          ) : null}
         </div>
       </div>
     </div>

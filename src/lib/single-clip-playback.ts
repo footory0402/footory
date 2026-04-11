@@ -1,6 +1,6 @@
 import type { HighlightSuggestionDraft } from "@/lib/highlight-suggestion";
 import { getDraftHeroCut } from "@/lib/highlight-suggestion";
-import { DEFAULT_FOCUS_ZOOM } from "@/lib/focus-zoom";
+import { DEFAULT_EDITOR_ZOOM } from "@/lib/focus-zoom";
 import type { PlaybackEffects } from "@/lib/playback-focus";
 import type { SpotlightCoord } from "@/lib/spotlight-math";
 
@@ -125,7 +125,7 @@ export function createSingleClipEditingDraft({
   highlightEnd,
   spotlight,
   freezeAt,
-  zoom = DEFAULT_FOCUS_ZOOM,
+  zoom = DEFAULT_EDITOR_ZOOM,
   showProfileCard = true,
   showLowerThird = true,
 }: {

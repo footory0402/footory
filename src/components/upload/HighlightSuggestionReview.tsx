@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import GuideHighlightOverlay from "@/components/upload/GuideHighlightOverlay";
 import SingleClipEditorPreview from "@/components/upload/SingleClipEditorPreview";
-import { DEFAULT_FOCUS_ZOOM } from "@/lib/focus-zoom";
+import { DEFAULT_EDITOR_ZOOM } from "@/lib/focus-zoom";
 import { publishSingleClipDraft, saveSingleClipDraft } from "@/lib/highlight-save";
 import { useUploadGuide } from "@/hooks/useUploadGuide";
 import { useProfileContext } from "@/providers/ProfileProvider";
@@ -20,18 +20,6 @@ interface HighlightSuggestionReviewProps {
   onReset: () => void;
 }
 
-const TOOL_ORDER = ["edit", "overlay"] as const;
-type EditorTool = (typeof TOOL_ORDER)[number];
-
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
-  return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
-}
-
-function formatDuration(start: number, end: number) {
-  return formatTime(Math.max(0, end - start));
-}
-
 function isDraftStorageUnavailable(message: string) {
   return /video_projects|schema cache|relation .*video_projects/i.test(message);
 }
@@ -42,75 +30,6 @@ function toFriendlySaveMessage(message: string, fallback: string) {
   }
 
   return message;
-}
-
-function ToolChip({
-  active,
-  step,
-  label,
-  testId,
-  onClick,
-}: {
-  active: boolean;
-  step: string;
-  label: string;
-  testId: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      data-testid={testId}
-      onClick={onClick}
-      className={`flex min-h-[68px] flex-col justify-between rounded-[24px] border px-3 py-3 text-left ${
-        active
-          ? "border-[#d8b36a]/35 bg-[#d8b36a]/12 text-[#f6d69a]"
-          : "border-white/[0.08] bg-white/[0.03] text-text-2"
-      }`}
-    >
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-70">
-        {step}
-      </span>
-      <span className="text-[13px] font-semibold">{label}</span>
-    </button>
-  );
-}
-
-function ToggleRow({
-  title,
-  description,
-  checked,
-  onChange,
-  testId,
-}: {
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  testId?: string;
-}) {
-  return (
-    <button
-      type="button"
-      data-testid={testId}
-      onClick={() => onChange(!checked)}
-      className={`flex w-full items-center justify-between gap-4 rounded-3xl border p-4 text-left ${
-        checked ? "border-[#d8b36a]/35 bg-[#d8b36a]/10" : "border-white/[0.06] bg-white/[0.03]"
-      }`}
-    >
-      <div>
-        <p className="text-[14px] font-semibold text-text-1">{title}</p>
-        <p className="mt-1 text-[12px] leading-5 text-text-3">{description}</p>
-      </div>
-      <span
-        className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-          checked ? "bg-[#d8b36a] text-[#09090b]" : "bg-white/[0.08] text-text-2"
-        }`}
-      >
-        {checked ? "켜짐" : "꺼짐"}
-      </span>
-    </button>
-  );
 }
 
 export default function HighlightSuggestionReview({
@@ -127,7 +46,6 @@ export default function HighlightSuggestionReview({
 
   const [focusGuideTarget, setFocusGuideTarget] = useState<HTMLDivElement | null>(null);
   const [seekGuideTarget, setSeekGuideTarget] = useState<HTMLDivElement | null>(null);
-  const [activeTool, setActiveTool] = useState<EditorTool>("edit");
   const [spotlightPicking, setSpotlightPicking] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [previewTime, setPreviewTime] = useState(initialDraft.playback.trimStart);
@@ -149,9 +67,6 @@ export default function HighlightSuggestionReview({
     Math.max(previewTime, draft.playback.trimStart),
     draft.playback.trimEnd
   );
-
-  const toolIndex = TOOL_ORDER.indexOf(activeTool);
-  const nextTool = toolIndex < TOOL_ORDER.length - 1 ? TOOL_ORDER[toolIndex + 1] : null;
 
   const commitDraft = useCallback(
     (updater: (current: SingleClipEditingDraft) => SingleClipEditingDraft) => {
@@ -186,12 +101,10 @@ export default function HighlightSuggestionReview({
 
   useEffect(() => {
     if (guideStep === "trim_seek") {
-      setActiveTool("edit");
       setSpotlightPicking(false);
       return;
     }
     if (guideStep === "focus_pick") {
-      setActiveTool("edit");
       setSpotlightPicking(true);
     }
   }, [guideStep]);
@@ -205,16 +118,16 @@ export default function HighlightSuggestionReview({
 
   const guideTitle =
     guideStep === "trim_seek"
-      ? "먼저 원하는 장면으로 이동하세요"
+      ? "막대를 밀고 손잡이를 끌어 구간을 맞춰요"
       : guideStep === "focus_pick"
-        ? "여기서 선수를 한 번 누르세요"
+        ? "원하는 선수를 한 번 눌러요"
         : undefined;
 
   const guideDescription =
     guideStep === "trim_seek"
-      ? "재생하거나 시간을 움직여 선수가 잘 보이는 순간을 먼저 찾으면 쉬워요."
+      ? undefined
       : guideStep === "focus_pick"
-        ? "주인공이 있는 지점을 한 번만 누르면 돼요."
+        ? "원하면 그다음에만 조금 더 가까이 볼 수 있어요."
         : undefined;
 
   const guidePlacement =
@@ -466,18 +379,6 @@ export default function HighlightSuggestionReview({
     return () => window.clearTimeout(timeoutId);
   }, [draft, draftSyncEnabled, setEditorDraft]);
 
-  const trimStartPercent = (draft.playback.trimStart / draft.sourceDurationSec) * 100;
-  const trimEndPercent = (draft.playback.trimEnd / draft.sourceDurationSec) * 100;
-  const playheadPercent = (safePreviewTime / draft.sourceDurationSec) * 100;
-  const freezePercent = draft.playback.freezeAt != null
-    ? (draft.playback.freezeAt / draft.sourceDurationSec) * 100
-    : null;
-  const focusStatusText = spotlightPicking
-    ? "이제 영상에서 선수를 눌러주세요."
-    : draft.playback.spotlight
-      ? `${formatTime(draft.playback.freezeAt ?? safePreviewTime)}에서 2초 멈춰요.`
-      : "장면을 맞춘 뒤 선수 찍기를 누르세요.";
-
   return (
     <div className="flex min-h-dvh flex-col bg-[#070709]">
       <div className="mx-auto flex w-full max-w-[430px] flex-1 min-h-0 flex-col">
@@ -491,89 +392,13 @@ export default function HighlightSuggestionReview({
             ←
           </button>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-[18px] font-bold text-text-1">영상 편집</h1>
-              <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[10px] font-semibold text-text-2">
-                {toolIndex + 1}/{TOOL_ORDER.length}
-              </span>
-            </div>
+            <h1 className="text-[18px] font-bold text-text-1">영상 편집</h1>
           </div>
           {saveState === "autosaving" ? (
             <span className="shrink-0 text-[11px] text-text-3">저장 중</span>
           ) : saveState === "idle" && draft.projectId ? (
             <span className="shrink-0 text-[11px] text-text-3">저장됨</span>
-          ) : null}
-        </div>
-
-        <div className="shrink-0 px-4">
-          <SingleClipEditorPreview
-            videoSrc={videoSrc}
-            draft={draft}
-            playerData={playerData}
-            previewTime={safePreviewTime}
-            spotlightPicking={spotlightPicking}
-            focusPreviewVisible={activeTool === "edit"}
-            overlayPreviewVisible={activeTool === "overlay"}
-            showSeekControls={false}
-            onFocusTargetReady={setFocusGuideTarget}
-            onPreviewTimeChange={(time) => {
-              setPreviewTime(time);
-              if (guideStep === "trim_seek" && Math.abs(time - draft.playback.trimStart) >= 0.3) {
-                dismissStep();
-              }
-            }}
-            onSpotlightChange={(spotlight) => {
-              commitDraft((current) => ({
-                ...current,
-                playback: {
-                  ...current.playback,
-                  spotlight,
-                  freezeAt: spotlight ? safePreviewTime : null,
-                  zoom: spotlight
-                    ? current.playback.spotlight
-                      ? current.playback.zoom
-                      : DEFAULT_FOCUS_ZOOM
-                    : current.playback.zoom,
-                },
-              }));
-              if (spotlight) {
-                setSpotlightPicking(false);
-              }
-              if (spotlight && guideStep === "focus_pick") {
-                dismissStep();
-              }
-            }}
-            onZoomChange={(zoom) => {
-              commitDraft((current) => ({
-                ...current,
-                playback: {
-                  ...current.playback,
-                  zoom,
-                },
-              }));
-            }}
-          />
-        </div>
-
-        <div className="shrink-0 px-4 pt-4">
-          <div className="grid grid-cols-2 gap-2">
-            <ToolChip
-              active={activeTool === "edit"}
-              step="1"
-              label="장면"
-              testId="single-clip-tool-edit"
-              onClick={() => {
-                setActiveTool("edit");
-              }}
-            />
-            <ToolChip
-              active={activeTool === "overlay"}
-              step="2"
-              label="정보"
-              testId="single-clip-tool-overlay"
-              onClick={() => setActiveTool("overlay")}
-            />
-          </div>
+            ) : null}
         </div>
 
         <div
@@ -593,186 +418,76 @@ export default function HighlightSuggestionReview({
             </div>
           ) : null}
 
-          {activeTool === "edit" ? (
-            <div data-testid="single-clip-edit-panel" className="space-y-4">
-              <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[14px] font-semibold text-text-1">원하는 장면으로 맞춰요</p>
-                    <p className="mt-1 text-[12px] leading-5 text-text-3">
-                      막대를 움직이고 양끝을 잡아 보여줄 구간을 정하세요.
-                    </p>
-                  </div>
-                  <div className="rounded-full bg-[#d8b36a]/12 px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a]">
-                    {formatDuration(draft.playback.trimStart, draft.playback.trimEnd)}
-                  </div>
-                </div>
-
-                <div
-                  ref={handleTimelineRef}
-                  data-testid="single-clip-edit-timeline"
-                  className="relative mt-4 h-16 overflow-visible rounded-[22px] bg-white/[0.04]"
-                  onMouseDown={handleTimelineSeek}
-                  onTouchStart={handleTimelineSeek}
-                >
-                  <div
-                    className="absolute inset-y-0 rounded-[20px] bg-[#d8b36a]/18"
-                    style={{
-                      left: `${trimStartPercent}%`,
-                      width: `${trimEndPercent - trimStartPercent}%`,
-                    }}
-                  />
-
-                  {freezePercent != null && draft.playback.spotlight ? (
-                    <div
-                      data-testid="single-clip-freeze-marker"
-                      className="absolute inset-y-2 z-20 -translate-x-1/2"
-                      style={{ left: `${freezePercent}%` }}
-                    >
-                      <div className="h-full w-[2px] rounded-full bg-[#f6d69a]/70" />
-                      <div className="absolute -top-2 left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border border-[#f6d69a] bg-[#09090b]" />
-                    </div>
-                  ) : null}
-
-                  <div
-                    className="absolute inset-y-1 z-20 w-[2px] -translate-x-1/2 rounded-full bg-white/90"
-                    style={{ left: `${playheadPercent}%` }}
-                  >
-                    <div className="absolute -top-2 left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.35)]" />
-                  </div>
-
-                  <div
-                    data-testid="single-clip-trim-start-handle"
-                    data-timeline-handle="true"
-                    className="absolute inset-y-0 z-30 flex items-center justify-center"
-                    style={{ left: `calc(${trimStartPercent}% - 22px)`, width: 44 }}
-                    onMouseDown={(event) => {
-                      event.stopPropagation();
-                      startTrimHandleDrag(event, "start");
-                    }}
-                    onTouchStart={(event) => {
-                      event.stopPropagation();
-                      startTrimHandleDrag(event, "start");
-                    }}
-                  >
-                    <div
-                      className={`flex h-10 w-5 items-center justify-center rounded-full ${
-                        draggingTrimHandle === "start" ? "bg-[#d8b36a]" : "bg-[#d8b36a]/80"
-                      }`}
-                    >
-                      <div className="h-3 w-0.5 rounded-full bg-[#09090b]" />
-                    </div>
-                  </div>
-
-                  <div
-                    data-testid="single-clip-trim-end-handle"
-                    data-timeline-handle="true"
-                    className="absolute inset-y-0 z-30 flex items-center justify-center"
-                    style={{ left: `calc(${trimEndPercent}% - 22px)`, width: 44 }}
-                    onMouseDown={(event) => {
-                      event.stopPropagation();
-                      startTrimHandleDrag(event, "end");
-                    }}
-                    onTouchStart={(event) => {
-                      event.stopPropagation();
-                      startTrimHandleDrag(event, "end");
-                    }}
-                  >
-                    <div
-                      className={`flex h-10 w-5 items-center justify-center rounded-full ${
-                        draggingTrimHandle === "end" ? "bg-[#d8b36a]" : "bg-[#d8b36a]/80"
-                      }`}
-                    >
-                      <div className="h-3 w-0.5 rounded-full bg-[#09090b]" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex items-center justify-between text-[10px] text-text-3">
-                  <span>{formatTime(0)}</span>
-                  <span>{formatTime(draft.sourceDurationSec)}</span>
-                </div>
-
-                <div className="mt-4 rounded-[22px] border border-white/[0.06] bg-white/[0.03] p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[14px] font-semibold text-text-1">주인공을 찍어주세요</p>
-                      <p className="mt-1 text-[12px] leading-5 text-text-3">
-                        원하는 위치로 간 뒤 영상에서 선수를 누르면 그 시점에 잠깐 멈춰 보여줘요.
-                      </p>
-                    </div>
-                    <div
-                      data-testid="single-clip-freeze-value"
-                      className="rounded-full bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a]"
-                    >
-                      {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "꺼짐"}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSpotlightPicking((current) => !current)}
-                      className={`rounded-2xl px-4 py-3 text-[12px] font-bold ${
-                        spotlightPicking
-                          ? "bg-[#d8b36a] text-[#09090b]"
-                          : "border border-[#d8b36a]/25 bg-[#d8b36a]/10 text-[#f6d69a]"
-                      }`}
-                    >
-                      {spotlightPicking ? "선수 찍는 중" : "이 장면에서 선수 찍기"}
-                    </button>
-                    {draft.playback.spotlight ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSpotlightPicking(false);
-                          commitDraft((current) => ({
-                            ...current,
-                            playback: { ...current.playback, spotlight: null, freezeAt: null },
-                          }));
-                        }}
-                        className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[12px] font-semibold text-text-1"
-                      >
-                        주인공 지우기
-                      </button>
-                    ) : null}
-                  </div>
-
-                  <p className="mt-3 text-[12px] leading-5 text-text-3">{focusStatusText}</p>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTool === "overlay" ? (
-            <div data-testid="single-clip-overlay-panel" className="space-y-4">
-              <ToggleRow
-                testId="single-clip-profile-card-toggle"
-                title="선수 프로필 카드"
-                description="본영상이 시작되기 전에 선수 카드를 먼저 보여줘요."
-                checked={draft.overlay.showProfileCard}
-                onChange={(checked) =>
-                  commitDraft((current) => ({
-                    ...current,
-                    overlay: { ...current.overlay, showProfileCard: checked },
-                  }))
+          <div data-testid="single-clip-edit-panel">
+            <SingleClipEditorPreview
+              videoSrc={videoSrc}
+              draft={draft}
+              playerData={playerData}
+              previewTime={safePreviewTime}
+              spotlightPicking={spotlightPicking}
+              draggingTrimHandle={draggingTrimHandle}
+              onFocusTargetReady={setFocusGuideTarget}
+              onTimelineReady={handleTimelineRef}
+              onPreviewTimeChange={(time) => {
+                setPreviewTime(time);
+                if (guideStep === "trim_seek" && Math.abs(time - draft.playback.trimStart) >= 0.3) {
+                  dismissStep();
                 }
-              />
-
-              <ToggleRow
-                title="재생 중 하단 정보"
-                description="재생 중 하단 안전 영역에만 보여줘요."
-                testId="single-clip-lower-third-toggle"
-                checked={draft.overlay.showLowerThird}
-                onChange={(checked) =>
-                  commitDraft((current) => ({
-                    ...current,
-                    overlay: { ...current.overlay, showLowerThird: checked },
-                  }))
+              }}
+              onSpotlightChange={(spotlight) => {
+                commitDraft((current) => ({
+                  ...current,
+                  playback: {
+                    ...current.playback,
+                    spotlight,
+                    freezeAt: spotlight ? safePreviewTime : null,
+                  },
+                }));
+                if (spotlight) {
+                  setSpotlightPicking(false);
                 }
-              />
-            </div>
-          ) : null}
+                if (spotlight && guideStep === "focus_pick") {
+                  dismissStep();
+                }
+              }}
+              onZoomChange={(zoom) => {
+                commitDraft((current) => ({
+                  ...current,
+                  playback: {
+                    ...current.playback,
+                    zoom,
+                  },
+                }));
+              }}
+              onTimelinePress={handleTimelineSeek}
+              onTrimHandlePress={startTrimHandleDrag}
+              onSpotlightPickingChange={setSpotlightPicking}
+              onClearSpotlight={() => {
+                setSpotlightPicking(false);
+                commitDraft((current) => ({
+                  ...current,
+                  playback: {
+                    ...current.playback,
+                    spotlight: null,
+                    freezeAt: null,
+                    zoom: DEFAULT_EDITOR_ZOOM,
+                  },
+                }));
+              }}
+              onProfileCardToggle={(checked) =>
+                commitDraft((current) => ({
+                  ...current,
+                  overlay: { ...current.overlay, showProfileCard: checked },
+                }))
+              }
+              onLowerThirdToggle={(checked) =>
+                commitDraft((current) => ({
+                  ...current,
+                  overlay: { ...current.overlay, showLowerThird: checked },
+                }))
+              }
+            />
+          </div>
         </div>
       </div>
 
@@ -780,22 +495,14 @@ export default function HighlightSuggestionReview({
         className="shrink-0 border-t border-white/[0.06] bg-[#070709]/95 px-4 py-3 backdrop-blur"
         style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
       >
-        <div className="mx-auto flex w-full max-w-[430px] gap-3">
+        <div className="mx-auto flex w-full max-w-[430px]">
           <button
             type="button"
             onClick={() => void handleSave()}
             disabled={saveState === "saving"}
-            className="min-w-[96px] shrink-0 rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-[14px] font-medium text-text-1 disabled:opacity-60"
+            className="w-full rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b] disabled:opacity-60"
           >
             {saveState === "saving" ? "저장 중..." : "저장"}
-          </button>
-          <button
-            type="button"
-            onClick={nextTool ? () => setActiveTool(nextTool) : () => void handleSave()}
-            disabled={saveState === "saving"}
-            className="flex-1 rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b] disabled:opacity-60"
-          >
-            {nextTool ? "다음" : saveState === "saving" ? "저장 중..." : "완료 및 저장"}
           </button>
         </div>
       </div>
@@ -834,7 +541,7 @@ export default function HighlightSuggestionReview({
         </div>
       ) : null}
 
-      {guideTargetElement && guideTitle && guideDescription ? (
+      {guideTargetElement && guideTitle ? (
         <GuideHighlightOverlay
           targetElement={guideTargetElement}
           title={guideTitle}

@@ -8,12 +8,7 @@ const DEFAULT_VIDEO_FIXTURE = path.resolve(
   "tests/fixtures/videos/test2.mp4"
 );
 
-const requestedFixture = process.env.VIDEO_FILE?.trim();
-
-export const VIDEO_FIXTURE_FILE =
-  requestedFixture && fs.existsSync(requestedFixture)
-    ? requestedFixture
-    : DEFAULT_VIDEO_FIXTURE;
+export const VIDEO_FIXTURE_FILE = DEFAULT_VIDEO_FIXTURE;
 
 if (!fs.existsSync(VIDEO_FIXTURE_FILE)) {
   throw new Error(`영상 fixture를 찾을 수 없습니다: ${VIDEO_FIXTURE_FILE}`);
@@ -64,40 +59,24 @@ interface MockVideoFlowOptions {
   profileHandle?: string;
   initialProjectStatus?: ProjectStatus;
   clipOverrides?: Partial<MockClipRecord>;
-  delayMs?: {
-    presign?: number;
-    clipsPost?: number;
-    clipPatch?: number;
-    projectPost?: number;
-    featuredPost?: number;
-  };
 }
 
 export interface MockVideoFlowController {
   clipId: string;
   projectId: string;
   profileHandle: string;
-  fixturePath: string;
   getClip: () => MockClipRecord;
-  getProject: () => MockProjectRecord | null;
+  getProjectPayloads: () => Record<string, unknown>[];
   getFeatured: () => Array<{
     id: string;
     clip_id: string;
     sort_order: number;
     clips: MockClipRecord;
   }>;
-  getClipPatchBodies: () => Record<string, unknown>[];
-  getProjectPayloads: () => Record<string, unknown>[];
-  getPlayerCardBodies: () => Record<string, unknown>[];
 }
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function delay(ms?: number) {
-  if (!ms || ms <= 0) return Promise.resolve();
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
 function buildInitialClip(
@@ -172,17 +151,21 @@ export async function installMockVideoFlow(
     clips: MockClipRecord;
   }> = [];
   const reelId = "reel-e2e-fixture";
-  const clipPatchBodies: Record<string, unknown>[] = [];
   const projectPayloads: Record<string, unknown>[] = [];
-  const playerCardBodies: Record<string, unknown>[] = [];
-  let playerCard: {
-    profile_id: string;
-    template: string;
-    club_name: string | null;
-    main_color: string;
-    accent_color: string;
-    card_data: Record<string, unknown>;
-  } | null = null;
+  let playerCard = {
+    profile_id: "player-e2e-fixture",
+    template: "fifa",
+    club_name: "분당초",
+    main_color: "#37474F",
+    accent_color: "#D4A853",
+    card_data: {
+      name: "E2E Player",
+      number: "9",
+      position: "FW",
+      teamName: "분당초",
+      birthDate: "2013",
+    },
+  };
   const playerProfile = {
     name: "E2E Player",
     position: "FW",
@@ -198,9 +181,7 @@ export async function installMockVideoFlow(
       status: 200,
       contentType: "video/mp4",
       path: VIDEO_FIXTURE_FILE,
-      headers: {
-        "cache-control": "no-store",
-      },
+      headers: { "cache-control": "no-store" },
     });
   });
 
@@ -209,23 +190,18 @@ export async function installMockVideoFlow(
   });
 
   await context.route("**/api/upload/presign", async (route) => {
-    const body = route.request().postDataJSON() as {
-      clipId?: string;
-      type?: string;
-    } | null;
+    const body = route.request().postDataJSON() as { clipId?: string; type?: string } | null;
     const resolvedClipId = body?.clipId ?? clipId;
     const requestUrl = new URL(route.request().url());
 
-    await delay(options.delayMs?.presign);
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
         url: new URL(uploadTargetUrl, requestUrl.origin).toString(),
-        key:
-          body?.type === "thumbnail"
-            ? `thumbs/${resolvedClipId}.jpg`
-            : `originals/${resolvedClipId}.mp4`,
+        key: body?.type === "thumbnail"
+          ? `thumbs/${resolvedClipId}.jpg`
+          : `originals/${resolvedClipId}.mp4`,
         clipId: resolvedClipId,
       }),
     });
@@ -244,29 +220,6 @@ export async function installMockVideoFlow(
       return;
     }
 
-    if (route.request().method() === "POST") {
-      const body = route.request().postDataJSON() as Record<string, unknown>;
-      playerCardBodies.push(body);
-      playerCard = {
-        profile_id: "player-e2e-fixture",
-        template: String(body.template ?? "fifa"),
-        club_name: typeof body.clubName === "string" ? body.clubName : null,
-        main_color: typeof body.mainColor === "string" ? body.mainColor : "#37474F",
-        accent_color: typeof body.accentColor === "string" ? body.accentColor : "#78909C",
-        card_data:
-          body.cardData && typeof body.cardData === "object"
-            ? (body.cardData as Record<string, unknown>)
-            : {},
-      };
-
-      await route.fulfill({
-        status: playerCardBodies.length === 1 ? 201 : 200,
-        contentType: "application/json",
-        body: JSON.stringify({ card: playerCard }),
-      });
-      return;
-    }
-
     await route.fallback();
   });
 
@@ -276,7 +229,6 @@ export async function installMockVideoFlow(
       return;
     }
 
-    await delay(options.delayMs?.clipsPost);
     const body = route.request().postDataJSON() as Record<string, unknown>;
     clip = {
       ...clip,
@@ -316,9 +268,7 @@ export async function installMockVideoFlow(
     }
 
     if (route.request().method() === "PATCH") {
-      await delay(options.delayMs?.clipPatch);
       const body = route.request().postDataJSON() as Record<string, unknown>;
-      clipPatchBodies.push(body);
       clip = {
         ...clip,
         trim_start: Number(body.trim_start ?? clip.trim_start),
@@ -375,6 +325,12 @@ export async function installMockVideoFlow(
           duration_sec: clip.duration_sec,
           trim_start: clip.trim_start,
           trim_end: clip.trim_end,
+          highlight_start: clip.highlight_start,
+          highlight_end: clip.highlight_end,
+          spotlight_x: clip.spotlight_x,
+          spotlight_y: clip.spotlight_y,
+          freeze_at: clip.freeze_at,
+          effects: clip.effects,
           tags: clip.tags,
         },
       }),
@@ -387,7 +343,6 @@ export async function installMockVideoFlow(
       return;
     }
 
-    await delay(options.delayMs?.projectPost);
     const body = route.request().postDataJSON() as Record<string, unknown>;
     const payload = (body.payload as Record<string, unknown> | undefined) ?? {};
     const status = (body.status as ProjectStatus | undefined) ?? "draft";
@@ -436,30 +391,17 @@ export async function installMockVideoFlow(
     }
 
     if (route.request().method() === "POST") {
-      await delay(options.delayMs?.featuredPost);
-      featured = [
-        {
-          id: "featured-e2e-fixture",
-          clip_id: clip.id,
-          sort_order: 0,
-          clips: clip,
-        },
-      ];
+      featured = [{
+        id: "featured-e2e-fixture",
+        clip_id: clip.id,
+        sort_order: 0,
+        clips: clip,
+      }];
 
       await route.fulfill({
         status: 201,
         contentType: "application/json",
         body: JSON.stringify({ featured: featured[0] }),
-      });
-      return;
-    }
-
-    if (route.request().method() === "DELETE") {
-      featured = [];
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ ok: true }),
       });
       return;
     }
@@ -533,14 +475,12 @@ export async function installMockVideoFlow(
   if (options.initialProjectStatus) {
     project = buildProjectRecord(projectId, clipId, {}, options.initialProjectStatus);
     if (options.initialProjectStatus === "published") {
-      featured = [
-        {
-          id: "featured-e2e-fixture",
-          clip_id: clip.id,
-          sort_order: 0,
-          clips: clip,
-        },
-      ];
+      featured = [{
+        id: "featured-e2e-fixture",
+        clip_id: clip.id,
+        sort_order: 0,
+        clips: clip,
+      }];
     }
   }
 
@@ -548,20 +488,15 @@ export async function installMockVideoFlow(
     clipId,
     projectId,
     profileHandle,
-    fixturePath: VIDEO_FIXTURE_FILE,
     getClip: () => clip,
-    getProject: () => project,
-    getFeatured: () => featured,
-    getClipPatchBodies: () => clipPatchBodies,
     getProjectPayloads: () => projectPayloads,
-    getPlayerCardBodies: () => playerCardBodies,
+    getFeatured: () => featured,
   };
 }
 
 export async function openUpload(page: Page) {
-  await loginAsPlayer(page, "/");
-  await page.getByRole("button", { name: /^업로드$/ }).click();
-  await expect(page).toHaveURL(/\/upload$/);
+  await loginAsPlayer(page, "/upload");
+  await expect(page).toHaveURL(/\/upload(?:\?.*)?$/);
 }
 
 export async function selectFixtureVideo(page: Page) {
@@ -577,6 +512,5 @@ export async function uploadFixtureAndOpenEditor(page: Page) {
     timeout: 20_000,
   });
   await page.getByRole("button", { name: "편집하고 저장" }).click();
-  await expect(page).toHaveURL(/\/edit\/.+(?:\?|$)/, { timeout: 20_000 });
   await expect(page.getByTestId("single-clip-editor")).toBeVisible({ timeout: 20_000 });
 }

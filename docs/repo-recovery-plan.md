@@ -44,6 +44,21 @@
 - 남은 위험은 작은 화면 회귀 강도, 느린 네트워크/복귀 조합 검증, 로컬 preview와 원격 재생 자산 검증 분리, featured 저장의 완전 원자성 미보장이다.
 - 문서 쪽에서는 `docs/repo-recovery-plan.md`가 실행 계획, 로그, 참고 설명을 한 파일에 모두 누적해 탐색 비용이 너무 커졌다.
 
+## single-clip 편집 선택형 확대·경량 온보딩 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `docs/video-ux-principles.md`, `docs/video-edit-flow.md`, `docs/video-copy-guidelines.md`, `docs/video-upload-editing-spec.md`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/upload/SingleClipEditorPreview.tsx`, `src/components/upload/GuideHighlightOverlay.tsx`, 관련 unit/E2E
+- 변경 이유: 현재 `/upload` single-clip 편집은 한 화면으로 줄어들었지만, 선수 선택 직후 자동 확대가 걸리고 온보딩 카드가 아직 커서 `원하는 시점 찾기 -> 선수 찍기 -> 저장`의 기본 흐름이 가볍게 느껴지지 않는다. 특히 사용자는 항상 확대를 원하지 않는데도 기본 구도가 먼저 바뀌고, 큰 가이드 카드가 영상과 하단 조작을 다시 복잡하게 만든다.
+- 변경 범위:
+  - 선수 선택 시 자동 확대를 제거하고, 기본 구도는 `원본`으로 유지한다.
+  - 확대는 선수 선택 뒤에만 노출되는 짧은 칩으로 선택하게 바꾼다.
+  - trim/재생/선수 선택/정보 토글은 그대로 한 화면에서 유지하되, 하단 조작 라벨과 칩 문구를 더 직관적인 한국어로 다듬는다.
+  - 온보딩은 긴 설명 카드 대신 작은 코치마크와 닫기/다시 보지 않기만 남기는 방향으로 경량화한다.
+  - 모바일 기준 unit/E2E를 `자동 확대 없음`과 새 코치마크/칩 구조에 맞춰 갱신한다.
+- 비범위:
+  - 새 자동 추적 확대, 키프레임 팬/줌, 멀티패널 편집기 복귀
+  - 저장 후 playback 계약과 intro/freeze 타임라인 재설계
+  - 업로드 전 선택 화면이나 프로필 전체 UI 개편
+
 ## 단일 타임라인 편집·인트로 우선 재생 정렬 배치 (2026-04-11)
 
 - 대상: `docs/repo-recovery-plan.md`, `docs/video-upload-editing-spec.md`, `docs/video-edit-flow.md`, `docs/video-ux-principles.md`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/upload/SingleClipEditorPreview.tsx`, `src/components/player/ClipPlayerSheet.tsx`, `src/app/p/[handle]/h/[clipId]/HighlightSharePlayerClient.tsx`, `src/components/video/VideoOverlay.tsx`, `src/lib/focus-zoom.ts`, 관련 unit/E2E
@@ -58,6 +73,21 @@
   - 새 DB 필드 추가, render/export phase 2 복귀, 자동 선수 인식, trackingPoints 사용자 편집 노출
   - 멀티클립 reel 편집 구조 변경
   - 프로필 전체 UI 개편
+
+## single-clip 편집 UX 단일 화면 단순화 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `docs/video-ux-principles.md`, `docs/video-edit-flow.md`, `docs/video-upload-editing-spec.md`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/upload/SingleClipEditorPreview.tsx`, 관련 unit/E2E
+- 변경 이유: 현재 `/upload` single-clip 편집은 탭 전환, 설명 카드, 중앙 재생 오버레이, 하단 재생/구간 텍스트, 확대 프리셋이 함께 노출돼 사용자가 `영상 하나만 보고 바로 만지는 편집`으로 느끼지 못한다. 특히 중앙 재생 표시가 선수 선택과 핀치 확대를 방해하고, 아래 설명 문구가 조작보다 먼저 읽혀 인스타그램식 단일 화면 편집 방향과 어긋난다.
+- 변경 범위:
+  - 편집 화면을 `영상 + 하단 미니바 + 저장` 구조로 줄여 탭 전환 없이 한 화면에서 trim, 선수 선택, 프로필카드, 하단 정보 토글을 모두 다루게 한다.
+  - 중앙 재생 오버레이와 장문 설명 카드, `재생`/`구간` 같은 하단 텍스트 라벨, 확대 프리셋/증감 버튼을 제거한다.
+  - 영상 탭 재생/정지, 선수 선택 모드, 핀치 확대를 같은 화면 안에서 자연스럽게 이어지도록 정리한다.
+  - 편집 미리보기의 상태 노출은 짧은 칩과 숫자만 남기고, 저장 계약과 재생 계약은 바꾸지 않는다.
+  - 모바일 기준 unit/E2E를 단일 화면 셀렉터와 자동 기본 확대 기준으로 갱신한다.
+- 비범위:
+  - 프로필 재생/공유 재생 타임라인 계약 변경
+  - 새 오버레이 종류 추가, 자동 추적 확대, 멀티패널 편집기 복귀
+  - 업로드 전 선택 화면이나 저장 후 프로필 전체 개편
 
 ## 선수 하이라이팅 편집·재생 복구 배치 (2026-04-11)
 
