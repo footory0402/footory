@@ -3,7 +3,6 @@
 import {
   useCallback,
   type ChangeEventHandler,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import {
@@ -31,12 +30,12 @@ interface EditorFormProps {
 interface FormFieldProps {
   label: string;
   children: ReactNode;
-  style?: CSSProperties;
+  className?: string;
 }
 
-function FormField({ label, children, style }: FormFieldProps) {
+function FormField({ label, children, className }: FormFieldProps) {
   return (
-    <div className="min-w-0" style={style}>
+    <div className={className}>
       <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[1.2px] text-text-3">
         {label}
       </label>
@@ -51,30 +50,6 @@ const inputClass =
 const selectClass =
   "editor-select w-full cursor-pointer appearance-none rounded-2xl border border-white/10 bg-[#151519] px-3.5 py-3 pr-10 text-sm text-text-1 outline-none transition-colors focus:border-accent/40";
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-function getAdaptiveFieldStyle({
-  value,
-  fallbackText,
-  minCh,
-  maxCh,
-  grow = false,
-}: {
-  value: string;
-  fallbackText: string;
-  minCh: number;
-  maxCh: number;
-  grow?: boolean;
-}): CSSProperties {
-  const contentLength = Math.max(value.trim().length, fallbackText.length);
-  const basisCh = clamp(contentLength + 4, minCh, maxCh);
-
-  return {
-    flex: `${grow ? 1 : 0} 1 ${basisCh}ch`,
-    minWidth: "7.5rem",
-    maxWidth: "100%",
-  };
-}
 
 function Section({
   icon,
@@ -231,17 +206,9 @@ export default function EditorForm({
         title="기본 정보"
         description="이름·팀·번호만 맞춰도 카드가 바로 정리됩니다."
       >
-        <div className="flex flex-wrap items-start gap-3">
-          <FormField
-            label="이름"
-            style={getAdaptiveFieldStyle({
-              value: data.name,
-              fallbackText: "이름 입력",
-              minCh: 12,
-              maxCh: 18,
-              grow: true,
-            })}
-          >
+        {/* 2열 그리드: 이름(2fr) + 등번호(1fr), 팀(2fr) + 포지션(1fr) */}
+        <div className="grid grid-cols-[2fr_1fr] gap-3">
+          <FormField label="이름">
             <input
               className={inputClass}
               value={data.name}
@@ -250,34 +217,7 @@ export default function EditorForm({
             />
           </FormField>
 
-          <FormField
-            label="소속 팀"
-            style={getAdaptiveFieldStyle({
-              value: data.teamName,
-              fallbackText: "예: 분당 유나이티드",
-              minCh: 14,
-              maxCh: 24,
-              grow: true,
-            })}
-          >
-            <input
-              className={inputClass}
-              value={data.teamName}
-              onChange={(e) => update("teamName", e.target.value)}
-              placeholder="예: 분당 유나이티드"
-              maxLength={30}
-            />
-          </FormField>
-
-          <FormField
-            label="등번호"
-            style={getAdaptiveFieldStyle({
-              value: data.number,
-              fallbackText: "9",
-              minCh: 7,
-              maxCh: 10,
-            })}
-          >
+          <FormField label="등번호">
             <input
               className={inputClass}
               type="number"
@@ -287,15 +227,17 @@ export default function EditorForm({
             />
           </FormField>
 
-          <FormField
-            label="포지션"
-            style={getAdaptiveFieldStyle({
-              value: data.position,
-              fallbackText: "포지션",
-              minCh: 9,
-              maxCh: 13,
-            })}
-          >
+          <FormField label="소속 팀">
+            <input
+              className={inputClass}
+              value={data.teamName}
+              onChange={(e) => update("teamName", e.target.value)}
+              placeholder="예: 분당 유나이티드"
+              maxLength={30}
+            />
+          </FormField>
+
+          <FormField label="포지션">
             <SelectField
               value={data.position}
               onChange={(e) => update("position", e.target.value)}
@@ -353,16 +295,9 @@ export default function EditorForm({
         title="세부 정보"
         description="선택 사항입니다. 필요한 항목만 채우면 됩니다."
       >
-        <div className="flex flex-wrap items-start gap-3">
-          <FormField
-            label="나이"
-            style={getAdaptiveFieldStyle({
-              value: data.age,
-              fallbackText: "13",
-              minCh: 7,
-              maxCh: 10,
-            })}
-          >
+        {/* Row 1: 나이(좁게) + 생년월일(넓게) */}
+        <div className="grid grid-cols-[1fr_2fr] gap-3">
+          <FormField label="나이">
             <input
               className={inputClass}
               value={data.age}
@@ -370,15 +305,7 @@ export default function EditorForm({
               placeholder="13"
             />
           </FormField>
-          <FormField
-            label="생년월일"
-            style={getAdaptiveFieldStyle({
-              value: data.birthDate,
-              fallbackText: "2014.03.22",
-              minCh: 11,
-              maxCh: 15,
-            })}
-          >
+          <FormField label="생년월일">
             <input
               className={inputClass}
               value={data.birthDate}
@@ -386,15 +313,11 @@ export default function EditorForm({
               placeholder="2014.03.22"
             />
           </FormField>
-          <FormField
-            label="키 (cm)"
-            style={getAdaptiveFieldStyle({
-              value: data.height,
-              fallbackText: "160",
-              minCh: 8,
-              maxCh: 11,
-            })}
-          >
+        </div>
+
+        {/* Row 2: 키 / 몸무게 / 주발 / 국적 — 2열씩 */}
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <FormField label="키 (cm)">
             <input
               className={inputClass}
               type="number"
@@ -403,15 +326,7 @@ export default function EditorForm({
               placeholder="160"
             />
           </FormField>
-          <FormField
-            label="몸무게 (kg)"
-            style={getAdaptiveFieldStyle({
-              value: data.weight,
-              fallbackText: "42",
-              minCh: 8,
-              maxCh: 12,
-            })}
-          >
+          <FormField label="몸무게 (kg)">
             <input
               className={inputClass}
               type="number"
@@ -420,15 +335,7 @@ export default function EditorForm({
               placeholder="42"
             />
           </FormField>
-          <FormField
-            label="주발"
-            style={getAdaptiveFieldStyle({
-              value: data.foot,
-              fallbackText: "오른발",
-              minCh: 9,
-              maxCh: 13,
-            })}
-          >
+          <FormField label="주발">
             <SelectField
               value={data.foot}
               onChange={(e) => update("foot", e.target.value)}
@@ -440,15 +347,7 @@ export default function EditorForm({
               ))}
             </SelectField>
           </FormField>
-          <FormField
-            label="국적"
-            style={getAdaptiveFieldStyle({
-              value: data.nationality,
-              fallbackText: "KOREA",
-              minCh: 9,
-              maxCh: 13,
-            })}
-          >
+          <FormField label="국적">
             <input
               className={inputClass}
               value={data.nationality}

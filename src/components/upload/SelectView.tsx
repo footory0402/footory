@@ -23,6 +23,8 @@ export default function SelectView({
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 파일 선택 시 비디오 URL 생성
@@ -40,6 +42,7 @@ export default function SelectView({
     tempVideo.onloadedmetadata = () => {
       const dur = Math.round(tempVideo.duration);
       setDuration(dur);
+      setCurrentTime(0);
       const uploadStore = useUploadStore.getState();
       uploadStore.setDuration(dur);
       uploadStore.setTrimStart(0);
@@ -59,6 +62,8 @@ export default function SelectView({
 
     setError(null);
     setDuration(0);
+    setCurrentTime(0);
+    setIsPlaying(false);
     const { duration: dur, error: validationError } = await validateUploadVideoFile(selected);
     if (validationError) {
       setError(validationError);
@@ -71,6 +76,50 @@ export default function SelectView({
   }, []);
 
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(Math.round(video.duration || 0));
+      setCurrentTime(video.currentTime || 0);
+    };
+    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(video.duration || 0);
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("ended", handleEnded);
+
+    return () => {
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("ended", handleEnded);
+    };
+  }, [videoUrl]);
+
+  const togglePlayback = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      if (video.ended) video.currentTime = 0;
+      void video.play().catch(() => {});
+      return;
+    }
+
+    video.pause();
+  }, []);
 
   // 파일 미선택 상태
   if (!store.file) {
@@ -126,8 +175,51 @@ export default function SelectView({
           />
         )}
 
+        <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-4 pb-4 pt-10">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={togglePlayback}
+              aria-label={isPlaying ? "업로드 전 미리보기 일시정지" : "업로드 전 미리보기 재생"}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d8b36a] text-[#09090b]"
+            >
+              {isPlaying ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5h3v14H8zM13 5h3v14h-3z" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+            <div className="min-w-0 flex-1">
+              <input
+                type="range"
+                min={0}
+                max={Math.max(duration, 0.1)}
+                step={0.1}
+                value={Math.min(currentTime, duration || 0)}
+                aria-label="업로드 전 미리보기 이동"
+                onChange={(event) => {
+                  const nextTime = Number(event.target.value);
+                  setCurrentTime(nextTime);
+                  if (videoRef.current) {
+                    videoRef.current.currentTime = nextTime;
+                  }
+                }}
+                className="w-full accent-[#d8b36a]"
+              />
+              <div className="mt-1 flex items-center justify-between text-[11px] font-semibold text-white/75">
+                <span>{fmt(currentTime)}</span>
+                <span>{fmt(duration)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* 파일 정보 오버레이 */}
-        <div className="absolute bottom-2 left-3 flex items-center gap-2 pointer-events-none">
+        <div className="absolute top-2 left-3 flex items-center gap-2 pointer-events-none">
           <span className="rounded-md bg-black/70 px-2 py-0.5 text-[11px] font-stat text-text-1">
             {fmt(duration)}
           </span>
@@ -146,25 +238,17 @@ export default function SelectView({
         </button>
       </div>
 
-      <div className="px-4 pt-4">
-        <div className="rounded-[24px] border border-white/[0.06] bg-card px-4 py-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[14px] font-semibold text-text-1">먼저 올리고, 필요한 것만 편집해요</p>
-              <p className="mt-1 text-[12px] leading-5 text-text-3">
-                업로드가 끝나면 주인공 찾기와 확대 재생부터 바로 확인할 수 있어요.
-              </p>
-            </div>
-            <span className="rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent">
-              {fmt(duration)}
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* 다음 단계 버튼 */}
       {ctaLabel && onFileReady ? (
         <div className="px-4 pt-4">
+          <div className="mb-3 flex items-center justify-between gap-3 px-1">
+            <span className="min-w-0 truncate text-[12px] text-text-3">
+              원하는 장면인지 먼저 확인하세요
+            </span>
+            <span className="shrink-0 rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent">
+              {fmt(duration)}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => {

@@ -112,6 +112,7 @@
 - 사용자가 필요할 때만 trim, spotlight, zoom 관련 설정, overlay, highlight range를 수정한다.
 - 선택 편집은 현재 살아 있는 `clips` 메타데이터 갱신 구조를 우선 따른다.
 - highlight는 항상 필수 단계가 아니며, 값이 비어 있어도 clip 재생은 가능해야 한다.
+- 이번 단계의 확대 재생은 시간축 추적이 아니라 단일 spotlight 지점 기준의 고정 확대를 우선한다.
 
 ### 선택 편집에서 다루는 값
 - `trim_start`
@@ -124,6 +125,12 @@
 - `effects.trackingMode`
 - `effects.trackingPoints`
 - overlay 관련 표시 값
+
+### 확대 재생 해석 원칙
+- 현재 저장 계약에 `effects.trackingMode`, `effects.trackingPoints`가 남아 있어도 이번 단계의 사용자 편집은 이를 노출하지 않는다.
+- single clip 편집에서 확대 재생은 `spotlight_x`, `spotlight_y`, `freeze_at`, `focusZoom` 조합으로 충분히 설명 가능해야 한다.
+- 재생 중 수동 패닝은 core playback 기준이 아니다. 편집에서 정한 구도를 재생에서 안정적으로 보여주는 쪽을 우선한다.
+- 추적형 확대가 필요해 보여도 이번 단계에서는 phase 2 또는 별도 판단 대상으로 남긴다.
 
 ## 7. 프로필 연결
 - 저장된 clip은 프로필 clip 목록, `featured_clips`, `clip_tags` 구조 안에서 소비된다.

@@ -29,15 +29,15 @@ function getCurrentLabel(status: UploadStatus, error: string | null) {
       return "영상 정보를 확인하고 있어요.";
     case "uploading":
     case "uploading_raw":
-      return "영상 파일을 올리고 있어요.";
+      return "업로드 중이에요.";
     case "saving":
-      return "저장에 필요한 정보를 정리하고 있어요.";
+      return "클립 정보를 저장하고 있어요.";
     case "analyzing":
-      return "이제 편집하거나 바로 저장할 수 있게 준비하고 있어요.";
+      return "거의 다 됐어요.";
     case "error":
       return error ?? "업로드 중 문제가 생겼어요.";
     default:
-      return "업로드를 시작하고 있어요.";
+      return "연결 중이에요.";
   }
 }
 
@@ -78,8 +78,8 @@ function resolveStages({
 
   return [
     { key: "metadata", title: "영상 확인", state: metadataState },
-    { key: "upload", title: "올리는 중", state: uploadState },
-    { key: "choice", title: "저장 선택", state: choiceState },
+    { key: "upload", title: "업로드", state: uploadState },
+    { key: "choice", title: "편집 준비", state: choiceState },
   ];
 }
 
@@ -135,6 +135,7 @@ export default function UploadProcessingView({
   const editorDraft = useUploadStore((state) => state.editorDraft);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const editorHref = (() => {
     if (!clipId) return null;
@@ -170,19 +171,21 @@ export default function UploadProcessingView({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-[20px] font-bold text-text-1">
-              {choiceReady ? "올리기는 끝났어요" : "영상을 올리고 있어요"}
+              {choiceReady ? "업로드 완료" : "업로드 중"}
             </h1>
             <p className="mt-1 text-[12px] leading-5 text-text-3">
-              {choiceReady ? "이대로 저장하거나, 필요한 것만 편집할 수 있어요." : getCurrentLabel(status, error)}
+              {choiceReady ? "편집하거나 바로 저장할 수 있어요." : getCurrentLabel(status, error)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onReset}
-            className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-semibold text-text-2"
-          >
-            다른 영상
-          </button>
+          {!choiceReady && status !== "error" ? (
+            <button
+              type="button"
+              onClick={() => setShowCancelConfirm(true)}
+              className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-semibold text-text-2"
+            >
+              취소
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -245,11 +248,24 @@ export default function UploadProcessingView({
               onClick={onReset}
               className="flex-1 rounded-2xl border border-white/[0.08] bg-card py-3.5 text-[14px] font-medium text-text-1 active:scale-[0.99]"
             >
-              다른 영상 고르기
+              다른 영상
             </button>
           </div>
         ) : choiceReady ? (
           <div className="grid gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (onEdit) {
+                  onEdit();
+                  return;
+                }
+                router.push(editorHref!);
+              }}
+              className="w-full rounded-2xl bg-accent py-3.5 text-[15px] font-bold text-bg active:scale-[0.99]"
+            >
+              편집하고 저장
+            </button>
             <button
               type="button"
               onClick={async () => {
@@ -267,33 +283,57 @@ export default function UploadProcessingView({
                 }
               }}
               disabled={saveState === "saving" || !canSaveNow}
-              className="w-full rounded-2xl bg-accent py-3.5 text-[15px] font-bold text-bg disabled:opacity-60"
+              className="w-full rounded-2xl border border-white/[0.08] bg-card py-3.5 text-[14px] font-medium text-text-1 disabled:opacity-60 active:scale-[0.99]"
             >
-              {saveState === "saving" ? "저장 중..." : "이대로 저장"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onEdit) {
-                  onEdit();
-                  return;
-                }
-                router.push(editorHref!);
-              }}
-              className="w-full rounded-2xl border border-white/[0.08] bg-card py-3.5 text-[14px] font-medium text-text-1 active:scale-[0.99]"
-            >
-              편집하고 저장
+              {saveState === "saving" ? "저장 중..." : "편집 없이 저장"}
             </button>
           </div>
-        ) : (
-          <div className="rounded-2xl border border-accent/15 bg-accent/8 p-4">
-            <p className="text-[12px] font-semibold text-accent">업로드가 끝나면 바로 저장하거나 편집하고 저장할 수 있어요.</p>
-            <p className="mt-1 text-[11px] leading-5 text-text-3">
-              지금은 영상만 올리고 있으니 잠시만 기다려주세요.
-            </p>
-          </div>
-        )}
+        ) : null}
+
+        {choiceReady ? (
+          <button
+            type="button"
+            onClick={onReset}
+            className="w-full py-2 text-[12px] text-text-3 active:text-text-2"
+          >
+            다른 영상 올리기
+          </button>
+        ) : null}
       </div>
+
+      {/* 업로드 취소 확인 다이얼로그 */}
+      {showCancelConfirm ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
+          <div
+            className="mx-auto w-full max-w-[430px] rounded-t-3xl border-t border-white/[0.08] bg-[#1C1C22] px-5 pt-6 pb-8"
+            style={{ paddingBottom: "calc(32px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <p className="text-[16px] font-bold text-text-1">업로드를 취소할까요?</p>
+            <p className="mt-1.5 text-[13px] leading-5 text-text-3">
+              취소하면 지금까지 올린 내용이 사라지고 다른 영상을 고를 수 있어요.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCancelConfirm(false);
+                  onReset();
+                }}
+                className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] py-3.5 text-[14px] font-semibold text-text-1"
+              >
+                취소하고 다른 영상 고르기
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="w-full rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b]"
+              >
+                계속 올리기
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

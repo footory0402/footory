@@ -9,7 +9,6 @@ import dynamic from "next/dynamic";
 import { useBackClose } from "@/hooks/useBackClose";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import ClipActionsSheet from "@/components/player/ClipActionsSheet";
-import { clampPan } from "@/lib/spotlight-math";
 import { DEFAULT_FREEZE_HOLD_MS, resolveFocusZoom } from "@/lib/focus-zoom";
 import type { PlaybackEffects } from "@/lib/playback-focus";
 import { hasPlaybackFocus, resolvePlaybackSpotlight, sanitizeTrackingPoints } from "@/lib/playback-focus";
@@ -84,10 +83,10 @@ export default function ClipPlayerSheet({
   // 위아래 스와이프
   const [swipeY, setSwipeY] = useState(0);
   const [swiping, setSwiping] = useState(false);
-  const swipeStart = useRef<{ x: number; y: number; time: number; locked: "h" | "v" | null; startPanX: number; startPanY: number } | null>(null);
+  const swipeStart = useRef<{ x: number; y: number; time: number; locked: "h" | "v" | null } | null>(null);
 
-  // 핀치 줌 (Instagram-style)
-  const pinchRef = useRef<{ startDist: number; startZoom: number; startPanX: number; startPanY: number; midX: number; midY: number } | null>(null);
+  // 핀치 줌
+  const pinchRef = useRef<{ startDist: number; startZoom: number } | null>(null);
   const lastTapRef = useRef(0);
 
   // 자동 포커스 모드
@@ -542,10 +541,6 @@ export default function ClipPlayerSheet({
       pinchRef.current = {
         startDist: getTouchDist(e),
         startZoom: zoom,
-        startPanX: pan.x,
-        startPanY: pan.y,
-        midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-        midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
       };
       swipeStart.current = null;
       setSwiping(false);
@@ -555,10 +550,10 @@ export default function ClipPlayerSheet({
     if (e.touches.length !== 1 || isFreezing) return;
     const t = e.touches[0];
     if (zoom > 1) {
-      // 줌 상태에서는 패닝 — 시작 시점 pan 좌표를 저장해 드리프트 방지
-      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: "h", startPanX: pan.x, startPanY: pan.y };
+      // 확대 재생 중에는 저장된 구도를 그대로 유지하고, 수동 패닝은 허용하지 않는다.
+      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: "h" };
     } else {
-      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: null, startPanX: 0, startPanY: 0 };
+      swipeStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), locked: null };
     }
   };
 
@@ -574,21 +569,8 @@ export default function ClipPlayerSheet({
     }
     if (!swipeStart.current) return;
 
-    // 줌 상태에서 1손가락 패닝 — 터치 시작 시점의 pan 기준으로 계산해 드리프트 방지
+    // 확대 재생 중에는 수동 패닝을 막고 저장된 구도를 유지한다.
     if (zoom > 1 && e.touches.length === 1) {
-      const t = e.touches[0];
-      const dx = t.clientX - swipeStart.current.x;
-      const dy = t.clientY - swipeStart.current.y;
-      // 데드존: 8px 이상 움직여야 패닝 시작 (탭 시 미세 흔들림 방지)
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      const basePanX = pinchRef.current?.startPanX ?? swipeStart.current.startPanX;
-      const basePanY = pinchRef.current?.startPanY ?? swipeStart.current.startPanY;
-      const newPan = clampPan(
-        basePanX + (dx / window.innerWidth) * 100,
-        basePanY + (dy / window.innerHeight) * 100,
-        zoom,
-      );
-      setTransform(zoom, newPan);
       return;
     }
 

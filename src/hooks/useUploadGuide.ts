@@ -2,11 +2,11 @@
 
 import { useState, useCallback } from "react";
 
-const STORAGE_KEY = "footory_upload_guide_v3";
+const STORAGE_KEY = "footory_upload_guide_v4";
 
-export type GuideStep = "focus_pick" | "focus_zoom";
+export type GuideStep = "trim_seek" | "focus_pick" | "focus_zoom";
 
-const GUIDE_SEQUENCE: GuideStep[] = ["focus_pick", "focus_zoom"];
+const GUIDE_SEQUENCE: GuideStep[] = ["trim_seek", "focus_pick", "focus_zoom"];
 
 export function useUploadGuide() {
   const [step, setStep] = useState<GuideStep | null>(() => {

@@ -268,28 +268,50 @@ export default function UploadPage() {
           </button>
           <h1 className="text-[17px] font-bold text-text-1">영상 올리기</h1>
           {/* Step indicator */}
-          <div className="ml-auto flex items-center gap-1.5">
-            <div className="h-1 w-6 rounded-full bg-accent" />
-            <div className="h-1 w-6 rounded-full bg-white/10" />
-            <div className="h-1 w-6 rounded-full bg-white/10" />
+          <div className="ml-auto flex items-center gap-2">
+            {[{ label: "선택", active: true }, { label: "업로드", active: false }, { label: "편집", active: false }].map((step) => (
+              <div key={step.label} className="flex flex-col items-center gap-1">
+                <div className={`h-1 w-5 rounded-full ${step.active ? "bg-accent" : "bg-white/10"}`} />
+                <span className={`text-[9px] font-semibold ${step.active ? "text-accent" : "text-text-3"}`}>{step.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="px-4 pb-4">
-          <button
-            type="button"
-            onClick={() => router.push("/editor")}
-            className="w-full rounded-2xl border border-[#d8b36a]/20 bg-[#d8b36a]/10 px-4 py-3.5 text-[14px] font-semibold text-text-1 active:scale-[0.99]"
-          >
-            선수 프로필 편집
-          </button>
-        </div>
+        {/* 파일 미선택 상태에서만 노출하는 보조 액션 */}
+        {!file ? (
+          <div className="px-4 pt-3 pb-1">
+            <button
+              type="button"
+              onClick={() => router.push("/editor")}
+              className="flex w-full items-center gap-3 rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-left transition-colors active:bg-card-alt"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/12 text-accent">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="14" rx="3" />
+                  <circle cx="9" cy="10" r="2.5" />
+                  <path d="M14 8h3M14 11h3" />
+                  <path d="M3 20h18" strokeWidth="1.5" />
+                </svg>
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-text-1">선수 프로필 편집</p>
+                <p className="mt-0.5 text-[11px] text-text-3 truncate">FIFA 스타일 카드로 내 정보를 꾸며보세요</p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-text-3">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        ) : null}
 
         <SelectView
           ctaLabel="영상 올리기"
           startBackgroundUploadOnReady={false}
           onFileReady={() => useUploadStore.getState().setPhase("processing")}
         />
+
+        {/* 이전 편집 복구 */}
         {!isParentUpload && recoverableDraft?.clip ? (
           <div className="px-4 pt-4">
             <button
@@ -301,7 +323,7 @@ export default function UploadPage() {
               <div className="flex-1">
                 <p className="text-[13px] font-semibold text-[#f6d69a]">최근 편집 이어서 하기</p>
                 <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  구간 자르기와 선수 정보 설정을 이어서 불러와요.
+                  이전에 편집하다 멈춘 클립을 불러와요.
                 </p>
               </div>
             </button>

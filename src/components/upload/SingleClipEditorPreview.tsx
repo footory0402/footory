@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
 import IntroCard from "@/components/video/hud/IntroCard";
 import type { HudPlayerData } from "@/components/video/hud/types";
+import { FOCUS_ZOOM_PRESETS } from "@/lib/focus-zoom";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import { screenToVideo } from "@/lib/spotlight-math";
 import type { SingleClipEditingDraft } from "@/lib/single-clip-playback";
@@ -19,6 +20,7 @@ interface SingleClipEditorPreviewProps {
   overlayPreviewVisible: boolean;
   onFocusTargetReady?: (element: HTMLDivElement | null) => void;
   onZoomControlsReady?: (element: HTMLDivElement | null) => void;
+  onSeekControlsReady?: (element: HTMLInputElement | null) => void;
   onPreviewTimeChange: (time: number) => void;
   onSpotlightChange: (spotlight: { x: number; y: number } | null) => void;
   onZoomChange: (zoom: number) => void;
@@ -79,6 +81,7 @@ export default function SingleClipEditorPreview({
   overlayPreviewVisible,
   onFocusTargetReady,
   onZoomControlsReady,
+  onSeekControlsReady,
   onPreviewTimeChange,
   onSpotlightChange,
   onZoomChange,
@@ -96,6 +99,7 @@ export default function SingleClipEditorPreview({
   const freezeActive =
     draft.playback.freezeAt != null && Math.abs(draft.playback.freezeAt - previewTime) <= 0.35;
   const introPreviewVisible =
+    overlayPreviewVisible &&
     draft.overlay.showProfileCard &&
     !!playerData &&
     Math.abs(previewTime - draft.playback.trimStart) <= 0.6;
@@ -312,6 +316,9 @@ export default function SingleClipEditorPreview({
   const seekValue = Math.min(Math.max(previewTime, seekMin), seekMax);
   const videoTransform = zoom > 1 ? `translate(${pan.x}%, ${pan.y}%) scale(${zoom})` : undefined;
   const previewAspectRatio = resolveUiVideoAspectRatio(videoNativeSize);
+  const activeZoomPreset = FOCUS_ZOOM_PRESETS.find(
+    (preset) => Math.abs(preset.value - draft.playback.zoom) < 0.05
+  );
   const helperText = useMemo(() => {
     if (focusPreviewVisible && spotlightPicking) {
       return spotlight
@@ -319,7 +326,9 @@ export default function SingleClipEditorPreview({
         : "주인공을 한 번 누르면 바로 가깝게 보여줘요.";
     }
     if (focusPreviewVisible && spotlight) {
-      return `${draft.playback.zoom.toFixed(1)}x로 주인공을 더 잘 보이게 해요.`;
+      return activeZoomPreset
+        ? `${activeZoomPreset.label}로 주인공이 더 잘 보여요.`
+        : `${draft.playback.zoom.toFixed(1)}x로 주인공을 더 잘 보이게 해요.`;
     }
     if (focusPreviewVisible) {
       return "주인공을 고르면 바로 확대돼요.";
@@ -332,6 +341,7 @@ export default function SingleClipEditorPreview({
     draft.playback.zoom,
     focusPreviewVisible,
     overlayPreviewVisible,
+    activeZoomPreset,
     spotlight,
     spotlightPicking,
   ]);
@@ -407,7 +417,7 @@ export default function SingleClipEditorPreview({
             </span>
             {spotlight ? (
               <span className="rounded-full border border-[#d8b36a]/30 bg-[#d8b36a]/12 px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a] backdrop-blur-sm">
-                재생도 {draft.playback.zoom.toFixed(1)}x
+                {activeZoomPreset ? `${activeZoomPreset.label}` : `재생도 ${draft.playback.zoom.toFixed(1)}x`}
               </span>
             ) : null}
           </div>
@@ -483,7 +493,7 @@ export default function SingleClipEditorPreview({
               </p>
               <p className="mt-1 text-[11px] leading-5 text-text-3">
                 {spotlight
-                  ? "두 손가락으로 확대하거나 버튼으로 가까이 조정할 수 있어요."
+                  ? "먼저 쉬운 정도를 고르고, 필요하면 두 손가락으로 조금만 맞추세요."
                   : "주인공을 고르면 자동으로 가까이 보여줘요."}
               </p>
             </div>
@@ -519,8 +529,32 @@ export default function SingleClipEditorPreview({
           </div>
         ) : null}
 
+        {focusPreviewVisible && spotlight ? (
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {FOCUS_ZOOM_PRESETS.map((preset) => {
+              const selected = Math.abs(draft.playback.zoom - preset.value) < 0.05;
+              return (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => applyZoom(preset.value)}
+                  className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
+                    selected
+                      ? "border-[#d8b36a]/35 bg-[#d8b36a]/12 text-[#f6d69a]"
+                      : "border-white/[0.06] bg-white/[0.03] text-text-2"
+                  }`}
+                >
+                  <p className="text-[12px] font-semibold">{preset.label}</p>
+                  <p className="mt-1 text-[11px] opacity-80">{preset.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         <div className="mt-4">
           <input
+            ref={onSeekControlsReady}
             type="range"
             min={seekMin}
             max={seekMax}

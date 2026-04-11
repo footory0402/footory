@@ -21,7 +21,7 @@ interface HighlightSuggestionReviewProps {
   onReset: () => void;
 }
 
-const TOOL_ORDER = ["focus", "trim", "overlay"] as const;
+const TOOL_ORDER = ["trim", "focus", "overlay"] as const;
 type EditorTool = (typeof TOOL_ORDER)[number];
 
 function formatTime(seconds: number) {
@@ -129,7 +129,9 @@ export default function HighlightSuggestionReview({
 
   const [focusGuideTarget, setFocusGuideTarget] = useState<HTMLDivElement | null>(null);
   const [zoomGuideTarget, setZoomGuideTarget] = useState<HTMLDivElement | null>(null);
-  const [activeTool, setActiveTool] = useState<EditorTool>("focus");
+  const [seekGuideTarget, setSeekGuideTarget] = useState<HTMLInputElement | null>(null);
+  const [activeTool, setActiveTool] = useState<EditorTool>("trim");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [previewTime, setPreviewTime] = useState(initialDraft.playback.trimStart);
   const [saveState, setSaveState] = useState<"idle" | "autosaving" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -151,7 +153,6 @@ export default function HighlightSuggestionReview({
   );
 
   const toolIndex = TOOL_ORDER.indexOf(activeTool);
-  const previousTool = toolIndex > 0 ? TOOL_ORDER[toolIndex - 1] : null;
   const nextTool = toolIndex < TOOL_ORDER.length - 1 ? TOOL_ORDER[toolIndex + 1] : null;
 
   const commitDraft = useCallback(
@@ -185,47 +186,62 @@ export default function HighlightSuggestionReview({
     accentColor: "#d8b36a",
   };
 
-  const toolDescription =
-    activeTool === "focus"
-      ? "주인공이 잘 보이게 먼저 맞춰요."
-      : activeTool === "trim"
-        ? "필요할 때만 시작과 끝을 다듬어요."
-        : "정보는 필요할 때만 켜요.";
-
   useEffect(() => {
+    if (guideStep === "trim_seek") {
+      setActiveTool("trim");
+      return;
+    }
     if (guideStep === "focus_pick" || guideStep === "focus_zoom") {
       setActiveTool("focus");
     }
   }, [guideStep]);
 
   const guideTargetElement =
-    guideStep === "focus_pick"
+    guideStep === "trim_seek"
+      ? seekGuideTarget
+      : guideStep === "focus_pick"
       ? focusGuideTarget
       : guideStep === "focus_zoom"
         ? zoomGuideTarget
         : null;
 
   const guideTitle =
-    guideStep === "focus_pick"
+    guideStep === "trim_seek"
+      ? "먼저 원하는 장면으로 이동하세요"
+      : guideStep === "focus_pick"
       ? "여기서 선수를 한 번 누르세요"
       : guideStep === "focus_zoom"
         ? "이제 확대만 조금 맞춰보세요"
         : undefined;
 
   const guideDescription =
-    guideStep === "focus_pick"
+    guideStep === "trim_seek"
+      ? "재생하거나 시간을 움직여 선수가 잘 보이는 순간을 먼저 찾으면 쉬워요."
+      : guideStep === "focus_pick"
       ? "주인공이 있는 지점을 한 번만 누르면 돼요."
       : guideStep === "focus_zoom"
-        ? "`- / +` 버튼으로 얼마나 가깝게 볼지만 정하면 됩니다."
+        ? "넓게, 기본, 가깝게 중에서 고르면 충분해요."
         : undefined;
 
   const guidePrimaryLabel = guideStep === "focus_zoom" ? "알겠어요" : undefined;
 
   const guidePlacement =
-    guideStep === "focus_pick" ? "bottom" : guideStep === "focus_zoom" ? "top" : undefined;
+    guideStep === "trim_seek"
+      ? "top"
+      : guideStep === "focus_pick"
+        ? "bottom"
+        : guideStep === "focus_zoom"
+          ? "top"
+          : undefined;
 
   const guideAlign =
-    guideStep === "focus_pick" ? "center" : guideStep === "focus_zoom" ? "end" : undefined;
+    guideStep === "trim_seek"
+      ? "center"
+      : guideStep === "focus_pick"
+        ? "center"
+        : guideStep === "focus_zoom"
+          ? "end"
+          : undefined;
 
   const handleTrimDrag = useCallback(
     (
@@ -406,7 +422,7 @@ export default function HighlightSuggestionReview({
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
           <button
             type="button"
-            onClick={onReset}
+            onClick={() => setShowResetConfirm(true)}
             aria-label="뒤로가기"
             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.04] text-text-1"
           >
@@ -419,8 +435,12 @@ export default function HighlightSuggestionReview({
                 {toolIndex + 1}/{TOOL_ORDER.length}
               </span>
             </div>
-            <p className="truncate text-[12px] text-text-3">{toolDescription}</p>
           </div>
+          {saveState === "autosaving" ? (
+            <span className="shrink-0 text-[11px] text-text-3">저장 중</span>
+          ) : saveState === "idle" && draft.projectId ? (
+            <span className="shrink-0 text-[11px] text-text-3">저장됨</span>
+          ) : null}
         </div>
 
         <div className="px-4">
@@ -434,7 +454,13 @@ export default function HighlightSuggestionReview({
             overlayPreviewVisible={activeTool === "overlay"}
             onFocusTargetReady={setFocusGuideTarget}
             onZoomControlsReady={setZoomGuideTarget}
-            onPreviewTimeChange={setPreviewTime}
+            onSeekControlsReady={setSeekGuideTarget}
+            onPreviewTimeChange={(time) => {
+              setPreviewTime(time);
+              if (guideStep === "trim_seek" && Math.abs(time - draft.playback.trimStart) >= 0.3) {
+                dismissStep();
+              }
+            }}
             onSpotlightChange={(spotlight) => {
               commitDraft((current) => ({
                 ...current,
@@ -471,18 +497,21 @@ export default function HighlightSuggestionReview({
         <div className="px-4 pt-4">
           <div className="grid grid-cols-3 gap-2">
             <ToolChip
-              active={activeTool === "focus"}
+              active={activeTool === "trim"}
               step="1"
+              label="구간"
+              testId="single-clip-tool-trim"
+              onClick={() => {
+                setActiveTool("trim");
+                if (guideStep === "trim_seek") dismissStep();
+              }}
+            />
+            <ToolChip
+              active={activeTool === "focus"}
+              step="2"
               label="주인공"
               testId="single-clip-tool-focus"
               onClick={() => setActiveTool("focus")}
-            />
-            <ToolChip
-              active={activeTool === "trim"}
-              step="2"
-              label="구간"
-              testId="single-clip-tool-trim"
-              onClick={() => setActiveTool("trim")}
             />
               <ToolChip
                 active={activeTool === "overlay"}
@@ -511,10 +540,7 @@ export default function HighlightSuggestionReview({
             <div data-testid="single-clip-trim-panel" className="space-y-4">
               <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
                 <p className="text-[13px] font-semibold text-[#f6d69a]">
-                  구간은 그대로 둬도 충분해요.
-                </p>
-                <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  필요할 때만 시작과 끝만 조금 조정하세요.
+                  먼저 선수가 잘 보이는 순간으로 맞춰보세요.
                 </p>
               </div>
 
@@ -540,24 +566,10 @@ export default function HighlightSuggestionReview({
               </div>
 
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[13px] font-semibold text-text-1">
-                      한 줄에서 시작과 끝을 같이 잡아요.
-                    </p>
-                    <p className="mt-1 text-[12px] leading-5 text-text-3">
-                      가까운 손잡이를 잡아 움직이면 됩니다.
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a]">
-                    {formatDuration(draft.playback.trimStart, draft.playback.trimEnd)}
-                  </span>
-                </div>
-
                 <div
                   ref={trimBarRef}
                   data-testid="single-clip-trim-range"
-                  className="relative mt-4 h-12 overflow-hidden rounded-2xl bg-white/[0.04]"
+                  className="relative h-14 overflow-visible rounded-2xl bg-white/[0.04]"
                   onMouseDown={(event) => {
                     const rect = trimBarRef.current?.getBoundingClientRect();
                     if (!rect) return;
@@ -620,30 +632,34 @@ export default function HighlightSuggestionReview({
                       width: `${((draft.playback.trimEnd - draft.playback.trimStart) / draft.sourceDurationSec) * 100}%`,
                     }}
                   />
+                  {/* 시작 핸들: 시각 핸들(좁음) + 투명 터치 영역(넓음) */}
                   <div
                     data-testid="single-clip-trim-start-handle"
-                    className="absolute top-1/2 -translate-y-1/2"
+                    className="absolute top-0 bottom-0 flex items-center justify-center"
                     style={{
-                      left: `calc(${(draft.playback.trimStart / draft.sourceDurationSec) * 100}% - 16px)`,
+                      left: `calc(${(draft.playback.trimStart / draft.sourceDurationSec) * 100}% - 22px)`,
+                      width: "44px",
                     }}
                   >
                     <div
-                      className={`flex h-8 w-4 items-center justify-center rounded-full ${
+                      className={`flex h-10 w-5 items-center justify-center rounded-full ${
                         draggingTrimHandle === "start" ? "bg-[#d8b36a]" : "bg-[#d8b36a]/80"
                       }`}
                     >
                       <div className="h-3 w-0.5 rounded-full bg-[#09090b]" />
                     </div>
                   </div>
+                  {/* 끝 핸들 */}
                   <div
                     data-testid="single-clip-trim-end-handle"
-                    className="absolute top-1/2 -translate-y-1/2"
+                    className="absolute top-0 bottom-0 flex items-center justify-center"
                     style={{
-                      left: `calc(${(draft.playback.trimEnd / draft.sourceDurationSec) * 100}% - 16px)`,
+                      left: `calc(${(draft.playback.trimEnd / draft.sourceDurationSec) * 100}% - 22px)`,
+                      width: "44px",
                     }}
                   >
                     <div
-                      className={`flex h-8 w-4 items-center justify-center rounded-full ${
+                      className={`flex h-10 w-5 items-center justify-center rounded-full ${
                         draggingTrimHandle === "end" ? "bg-[#d8b36a]" : "bg-[#d8b36a]/80"
                       }`}
                     >
@@ -669,7 +685,7 @@ export default function HighlightSuggestionReview({
                         },
                       }))
                     }
-                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[12px] font-semibold text-text-1"
+                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[13px] font-semibold text-text-1"
                   >
                     지금 장면을 시작점으로
                   </button>
@@ -684,7 +700,7 @@ export default function HighlightSuggestionReview({
                         },
                       }))
                     }
-                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[12px] font-semibold text-text-1"
+                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[13px] font-semibold text-text-1"
                   >
                     지금 장면을 끝점으로
                   </button>
@@ -697,10 +713,7 @@ export default function HighlightSuggestionReview({
             <div data-testid="single-clip-spotlight-panel" className="space-y-4">
               <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
                 <p className="text-[13px] font-semibold text-[#f6d69a]">
-                  주인공을 한 번 누르면 바로 확대된 상태로 보여줘요.
-                </p>
-                <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  유소년 경기처럼 멀리서 찍힌 장면도 내가 나오는 위치를 먼저 찾을 수 있어야 해요.
+                  주인공을 한 번 누르면 바로 확대돼요.
                 </p>
               </div>
 
@@ -722,16 +735,16 @@ export default function HighlightSuggestionReview({
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[13px] font-semibold text-text-1">여기서 잠깐 멈출게요</p>
+                    <p className="text-[13px] font-semibold text-text-1">프리즈 프레임</p>
                     <p className="mt-1 text-[12px] leading-5 text-text-3">
-                      주인공이 더 잘 보이게 현재 장면에서 잠깐 멈춰요.
+                      현재 프레임에서 잠깐 멈춰 주인공을 강조해요.
                     </p>
                   </div>
                   <div
                     data-testid="single-clip-freeze-value"
                     className="rounded-full bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a]"
                   >
-                    {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "자동"}
+                    {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "꺼짐"}
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
@@ -773,11 +786,7 @@ export default function HighlightSuggestionReview({
                 <p className="text-[13px] font-semibold text-text-1">
                   재생할 때도 같은 구도로 보여요
                 </p>
-                <p className="mt-1 text-[12px] leading-5 text-text-3">
-                  위 미리보기에서 핀치나 `- / +` 버튼으로 조정하면, 실제 재생도 같은 확대 정도를
-                  사용해요.
-                </p>
-                <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
                     <p className="text-[10px] text-text-3">현재 확대</p>
                     <p className="mt-1 text-[15px] font-semibold text-text-1">
@@ -787,12 +796,8 @@ export default function HighlightSuggestionReview({
                   <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
                     <p className="text-[10px] text-text-3">재생 방식</p>
                     <p className="mt-1 text-[15px] font-semibold text-text-1">
-                      {draft.playback.spotlight ? "확대한 채 재생" : "기본 재생"}
+                      {draft.playback.spotlight ? "확대 재생" : "기본 재생"}
                     </p>
-                  </div>
-                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                    <p className="text-[10px] text-text-3">조정 방법</p>
-                    <p className="mt-1 text-[15px] font-semibold text-text-1">핀치 / 버튼</p>
                   </div>
                 </div>
               </div>
@@ -836,64 +841,70 @@ export default function HighlightSuggestionReview({
                 }
               />
 
-              <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
-                <p className="text-[13px] font-semibold text-text-1">현재 표시</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span
-                    className={`rounded-full px-3 py-2 text-[12px] font-semibold ${
-                      draft.overlay.showProfileCard
-                        ? "bg-[#d8b36a]/15 text-[#f6d69a]"
-                        : "bg-white/[0.05] text-text-3"
-                    }`}
-                  >
-                    선수 카드 {draft.overlay.showProfileCard ? "켜짐" : "꺼짐"}
-                  </span>
-                  <span
-                    className={`rounded-full px-3 py-2 text-[12px] font-semibold ${
-                      draft.overlay.showLowerThird
-                        ? "bg-[#d8b36a]/15 text-[#f6d69a]"
-                        : "bg-white/[0.05] text-text-3"
-                    }`}
-                  >
-                    하단 정보 {draft.overlay.showLowerThird ? "켜짐" : "꺼짐"}
-                  </span>
-                </div>
-              </div>
             </div>
           ) : null}
 
         </div>
       </div>
 
+      {/* 하단 CTA — 좌: 항상 저장(secondary) / 우: 다음 or 완료(primary) */}
       <div
         className="fixed inset-x-0 bottom-0 z-20 border-t border-white/[0.06] bg-[#070709]/95 px-4 py-3 backdrop-blur"
         style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mx-auto flex w-full max-w-[430px] gap-3">
-          <>
-            <button
-              type="button"
-              onClick={
-                nextTool
-                  ? () => void handleSave()
-                  : () => previousTool && setActiveTool(previousTool)
-              }
-              disabled={saveState === "saving" || (!nextTool && !previousTool)}
-              className="min-w-[96px] shrink-0 rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-[14px] font-medium text-text-1 disabled:opacity-60"
-            >
-              {nextTool ? (saveState === "saving" ? "저장 중..." : "이대로 저장") : "이전"}
-            </button>
-            <button
-              type="button"
-              onClick={nextTool ? () => nextTool && setActiveTool(nextTool) : () => void handleSave()}
-              disabled={saveState === "saving"}
-              className="flex-1 rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b]"
-            >
-              {nextTool ? "다음" : saveState === "saving" ? "저장 중..." : "내 영상으로 저장"}
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saveState === "saving"}
+            className="min-w-[96px] shrink-0 rounded-2xl border border-white/[0.08] bg-card px-4 py-3.5 text-[14px] font-medium text-text-1 disabled:opacity-60"
+          >
+            {saveState === "saving" ? "저장 중..." : "저장"}
+          </button>
+          <button
+            type="button"
+            onClick={nextTool ? () => setActiveTool(nextTool) : () => void handleSave()}
+            disabled={saveState === "saving"}
+            className="flex-1 rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b] disabled:opacity-60"
+          >
+            {nextTool ? "다음" : saveState === "saving" ? "저장 중..." : "완료 및 저장"}
+          </button>
         </div>
       </div>
+
+      {/* 뒤로가기 확인 다이얼로그 */}
+      {showResetConfirm ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
+          <div
+            className="mx-auto w-full max-w-[430px] rounded-t-3xl border-t border-white/[0.08] bg-[#1C1C22] px-5 pt-6 pb-8"
+            style={{ paddingBottom: "calc(32px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <p className="text-[16px] font-bold text-text-1">편집을 그만할까요?</p>
+            <p className="mt-1.5 text-[13px] leading-5 text-text-3">
+              지금까지 편집한 내용은 자동으로 저장돼 있어요.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResetConfirm(false);
+                  onReset();
+                }}
+                className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] py-3.5 text-[14px] font-semibold text-text-1"
+              >
+                나가기
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(false)}
+                className="w-full rounded-2xl bg-[#d8b36a] py-3.5 text-[15px] font-bold text-[#09090b]"
+              >
+                계속 편집
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {guideTargetElement && guideTitle && guideDescription ? (
         <GuideHighlightOverlay
