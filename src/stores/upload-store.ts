@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { EventTag } from "@/components/editor/video/types";
+import { DEFAULT_FOCUS_ZOOM } from "@/lib/focus-zoom";
 import type { TrackingMode, TrackingPoint } from "@/lib/playback-focus";
 import type { SingleClipEditingDraft } from "@/lib/single-clip-playback";
 
@@ -192,7 +193,7 @@ function createClipFlowStateDefaults() {
       eafc: false,
       intro: true,
       showLowerThird: true,
-      focusZoom: 1.8,
+      focusZoom: DEFAULT_FOCUS_ZOOM,
     } as UploadEffects,
     slowmoStart: null as number | null,
     slowmoEnd: null as number | null,

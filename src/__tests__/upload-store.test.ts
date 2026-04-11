@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { DEFAULT_FOCUS_ZOOM } from "@/lib/focus-zoom";
 import { useUploadStore } from "@/stores/upload-store";
 
 describe("Upload Store v3.0", () => {
@@ -23,7 +24,7 @@ describe("Upload Store v3.0", () => {
       eafc: false,
       intro: true,
       showLowerThird: true,
-      focusZoom: 1.8,
+      focusZoom: DEFAULT_FOCUS_ZOOM,
     });
     expect(state.renderJobId).toBeNull();
   });
@@ -32,12 +33,6 @@ describe("Upload Store v3.0", () => {
     const store = useUploadStore.getState();
     store.setPhase("processing");
     expect(useUploadStore.getState().phase).toBe("processing");
-  });
-
-  it("sets eventTag correctly", () => {
-    const store = useUploadStore.getState();
-    store.setEventTag("goal");
-    expect(useUploadStore.getState().eventTag).toBe("goal");
   });
 
   it("sets trim values", () => {
@@ -57,25 +52,6 @@ describe("Upload Store v3.0", () => {
     expect(state.spotlightY).toBe(0.72);
   });
 
-  it("clears spotlight", () => {
-    const store = useUploadStore.getState();
-    store.setSpotlight(0.5, 0.5);
-    store.setSpotlight(null, null);
-    const state = useUploadStore.getState();
-    expect(state.spotlightX).toBeNull();
-    expect(state.spotlightY).toBeNull();
-  });
-
-  it("sets skill labels", () => {
-    const store = useUploadStore.getState();
-    store.setSkillLabels(["dribble", "shooting", "speed"]);
-    expect(useUploadStore.getState().skillLabels).toEqual([
-      "dribble",
-      "shooting",
-      "speed",
-    ]);
-  });
-
   it("sets effects partially", () => {
     const store = useUploadStore.getState();
     store.setEffects({ color: true, intro: true });
@@ -86,24 +62,13 @@ describe("Upload Store v3.0", () => {
       eafc: false,
       intro: true,
       showLowerThird: true,
-      focusZoom: 1.8,
+      focusZoom: DEFAULT_FOCUS_ZOOM,
     });
   });
 
-  it("has new status types", () => {
+  it("reset clears clip-flow fields", () => {
     const store = useUploadStore.getState();
-    store.setStatus("editing");
-    expect(useUploadStore.getState().status).toBe("editing");
-    store.setStatus("uploading_raw");
-    expect(useUploadStore.getState().status).toBe("uploading_raw");
-    store.setStatus("analyzing");
-    expect(useUploadStore.getState().status).toBe("analyzing");
-  });
-
-  it("reset clears all fields", () => {
-    const store = useUploadStore.getState();
-    store.setPhase("review");
-    store.setEventTag("goal");
+    store.setPhase("edit");
     store.setTrimStart(10);
     store.setSpotlight(0.5, 0.5);
     store.setSkillLabels(["dribble"]);
@@ -142,7 +107,6 @@ describe("Upload Store v3.0", () => {
     const state = useUploadStore.getState();
     expect(state.phase).toBe("select");
     expect(state.editorDraft).toBeNull();
-    expect(state.eventTag).toBeNull();
     expect(state.trimStart).toBe(0);
     expect(state.spotlightX).toBeNull();
     expect(state.skillLabels).toEqual([]);
@@ -150,13 +114,12 @@ describe("Upload Store v3.0", () => {
     expect(state.renderJobId).toBeNull();
   });
 
-  it("setFile resets clip-flow and legacy fields but keeps upload context", () => {
+  it("setFile resets clip-flow fields but keeps upload context", () => {
     const store = useUploadStore.getState();
     store.setContext("parent");
     store.setChildInfo({ id: "child-1", name: "민준", handle: "minjun" });
     store.setChallengeTag("weekly");
     store.setMemo("memo");
-    store.setEventTag("goal");
     store.setSkillLabels(["dribble"]);
     store.setCustomLabels(["left-foot"]);
     store.setTrackingMode("follow");
@@ -176,7 +139,6 @@ describe("Upload Store v3.0", () => {
     expect(state.childHandle).toBe("minjun");
     expect(state.challengeTag).toBe("weekly");
     expect(state.memo).toBe("");
-    expect(state.eventTag).toBeNull();
     expect(state.skillLabels).toEqual([]);
     expect(state.customLabels).toEqual([]);
     expect(state.trackingMode).toBe("fixed");

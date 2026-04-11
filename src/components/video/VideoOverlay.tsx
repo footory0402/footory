@@ -110,17 +110,17 @@ function FocusIsolation({ freezeMode, active }: { freezeMode: boolean; active: b
     <div
       style={{
         position: "absolute",
-        width: freezeMode ? 240 : 196,
-        height: freezeMode ? 240 : 196,
+        width: freezeMode ? 176 : 144,
+        height: freezeMode ? 176 : 144,
         borderRadius: "50%",
         transform: "translate(-50%, -50%)",
         background: freezeMode
-          ? "radial-gradient(circle, rgba(255,244,214,0.18) 0%, rgba(212,168,83,0.14) 24%, rgba(212,168,83,0.06) 40%, rgba(0,0,0,0.32) 66%, rgba(0,0,0,0) 82%)"
-          : "radial-gradient(circle, rgba(255,244,214,0.1) 0%, rgba(212,168,83,0.08) 24%, rgba(0,0,0,0.18) 58%, rgba(0,0,0,0) 80%)",
+          ? "radial-gradient(circle, rgba(255,244,214,0.2) 0%, rgba(212,168,83,0.16) 20%, rgba(212,168,83,0.06) 34%, rgba(0,0,0,0.26) 58%, rgba(0,0,0,0) 76%)"
+          : "radial-gradient(circle, rgba(255,244,214,0.12) 0%, rgba(212,168,83,0.09) 22%, rgba(0,0,0,0.16) 52%, rgba(0,0,0,0) 76%)",
         mixBlendMode: "screen",
         filter: freezeMode
-          ? "drop-shadow(0 0 28px rgba(212,168,83,0.22))"
-          : "drop-shadow(0 0 18px rgba(212,168,83,0.14))",
+          ? "drop-shadow(0 0 20px rgba(212,168,83,0.2))"
+          : "drop-shadow(0 0 14px rgba(212,168,83,0.14))",
       }}
     />
   );
@@ -193,15 +193,15 @@ function CenterMarker({ freezeMode }: { freezeMode: boolean }) {
   return (
     <div
       style={{
-        width: freezeMode ? 58 : 48,
-        height: freezeMode ? 58 : 48,
+        width: freezeMode ? 42 : 34,
+        height: freezeMode ? 42 : 34,
         borderRadius: "50%",
         border: freezeMode
           ? "1.5px solid rgba(255,235,189,0.96)"
           : "1.5px solid rgba(255,235,189,0.72)",
         boxShadow: freezeMode
-          ? "0 0 0 8px rgba(212,168,83,0.14), 0 0 28px rgba(212,168,83,0.34)"
-          : "0 0 0 4px rgba(212,168,83,0.08), 0 0 14px rgba(212,168,83,0.18)",
+          ? "0 0 0 6px rgba(212,168,83,0.14), 0 0 22px rgba(212,168,83,0.32)"
+          : "0 0 0 3px rgba(212,168,83,0.08), 0 0 12px rgba(212,168,83,0.18)",
         background: "rgba(255,246,221,0.05)",
         display: "flex",
         alignItems: "center",
@@ -212,8 +212,8 @@ function CenterMarker({ freezeMode }: { freezeMode: boolean }) {
     >
       <div
         style={{
-          width: freezeMode ? 12 : 8,
-          height: freezeMode ? 12 : 8,
+          width: freezeMode ? 10 : 6,
+          height: freezeMode ? 10 : 6,
           borderRadius: "50%",
           background: "#F8E7BD",
           boxShadow: "0 0 14px rgba(255,235,189,0.5)",
@@ -228,7 +228,7 @@ function FreezeChevron() {
     <div
       style={{
         position: "absolute",
-        bottom: "calc(100% + 74px)",
+        bottom: "calc(100% + 48px)",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -244,9 +244,9 @@ function FreezeChevron() {
           style={{
             width: 0,
             height: 0,
-            borderLeft: "11px solid transparent",
-            borderRight: "11px solid transparent",
-            borderTop: "18px solid rgba(255,228,168,0.98)",
+            borderLeft: "9px solid transparent",
+            borderRight: "9px solid transparent",
+            borderTop: "14px solid rgba(255,228,168,0.98)",
             opacity: index === 0 ? 1 : 0.72,
           }}
         />
@@ -260,8 +260,8 @@ function SoftRing({ freezeMode }: { freezeMode: boolean }) {
     <div
       style={{
         position: "absolute",
-        width: freezeMode ? 108 : 96,
-        height: freezeMode ? 108 : 96,
+        width: freezeMode ? 88 : 74,
+        height: freezeMode ? 88 : 74,
         borderRadius: "50%",
         transform: "translate(-50%, -50%)",
         background: freezeMode
@@ -284,8 +284,8 @@ function DoubleRing({ freezeMode }: { freezeMode: boolean }) {
       <div
         style={{
           position: "absolute",
-          width: freezeMode ? 118 : 104,
-          height: freezeMode ? 118 : 104,
+          width: freezeMode ? 94 : 82,
+          height: freezeMode ? 94 : 82,
           borderRadius: "50%",
           transform: "translate(-50%, -50%)",
           background: "radial-gradient(circle, rgba(255,241,208,0.22) 0%, rgba(212,168,83,0.12) 36%, rgba(212,168,83,0.04) 62%, rgba(0,0,0,0) 80%)",
@@ -295,8 +295,8 @@ function DoubleRing({ freezeMode }: { freezeMode: boolean }) {
       <div
         style={{
           position: "absolute",
-          width: freezeMode ? 86 : 76,
-          height: freezeMode ? 86 : 76,
+          width: freezeMode ? 68 : 58,
+          height: freezeMode ? 68 : 58,
           borderRadius: "50%",
           transform: "translate(-50%, -50%)",
           border: "1px solid rgba(255,235,189,0.58)",
@@ -307,8 +307,8 @@ function DoubleRing({ freezeMode }: { freezeMode: boolean }) {
       <div
         style={{
           position: "absolute",
-          width: freezeMode ? 60 : 54,
-          height: freezeMode ? 60 : 54,
+          width: freezeMode ? 48 : 42,
+          height: freezeMode ? 48 : 42,
           borderRadius: "50%",
           transform: "translate(-50%, -50%)",
           border: "1px solid rgba(255,235,189,0.42)",
@@ -319,7 +319,7 @@ function DoubleRing({ freezeMode }: { freezeMode: boolean }) {
 }
 
 function BracketLight({ freezeMode }: { freezeMode: boolean }) {
-  const bracketRadius = freezeMode ? 92 : 72;
+  const bracketRadius = freezeMode ? 72 : 56;
   const segments = [
     { top: -bracketRadius / 2, left: -bracketRadius / 2, rotate: 0 },
     { top: -bracketRadius / 2, left: bracketRadius / 2 - 28, rotate: 90 },
@@ -332,8 +332,8 @@ function BracketLight({ freezeMode }: { freezeMode: boolean }) {
       <div
         style={{
           position: "absolute",
-          width: freezeMode ? 138 : 110,
-          height: freezeMode ? 138 : 110,
+          width: freezeMode ? 108 : 88,
+          height: freezeMode ? 108 : 88,
           borderRadius: "50%",
           transform: "translate(-50%, -50%)",
           background: freezeMode
@@ -351,14 +351,14 @@ function BracketLight({ freezeMode }: { freezeMode: boolean }) {
             position: "absolute",
             top: `calc(50% + ${segment.top}px)`,
             left: `calc(50% + ${segment.left}px)`,
-            width: freezeMode ? 28 : 24,
-            height: freezeMode ? 28 : 24,
+            width: freezeMode ? 24 : 20,
+            height: freezeMode ? 24 : 20,
             transform: `rotate(${segment.rotate}deg)`,
           }}
         >
           <svg
-            width={freezeMode ? 28 : 24}
-            height={freezeMode ? 28 : 24}
+            width={freezeMode ? 24 : 20}
+            height={freezeMode ? 24 : 20}
             viewBox="0 0 28 28"
             fill="none"
           >

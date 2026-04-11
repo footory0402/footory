@@ -54,15 +54,8 @@ const getProfile = cache(async (handle: string) => {
     blockRow,
     featured,
     reels,
-    stats,
-    seasons,
     team,
-    achievements,
-    timelineEvents,
     tagClipsData,
-    playStyleData,
-    tournamentRecordsData,
-    awardsData,
   ] = await Promise.all([
     needsViewerData
       ? supabase.from("follows").select("id").eq("follower_id", currentUser!.id).eq("following_id", profile.id).maybeSingle()
@@ -85,11 +78,7 @@ const getProfile = cache(async (handle: string) => {
       .select("id, title, clip_ids, status, created_at, thumbnail_url")
       .eq("owner_id", profile.id)
       .order("created_at", { ascending: false }),
-    supabase.from("stats").select("*").eq("profile_id", profile.id).order("recorded_at", { ascending: false }),
-    supabase.from("seasons").select("*").eq("profile_id", profile.id).order("year", { ascending: false }),
     supabase.from("team_members").select("team_id, teams(name)").eq("profile_id", profile.id).neq("role", "alumni").limit(1).single(),
-    supabase.from("achievements").select("*").eq("profile_id", profile.id).order("year", { ascending: false }),
-    supabase.from("timeline_events").select("*").eq("profile_id", profile.id).order("created_at", { ascending: false }).limit(50),
     supabase
       .from("clips")
       .select(
@@ -97,9 +86,6 @@ const getProfile = cache(async (handle: string) => {
       )
       .eq("owner_id", profile.id)
       .order("created_at", { ascending: false }),
-    supabase.from("play_styles").select("*").eq("profile_id", profile.id).maybeSingle(),
-    supabase.from("tournament_records").select("*").eq("player_id", profile.id).order("created_at", { ascending: false }),
-    supabase.from("awards").select("*").eq("player_id", profile.id).order("created_at", { ascending: false }),
   ]);
 
   // 관계 플래그 계산
@@ -274,15 +260,8 @@ const getProfile = cache(async (handle: string) => {
     teamId: teamData?.team_id ?? null,
     featured: enrichedFeatured,
     initialReels,
-    stats: stats.data ?? [],
-    seasons: seasons.data ?? [],
-    achievements: achievements.data ?? [],
-    timelineEvents: timelineEvents.data ?? [],
     tagClips: tagClipsMap,
     untaggedClips: untaggedClipsList,
-    playStyle: playStyleData.data ?? null,
-    tournamentRecords: tournamentRecordsData.data ?? [],
-    awards: awardsData.data ?? [],
     isFollowing,
     isOwnProfile: currentUser?.id === profile.id,
     viewerAccess,

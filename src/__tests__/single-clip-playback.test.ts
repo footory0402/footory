@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSingleClipPlaybackContract,
+  resolveSingleClipFreezePoint,
   resolveSingleClipPlayableDuration,
 } from "@/lib/single-clip-playback";
 
@@ -61,6 +62,34 @@ describe("single-clip playback contract", () => {
         showLowerThird: false,
         focusZoom: 2.2,
       },
+    });
+  });
+
+  it("pushes an immediate freeze point slightly forward so playback can start before freezing", () => {
+    const result = resolveSingleClipFreezePoint({
+      duration: 8,
+      trimStart: 0,
+      trimEnd: 8,
+      freezeAt: 0,
+    });
+
+    expect(result).toEqual({
+      freezeAtSec: 0.8,
+      isAdjustedFromImmediate: true,
+    });
+  });
+
+  it("keeps a normal mid-clip freeze point unchanged", () => {
+    const result = resolveSingleClipFreezePoint({
+      duration: 8,
+      trimStart: 1,
+      trimEnd: 7,
+      freezeAt: 3.2,
+    });
+
+    expect(result).toEqual({
+      freezeAtSec: 3.2,
+      isAdjustedFromImmediate: false,
     });
   });
 });

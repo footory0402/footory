@@ -105,12 +105,19 @@ export default function HighlightSharePlayerClient({
   }, [cancelZoomAnimation]);
 
   const playIntro = useCallback(() => {
-    if (introPlayedRef.current) return;
     if (introTimerRef.current) {
       clearTimeout(introTimerRef.current);
       introTimerRef.current = null;
     }
+    const video = videoRef.current;
+    const { trimStartSec } = resolveSingleClipPlaybackWindow(clip, video?.duration);
     introPlayedRef.current = true;
+    if (video) {
+      video.pause();
+      video.currentTime = trimStartSec;
+    }
+    setEnded(false);
+    setPaused(false);
     setShowIntro(true);
     setIntroReady(false);
     introTimerRef.current = window.setTimeout(() => {
@@ -119,7 +126,7 @@ export default function HighlightSharePlayerClient({
       setIntroReady(true);
       videoRef.current?.play().catch(() => {});
     }, INTRO_DURATION_MS);
-  }, [INTRO_DURATION_MS]);
+  }, [INTRO_DURATION_MS, clip]);
 
   useEffect(() => {
     const fallbackIntro = buildFallbackHudPlayerData(clip);
@@ -316,13 +323,18 @@ export default function HighlightSharePlayerClient({
       const { trimStartSec } = resolveSingleClipPlaybackWindow(clip);
       video.currentTime = trimStartSec;
       setEnded(false);
+      if (clip.effects?.intro === true && introData) {
+        introPlayedRef.current = false;
+        playIntro();
+        return;
+      }
       video.play().catch(() => {});
       return;
     }
 
     if (video.paused) video.play().catch(() => {});
     else video.pause();
-  }, [clip, ended, isFreezing]);
+  }, [clip, ended, introData, isFreezing, playIntro]);
 
   const toggleFocus = useCallback(() => {
     if (!activeSpotlight || !hasFocusTarget) return;
@@ -391,7 +403,6 @@ export default function HighlightSharePlayerClient({
           playsInline
           preload="auto"
           muted={isMuted}
-          autoPlay
           className="absolute inset-0 h-full w-full"
           style={{
             objectFit: "contain",

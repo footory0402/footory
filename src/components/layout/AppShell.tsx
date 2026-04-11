@@ -17,6 +17,7 @@ const PROFILE_BARE_ROUTES = ["/upload", "/editor", "/edit"];
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isBare = BARE_ROUTES.some((r) => pathname.startsWith(r));
+  const needsProfileProvider = !isBare || PROFILE_BARE_ROUTES.some((r) => pathname.startsWith(r));
   const userIdRef = useRef<string | null>(null);
 
   // Global render job polling (persists across navigations)
@@ -71,23 +72,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [isBare]);
 
-  const isProfileBare = PROFILE_BARE_ROUTES.some((r) => pathname.startsWith(r));
-
-  if (isBare) {
-    if (isProfileBare) {
-      return <ProfileProvider>{children}</ProfileProvider>;
-    }
+  if (!needsProfileProvider) {
     return <>{children}</>;
   }
 
   return (
     <ProfileProvider>
-      <AppHeader />
-      <main className="pb-[calc(60px+env(safe-area-inset-bottom))]">
-        <ErrorBoundary>{children}</ErrorBoundary>
-      </main>
-      <GlobalUploadIndicator />
-      <BottomTab />
+      {isBare ? (
+        children
+      ) : (
+        <>
+          <AppHeader />
+          <main className="pb-[calc(60px+env(safe-area-inset-bottom))]">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </main>
+          <GlobalUploadIndicator />
+          <BottomTab />
+        </>
+      )}
     </ProfileProvider>
   );
 }

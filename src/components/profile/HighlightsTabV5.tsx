@@ -932,17 +932,22 @@ function FeaturedCard({
       video_url: string;
       thumbnail_url?: string | null;
       duration_seconds?: number | null;
+      duration_sec?: number | null;
       highlight_start?: number | null;
       highlight_end?: number | null;
+      trim_start?: number | null;
+      trim_end?: number | null;
     } | null;
   };
   onPlay: () => void;
   onRemove?: () => void;
 }) {
   const thumbUrl = clip.clips?.thumbnail_url;
-  const hs = clip.clips?.highlight_start;
-  const he = clip.clips?.highlight_end;
-  const dur = hs != null && he != null ? he - hs : (clip.clips?.duration_seconds ?? 30);
+  const trimStart = clip.clips?.trim_start;
+  const trimEnd = clip.clips?.trim_end;
+  const dur = trimStart != null && trimEnd != null
+    ? Math.max(0, trimEnd - trimStart)
+    : (clip.clips?.duration_sec ?? clip.clips?.duration_seconds ?? 30);
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -976,6 +981,7 @@ function FeaturedCard({
       {/* Video card */}
       <div
         className="relative cursor-pointer overflow-hidden"
+        data-testid="profile-featured-card"
         onClick={onPlay}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -1190,8 +1196,22 @@ function ReelCard({
   return (
     <div
       className="relative w-full cursor-pointer overflow-hidden"
+      data-testid="profile-reel-card"
       style={{ aspectRatio: "2/1", background: "#111" }}
       onClick={isEditMode ? onDelete : onPlay}
+      role="button"
+      tabIndex={0}
+      aria-label={reel.title ? `${reel.title} 릴 재생` : "릴 재생"}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          if (isEditMode) {
+            onDelete?.();
+            return;
+          }
+          onPlay();
+        }
+      }}
     >
       {/* 썸네일 */}
       {reel.thumbnail_url && (

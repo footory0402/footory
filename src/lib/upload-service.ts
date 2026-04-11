@@ -985,7 +985,7 @@ export async function startUpload() {
           s.setR2Status("idle");
           s.setR2Progress(0);
         } else {
-          console.warn("[Upload] Intro card skipped:", result.reason);
+          console.warn("[Upload] Intro precompose skipped, runtime intro will be used:", result.reason);
         }
       } catch (err) {
         console.warn("[Upload] Intro compose failed:", err);

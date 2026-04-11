@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import GuideHighlightOverlay from "@/components/upload/GuideHighlightOverlay";
 import SingleClipEditorPreview from "@/components/upload/SingleClipEditorPreview";
 import { DEFAULT_FOCUS_ZOOM } from "@/lib/focus-zoom";
@@ -21,7 +20,7 @@ interface HighlightSuggestionReviewProps {
   onReset: () => void;
 }
 
-const TOOL_ORDER = ["trim", "focus", "overlay"] as const;
+const TOOL_ORDER = ["edit", "overlay"] as const;
 type EditorTool = (typeof TOOL_ORDER)[number];
 
 function formatTime(seconds: number) {
@@ -119,7 +118,6 @@ export default function HighlightSuggestionReview({
   videoSrc,
   onReset,
 }: HighlightSuggestionReviewProps) {
-  const router = useRouter();
   const { profile } = useProfileContext();
   const childName = useUploadStore((state) => state.childName);
   const childHandle = useUploadStore((state) => state.childHandle);
@@ -128,9 +126,9 @@ export default function HighlightSuggestionReview({
   const setEditorDraft = useUploadStore((state) => state.setEditorDraft);
 
   const [focusGuideTarget, setFocusGuideTarget] = useState<HTMLDivElement | null>(null);
-  const [zoomGuideTarget, setZoomGuideTarget] = useState<HTMLDivElement | null>(null);
-  const [seekGuideTarget, setSeekGuideTarget] = useState<HTMLInputElement | null>(null);
-  const [activeTool, setActiveTool] = useState<EditorTool>("trim");
+  const [seekGuideTarget, setSeekGuideTarget] = useState<HTMLDivElement | null>(null);
+  const [activeTool, setActiveTool] = useState<EditorTool>("edit");
+  const [spotlightPicking, setSpotlightPicking] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [previewTime, setPreviewTime] = useState(initialDraft.playback.trimStart);
   const [saveState, setSaveState] = useState<"idle" | "autosaving" | "saving" | "error">("idle");
@@ -188,11 +186,13 @@ export default function HighlightSuggestionReview({
 
   useEffect(() => {
     if (guideStep === "trim_seek") {
-      setActiveTool("trim");
+      setActiveTool("edit");
+      setSpotlightPicking(false);
       return;
     }
-    if (guideStep === "focus_pick" || guideStep === "focus_zoom") {
-      setActiveTool("focus");
+    if (guideStep === "focus_pick") {
+      setActiveTool("edit");
+      setSpotlightPicking(true);
     }
   }, [guideStep]);
 
@@ -200,61 +200,67 @@ export default function HighlightSuggestionReview({
     guideStep === "trim_seek"
       ? seekGuideTarget
       : guideStep === "focus_pick"
-      ? focusGuideTarget
-      : guideStep === "focus_zoom"
-        ? zoomGuideTarget
+        ? focusGuideTarget
         : null;
 
   const guideTitle =
     guideStep === "trim_seek"
       ? "먼저 원하는 장면으로 이동하세요"
       : guideStep === "focus_pick"
-      ? "여기서 선수를 한 번 누르세요"
-      : guideStep === "focus_zoom"
-        ? "이제 확대만 조금 맞춰보세요"
+        ? "여기서 선수를 한 번 누르세요"
         : undefined;
 
   const guideDescription =
     guideStep === "trim_seek"
       ? "재생하거나 시간을 움직여 선수가 잘 보이는 순간을 먼저 찾으면 쉬워요."
       : guideStep === "focus_pick"
-      ? "주인공이 있는 지점을 한 번만 누르면 돼요."
-      : guideStep === "focus_zoom"
-        ? "넓게, 기본, 가깝게 중에서 고르면 충분해요."
+        ? "주인공이 있는 지점을 한 번만 누르면 돼요."
         : undefined;
-
-  const guidePrimaryLabel = guideStep === "focus_zoom" ? "알겠어요" : undefined;
 
   const guidePlacement =
     guideStep === "trim_seek"
       ? "top"
       : guideStep === "focus_pick"
         ? "bottom"
-        : guideStep === "focus_zoom"
-          ? "top"
-          : undefined;
+        : undefined;
 
   const guideAlign =
     guideStep === "trim_seek"
       ? "center"
       : guideStep === "focus_pick"
         ? "center"
-        : guideStep === "focus_zoom"
-          ? "end"
-          : undefined;
+        : undefined;
 
-  const handleTrimDrag = useCallback(
-    (
-      event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
-      handle: "start" | "end"
-    ) => {
+  const handleTimelineRef = useCallback((element: HTMLDivElement | null) => {
+    trimBarRef.current = element;
+    setSeekGuideTarget(element);
+  }, []);
+
+  const getTimelineTime = useCallback(
+    (clientX: number) => {
       const bar = trimBarRef.current;
-      if (!bar) return;
-
+      if (!bar) return 0;
       const rect = bar.getBoundingClientRect();
-      const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
       const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const time = Number((ratio * draft.sourceDurationSec).toFixed(1));
+      return Number((ratio * draft.sourceDurationSec).toFixed(1));
+    },
+    [draft.sourceDurationSec],
+  );
+
+  const seekPreviewTo = useCallback(
+    (time: number) => {
+      const nextTime = Number(Math.max(0, Math.min(draft.sourceDurationSec, time)).toFixed(1));
+      setPreviewTime(nextTime);
+      if (guideStep === "trim_seek" && Math.abs(nextTime - draft.playback.trimStart) >= 0.3) {
+        dismissStep();
+      }
+    },
+    [dismissStep, draft.playback.trimStart, draft.sourceDurationSec, guideStep],
+  );
+
+  const updateTrimHandle = useCallback(
+    (clientX: number, handle: "start" | "end") => {
+      const time = getTimelineTime(clientX);
 
       if (handle === "start") {
         const nextStart = Math.min(time, draft.playback.trimEnd - 0.1);
@@ -265,7 +271,7 @@ export default function HighlightSuggestionReview({
             trimStart: nextStart,
           },
         }));
-        setPreviewTime(nextStart);
+        setPreviewTime((current) => Math.max(nextStart, current));
         return;
       }
 
@@ -277,20 +283,60 @@ export default function HighlightSuggestionReview({
           trimEnd: nextEnd,
         },
       }));
-      setPreviewTime(nextEnd);
+      setPreviewTime((current) => Math.min(nextEnd, current));
     },
-    [commitDraft, draft.playback.trimEnd, draft.playback.trimStart, draft.sourceDurationSec]
+    [commitDraft, draft.playback.trimEnd, draft.playback.trimStart, getTimelineTime],
+  );
+
+  const startTrimHandleDrag = useCallback(
+    (
+      event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
+      handle: "start" | "end",
+    ) => {
+      setDraggingTrimHandle(handle);
+      const onMove = (moveEvent: MouseEvent | TouchEvent) => {
+        const clientX = "touches" in moveEvent
+          ? (moveEvent.touches[0]?.clientX ?? moveEvent.changedTouches[0]?.clientX ?? 0)
+          : moveEvent.clientX;
+        updateTrimHandle(clientX, handle);
+      };
+      const onUp = () => {
+        setDraggingTrimHandle(null);
+        document.removeEventListener("mousemove", onMove as EventListener);
+        document.removeEventListener("mouseup", onUp);
+        document.removeEventListener("touchmove", onMove as EventListener);
+        document.removeEventListener("touchend", onUp);
+      };
+
+      const initialClientX = "touches" in event
+        ? event.touches[0].clientX
+        : event.clientX;
+      updateTrimHandle(initialClientX, handle);
+      document.addEventListener("mousemove", onMove as EventListener);
+      document.addEventListener("mouseup", onUp);
+      document.addEventListener("touchmove", onMove as EventListener, { passive: true });
+      document.addEventListener("touchend", onUp);
+    },
+    [updateTrimHandle],
+  );
+
+  const handleTimelineSeek = useCallback(
+    (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-timeline-handle='true']")) {
+        return;
+      }
+
+      const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
+      seekPreviewTo(getTimelineTime(clientX));
+    },
+    [getTimelineTime, seekPreviewTo],
   );
 
   const handleSave = async () => {
     const currentDraft = useUploadStore.getState().editorDraft ?? draft;
     const publishDraft = updateSingleClipEditingDraft(currentDraft, (current) => ({
       ...current,
-      playback: {
-        ...current.playback,
-        highlightStart: current.playback.trimStart,
-        highlightEnd: current.playback.trimEnd,
-      },
       saveTarget: {
         profileTarget: "featured_candidate",
         portfolioTagName: null,
@@ -420,9 +466,21 @@ export default function HighlightSuggestionReview({
     return () => window.clearTimeout(timeoutId);
   }, [draft, draftSyncEnabled, setEditorDraft]);
 
+  const trimStartPercent = (draft.playback.trimStart / draft.sourceDurationSec) * 100;
+  const trimEndPercent = (draft.playback.trimEnd / draft.sourceDurationSec) * 100;
+  const playheadPercent = (safePreviewTime / draft.sourceDurationSec) * 100;
+  const freezePercent = draft.playback.freezeAt != null
+    ? (draft.playback.freezeAt / draft.sourceDurationSec) * 100
+    : null;
+  const focusStatusText = spotlightPicking
+    ? "이제 영상에서 선수를 눌러주세요."
+    : draft.playback.spotlight
+      ? `${formatTime(draft.playback.freezeAt ?? safePreviewTime)}에서 2초 멈춰요.`
+      : "장면을 맞춘 뒤 선수 찍기를 누르세요.";
+
   return (
     <div className="flex min-h-dvh flex-col bg-[#070709]">
-      <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col">
+      <div className="mx-auto flex w-full max-w-[430px] flex-1 min-h-0 flex-col">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
           <button
             type="button"
@@ -447,18 +505,17 @@ export default function HighlightSuggestionReview({
           ) : null}
         </div>
 
-        <div className="px-4">
+        <div className="shrink-0 px-4">
           <SingleClipEditorPreview
             videoSrc={videoSrc}
             draft={draft}
             playerData={playerData}
             previewTime={safePreviewTime}
-            spotlightPicking={activeTool === "focus"}
-            focusPreviewVisible={activeTool === "focus"}
+            spotlightPicking={spotlightPicking}
+            focusPreviewVisible={activeTool === "edit"}
             overlayPreviewVisible={activeTool === "overlay"}
+            showSeekControls={false}
             onFocusTargetReady={setFocusGuideTarget}
-            onZoomControlsReady={setZoomGuideTarget}
-            onSeekControlsReady={setSeekGuideTarget}
             onPreviewTimeChange={(time) => {
               setPreviewTime(time);
               if (guideStep === "trim_seek" && Math.abs(time - draft.playback.trimStart) >= 0.3) {
@@ -479,6 +536,9 @@ export default function HighlightSuggestionReview({
                     : current.playback.zoom,
                 },
               }));
+              if (spotlight) {
+                setSpotlightPicking(false);
+              }
               if (spotlight && guideStep === "focus_pick") {
                 dismissStep();
               }
@@ -491,43 +551,36 @@ export default function HighlightSuggestionReview({
                   zoom,
                 },
               }));
-              if (guideStep === "focus_zoom" && Math.abs(zoom - draft.playback.zoom) >= 0.1) {
-                dismissStep();
-              }
             }}
           />
         </div>
 
-        <div className="px-4 pt-4">
-          <div className="grid grid-cols-3 gap-2">
+        <div className="shrink-0 px-4 pt-4">
+          <div className="grid grid-cols-2 gap-2">
             <ToolChip
-              active={activeTool === "trim"}
+              active={activeTool === "edit"}
               step="1"
-              label="구간"
-              testId="single-clip-tool-trim"
+              label="장면"
+              testId="single-clip-tool-edit"
               onClick={() => {
-                setActiveTool("trim");
-                if (guideStep === "trim_seek") dismissStep();
+                setActiveTool("edit");
               }}
             />
             <ToolChip
-              active={activeTool === "focus"}
+              active={activeTool === "overlay"}
               step="2"
-              label="주인공"
-              testId="single-clip-tool-focus"
-              onClick={() => setActiveTool("focus")}
+              label="정보"
+              testId="single-clip-tool-overlay"
+              onClick={() => setActiveTool("overlay")}
             />
-              <ToolChip
-                active={activeTool === "overlay"}
-                step="3"
-                label="정보"
-                testId="single-clip-tool-overlay"
-                onClick={() => setActiveTool("overlay")}
-              />
           </div>
         </div>
 
-        <div data-testid="single-clip-editor" className="flex-1 overflow-y-auto px-4 pb-36 pt-4">
+        <div
+          data-testid="single-clip-editor"
+          className="flex-1 overflow-y-auto px-4 pt-4"
+          style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))" }}
+        >
           {saveSummary ? (
             <div className="mb-4 rounded-2xl border border-accent/20 bg-accent/10 p-4 text-[12px] leading-5 text-[#f5ddb1]">
               {saveSummary}
@@ -540,109 +593,66 @@ export default function HighlightSuggestionReview({
             </div>
           ) : null}
 
-          {activeTool === "trim" ? (
-            <div data-testid="single-clip-trim-panel" className="space-y-4">
-              <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
-                <p className="text-[13px] font-semibold text-[#f6d69a]">
-                  먼저 선수가 잘 보이는 순간으로 맞춰보세요.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                  <p className="text-[10px] text-text-3">시작</p>
-                  <p className="mt-1 text-[15px] font-semibold text-text-1">
-                    {formatTime(draft.playback.trimStart)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                  <p className="text-[10px] text-text-3">끝</p>
-                  <p className="mt-1 text-[15px] font-semibold text-text-1">
-                    {formatTime(draft.playback.trimEnd)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                  <p className="text-[10px] text-text-3">길이</p>
-                  <p className="mt-1 text-[15px] font-semibold text-[#f6d69a]">
-                    {formatDuration(draft.playback.trimStart, draft.playback.trimEnd)}
-                  </p>
-                </div>
-              </div>
-
+          {activeTool === "edit" ? (
+            <div data-testid="single-clip-edit-panel" className="space-y-4">
               <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[14px] font-semibold text-text-1">원하는 장면으로 맞춰요</p>
+                    <p className="mt-1 text-[12px] leading-5 text-text-3">
+                      막대를 움직이고 양끝을 잡아 보여줄 구간을 정하세요.
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-[#d8b36a]/12 px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a]">
+                    {formatDuration(draft.playback.trimStart, draft.playback.trimEnd)}
+                  </div>
+                </div>
+
                 <div
-                  ref={trimBarRef}
-                  data-testid="single-clip-trim-range"
-                  className="relative h-14 overflow-visible rounded-2xl bg-white/[0.04]"
-                  onMouseDown={(event) => {
-                    const rect = trimBarRef.current?.getBoundingClientRect();
-                    if (!rect) return;
-                    const x = (event.clientX - rect.left) / rect.width;
-                    const time = x * draft.sourceDurationSec;
-                    const handle =
-                      Math.abs(time - draft.playback.trimStart) <
-                      Math.abs(time - draft.playback.trimEnd)
-                        ? "start"
-                        : "end";
-                    setDraggingTrimHandle(handle);
-                    handleTrimDrag(event, handle);
-
-                    const onMove = (moveEvent: MouseEvent) =>
-                      handleTrimDrag(
-                        moveEvent as unknown as React.MouseEvent<HTMLDivElement>,
-                        handle
-                      );
-                    const onUp = () => {
-                      setDraggingTrimHandle(null);
-                      document.removeEventListener("mousemove", onMove);
-                      document.removeEventListener("mouseup", onUp);
-                    };
-
-                    document.addEventListener("mousemove", onMove);
-                    document.addEventListener("mouseup", onUp);
-                  }}
-                  onTouchStart={(event) => {
-                    const rect = trimBarRef.current?.getBoundingClientRect();
-                    if (!rect) return;
-                    const x = (event.touches[0].clientX - rect.left) / rect.width;
-                    const time = x * draft.sourceDurationSec;
-                    const handle =
-                      Math.abs(time - draft.playback.trimStart) <
-                      Math.abs(time - draft.playback.trimEnd)
-                        ? "start"
-                        : "end";
-                    setDraggingTrimHandle(handle);
-                    handleTrimDrag(event, handle);
-
-                    const onMove = (moveEvent: TouchEvent) =>
-                      handleTrimDrag(
-                        moveEvent as unknown as React.TouchEvent<HTMLDivElement>,
-                        handle
-                      );
-                    const onUp = () => {
-                      setDraggingTrimHandle(null);
-                      document.removeEventListener("touchmove", onMove);
-                      document.removeEventListener("touchend", onUp);
-                    };
-
-                    document.addEventListener("touchmove", onMove);
-                    document.addEventListener("touchend", onUp);
-                  }}
+                  ref={handleTimelineRef}
+                  data-testid="single-clip-edit-timeline"
+                  className="relative mt-4 h-16 overflow-visible rounded-[22px] bg-white/[0.04]"
+                  onMouseDown={handleTimelineSeek}
+                  onTouchStart={handleTimelineSeek}
                 >
                   <div
-                    className="absolute inset-y-0 bg-[#d8b36a]/20"
+                    className="absolute inset-y-0 rounded-[20px] bg-[#d8b36a]/18"
                     style={{
-                      left: `${(draft.playback.trimStart / draft.sourceDurationSec) * 100}%`,
-                      width: `${((draft.playback.trimEnd - draft.playback.trimStart) / draft.sourceDurationSec) * 100}%`,
+                      left: `${trimStartPercent}%`,
+                      width: `${trimEndPercent - trimStartPercent}%`,
                     }}
                   />
-                  {/* 시작 핸들: 시각 핸들(좁음) + 투명 터치 영역(넓음) */}
+
+                  {freezePercent != null && draft.playback.spotlight ? (
+                    <div
+                      data-testid="single-clip-freeze-marker"
+                      className="absolute inset-y-2 z-20 -translate-x-1/2"
+                      style={{ left: `${freezePercent}%` }}
+                    >
+                      <div className="h-full w-[2px] rounded-full bg-[#f6d69a]/70" />
+                      <div className="absolute -top-2 left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full border border-[#f6d69a] bg-[#09090b]" />
+                    </div>
+                  ) : null}
+
+                  <div
+                    className="absolute inset-y-1 z-20 w-[2px] -translate-x-1/2 rounded-full bg-white/90"
+                    style={{ left: `${playheadPercent}%` }}
+                  >
+                    <div className="absolute -top-2 left-1/2 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.35)]" />
+                  </div>
+
                   <div
                     data-testid="single-clip-trim-start-handle"
-                    className="absolute top-0 bottom-0 flex items-center justify-center"
-                    style={{
-                      left: `calc(${(draft.playback.trimStart / draft.sourceDurationSec) * 100}% - 22px)`,
-                      width: "44px",
+                    data-timeline-handle="true"
+                    className="absolute inset-y-0 z-30 flex items-center justify-center"
+                    style={{ left: `calc(${trimStartPercent}% - 22px)`, width: 44 }}
+                    onMouseDown={(event) => {
+                      event.stopPropagation();
+                      startTrimHandleDrag(event, "start");
+                    }}
+                    onTouchStart={(event) => {
+                      event.stopPropagation();
+                      startTrimHandleDrag(event, "start");
                     }}
                   >
                     <div
@@ -653,13 +663,19 @@ export default function HighlightSuggestionReview({
                       <div className="h-3 w-0.5 rounded-full bg-[#09090b]" />
                     </div>
                   </div>
-                  {/* 끝 핸들 */}
+
                   <div
                     data-testid="single-clip-trim-end-handle"
-                    className="absolute top-0 bottom-0 flex items-center justify-center"
-                    style={{
-                      left: `calc(${(draft.playback.trimEnd / draft.sourceDurationSec) * 100}% - 22px)`,
-                      width: "44px",
+                    data-timeline-handle="true"
+                    className="absolute inset-y-0 z-30 flex items-center justify-center"
+                    style={{ left: `calc(${trimEndPercent}% - 22px)`, width: 44 }}
+                    onMouseDown={(event) => {
+                      event.stopPropagation();
+                      startTrimHandleDrag(event, "end");
+                    }}
+                    onTouchStart={(event) => {
+                      event.stopPropagation();
+                      startTrimHandleDrag(event, "end");
                     }}
                   >
                     <div
@@ -677,132 +693,52 @@ export default function HighlightSuggestionReview({
                   <span>{formatTime(draft.sourceDurationSec)}</span>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      commitDraft((current) => ({
-                        ...current,
-                        playback: {
-                          ...current.playback,
-                          trimStart: Math.min(safePreviewTime, current.playback.trimEnd - 0.1),
-                        },
-                      }))
-                    }
-                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[13px] font-semibold text-text-1"
-                  >
-                    지금 장면을 시작점으로
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      commitDraft((current) => ({
-                        ...current,
-                        playback: {
-                          ...current.playback,
-                          trimEnd: Math.max(safePreviewTime, current.playback.trimStart + 0.1),
-                        },
-                      }))
-                    }
-                    className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-[13px] font-semibold text-text-1"
-                  >
-                    지금 장면을 끝점으로
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {activeTool === "focus" ? (
-            <div data-testid="single-clip-spotlight-panel" className="space-y-4">
-              <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
-                <p className="text-[13px] font-semibold text-[#f6d69a]">
-                  주인공을 한 번 누르면 바로 확대돼요.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                  <p className="text-[10px] text-text-3">현재 프레임</p>
-                  <p className="mt-1 text-[15px] font-semibold text-text-1">
-                    {formatTime(safePreviewTime)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                  <p className="text-[10px] text-text-3">지금 상태</p>
-                  <p className="mt-1 text-[15px] font-semibold text-text-1">
-                    {draft.playback.spotlight ? "주인공을 골랐어요" : "아직 고르지 않았어요"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-white/[0.06] bg-card p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[13px] font-semibold text-text-1">프리즈 프레임</p>
-                    <p className="mt-1 text-[12px] leading-5 text-text-3">
-                      현재 프레임에서 잠깐 멈춰 주인공을 강조해요.
-                    </p>
+                <div className="mt-4 rounded-[22px] border border-white/[0.06] bg-white/[0.03] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[14px] font-semibold text-text-1">주인공을 찍어주세요</p>
+                      <p className="mt-1 text-[12px] leading-5 text-text-3">
+                        원하는 위치로 간 뒤 영상에서 선수를 누르면 그 시점에 잠깐 멈춰 보여줘요.
+                      </p>
+                    </div>
+                    <div
+                      data-testid="single-clip-freeze-value"
+                      className="rounded-full bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a]"
+                    >
+                      {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "꺼짐"}
+                    </div>
                   </div>
-                  <div
-                    data-testid="single-clip-freeze-value"
-                    className="rounded-full bg-white/[0.05] px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a]"
-                  >
-                    {draft.playback.freezeAt != null ? formatTime(draft.playback.freezeAt) : "꺼짐"}
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      commitDraft((current) => ({
-                        ...current,
-                        playback: {
-                          ...current.playback,
-                          freezeAt: current.playback.spotlight ? safePreviewTime : null,
-                        },
-                      }))
-                    }
-                    disabled={!draft.playback.spotlight}
-                    className="flex-1 rounded-2xl bg-[#d8b36a] px-4 py-3 text-[12px] font-bold text-[#09090b] disabled:opacity-40"
-                  >
-                    여기서 잠깐 멈출게요
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      commitDraft((current) => ({
-                        ...current,
-                        playback: { ...current.playback, spotlight: null, freezeAt: null },
-                      }))
-                    }
-                    className="flex-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] py-2.5 text-[12px] font-semibold text-text-1"
-                  >
-                    주인공 지우기
-                  </button>
-                </div>
-              </div>
 
-              <div
-                data-testid="single-clip-zoom-panel"
-                className="rounded-3xl border border-white/[0.06] bg-card p-4"
-              >
-                <p className="text-[13px] font-semibold text-text-1">
-                  재생할 때도 같은 구도로 보여요
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                    <p className="text-[10px] text-text-3">현재 확대</p>
-                    <p className="mt-1 text-[15px] font-semibold text-text-1">
-                      {draft.playback.zoom.toFixed(1)}x
-                    </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSpotlightPicking((current) => !current)}
+                      className={`rounded-2xl px-4 py-3 text-[12px] font-bold ${
+                        spotlightPicking
+                          ? "bg-[#d8b36a] text-[#09090b]"
+                          : "border border-[#d8b36a]/25 bg-[#d8b36a]/10 text-[#f6d69a]"
+                      }`}
+                    >
+                      {spotlightPicking ? "선수 찍는 중" : "이 장면에서 선수 찍기"}
+                    </button>
+                    {draft.playback.spotlight ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSpotlightPicking(false);
+                          commitDraft((current) => ({
+                            ...current,
+                            playback: { ...current.playback, spotlight: null, freezeAt: null },
+                          }));
+                        }}
+                        className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-[12px] font-semibold text-text-1"
+                      >
+                        주인공 지우기
+                      </button>
+                    ) : null}
                   </div>
-                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
-                    <p className="text-[10px] text-text-3">재생 방식</p>
-                    <p className="mt-1 text-[15px] font-semibold text-text-1">
-                      {draft.playback.spotlight ? "확대 재생" : "기본 재생"}
-                    </p>
-                  </div>
+
+                  <p className="mt-3 text-[12px] leading-5 text-text-3">{focusStatusText}</p>
                 </div>
               </div>
             </div>
@@ -810,19 +746,10 @@ export default function HighlightSuggestionReview({
 
           {activeTool === "overlay" ? (
             <div data-testid="single-clip-overlay-panel" className="space-y-4">
-              <div className="rounded-3xl border border-[#d8b36a]/15 bg-[#d8b36a]/[0.07] p-4">
-                <p className="text-[13px] font-semibold text-[#f6d69a]">
-                  정보는 작게만 보여주면 돼요.
-                </p>
-                <p className="mt-1 text-[12px] leading-5 text-text-2">
-                  필요 없으면 끄고 바로 저장하세요.
-                </p>
-              </div>
-
               <ToggleRow
                 testId="single-clip-profile-card-toggle"
                 title="선수 프로필 카드"
-                description="영상 시작에 선수 프로필 카드를 잠깐 보여줘요."
+                description="본영상이 시작되기 전에 선수 카드를 먼저 보여줘요."
                 checked={draft.overlay.showProfileCard}
                 onChange={(checked) =>
                   commitDraft((current) => ({
@@ -844,16 +771,13 @@ export default function HighlightSuggestionReview({
                   }))
                 }
               />
-
             </div>
           ) : null}
-
         </div>
       </div>
 
-      {/* 하단 CTA — 좌: 항상 저장(secondary) / 우: 다음 or 완료(primary) */}
       <div
-        className="fixed inset-x-0 bottom-0 z-20 border-t border-white/[0.06] bg-[#070709]/95 px-4 py-3 backdrop-blur"
+        className="shrink-0 border-t border-white/[0.06] bg-[#070709]/95 px-4 py-3 backdrop-blur"
         style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mx-auto flex w-full max-w-[430px] gap-3">
@@ -915,8 +839,6 @@ export default function HighlightSuggestionReview({
           targetElement={guideTargetElement}
           title={guideTitle}
           description={guideDescription}
-          primaryLabel={guidePrimaryLabel}
-          onPrimary={guidePrimaryLabel ? dismissStep : undefined}
           onSkip={closeGuide}
           onDisable={skipAll}
           placement={guidePlacement}

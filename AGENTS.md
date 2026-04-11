@@ -24,6 +24,7 @@
 - 코드 수정 후 반드시 `npm run lint`, `npm run typecheck`, `npm run test:run`을 실행한다.
 - 사용자 흐름에 영향이 있는 변경은 필요한 범위의 E2E도 추가로 실행한다.
 - 영상 관련 변경은 가능하면 `npm run test:video` 또는 관련 Playwright 시나리오로 확인한다.
+- 영상 재생/편집 QA는 반드시 `docs/testing/video-playback-editing-core-qa.md`의 5개 체크포인트를 먼저 통과 기준으로 삼는다.
 - 사용자 앱 변경은 항상 모바일 뷰포트를 기본 기준으로 테스트하고 검증한다.
 - 데스크톱 확인은 보조 검증으로만 두고, 모바일에서 먼저 통과하지 않으면 완료로 보지 않는다.
 - 검증을 생략한 경우에는 이유를 문서나 보고에 명시한다.
@@ -40,7 +41,7 @@
   - 먼저 읽기: docs/video-ux-principles.md, docs/video-edit-flow.md, docs/video-copy-guidelines.md
 
 - QA/테스트/배포 준비 작업:
-  - 먼저 읽기: docs/testing/video-highlight-acceptance.md, docs/testing/playwright-scenarios.md, docs/testing/video-validation-report.md, docs/ship-blockers.md, docs/release-readiness.md
+  - 먼저 읽기: docs/testing/video-playback-editing-core-qa.md, docs/testing/video-highlight-acceptance.md, docs/testing/playwright-scenarios.md, docs/testing/video-validation-report.md, docs/ship-blockers.md, docs/release-readiness.md
 
 ## Legacy/reference docs
 
@@ -84,6 +85,7 @@
 - lint, typecheck, test 를 통과해야 한다.
 - 관련 Playwright smoke 또는 E2E가 통과해야 한다.
 - 모바일 기준 Playwright 또는 실제 브라우저 검증 근거가 있어야 한다.
+- 영상 재생/편집 변경은 카드 선노출, 타겟팅, freeze 후 재재생, 하단 선수 정보까지 확인 근거가 있어야 한다.
 - 사용자용 문구는 한국어 기준으로 검토되어야 한다.
 - 문서와 실제 동작이 어긋나면 문서를 갱신하거나 코드를 수정한다.
 

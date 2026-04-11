@@ -82,8 +82,55 @@ const ProfileContext = createContext<ProfileContextValue>({
   hasFetched: false,
 });
 
+const PROFILE_CACHE_KEY = "footory-profile-cache-v1";
+
 let cachedProfile: Profile | null = null;
 let cachedProfileUserId: string | null = null;
+
+function persistCachedProfile(profile: Profile) {
+  cachedProfile = profile;
+  cachedProfileUserId = profile.id;
+
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(
+    PROFILE_CACHE_KEY,
+    JSON.stringify({
+      userId: profile.id,
+      profile,
+    })
+  );
+}
+
+function readCachedProfile(userId: string): Profile | null {
+  if (cachedProfile && cachedProfileUserId === userId) {
+    return cachedProfile;
+  }
+
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as { userId?: string; profile?: Profile };
+    if (parsed.userId !== userId || !parsed.profile) return null;
+
+    cachedProfile = parsed.profile;
+    cachedProfileUserId = userId;
+    return parsed.profile;
+  } catch {
+    return null;
+  }
+}
+
+function clearCachedProfile() {
+  cachedProfile = null;
+  cachedProfileUserId = null;
+
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(PROFILE_CACHE_KEY);
+}
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -99,6 +146,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/profile");
       if (!res.ok) {
         if (res.status === 401) {
+          clearCachedProfile();
+          setProfile(null);
+          setError(null);
           window.location.href = "/login";
           return;
         }
@@ -106,8 +156,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
       const data: ProfileApiResponse = await res.json();
       const nextProfile = toProfile(data);
-      cachedProfile = nextProfile;
-      cachedProfileUserId = nextProfile.id;
+      persistCachedProfile(nextProfile);
       setProfile(nextProfile);
       setError(null);
     } catch (e) {
@@ -123,8 +172,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     hydratedRef.current = true;
     fetchedRef.current = true; // auto-fetch 방지
     const nextProfile = toProfile(data as unknown as ProfileApiResponse);
-    cachedProfile = nextProfile;
-    cachedProfileUserId = nextProfile.id;
+    persistCachedProfile(nextProfile);
     setProfile(nextProfile);
     setLoading(false);
     setError(null);
@@ -144,8 +192,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
       const sessionUserId = session?.user?.id ?? null;
       if (!sessionUserId) {
-        cachedProfile = null;
-        cachedProfileUserId = null;
+        clearCachedProfile();
         fetchedRef.current = true;
         setProfile(null);
         setLoading(false);
@@ -153,9 +200,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (cachedProfile && cachedProfileUserId === sessionUserId) {
+      const restoredProfile = readCachedProfile(sessionUserId);
+      if (restoredProfile) {
         fetchedRef.current = true;
-        setProfile(cachedProfile);
+        setProfile(restoredProfile);
         setLoading(false);
         setError(null);
         void fetchProfile();
@@ -170,8 +218,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUserId = session?.user?.id ?? null;
       if (!sessionUserId) {
-        cachedProfile = null;
-        cachedProfileUserId = null;
+        clearCachedProfile();
         hydratedRef.current = false;
         fetchedRef.current = true;
         setProfile(null);
@@ -181,8 +228,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (cachedProfileUserId && cachedProfileUserId !== sessionUserId) {
-        cachedProfile = null;
-        cachedProfileUserId = null;
+        clearCachedProfile();
         hydratedRef.current = false;
         fetchedRef.current = false;
       }

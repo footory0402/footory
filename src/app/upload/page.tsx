@@ -7,7 +7,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import SelectView from "@/components/upload/SelectView";
 import UploadProcessingView from "@/components/upload/UploadProcessingView";
 import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
-import { type SingleClipEditingDraft } from "@/lib/single-clip-playback";
+import {
+  resolveSingleClipEditingDraft,
+  type SingleClipEditingDraft,
+} from "@/lib/single-clip-playback";
 import { publishSingleClipDraft } from "@/lib/highlight-save";
 import { abortActiveUploadWork, startUpload } from "@/lib/upload-service";
 import { loadLatestSingleClipProject, markVideoProjectOpened, type SingleClipProjectResponse } from "@/lib/video-projects";
@@ -152,12 +155,12 @@ export default function UploadPage() {
     if (!recoverableDraft?.project || !recoverableDraft.clip) return;
 
     const store = useUploadStore.getState();
-    const restoredDraft: SingleClipEditingDraft = {
+    const restoredDraft = resolveSingleClipEditingDraft({
       ...recoverableDraft.project.payload,
       projectId: recoverableDraft.project.id,
       projectStatus: recoverableDraft.project.status === "published" ? "published" : "draft",
       lastSavedAt: recoverableDraft.project.updated_at,
-    };
+    } as SingleClipEditingDraft);
 
     const durationSec =
       recoverableDraft.clip.duration_sec ??

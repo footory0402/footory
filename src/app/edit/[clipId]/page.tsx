@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import HighlightSuggestionReview from "@/components/upload/HighlightSuggestionReview";
 import { resolveFocusZoom } from "@/lib/focus-zoom";
-import { createSingleClipEditingDraft, type SingleClipEditingDraft } from "@/lib/single-clip-playback";
+import {
+  createSingleClipEditingDraft,
+  resolveSingleClipEditingDraft,
+  type SingleClipEditingDraft,
+} from "@/lib/single-clip-playback";
 import { applySingleClipDraftToUploadStore } from "@/lib/single-clip-store-sync";
 import { loadSingleClipProjectByClipId, markVideoProjectOpened } from "@/lib/video-projects";
 import { useUploadStore } from "@/stores/upload-store";
@@ -107,12 +111,12 @@ export default function ClipEditPage() {
       try {
         const latestProject = await loadSingleClipProjectByClipId(clipId);
         const restoredDraft = latestProject?.project && latestProject.clip
-          ? {
+          ? resolveSingleClipEditingDraft({
               ...latestProject.project.payload,
               projectId: latestProject.project.id,
               projectStatus: latestProject.project.status === "published" ? "published" : "draft",
               lastSavedAt: latestProject.project.updated_at,
-            } satisfies SingleClipEditingDraft
+            } as SingleClipEditingDraft)
           : null;
 
         let clip: EditableClip | null = latestProject?.clip ?? null;

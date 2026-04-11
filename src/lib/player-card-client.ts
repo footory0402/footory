@@ -23,6 +23,37 @@ const DEFAULT_PLAYER_CARD_CACHE_KEY = "__default__";
 const cachedPlayerCards = new Map<string, PlayerCardResponse | null>();
 const inflightPlayerCards = new Map<string, Promise<PlayerCardResponse | null>>();
 
+function normalizePositionShort(position?: string | null) {
+  const upper = position?.trim().toUpperCase();
+  if (!upper) return undefined;
+
+  if (["GK", "GOALKEEPER"].includes(upper)) return "GK";
+  if (["CB", "LB", "RB", "LWB", "RWB", "DF", "DEFENDER"].includes(upper)) return "DF";
+  if (["CM", "CDM", "CAM", "LM", "RM", "MF", "MIDFIELDER"].includes(upper)) return "MF";
+  if (["ST", "CF", "LW", "RW", "FW", "FORWARD", "ATTACKER"].includes(upper)) return "FW";
+
+  return upper.slice(0, 2);
+}
+
+function normalizeAffiliations(card: PlayerCardData) {
+  const data = card.card_data ?? {};
+  const schoolName = typeof data.schoolName === "string" ? data.schoolName.trim() : "";
+  const teamName = typeof data.teamName === "string" ? data.teamName.trim() : "";
+  const clubName = typeof data.club === "string" ? data.club.trim() : "";
+  const customClubName = typeof data.customClubName === "string" ? data.customClubName.trim() : "";
+  const fallbackClubName = card.club_name?.trim() ?? "";
+  const dedupedTeamName = schoolName && schoolName === teamName ? "" : teamName;
+  const clubFull = customClubName || clubName || dedupedTeamName || schoolName || fallbackClubName;
+  const club = schoolName || customClubName || clubName || dedupedTeamName || fallbackClubName;
+
+  return {
+    club,
+    clubFull,
+    schoolName: schoolName || undefined,
+    teamName: (teamName || clubFull) || undefined,
+  };
+}
+
 function getPlayerCardCacheKey(profileId?: string | null) {
   return profileId?.trim() || DEFAULT_PLAYER_CARD_CACHE_KEY;
 }
@@ -64,15 +95,18 @@ export function buildHudPlayerData(
   if (!response?.card) return null;
 
   const cd = response.card.card_data ?? {};
+  const affiliations = normalizeAffiliations(response.card);
+  const position = cd.position || "ST";
 
   return {
     name: cd.name || `${cd.lastName || ""}${cd.firstName || ""}`.trim() || "",
     number: cd.number || "9",
-    position: cd.position || "ST",
-    club:
-      cd.club === "직접 입력"
-        ? cd.customClubName || cd.teamName || response.card.club_name || ""
-        : cd.club || cd.teamName || response.card.club_name || "",
+    position,
+    positionShort: normalizePositionShort(position),
+    club: affiliations.club,
+    clubFull: affiliations.clubFull || affiliations.club,
+    schoolName: affiliations.schoolName,
+    teamName: affiliations.teamName,
     age: cd.age || "",
     birthDate: cd.birthDate || "",
     height: cd.height || "",
@@ -100,7 +134,10 @@ export function buildFallbackHudPlayerData(clip: {
     name: clip.playerName,
     number: "",
     position: clip.playerPosition || "FW",
+    positionShort: normalizePositionShort(clip.playerPosition || "FW"),
     club: clip.teamName || "",
+    clubFull: clip.teamName || "",
+    teamName: clip.teamName || undefined,
     age: "",
     birthDate: clip.playerBirthYear ? `${clip.playerBirthYear}` : "",
     height: "",

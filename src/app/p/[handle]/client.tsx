@@ -108,10 +108,9 @@ interface PublicProfileData {
     thumbnail_url: string | null;
     total_duration: number;
   }>;
-  stats: Record<string, unknown>[];
-  seasons: Record<string, unknown>[];
-  achievements: Record<string, unknown>[];
-  timelineEvents: Record<string, unknown>[];
+  stats?: Record<string, unknown>[];
+  seasons?: Record<string, unknown>[];
+  achievements?: Record<string, unknown>[];
   tagClips: Record<string, TagClip[]>;
   untaggedClips?: TagClip[];
   playStyle?: Record<string, unknown> | null;
@@ -254,6 +253,25 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("highlights");
   const [shareOpen, setShareOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [profileDetails, setProfileDetails] = useState(() => ({
+    stats: data.stats ?? [],
+    seasons: data.seasons ?? [],
+    achievements: data.achievements ?? [],
+    playStyle: data.playStyle ?? null,
+    tournamentRecords: data.tournamentRecords ?? [],
+    awards: data.awards ?? [],
+  }));
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsLoaded, setDetailsLoaded] = useState(
+    Boolean(
+      data.stats ||
+      data.seasons ||
+      data.achievements ||
+      data.playStyle ||
+      data.tournamentRecords ||
+      data.awards
+    )
+  );
 
   // 내 프로필 편집 상태
   const [editOpen, setEditOpen] = useState(false);
@@ -288,9 +306,9 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
   const [localFeatured, setLocalFeatured] = useState<FeaturedClip[]>(data.featured ?? []);
 
   const profile = toProfile(data);
-  const stats = useMemo(() => computeAggregatedStats(data.stats), [data.stats]);
-  const seasons = mapSeasons(data.seasons);
-  const achievements = mapAchievements(data.achievements ?? []);
+  const stats = useMemo(() => computeAggregatedStats(profileDetails.stats), [profileDetails.stats]);
+  const seasons = useMemo(() => mapSeasons(profileDetails.seasons), [profileDetails.seasons]);
+  const achievements = useMemo(() => mapAchievements(profileDetails.achievements ?? []), [profileDetails.achievements]);
   const tagClips = localTagClips;
 
   useEffect(() => {
@@ -298,6 +316,55 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
     setLocalUntaggedClips(data.untaggedClips ?? []);
     setLocalFeatured(data.featured ?? []);
   }, [data.featured, data.tagClips, data.untaggedClips]);
+
+  useEffect(() => {
+    setProfileDetails({
+      stats: data.stats ?? [],
+      seasons: data.seasons ?? [],
+      achievements: data.achievements ?? [],
+      playStyle: data.playStyle ?? null,
+      tournamentRecords: data.tournamentRecords ?? [],
+      awards: data.awards ?? [],
+    });
+    setDetailsLoaded(
+      Boolean(
+        data.stats ||
+        data.seasons ||
+        data.achievements ||
+        data.playStyle ||
+        data.tournamentRecords ||
+        data.awards
+      )
+    );
+  }, [data.achievements, data.awards, data.playStyle, data.seasons, data.stats, data.tournamentRecords]);
+
+  useEffect(() => {
+    if (activeTab === "highlights" || detailsLoaded) return;
+
+    let cancelled = false;
+    setDetailsLoading(true);
+    fetch(`/api/public-profile/${encodeURIComponent(profile.handle)}/details`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (cancelled || !payload) return;
+        setProfileDetails({
+          stats: payload.stats ?? [],
+          seasons: payload.seasons ?? [],
+          achievements: payload.achievements ?? [],
+          playStyle: payload.playStyle ?? null,
+          tournamentRecords: payload.tournamentRecords ?? [],
+          awards: payload.awards ?? [],
+        });
+        setDetailsLoaded(true);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, detailsLoaded, profile.handle]);
 
   // 스탯 탭 활성화 시 또래 비교 데이터 로드
   useEffect(() => {
@@ -311,7 +378,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
 
   // Map tournament records and awards from SSR data
   const tournaments = useMemo(() => {
-    return (data.tournamentRecords ?? []).map((r) => ({
+    return (profileDetails.tournamentRecords ?? []).map((r) => ({
       id: r.id as string,
       name: r.name as string,
       type: r.type as "공식대회" | "리그" | "친선",
@@ -323,33 +390,33 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
       source: (r.source as "team" | "self") ?? "self",
       verifier: (r.verifier as string) ?? null,
     }));
-  }, [data.tournamentRecords]);
+  }, [profileDetails.tournamentRecords]);
 
   const mappedAwards = useMemo(() => {
-    return (data.awards ?? []).map((r) => ({
+    return (profileDetails.awards ?? []).map((r) => ({
       id: r.id as string,
       title: r.title as string,
       detail: (r.detail as string) ?? null,
       source: (r.source as "team" | "self") ?? "self",
       verifier: (r.verifier as string) ?? null,
     }));
-  }, [data.awards]);
+  }, [profileDetails.awards]);
 
   // Map play style from SSR data to PlayStyle type
   const mappedPlayStyle: PlayStyle | null = useMemo(() => {
-    if (!data.playStyle) return null;
+    if (!profileDetails.playStyle) return null;
     return {
-      id: data.playStyle.id as string,
-      profileId: data.playStyle.profile_id as string,
-      styleType: data.playStyle.style_type as PlayStyleType,
-      traitBreakthrough: data.playStyle.trait_breakthrough as number,
-      traitCreativity: data.playStyle.trait_creativity as number,
-      traitFinishing: data.playStyle.trait_finishing as number,
-      traitTenacity: data.playStyle.trait_tenacity as number,
-      createdAt: data.playStyle.created_at as string,
-      updatedAt: data.playStyle.updated_at as string,
+      id: profileDetails.playStyle.id as string,
+      profileId: profileDetails.playStyle.profile_id as string,
+      styleType: profileDetails.playStyle.style_type as PlayStyleType,
+      traitBreakthrough: profileDetails.playStyle.trait_breakthrough as number,
+      traitCreativity: profileDetails.playStyle.trait_creativity as number,
+      traitFinishing: profileDetails.playStyle.trait_finishing as number,
+      traitTenacity: profileDetails.playStyle.trait_tenacity as number,
+      createdAt: profileDetails.playStyle.created_at as string,
+      updatedAt: profileDetails.playStyle.updated_at as string,
     };
-  }, [data.playStyle]);
+  }, [profileDetails.playStyle]);
 
   // Radar stats for CompareSheet
   const targetRadarStats = useMemo(() => {
@@ -603,65 +670,73 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
         )}
 
         {activeTab === "records" && (
-          <RecordsTabV5
-            stats={stats}
-            playStyle={mappedPlayStyle}
-            percentiles={percentileData?.percentiles}
-            ageAvgs={percentileData?.ageAvgs}
-            peerCounts={percentileData?.peerCounts}
-            ageGroup={percentileData?.ageGroup}
-            percentileLoading={percentileLoading}
-            {...(data.isOwnProfile ? {
-              onAddStat: () => { setStatInputType(undefined); setStatInputId(undefined); setStatInputMode("new"); setStatInputCurrentValue(undefined); setStatInputOpen(true); },
-              onViewHistory: (type: string) => setHistorySheetType(type),
-              onPlayStyleTest: () => setPlayStyleTestOpen(true),
-            } : {})}
-          />
+          detailsLoading && !detailsLoaded ? (
+            <div className="py-8 text-center text-[12px] text-text-3">기록을 불러오는 중이에요</div>
+          ) : (
+            <RecordsTabV5
+              stats={stats}
+              playStyle={mappedPlayStyle}
+              percentiles={percentileData?.percentiles}
+              ageAvgs={percentileData?.ageAvgs}
+              peerCounts={percentileData?.peerCounts}
+              ageGroup={percentileData?.ageGroup}
+              percentileLoading={percentileLoading}
+              {...(data.isOwnProfile ? {
+                onAddStat: () => { setStatInputType(undefined); setStatInputId(undefined); setStatInputMode("new"); setStatInputCurrentValue(undefined); setStatInputOpen(true); },
+                onViewHistory: (type: string) => setHistorySheetType(type),
+                onPlayStyleTest: () => setPlayStyleTestOpen(true),
+              } : {})}
+            />
+          )
         )}
 
         {activeTab === "career" && (
-          <CareerTabV5
-            readOnly={!data.isOwnProfile}
-            profile={profile}
-            seasons={seasons}
-            tournaments={tournaments}
-            awards={mappedAwards}
-            achievements={achievements}
-            {...(data.isOwnProfile ? {
-              onAddSeason: () => setSeasonAddOpen(true),
-              onAddTournament: () => setTournamentAddOpen(true),
-              onAddAward: () => setAwardAddOpen(true),
-              onDeleteTournament: async (id: string) => {
-                const res = await fetch(`/api/tournament-records/${id}`, { method: "DELETE" });
-                if (res.ok) {
-                  toast.success("대회 기록이 삭제되었습니다.");
-                  router.refresh();
-                }
-              },
-              onDeleteAward: async (id: string) => {
-                const res = await fetch(`/api/awards/${id}`, { method: "DELETE" });
-                if (res.ok) {
-                  toast.success("수상 기록이 삭제되었습니다.");
-                  router.refresh();
-                }
-              },
-              onEditTournament: (t) => {
-                setEditingTournament(t);
-                setTournamentAddOpen(true);
-              },
-              onEditAward: (a) => {
-                setEditingAward(a);
-                setAwardAddOpen(true);
-              },
-              onDeleteSeason: async (id: string) => {
-                const res = await fetch(`/api/seasons/${id}`, { method: "DELETE" });
-                if (res.ok) {
-                  toast.success("소속 이력이 삭제되었습니다.");
-                  router.refresh();
-                }
-              },
-            } : {})}
-          />
+          detailsLoading && !detailsLoaded ? (
+            <div className="py-8 text-center text-[12px] text-text-3">커리어를 불러오는 중이에요</div>
+          ) : (
+            <CareerTabV5
+              readOnly={!data.isOwnProfile}
+              profile={profile}
+              seasons={seasons}
+              tournaments={tournaments}
+              awards={mappedAwards}
+              achievements={achievements}
+              {...(data.isOwnProfile ? {
+                onAddSeason: () => setSeasonAddOpen(true),
+                onAddTournament: () => setTournamentAddOpen(true),
+                onAddAward: () => setAwardAddOpen(true),
+                onDeleteTournament: async (id: string) => {
+                  const res = await fetch(`/api/tournament-records/${id}`, { method: "DELETE" });
+                  if (res.ok) {
+                    toast.success("대회 기록이 삭제되었습니다.");
+                    router.refresh();
+                  }
+                },
+                onDeleteAward: async (id: string) => {
+                  const res = await fetch(`/api/awards/${id}`, { method: "DELETE" });
+                  if (res.ok) {
+                    toast.success("수상 기록이 삭제되었습니다.");
+                    router.refresh();
+                  }
+                },
+                onEditTournament: (t) => {
+                  setEditingTournament(t);
+                  setTournamentAddOpen(true);
+                },
+                onEditAward: (a) => {
+                  setEditingAward(a);
+                  setAwardAddOpen(true);
+                },
+                onDeleteSeason: async (id: string) => {
+                  const res = await fetch(`/api/seasons/${id}`, { method: "DELETE" });
+                  if (res.ok) {
+                    toast.success("소속 이력이 삭제되었습니다.");
+                    router.refresh();
+                  }
+                },
+              } : {})}
+            />
+          )
         )}
       </div>
 
@@ -728,7 +803,7 @@ export default function PublicProfileClient({ profile: data }: { profile: Public
           open={!!historySheetType}
           onClose={() => setHistorySheetType(undefined)}
           statType={historySheetType}
-          records={(data.stats as unknown as import("@/hooks/useStats").StatsApiStat[]).filter(
+          records={(profileDetails.stats as unknown as import("@/hooks/useStats").StatsApiStat[]).filter(
             (r) => r.stat_type === historySheetType
           )}
           onAddNew={() => {

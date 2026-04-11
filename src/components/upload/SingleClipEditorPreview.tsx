@@ -4,10 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import VideoOverlay from "@/components/video/VideoOverlay";
 import IntroCard from "@/components/video/hud/IntroCard";
 import type { HudPlayerData } from "@/components/video/hud/types";
-import { FOCUS_ZOOM_PRESETS } from "@/lib/focus-zoom";
+import { DEFAULT_FREEZE_HOLD_MS, FOCUS_ZOOM_PRESETS } from "@/lib/focus-zoom";
 import { useSpotlightZoom } from "@/hooks/useSpotlightZoom";
 import { screenToVideo } from "@/lib/spotlight-math";
-import type { SingleClipEditingDraft } from "@/lib/single-clip-playback";
+import {
+  resolveSingleClipFreezePoint,
+  type SingleClipEditingDraft,
+} from "@/lib/single-clip-playback";
 import { resolveUiVideoAspectRatio } from "@/lib/video-layout";
 import { INTRO_SEQUENCE_DURATION_MS, shouldPlayIntroBeforeVideo } from "@/lib/intro-playback";
 
@@ -19,12 +22,29 @@ interface SingleClipEditorPreviewProps {
   spotlightPicking: boolean;
   focusPreviewVisible: boolean;
   overlayPreviewVisible: boolean;
+  showSeekControls?: boolean;
   onFocusTargetReady?: (element: HTMLDivElement | null) => void;
   onZoomControlsReady?: (element: HTMLDivElement | null) => void;
   onSeekControlsReady?: (element: HTMLInputElement | null) => void;
   onPreviewTimeChange: (time: number) => void;
   onSpotlightChange: (spotlight: { x: number; y: number } | null) => void;
   onZoomChange: (zoom: number) => void;
+}
+
+export function resolvePreviewPlaybackStartTime({
+  currentTime,
+  trimStart,
+  trimEnd,
+  restartFromTrimStart,
+}: {
+  currentTime: number;
+  trimStart: number;
+  trimEnd: number;
+  restartFromTrimStart: boolean;
+}) {
+  if (restartFromTrimStart) return trimStart;
+  if (currentTime < trimStart || currentTime >= trimEnd) return trimStart;
+  return currentTime;
 }
 
 function formatTime(seconds: number) {
@@ -80,6 +100,7 @@ export default function SingleClipEditorPreview({
   spotlightPicking,
   focusPreviewVisible,
   overlayPreviewVisible,
+  showSeekControls = true,
   onFocusTargetReady,
   onZoomControlsReady,
   onSeekControlsReady,
@@ -92,16 +113,39 @@ export default function SingleClipEditorPreview({
   const pinchStateRef = useRef<{ distance: number; zoom: number } | null>(null);
   const lastPinchZoomRef = useRef(draft.playback.zoom);
   const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const freezeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const introPlayedRef = useRef(false);
+  const restartFromTrimStartRef = useRef(false);
+  const freezeTriggeredRef = useRef(false);
+  const freezeHoldingRef = useRef(false);
   const [videoNativeSize, setVideoNativeSize] = useState<{ w: number; h: number } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [ended, setEnded] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isFreezing, setIsFreezing] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
 
   const spotlight = draft.playback.spotlight;
-  const freezeActive =
-    draft.playback.freezeAt != null && Math.abs(draft.playback.freezeAt - previewTime) <= 0.35;
+  const { freezeAtSec } = useMemo(
+    () =>
+      resolveSingleClipFreezePoint(
+        {
+          duration: draft.sourceDurationSec,
+          trimStart: draft.playback.trimStart,
+          trimEnd: draft.playback.trimEnd,
+          freezeAt: spotlight ? draft.playback.freezeAt : null,
+        },
+        draft.sourceDurationSec,
+      ),
+    [
+      draft.playback.freezeAt,
+      draft.playback.trimEnd,
+      draft.playback.trimStart,
+      draft.sourceDurationSec,
+      spotlight,
+    ],
+  );
+  const freezeActive = freezeAtSec != null && Math.abs(freezeAtSec - previewTime) <= 0.35;
   const shouldGateIntroPlayback = shouldPlayIntroBeforeVideo({
     introEnabled: draft.overlay.showProfileCard && !!playerData,
     currentTimeSec: previewTime,
@@ -137,13 +181,38 @@ export default function SingleClipEditorPreview({
 
       setEnded(false);
       onPreviewTimeChange(currentTime);
+
+      if (
+        freezeAtSec != null &&
+        spotlight &&
+        !freezeTriggeredRef.current &&
+        !freezeHoldingRef.current &&
+        !video.paused &&
+        currentTime >= freezeAtSec
+      ) {
+        freezeTriggeredRef.current = true;
+        freezeHoldingRef.current = true;
+        video.pause();
+        setIsFreezing(true);
+        onPreviewTimeChange(freezeAtSec);
+        freezeTimerRef.current = setTimeout(() => {
+          freezeTimerRef.current = null;
+          freezeHoldingRef.current = false;
+          setIsFreezing(false);
+          video.play().catch(() => {});
+        }, DEFAULT_FREEZE_HOLD_MS);
+      }
     };
 
     const handlePlay = () => {
       setEnded(false);
       setIsPlaying(true);
     };
-    const handlePause = () => setIsPlaying(false);
+    const handlePause = () => {
+      if (!freezeHoldingRef.current) {
+        setIsPlaying(false);
+      }
+    };
     const handleWaiting = () => setIsBuffering(true);
     const handleReady = () => setIsBuffering(false);
 
@@ -162,13 +231,42 @@ export default function SingleClipEditorPreview({
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("canplay", handleReady);
     };
-  }, [draft.playback.trimEnd, draft.playback.trimStart, onPreviewTimeChange]);
+  }, [
+    draft.playback.trimEnd,
+    draft.playback.trimStart,
+    freezeAtSec,
+    onPreviewTimeChange,
+    spotlight,
+  ]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || Math.abs(video.currentTime - previewTime) <= 0.05) return;
     video.currentTime = previewTime;
   }, [previewTime]);
+
+  useEffect(() => {
+    if (freezeAtSec == null) {
+      freezeTriggeredRef.current = false;
+      freezeHoldingRef.current = false;
+      setIsFreezing(false);
+      if (freezeTimerRef.current) {
+        clearTimeout(freezeTimerRef.current);
+        freezeTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (previewTime < freezeAtSec - 0.1) {
+      freezeTriggeredRef.current = false;
+      freezeHoldingRef.current = false;
+      setIsFreezing(false);
+      if (freezeTimerRef.current) {
+        clearTimeout(freezeTimerRef.current);
+        freezeTimerRef.current = null;
+      }
+    }
+  }, [freezeAtSec, previewTime]);
 
   useEffect(() => {
     if (introTimerRef.current) {
@@ -238,6 +336,9 @@ export default function SingleClipEditorPreview({
       if (introTimerRef.current) {
         clearTimeout(introTimerRef.current);
       }
+      if (freezeTimerRef.current) {
+        clearTimeout(freezeTimerRef.current);
+      }
     };
   }, []);
 
@@ -252,11 +353,27 @@ export default function SingleClipEditorPreview({
     }
 
     if (video.paused) {
-      if (
-        video.currentTime < draft.playback.trimStart ||
-        video.currentTime >= draft.playback.trimEnd
-      ) {
-        video.currentTime = draft.playback.trimStart;
+      const nextStartTime = resolvePreviewPlaybackStartTime({
+        currentTime: video.currentTime,
+        trimStart: draft.playback.trimStart,
+        trimEnd: draft.playback.trimEnd,
+        restartFromTrimStart: restartFromTrimStartRef.current,
+      });
+      const isRestartingFromBeginning = Math.abs(nextStartTime - draft.playback.trimStart) <= 0.05;
+      restartFromTrimStartRef.current = false;
+      if (isRestartingFromBeginning) {
+        introPlayedRef.current = false;
+        freezeTriggeredRef.current = false;
+        freezeHoldingRef.current = false;
+        setIsFreezing(false);
+        if (freezeTimerRef.current) {
+          clearTimeout(freezeTimerRef.current);
+          freezeTimerRef.current = null;
+        }
+      }
+      if (Math.abs(video.currentTime - nextStartTime) > 0.05) {
+        video.currentTime = nextStartTime;
+        onPreviewTimeChange(nextStartTime);
       }
       if (
         !introPlayedRef.current &&
@@ -280,7 +397,15 @@ export default function SingleClipEditorPreview({
     }
 
     video.pause();
-  }, [draft.overlay.showProfileCard, draft.playback.trimEnd, draft.playback.trimStart, ended, playerData, showIntro]);
+  }, [
+    draft.overlay.showProfileCard,
+    draft.playback.trimEnd,
+    draft.playback.trimStart,
+    ended,
+    onPreviewTimeChange,
+    playerData,
+    showIntro,
+  ]);
 
   const handleTap = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -310,6 +435,7 @@ export default function SingleClipEditorPreview({
       if (!spot) return;
       video.pause();
       onPreviewTimeChange(video.currentTime);
+      restartFromTrimStartRef.current = true;
       onSpotlightChange(spot);
     },
     [
@@ -381,10 +507,13 @@ export default function SingleClipEditorPreview({
   const helperText = useMemo(() => {
     if (focusPreviewVisible && spotlightPicking) {
       return spotlight
-        ? "다른 선수를 누르면 바로 바뀌어요."
-        : "주인공을 한 번 누르면 바로 가깝게 보여줘요.";
+        ? "다른 선수를 누르면 바로 다시 맞춰요."
+        : "장면을 맞춘 뒤 선수를 한 번 눌러주세요.";
     }
     if (focusPreviewVisible && spotlight) {
+      if (freezeAtSec != null) {
+        return `${formatTime(freezeAtSec)}에서 2초 멈춰 주인공을 보여줘요.`;
+      }
       return activeZoomPreset
         ? `${activeZoomPreset.label}로 주인공이 더 잘 보여요.`
         : `${draft.playback.zoom.toFixed(1)}x로 주인공을 더 잘 보이게 해요.`;
@@ -401,6 +530,7 @@ export default function SingleClipEditorPreview({
     focusPreviewVisible,
     overlayPreviewVisible,
     activeZoomPreset,
+    freezeAtSec,
     spotlight,
     spotlightPicking,
   ]);
@@ -462,7 +592,7 @@ export default function SingleClipEditorPreview({
                 position: playerData.position,
               }}
               hideNametag
-              freezeMode={freezeActive}
+              freezeMode={freezeActive || isFreezing}
               zoomLevel={zoom}
               showWhileZoom
             />
@@ -472,11 +602,15 @@ export default function SingleClipEditorPreview({
         {focusPreviewVisible ? (
           <div className="pointer-events-none absolute left-3 top-3 z-20 flex flex-wrap gap-2">
             <span className="rounded-full border border-white/10 bg-black/45 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur-sm">
-              {spotlight ? "주인공 선택됨" : "선수를 한 번 눌러주세요"}
+              {spotlight ? "주인공 선택됨" : "선수를 눌러 선택하세요"}
             </span>
             {spotlight ? (
               <span className="rounded-full border border-[#d8b36a]/30 bg-[#d8b36a]/12 px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a] backdrop-blur-sm">
-                {activeZoomPreset ? `${activeZoomPreset.label}` : `재생도 ${draft.playback.zoom.toFixed(1)}x`}
+                {freezeAtSec != null
+                  ? `${formatTime(freezeAtSec)}에서 2초 강조`
+                  : activeZoomPreset
+                    ? `${activeZoomPreset.label}`
+                    : `재생도 ${draft.playback.zoom.toFixed(1)}x`}
               </span>
             ) : null}
           </div>
@@ -611,31 +745,54 @@ export default function SingleClipEditorPreview({
           </div>
         ) : null}
 
-        <div className="mt-4">
-          <input
-            ref={onSeekControlsReady}
-            type="range"
-            min={seekMin}
-            max={seekMax}
-            step={0.1}
-            value={seekValue}
-            onChange={(event) => {
-              const video = videoRef.current;
-              const nextValue = Number(event.target.value);
-              if (video) {
-                video.currentTime = nextValue;
-              }
-              onPreviewTimeChange(nextValue);
-            }}
-            className="w-full accent-[#d8b36a]"
-            aria-label="편집 미리보기 이동"
-          />
-          <div className="mt-2 flex items-center justify-between gap-3 text-[11px] leading-5 text-white/60">
-            <span>{formatTime(seekMin)}</span>
-            <p className="flex-1 text-center">{helperText}</p>
-            <span>{formatTime(seekMax)}</span>
+        {showSeekControls ? (
+          <div className="mt-4">
+            <input
+              ref={onSeekControlsReady}
+              type="range"
+              min={seekMin}
+              max={seekMax}
+              step={0.1}
+              value={seekValue}
+              onChange={(event) => {
+                const video = videoRef.current;
+                const nextValue = Number(event.target.value);
+                restartFromTrimStartRef.current = false;
+                if (video) {
+                  video.currentTime = nextValue;
+                }
+                onPreviewTimeChange(nextValue);
+              }}
+              className="w-full accent-[#d8b36a]"
+              aria-label="편집 미리보기 이동"
+            />
+            <div className="mt-2 flex items-center justify-between gap-3 text-[11px] leading-5 text-white/60">
+              <span>{formatTime(seekMin)}</span>
+              <p className="flex-1 text-center">{helperText}</p>
+              <span>{formatTime(seekMax)}</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <>
+            <input
+              ref={onSeekControlsReady}
+              type="range"
+              min={seekMin}
+              max={seekMax}
+              step={0.1}
+              value={seekValue}
+              readOnly
+              tabIndex={-1}
+              aria-hidden="true"
+              className="sr-only"
+            />
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-[18px] border border-white/[0.06] bg-white/[0.03] px-3 py-3 text-[11px] leading-5 text-white/70">
+              <span className="shrink-0 text-white/50">{formatTime(seekValue)}</span>
+              <p className="flex-1 text-center">{helperText}</p>
+              <span className="shrink-0 text-white/50">{formatTime(seekMax)}</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

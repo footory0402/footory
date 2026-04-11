@@ -186,12 +186,20 @@ export default function ClipPlayerSheet({
     };
   }, []);
 
-  const playIntro = useCallback((clipId: string) => {
+  const playIntro = useCallback((currentClip: PlayableClip) => {
     if (introTimerRef.current) {
       clearTimeout(introTimerRef.current);
       introTimerRef.current = null;
     }
-    introShownRef.current.add(clipId);
+    const video = videoRef.current;
+    const { trimStartSec } = resolveSingleClipPlaybackWindow(currentClip ?? {}, video?.duration);
+    introShownRef.current.add(currentClip.id);
+    if (video) {
+      video.pause();
+      video.currentTime = trimStartSec;
+    }
+    setEnded(false);
+    setPaused(false);
     setIntroReady(false);
     setShowIntro(true);
     introTimerRef.current = window.setTimeout(() => {
@@ -408,7 +416,7 @@ export default function ClipPlayerSheet({
         const fallbackIntro = buildFallbackHudPlayerData(currentClip);
         introEnabledRef.current = true;
         setIntroData((prev) => prev ?? fallbackIntro);
-        playIntro(currentClip.id);
+        playIntro(currentClip);
       }
     };
     const onError = () => {
@@ -464,11 +472,16 @@ export default function ClipPlayerSheet({
     setEnded(false);
     setProgress(0);
     setCurrentTime(0);
+    if (currentClip?.effects?.intro === true) {
+      introShownRef.current.delete(currentClip.id);
+      playIntro(currentClip);
+      return;
+    }
     v.play().catch(() => {});
     setPaused(false);
     setShowControls(true);
     scheduleHide();
-  }, [clips, index, scheduleHide]);
+  }, [clips, index, playIntro, scheduleHide]);
 
   const handleTap = useCallback(() => {
     const v = videoRef.current;

@@ -98,7 +98,8 @@ export default function GuideHighlightOverlay({
 
   const gap = 12;
   const spaceAbove = rect.top - 12;
-  const spaceBelow = viewport.height - rect.top - rect.height - 12;
+  const reservedBottom = viewport.width > 0 && viewport.width < 640 ? 112 : 24;
+  const spaceBelow = viewport.height - rect.top - rect.height - reservedBottom;
 
   const actualPlacement =
     viewport.height <= 0 || cardHeight <= 0
@@ -112,7 +113,10 @@ export default function GuideHighlightOverlay({
   const cardTop =
     actualPlacement === "top"
       ? Math.max(12, rect.top - cardHeight - gap)
-      : Math.min(rect.top + rect.height + gap, Math.max(12, viewport.height - cardHeight - 12));
+      : Math.min(
+          rect.top + rect.height + gap,
+          Math.max(12, viewport.height - cardHeight - reservedBottom)
+        );
 
   const arrowLeft = Math.min(Math.max(18, rect.left + rect.width / 2 - cardLeft), cardWidth - 18);
 

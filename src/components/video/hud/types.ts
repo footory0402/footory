@@ -8,6 +8,8 @@ export interface HudPlayerData {
   club: string;
   /** 팀 풀네임 (예: "FC SEOUL U12") */
   clubFull?: string;
+  schoolName?: string;
+  teamName?: string;
   age: string;
   birthDate: string;
   height: string;

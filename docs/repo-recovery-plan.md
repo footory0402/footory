@@ -44,6 +44,50 @@
 - 남은 위험은 작은 화면 회귀 강도, 느린 네트워크/복귀 조합 검증, 로컬 preview와 원격 재생 자산 검증 분리, featured 저장의 완전 원자성 미보장이다.
 - 문서 쪽에서는 `docs/repo-recovery-plan.md`가 실행 계획, 로그, 참고 설명을 한 파일에 모두 누적해 탐색 비용이 너무 커졌다.
 
+## 단일 타임라인 편집·인트로 우선 재생 정렬 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `docs/video-upload-editing-spec.md`, `docs/video-edit-flow.md`, `docs/video-ux-principles.md`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/upload/SingleClipEditorPreview.tsx`, `src/components/player/ClipPlayerSheet.tsx`, `src/app/p/[handle]/h/[clipId]/HighlightSharePlayerClient.tsx`, `src/components/video/VideoOverlay.tsx`, `src/lib/focus-zoom.ts`, 관련 unit/E2E
+- 변경 이유: 현재 single-clip 편집은 상단 미리보기 탐색과 하단 trim 바가 분리되어 사용자가 `장면 이동`, `구간 자르기`, `주인공 선택`을 한 번에 이해하기 어렵다. 동시에 편집 미리보기와 저장 후 재생의 타임라인이 달라 `프로필카드 먼저 -> 본영상 시작 -> freeze 강조`가 일관되게 보이지 않고, spotlight 오버레이와 기본 확대값이 커서 선수 1명을 정확히 짚기 어렵다.
+- 변경 범위:
+  - single-clip 편집을 단일 하단 타임라인 중심으로 재구성해 `재생 위치`, `trim 시작/끝`, `freeze 시점`을 한 흐름에서 조정하게 한다.
+  - 편집 미리보기와 저장 후 재생 모두 `프로필카드 완료 후 본영상 시작`, `freeze_at 시점 2초 정지 후 재재생` 규칙을 동일하게 맞춘다.
+  - spotlight 시각 강조와 기본 확대값을 `선수 한 명 중심`으로 더 타이트하게 조정한다.
+  - 사용자 노출 문구를 내부 구현 용어보다 행동 중심 한국어로 다시 정리한다.
+  - 모바일 기준 video upload/player E2E와 관련 unit test를 현재 동작 기준으로 갱신한다.
+- 비범위:
+  - 새 DB 필드 추가, render/export phase 2 복귀, 자동 선수 인식, trackingPoints 사용자 편집 노출
+  - 멀티클립 reel 편집 구조 변경
+  - 프로필 전체 UI 개편
+
+## 선수 하이라이팅 편집·재생 복구 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/upload/SingleClipEditorPreview.tsx`, `src/lib/player-card-client.ts`, `src/lib/single-clip-playback.ts`, `src/components/profile/HighlightsTabV5.tsx`, `src/components/player/ClipPlayerSheet.tsx`, `src/app/p/[handle]/h/[clipId]/HighlightSharePlayerClient.tsx`, 관련 unit/E2E
+- 변경 이유: 연속 변경 이후 single-clip 편집 화면 타입 계약이 깨졌고, 선수 HUD 데이터에서 학교/팀/포지션 약자 같은 핵심 식별 정보가 빠지며, profile/share 재생 경로와 편집 저장 계약이 다시 벌어졌다. 동시에 `tests/e2e/video/*` 회귀 게이트가 삭제돼 spotlight/freeze/lower third 회귀를 자동으로 막지 못하는 상태다.
+- 변경 범위:
+  - single-clip 편집 화면의 preview props와 실제 사용 계약을 다시 맞춰 타입 오류를 제거한다.
+  - player card/HUD 데이터 변환을 복구해 intro card와 lower third가 학교, 팀, 포지션 약자, fallback 필드를 일관되게 소비하도록 맞춘다.
+  - 대표 영상 카드 길이와 single-clip 저장/재생 계약을 clip-first playback 기준으로 다시 정렬한다.
+  - profile/share playback이 trim/freeze/spotlight/HUD를 같은 helper 기준으로 소비하도록 저위험 범위에서 정리한다.
+  - 삭제된 `tests/e2e/video` 및 핵심 unit test를 현재 구현 기준으로 복구해 모바일 영상 회귀 게이트를 되살린다.
+- 비범위:
+  - render-worker, `/api/render/*`, 멀티클립 reel 편집 재설계
+  - 새 영상 기능 추가 또는 데이터베이스 스키마 변경
+  - 프로필 전체 UI 개편이나 영상 외 소셜 기능 변경
+
+## 업로드 편집 화면 화면비 대응 복구 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/components/upload/SingleClipEditorPreview.tsx`, `tests/e2e/video/video-upload-flow.spec.ts`, 필요 시 관련 video layout 유틸
+- 변경 이유: 업로드 후 편집 화면에서 세로로 긴 영상과 모바일 긴 화면 조합일 때 프리뷰 높이, 하단 CTA, overlay 미리보기가 서로 밀리며 버튼이 영상 위로 올라오고 lower third safe area가 깨진다. 현재 QA canonical도 세로/가로 비율 차이로 하단 정보가 잘리거나 겹치면 실패로 본다.
+- 변경 범위:
+  - `/upload` single-clip 편집 화면의 하단 CTA와 본문 스크롤 구조를 모바일 safe-area 기준으로 다시 정리한다.
+  - 프리뷰 카드는 세로/가로 영상 모두 `contain` 기준으로 수용하고, 긴 세로 영상에서도 전체 프레임이 보이도록 stage 높이와 폭을 조정한다.
+  - overlay 단계 미리보기의 lower third 가이드는 실제 safe area 기준으로 보이게 조정한다.
+  - portrait fixture를 사용하는 모바일 E2E를 추가해 세로 영상 레이아웃 회귀를 고정한다.
+- 비범위:
+  - clip 저장 계약, `spotlight/freeze/overlay` 데이터 shape 변경
+  - 새 편집 기능 추가
+  - 프로필/공유 플레이어 전체 레이아웃 개편
+
 ## 프로필 첫 화면 대표 영상 우선 노출 배치 (2026-04-11)
 
 - 대상: `docs/repo-recovery-plan.md`, `src/app/p/[handle]/client.tsx`, `src/components/profile/HighlightsTabV5.tsx`, `src/hooks/useClips.ts`, 관련 프로필 테스트
@@ -58,12 +102,26 @@
   - 기록/커리어 API 분할 같은 대규모 서버 리팩터
   - 스카우터/학부모 전용 새 프로필 UI 추가
 
+## 공개 프로필 첫 응답 경량화 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `src/app/p/[handle]/page.tsx`, `src/app/p/[handle]/client.tsx`, 신규 공개 프로필 details API, 관련 테스트
+- 변경 이유: 대표 영상 노출 순서를 맞췄더라도, 공개 프로필 첫 응답이 스탯/커리어 데이터까지 함께 기다리면 모바일 체감 속도 개선 폭이 제한된다.
+- 변경 범위:
+  - `/p/[handle]` 서버 첫 응답은 프로필 hero, 대표 영상, 클립 포트폴리오 중심 최소 데이터만 우선 조회한다.
+  - 스탯/플레이스타일/커리어 데이터는 `records`, `career` 탭 진입 시 한 번에 지연 로드한다.
+  - 현재 실제로 소비하지 않는 `timelineEvents` 초기 조회는 제거한다.
+- 비범위:
+  - 프로필 탭 구조 재설계
+  - 기록/커리어 도메인 모델 자체 변경
+  - 새 권한 체계 추가
+
 ## 업로드·프로필 재생 회귀 점검 배치 (2026-04-11)
 
 - 대상: `src/app/upload/page.tsx`, `src/providers/ProfileProvider.tsx`, `src/app/login/page.tsx`, `src/app/edit/[clipId]/page.tsx`, `src/lib/highlight-save.ts`, `src/lib/single-clip-playback.ts`, `src/components/upload/HighlightSuggestionReview.tsx`, `src/app/p/[handle]/page.tsx`, `src/components/profile/HighlightsTabV5.tsx`, 관련 unit/E2E
 - 변경 이유: 모바일 기준으로 업로드 메인 진입 시 `로딩 중...` 노출이 길고, 로그인 캐시 복원/뒤로가기 시 이전 세션 흔적이 남는 제보가 있으며, 홈/프로필 재생과 편집 저장 결과가 서로 다르거나 저장 직후 프로필 재생이 실패하는 회귀가 보고됐다.
 - 변경 범위:
   - `/upload` 진입 시 세션/프로필 복원 경로를 실제 인증 상태 기준으로 줄여 불필요한 블로킹 로딩을 줄인다.
+  - `/upload` 이동 시 `ProfileProvider` 재초기화와 전체 `/api/profile` 응답 대기를 줄여, 직전 세션의 유효한 프로필 캐시가 있으면 먼저 화면을 열고 백그라운드 재검증한다.
   - 모바일에서 이전 로그인 세션이 남아 보이는 경로를 실제 `bfcache`/Supabase 세션 복원 흐름 기준으로 점검하고, 저위험 범위에서 정리한다.
   - `/edit/[clipId]`가 기존 clip playback 메타데이터를 편집 draft로 복원하는 경로를 점검해 `spotlight`, `freeze`, `effects` 불일치를 막는다.
   - 편집 저장 이후 프로필 Featured/클립 재생이 같은 playback contract를 보도록 서버 조회와 클라이언트 소비를 맞춘다.
@@ -72,6 +130,45 @@
   - render-worker나 `/api/render/*`를 core flow로 복귀시키지 않는다.
   - 멀티클립 릴 편집, 새 영상 UX, 소셜/피드 동작은 이번 배치 범위에 넣지 않는다.
   - 업로드/편집 플로우 전체 재설계는 하지 않고, 현재 사용자 제보 재현과 회귀 복구에만 집중한다.
+
+## 업로드·편집 카드/타겟팅 모바일 QA 배치 (2026-04-11)
+
+- 대상: `/upload`, `/edit/[clipId]`, 업로드 완료 직후 review/player, 관련 mobile video E2E와 수동 브라우저 검증
+- 변경 이유: 사용자 기준 핵심 확인 포인트인 `카드 선노출 후 본영상 재생`, `선수 타겟팅 동작`, `타겟팅 시 잠시 멈춘 뒤 재재생`, `하단 선수 정보 노출`이 실제 모바일 화면에서 기대대로 이어지는지 다시 증거를 남겨야 한다.
+- 변경 범위:
+  - 기존 `tests/e2e/video` 시나리오 중 업로드/편집/재생 관련 케이스를 모바일 기준으로 재실행한다.
+  - 실제 브라우저에서 업로드 후 편집 미리보기와 저장 후 재생을 직접 확인해 카드, freeze, lower third 순서를 검증한다.
+  - 문제를 발견하면 재현 단계와 화면 증거를 남기고, 이번 턴에서는 QA/보고 범위만 다룬다.
+- 비범위:
+  - 새 편집 기능 추가
+  - playback contract나 overlay UI 구조 변경
+  - reel, render/export, 프로필 전체 정보 구조 개편
+
+## 영상 재생·편집 핵심 QA 지침 고정 배치 (2026-04-11)
+
+- 대상: `AGENTS.md`, `docs/testing/playwright-scenarios.md`, 신규 QA canonical 문서
+- 변경 이유: 카드 선노출, 본영상 재생, 선수 타겟팅, freeze 후 재재생, 하단 선수 정보는 제품 핵심 경험인데 현재 테스트 실행자가 매번 해석으로 확인하고 있어 회귀 게이트가 흔들린다.
+- 변경 범위:
+  - 이 5개 포인트를 별도 canonical QA 지침으로 고정한다.
+  - 영상 QA 작업은 해당 문서를 먼저 읽도록 `AGENTS.md` 라우팅을 보강한다.
+  - 기존 Playwright 시나리오 문서에서 이 지침을 우선 게이트로 참조하게 연결한다.
+- 비범위:
+  - 실제 플레이어/편집 코드 수정
+  - 새 E2E 구현 추가
+  - 외부 skill 설치나 Codex 전역 설정 변경
+
+## 프로필 플레이어 회귀 게이트 복구 배치 (2026-04-11)
+
+- 대상: `tests/e2e/video/video-player.spec.ts`, `src/components/player/ClipPlayerSheet.tsx`, `src/components/upload/SingleClipEditorPreview.tsx`, `src/components/video/hud/IntroCard.tsx`, 필요 시 관련 재생 유틸
+- 변경 이유: 현재 모바일 프로필 플레이어 E2E가 실제 UI 텍스트와 어긋나 회귀 게이트 역할을 못 하고, 수동 QA에서 intro card skip과 freeze 실동작 의심이 확인됐다.
+- 변경 범위:
+  - `video-player.spec.ts`를 현재 프로필 UI와 `docs/testing/video-playback-editing-core-qa.md` 기준으로 정렬한다.
+  - intro/profile card가 먼저 보이고 본영상이 뒤따르는지 코드 기준으로 점검하고, 환경 의존 skip이 있으면 현재 core playback 기준에 맞게 정리한다.
+  - freeze가 편집 미리보기와 프로필 플레이어에서 실제 hold 후 재재생으로 소비되는지 확인하고 필요한 범위만 보정한다.
+- 비범위:
+  - 새 편집 기능 추가
+  - render/export phase 2 복귀
+  - 릴 제작 플로우 전체 개편
 
 ## 모바일 로그인 잔존 세션 화면 정리 배치 (2026-04-11)
 
@@ -124,6 +221,21 @@
 - 비범위:
   - 새 데이터 필드 추가, 자동 선수 인식, 추적형 키프레임 편집, render/export phase 2 복귀
   - 프로필 카드의 시각 테마 전면 교체나 장식성 모션 확대
+
+## 재생 프로필카드 정보 확장 배치 (2026-04-11)
+
+- 대상: `docs/repo-recovery-plan.md`, `src/lib/player-card-client.ts`, `src/components/video/hud/types.ts`, `src/components/video/hud/IntroCard.tsx`, 필요 시 관련 테스트
+- 변경 이유: 영상 재생 인트로에서 선수 프로필카드가 학교/팀 정보를 중복 노출하고, 저장된 생년·키·몸무게·주발 같은 정보가 카드에 나오지 않아 선수 포트폴리오 정보 전달력이 약하다.
+- 변경 범위:
+  - `player-card` 응답을 재생 HUD 데이터로 변환할 때 학교/팀 표시 값을 분리하고, 같은 값 중복 노출을 제거한다.
+  - 영상 재생 인트로 카드에서 저장된 선수 정보를 모바일 영상 기준으로 더 많이 보여 주되 safe area와 가독성을 유지한다.
+  - 모바일에서 긴 항목과 짧은 항목의 카드 비율이 깨지지 않도록 정보 박스 span과 높이를 재조정한다.
+  - 기존 single-clip playback 계약과 lower third 노출 방식은 유지한다.
+- 비범위:
+  - 카드 편집기 입력 항목 추가
+  - 새 overlay 저장 필드 추가
+  - 프로필 전체 화면이나 공유 플레이어 레이아웃 전면 개편
+
 
 ## 모바일 카드 에디터 압축 배치 (2026-04-11)
 
