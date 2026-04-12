@@ -91,8 +91,8 @@ export default function VideoOverlay({
             }}
             >
             {freezeMode ? <FreezeChevron /> : null}
-            {!hideNametag && freezeMode && player.name ? (
-              <FreezeNameIndicator name={player.name} effects={effects} />
+            {!hideNametag && markerVisible && player.name ? (
+              <FreezeNameIndicator name={player.name} effects={effects} zoomLevel={zoomLevel} />
             ) : null}
 
             <CenterMarker freezeMode={!!freezeMode} />
@@ -129,17 +129,22 @@ function FocusIsolation({ freezeMode, active }: { freezeMode: boolean; active: b
 function FreezeNameIndicator({
   name,
   effects,
+  zoomLevel = 1,
 }: {
   name: string;
   effects?: PlaybackEffects | null;
+  zoomLevel?: number;
 }) {
+  // 부모 컨테이너의 scale(zoom) 을 상쇄해 배지 시각적 크기를 일정하게 유지
+  const invScale = 1 / Math.max(1, zoomLevel);
   return (
     <div
       style={{
         position: "absolute",
         bottom: "calc(100% + 30px)",
         left: "50%",
-        transform: "translateX(-50%)",
+        transform: `translateX(-50%) scale(${invScale})`,
+        transformOrigin: "center bottom",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

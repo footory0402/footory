@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import GuideHighlightOverlay from "@/components/upload/GuideHighlightOverlay";
 import SingleClipEditorPreview from "@/components/upload/SingleClipEditorPreview";
-import { DEFAULT_EDITOR_ZOOM } from "@/lib/focus-zoom";
+import { DEFAULT_EDITOR_ZOOM, DEFAULT_FOCUS_ZOOM } from "@/lib/focus-zoom";
 import { publishSingleClipDraft, saveSingleClipDraft } from "@/lib/highlight-save";
 import { useUploadGuide } from "@/hooks/useUploadGuide";
 import { useProfileContext } from "@/providers/ProfileProvider";
@@ -160,17 +160,6 @@ export default function HighlightSuggestionReview({
     [draft.sourceDurationSec],
   );
 
-  const seekPreviewTo = useCallback(
-    (time: number) => {
-      const nextTime = Number(Math.max(0, Math.min(draft.sourceDurationSec, time)).toFixed(1));
-      setPreviewTime(nextTime);
-      if (guideStep === "trim_seek" && Math.abs(nextTime - draft.playback.trimStart) >= 0.3) {
-        dismissStep();
-      }
-    },
-    [dismissStep, draft.playback.trimStart, draft.sourceDurationSec, guideStep],
-  );
-
   const updateTrimHandle = useCallback(
     (clientX: number, handle: "start" | "end") => {
       const time = getTimelineTime(clientX);
@@ -231,19 +220,6 @@ export default function HighlightSuggestionReview({
       document.addEventListener("touchend", onUp);
     },
     [updateTrimHandle],
-  );
-
-  const handleTimelineSeek = useCallback(
-    (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("[data-timeline-handle='true']")) {
-        return;
-      }
-
-      const clientX = "touches" in event ? event.touches[0].clientX : event.clientX;
-      seekPreviewTo(getTimelineTime(clientX));
-    },
-    [getTimelineTime, seekPreviewTo],
   );
 
   const handleSave = async () => {
@@ -441,6 +417,12 @@ export default function HighlightSuggestionReview({
                     ...current.playback,
                     spotlight,
                     freezeAt: spotlight ? safePreviewTime : null,
+                    // 처음 선수 선택 시 기본 줌(2.1x) 자동 적용 — 효과를 바로 볼 수 있도록
+                    zoom: spotlight
+                      ? current.playback.zoom <= DEFAULT_EDITOR_ZOOM
+                        ? DEFAULT_FOCUS_ZOOM
+                        : current.playback.zoom
+                      : DEFAULT_EDITOR_ZOOM,
                   },
                 }));
                 if (spotlight) {
@@ -459,7 +441,6 @@ export default function HighlightSuggestionReview({
                   },
                 }));
               }}
-              onTimelinePress={handleTimelineSeek}
               onTrimHandlePress={startTrimHandleDrag}
               onSpotlightPickingChange={setSpotlightPicking}
               onClearSpotlight={() => {

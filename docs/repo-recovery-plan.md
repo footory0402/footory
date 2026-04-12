@@ -1,6 +1,6 @@
 # Footory 저장소 현재 실행 계획
 
-> Last updated: 2026-04-11
+> Last updated: 2026-04-12
 > 목적: Codex와 작업자가 지금 해야 할 일만 빠르게 파악하는 운영용 계획 문서
 > 원칙: 실제 코드 우선, 현재 배치 우선, 완료 이력은 별도 로그로 분리
 
@@ -43,6 +43,23 @@
 - 하지만 `docs/release-readiness.md` 기준 현재 상태는 아직 `shipping ready 아님`이다.
 - 남은 위험은 작은 화면 회귀 강도, 느린 네트워크/복귀 조합 검증, 로컬 preview와 원격 재생 자산 검증 분리, featured 저장의 완전 원자성 미보장이다.
 - 문서 쪽에서는 `docs/repo-recovery-plan.md`가 실행 계획, 로그, 참고 설명을 한 파일에 모두 누적해 탐색 비용이 너무 커졌다.
+
+## 프로필 대 홈/피드 single-clip 재생 계약 정합성 점검 배치 (2026-04-12)
+
+- 대상: `docs/repo-recovery-plan.md`, `src/app/api/clips/[id]/route.ts`, `src/lib/clip-feed-metadata.ts`, `src/components/feed/FeedList.tsx`, `src/lib/server/feed.ts`, `src/lib/server/scout-home.ts`, `src/app/p/[handle]/page.tsx`, `src/components/profile/HighlightsTabV5.tsx`, 관련 backfill/QA 계획
+- 변경 이유: 사용자 제보 기준으로 같은 clip이 프로필에서는 편집 결과대로 보이지만 홈/피드/기타 진입면에서는 이전 상태 또는 비편집 상태처럼 보이는 경우가 있다. 실제 코드상 프로필은 `clips`를 직접 읽고, 여러 홈/피드 계열은 `feed_items.metadata` 복제본을 읽어 재생/카드/썸네일을 구성하므로 저장 후 정합성 드리프트 위험이 있다.
+- 이번 배치에서 먼저 확인할 것:
+  - 프로필, 공개 공유, 홈 피드, 스카우트 홈, 주간 베스트 등 single-clip 소비 경로별 데이터 원본과 재생 builder 사용 여부
+  - `PATCH /api/clips/[id]` 이후 `feed_items.metadata` 동기화 범위와 누락 필드
+  - 과거 feed row/backfill 부재 때문에 남아 있을 수 있는 stale metadata 영향 범위
+  - mobile 기준으로 `intro/profile card`, `lower third`, `trim`, `spotlight/freeze/zoom`이 경로별로 같은 계약을 쓰는지
+- 목표:
+  - 원인 후보를 `구조 문제`, `동기화 누락`, `과거 데이터 잔존`, `소비 경로별 builder 불일치`로 구분해 근거와 함께 정리한다.
+  - 이후 수정 단계에서는 `single source of truth`와 `metadata backfill` 중 어떤 축이 필요한지 결정 가능한 상태까지 만든다.
+- 비범위:
+  - 멀티클립 reel 구조 개편
+  - render/export phase 2 복귀
+  - 프로필 전체 UI 개편
 
 ## single-clip 편집 선택형 확대·경량 온보딩 배치 (2026-04-11)
 
