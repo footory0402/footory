@@ -736,68 +736,6 @@ export default function SingleClipEditorPreview({
           </div>
         ) : null}
 
-        {/* ── 상단 오버레이: 포커스 툴바 ─────────────────────── */}
-        {videoNativeSize && !spotlightPicking ? (
-          <div
-            className="absolute inset-x-0 top-0 z-25 px-3 pt-2.5 pb-8"
-            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%)" }}
-          >
-            <div className="flex items-center gap-2">
-              {!spotlight ? (
-                <button
-                  type="button"
-                  data-testid="single-clip-pick-toggle"
-                  aria-label="선수 선택하기"
-                  onClick={(e) => { e.stopPropagation(); onSpotlightPickingChange(true); }}
-                  className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3 py-1.5 text-[12px] font-semibold text-white/85 backdrop-blur-sm active:bg-black/70"
-                >
-                  <span>🎯</span>
-                  <span>선수 선택</span>
-                </button>
-              ) : (
-                <>
-                  <div className="flex shrink-0 gap-1.5">
-                    <button
-                      type="button"
-                      data-testid="single-clip-pick-toggle"
-                      aria-label="선수 다시 선택"
-                      onClick={(e) => { e.stopPropagation(); onSpotlightPickingChange(true); }}
-                      className="rounded-full border border-[#d8b36a]/40 bg-black/50 px-3 py-1.5 text-[11px] font-semibold text-[#f6d69a] backdrop-blur-sm"
-                    >
-                      🎯 다시
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="선수 선택 지우기"
-                      onClick={(e) => { e.stopPropagation(); onClearSpotlight(); }}
-                      className="rounded-full border border-white/15 bg-black/50 px-3 py-1.5 text-[11px] font-semibold text-white/65 backdrop-blur-sm"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div
-                    className="flex flex-1 items-center gap-2 rounded-full border border-white/15 bg-black/50 px-3 py-1.5 backdrop-blur-sm"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="range"
-                      min="1"
-                      max="3.2"
-                      step="0.1"
-                      value={draft.playback.zoom}
-                      onChange={(e) => onZoomChange(Number(e.target.value))}
-                      className="flex-1"
-                      style={{ accentColor: "#d8b36a" }}
-                    />
-                    <span className="shrink-0 text-[11px] font-bold tabular-nums text-[#f6d69a]">
-                      {draft.playback.zoom.toFixed(1)}×
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        ) : null}
 
         {/* ── 하단 오버레이: 시크바 ──────────────────────────── */}
         {videoNativeSize && !spotlightPicking ? (
@@ -895,6 +833,69 @@ export default function SingleClipEditorPreview({
           {formatTime(seekValue)}
           <span className="ml-1 text-white/30">/ {formatTime(seekMax)}</span>
         </div>
+      </div>
+
+      {/* ── 섹션: 선수 설정 ──────────────────────────────────── */}
+      <div className="border-t border-white/[0.06] bg-[#0b0b0f] px-3 pt-3.5 pb-3">
+        <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-white/35">
+          선수 설정
+        </p>
+        <div className="flex items-center gap-2">
+          {!spotlight ? (
+            <button
+              type="button"
+              data-testid="single-clip-pick-toggle"
+              aria-label="선수 선택하기"
+              onClick={() => onSpotlightPickingChange(true)}
+              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-2 text-[12px] font-semibold text-white/70 transition-colors active:bg-white/10"
+            >
+              <span>🎯</span>
+              <span>선수 선택</span>
+            </button>
+          ) : (
+            <>
+              <div className="flex shrink-0 gap-1.5">
+                <button
+                  type="button"
+                  data-testid="single-clip-pick-toggle"
+                  aria-label="선수 다시 선택"
+                  onClick={() => onSpotlightPickingChange(true)}
+                  className="rounded-full border border-[#d8b36a]/40 bg-[#d8b36a]/10 px-3 py-2 text-[11px] font-semibold text-[#f6d69a] transition-colors active:bg-[#d8b36a]/20"
+                >
+                  🎯 다시
+                </button>
+                <button
+                  type="button"
+                  aria-label="선수 선택 지우기"
+                  onClick={onClearSpotlight}
+                  className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-white/55 transition-colors active:bg-white/10"
+                >
+                  ✕ 제거
+                </button>
+              </div>
+              <div className="flex flex-1 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="3.2"
+                  step="0.1"
+                  value={draft.playback.zoom}
+                  onChange={(e) => onZoomChange(Number(e.target.value))}
+                  className="flex-1"
+                  style={{ accentColor: "#d8b36a" }}
+                />
+                <span className="shrink-0 text-[11px] font-bold tabular-nums text-[#f6d69a]">
+                  {draft.playback.zoom.toFixed(1)}×
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+        {spotlight && freezeAtSec != null ? (
+          <p className="mt-2 text-[10px] text-[#f6d69a]/60 tabular-nums">
+            · {formatTime(freezeAtSec)}에 강조 프레임
+          </p>
+        ) : null}
       </div>
 
       {/* ── 섹션 1: 구간 설정 (trim-only) ────────────────────── */}

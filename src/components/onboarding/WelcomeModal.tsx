@@ -9,8 +9,9 @@ export default function WelcomeModal() {
 
   useEffect(() => {
     try {
+      if (sessionStorage.getItem("footory_welcome_seen")) return;
       if (localStorage.getItem("footory_show_welcome")) {
-        localStorage.removeItem("footory_show_welcome");
+        sessionStorage.setItem("footory_welcome_seen", "1");
         setVisible(true);
       }
     } catch {}
@@ -20,7 +21,7 @@ export default function WelcomeModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-8">
-      {/* Backdrop */}
+      {/* Backdrop — 나중에 할게요와 동일: localStorage 키 유지 */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => setVisible(false)}
@@ -55,6 +56,15 @@ export default function WelcomeModal() {
             className="py-2 text-sm text-text-3 transition-colors hover:text-text-2"
           >
             나중에 할게요
+          </button>
+          <button
+            onClick={() => {
+              try { localStorage.removeItem("footory_show_welcome"); } catch {}
+              setVisible(false);
+            }}
+            className="py-1.5 text-xs text-text-3/50 transition-colors hover:text-text-3"
+          >
+            다시는 보지 않기
           </button>
         </div>
       </div>
